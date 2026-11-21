@@ -644,7 +644,7 @@ export function AdminConsole() {
         <div>
           <strong className="font-display text-lg">Reasoning flywheel</strong>
           <p className="mt-1 max-w-xl text-sm text-muted">
-            Edges per day, open attacks, judge kappa, Brier, and mastery
+            Edges per day, open attacks, judge kappa, Brier, and review
             coverage. Tiles fill as Wave 6 sources land. Every number links to
             its rows.
           </p>

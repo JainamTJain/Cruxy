@@ -417,6 +417,129 @@ async function kappaTile(): Promise<FlywheelTile> {
   };
 }
 
+type BrierPersonBag = {
+  p: number[];
+  a: number[];
+  roundId?: string;
+  /** Pre-aggregated Brier from D (used when pair samples are absent). */
+  preAgg?: { brier: number; n: number };
+};
+
+async function brierFromDTables(): Promise<{
+  preds: number[];
+  actuals: number[];
+  byPerson: Map<string, BrierPersonBag>;
+  preAggOverall?: { brier: number; n: number };
+} | null> {
+  // Prefer Workstream D's dedicated tables when they land (00031).
+  type BrierRow = {
+    id: string;
+    person_id: string;
+    brier: number | null;
+    n: number | null;
+    round_id?: string | null;
+    predicted?: number | null;
+    actual?: number | null;
+    created_at?: string;
+  };
+  type PredRow = {
+    id: string;
+    person_id: string;
+    round_id: string;
+    item: string;
+    predicted: number;
+    actual: number | null;
+  };
+
+  const hasScores = await tableExists("prediction_brier_scores");
+  const hasPreds = await tableExists("round_score_predictions");
+  if (!hasScores && !hasPreds) return null;
+
+  const byPerson = new Map<string, BrierPersonBag>();
+  const preds: number[] = [];
+  const actuals: number[] = [];
+  let preAggOverall: { brier: number; n: number } | undefined;
+
+  if (hasScores) {
+    let rows: BrierRow[] = [];
+    if (isSampleDataMode()) {
+      const store = await readStore();
+      rows =
+        ((store as unknown as { prediction_brier_scores?: BrierRow[] })
+          .prediction_brier_scores ?? []) as BrierRow[];
+    } else {
+      const sb = getServiceSupabase();
+      const { data, error } = await sb
+        .from("prediction_brier_scores")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) return null;
+      rows = (data as BrierRow[]) ?? [];
+    }
+
+    let weighted = 0;
+    let weightN = 0;
+    for (const r of rows) {
+      if (typeof r.predicted === "number" && typeof r.actual === "number") {
+        preds.push(r.predicted);
+        actuals.push(r.actual);
+        const bag = byPerson.get(r.person_id) ?? { p: [], a: [] };
+        bag.p.push(r.predicted);
+        bag.a.push(r.actual);
+        if (r.round_id) bag.roundId = r.round_id;
+        byPerson.set(r.person_id, bag);
+      } else if (typeof r.brier === "number" && (r.n ?? 0) > 0) {
+        const n = r.n ?? 1;
+        const bag = byPerson.get(r.person_id) ?? { p: [], a: [] };
+        const prevN = bag.preAgg?.n ?? 0;
+        const prevB = bag.preAgg?.brier ?? 0;
+        bag.preAgg = {
+          brier: (prevB * prevN + r.brier * n) / (prevN + n),
+          n: prevN + n,
+        };
+        if (r.round_id) bag.roundId = r.round_id;
+        byPerson.set(r.person_id, bag);
+        weighted += r.brier * n;
+        weightN += n;
+      }
+    }
+    if (weightN > 0) preAggOverall = { brier: weighted / weightN, n: weightN };
+  }
+
+  if (preds.length === 0 && hasPreds) {
+    let rows: PredRow[] = [];
+    if (isSampleDataMode()) {
+      const store = await readStore();
+      rows =
+        ((store as unknown as { round_score_predictions?: PredRow[] })
+          .round_score_predictions ?? []) as PredRow[];
+    } else {
+      const sb = getServiceSupabase();
+      const { data, error } = await sb
+        .from("round_score_predictions")
+        .select("id, person_id, round_id, item, predicted, actual")
+        .not("actual", "is", null)
+        .limit(2000);
+      if (error) return null;
+      rows = (data as PredRow[]) ?? [];
+    }
+    for (const r of rows) {
+      if (r.actual == null) continue;
+      preds.push(r.predicted);
+      actuals.push(r.actual);
+      const bag = byPerson.get(r.person_id) ?? { p: [], a: [] };
+      bag.p.push(r.predicted);
+      bag.a.push(r.actual);
+      bag.roundId = r.round_id;
+      byPerson.set(r.person_id, bag);
+    }
+  }
+
+  if (preds.length === 0 && byPerson.size === 0 && !preAggOverall) return null;
+  return { preds, actuals, byPerson, preAggOverall };
+}
+
 async function brierTile(): Promise<FlywheelTile> {
   const empty: FlywheelTile = {
     id: "brier",
@@ -431,102 +554,115 @@ async function brierTile(): Promise<FlywheelTile> {
     rows: [],
   };
 
-  type Card = {
-    id: string;
-    round_id: string;
-    cruxy: boolean;
-    predictions: Record<string, number> | null;
-    created_by: string | null;
-    created_at: string;
-  };
-  type Score = { card_id: string; item: string; score: number };
-
-  let cards: Card[] = [];
-  let scores: Score[] = [];
-  if (isSampleDataMode()) {
-    const store = await readStore();
-    cards = store.judge_cards as Card[];
-    scores = store.card_scores as Score[];
-  } else {
-    const sb = getServiceSupabase();
-    const [cRes, sRes] = await Promise.all([
-      sb
-        .from("judge_cards")
-        .select("id, round_id, cruxy, predictions, created_by, created_at")
-        .not("predictions", "is", null)
-        .limit(200),
-      sb.from("card_scores").select("card_id, item, score").limit(2000),
-    ]);
-    if (cRes.error) return empty;
-    cards = (cRes.data as Card[]) ?? [];
-    scores = (sRes.data as Score[]) ?? [];
-  }
-
   const people = await listPeopleFull();
   const nameOf = (id: string | null) =>
     id ? people.find((p) => p.id === id)?.name ?? "Someone" : "Someone";
 
-  const preds: number[] = [];
-  const actuals: number[] = [];
-  const rows: FlywheelRowLink[] = [];
-  const byPerson = new Map<string, { p: number[]; a: number[] }>();
+  const fromD = await brierFromDTables();
+  let preds: number[] = [];
+  let actuals: number[] = [];
+  let byPerson = new Map<string, BrierPersonBag>();
+  let sourceNote = "D, score predictions";
+  let preAggOverall: { brier: number; n: number } | undefined;
 
-  for (const card of cards) {
-    if (!card.predictions || card.cruxy) continue;
-    const cardScores = scores.filter((s) => s.card_id === card.id);
-    if (!cardScores.length) continue;
-    for (const [item, pred] of Object.entries(card.predictions)) {
-      const actual = cardScores.find((s) => s.item === item)?.score;
-      if (actual == null || typeof pred !== "number") continue;
-      preds.push(pred);
-      actuals.push(actual);
-      const pid = card.created_by ?? "unknown";
-      const bag = byPerson.get(pid) ?? { p: [], a: [] };
-      bag.p.push(pred);
-      bag.a.push(actual);
-      byPerson.set(pid, bag);
+  if (fromD) {
+    preds = fromD.preds;
+    actuals = fromD.actuals;
+    byPerson = fromD.byPerson;
+    preAggOverall = fromD.preAggOverall;
+    sourceNote = "D, prediction_brier_scores / round_score_predictions";
+  } else {
+    // Fallback until D's tables land: judge_cards.predictions vs card_scores
+    type Card = {
+      id: string;
+      round_id: string;
+      cruxy: boolean;
+      predictions: Record<string, number> | null;
+      created_by: string | null;
+      created_at: string;
+    };
+    type Score = { card_id: string; item: string; score: number };
+
+    let cards: Card[] = [];
+    let scores: Score[] = [];
+    if (isSampleDataMode()) {
+      const store = await readStore();
+      cards = store.judge_cards as Card[];
+      scores = store.card_scores as Score[];
+    } else {
+      const sb = getServiceSupabase();
+      const [cRes, sRes] = await Promise.all([
+        sb
+          .from("judge_cards")
+          .select("id, round_id, cruxy, predictions, created_by, created_at")
+          .not("predictions", "is", null)
+          .limit(200),
+        sb.from("card_scores").select("card_id, item, score").limit(2000),
+      ]);
+      if (cRes.error) return empty;
+      cards = (cRes.data as Card[]) ?? [];
+      scores = (sRes.data as Score[]) ?? [];
     }
+
+    for (const card of cards) {
+      if (!card.predictions || card.cruxy) continue;
+      const cardScores = scores.filter((s) => s.card_id === card.id);
+      if (!cardScores.length) continue;
+      for (const [item, pred] of Object.entries(card.predictions)) {
+        const actual = cardScores.find((s) => s.item === item)?.score;
+        if (actual == null || typeof pred !== "number") continue;
+        preds.push(pred);
+        actuals.push(actual);
+        const pid = card.created_by ?? "unknown";
+        const bag = byPerson.get(pid) ?? { p: [], a: [] };
+        bag.p.push(pred);
+        bag.a.push(actual);
+        bag.roundId = card.round_id;
+        byPerson.set(pid, bag);
+      }
+    }
+    sourceNote = "D, judge_cards.predictions (fallback until D tables land)";
   }
 
-  const overall = meanBrier(preds, actuals);
+  const overall = meanBrier(preds, actuals) ??
+    (preAggOverall && preAggOverall.n >= 3
+      ? { brier: preAggOverall.brier, n: preAggOverall.n }
+      : null);
   if (!overall) {
     return {
       ...empty,
       ready: true,
       emptyMessage:
-        preds.length === 0
-          ? "No score predictions on cards yet."
-          : `Only ${preds.length} prediction pairs so far (need 3).`,
+        preds.length === 0 && !preAggOverall
+          ? "No score predictions yet. Waiting for Workstream D."
+          : `Only ${preds.length || preAggOverall?.n || 0} prediction pairs so far (need 3).`,
       summary: "Not enough data yet",
+      source: sourceNote,
     };
   }
 
-  const roundByPerson = new Map<string, string>();
-  for (const card of cards) {
-    if (!card.predictions || card.cruxy || !card.created_by) continue;
-    if (!roundByPerson.has(card.created_by)) {
-      roundByPerson.set(card.created_by, card.round_id);
-    }
-  }
-
+  const rows: FlywheelRowLink[] = [];
   for (const [pid, bag] of byPerson) {
-    const b = meanBrier(bag.p, bag.a);
+    const fromPairs = meanBrier(bag.p, bag.a);
+    const b = fromPairs ??
+      (bag.preAgg && bag.preAgg.n >= 1
+        ? { brier: bag.preAgg.brier, n: bag.preAgg.n }
+        : null);
     if (!b) continue;
-    const roundId = roundByPerson.get(pid);
     rows.push({
       id: pid,
       label: `${nameOf(pid)}: Brier ${b.brier.toFixed(3)} (n=${b.n})`,
-      href: roundId
-        ? `/practice/rounds/${roundId}/report`
+      href: bag.roundId
+        ? `/practice/rounds/${bag.roundId}/report`
         : "/admin/flywheel?tile=brier",
-      meta: "own past only",
+      meta: "personal (admin view)",
     });
   }
 
   return {
     id: "brier",
     title: "Brier trend",
-    source: "D, score predictions",
+    source: sourceNote,
     ready: true,
     emptyMessage: "",
     summary: `mean Brier ${overall.brier.toFixed(3)} over ${overall.n} pairs`,
@@ -542,11 +678,11 @@ async function brierTile(): Promise<FlywheelTile> {
 async function masteryTile(): Promise<FlywheelTile> {
   const empty: FlywheelTile = {
     id: "mastery",
-    title: "Mastery coverage per case",
+    title: "Review coverage per case",
     source: "E + F, flashcards and reviews",
     ready: false,
     emptyMessage:
-      "Not enough data yet. Coverage fills from real flashcard reviews (F) and the mastery map (E).",
+      "Not enough data yet. Review coverage fills from flashcard reviews (F); personal mastery map (E) will refine this later.",
     summary: "Not enough data yet",
     value: null,
     series: [],
@@ -617,7 +753,7 @@ async function masteryTile(): Promise<FlywheelTile> {
 
   return {
     id: "mastery",
-    title: "Mastery coverage per case",
+    title: "Review coverage per case",
     source: "E + F, flashcards and reviews",
     ready: true,
     emptyMessage: "",
