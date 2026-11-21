@@ -6,13 +6,16 @@ Web app for USC’s three Ethics Bowl teams.
 
 ## Tracks landed
 
-- **Track 0 Foundation** — auth, schema/RLS, `callCruxy`, design tokens, Passcodes panel, checklist
-- **Track 2 Case brain** — per-team claim maps, Truth Sources queue (propose → human decide with reason), Inspired-by fan-out, Analyst notes, opposing positions, robustness / consistency / change-the-facts, full item history
-- **Track 3 Revision** (this PR) — one-pagers (visual + diff + Drive export stub), FSRS flashcards synced from Truth Sources, Socratic drills, language/phrasebook, 10-minute warm-up, moderator bank (paste → confirm), personal roadmaps with auto stage marking
+| Track | Status |
+|-------|--------|
+| **0 Foundation** | Auth, schema/RLS, `callCruxy`, activity log, design tokens |
+| **1 Library** | Drive sync + digest, reading room, search, nightly research, book requests |
+| **2 Case brain** | Claim maps, Truth Sources queue, Inspired-by, Analyst, opposing positions, robustness |
+| **3 Revision** (this PR) | One-pagers, FSRS flashcards, Socratic drills, moderator bank, personal roadmaps |
 
 ### Local / sample-data path
 
-Supabase and AI gateway keys may still be missing. With `USE_SAMPLE_DATA=1` (default when Supabase is unset), the app uses a local JSON store under `.data/` (gitignored). Case brains and revision tools work in this path; Analyst / Coach drafts use `callCruxy` stubs when keys are missing.
+Supabase, AI gateway, and `DRIVE_ROOT_FOLDER_ID` may still be missing. With `USE_SAMPLE_DATA=1` (default when Supabase is unset), the app uses a local JSON store under `.data/` (gitignored) and **sample Drive stubs** when the folder id is unset. Case brain and revision tools work in this path; Analyst / Coach / Librarian stubs use `callCruxy` when keys are missing.
 
 ```bash
 cp .env.example .env.local
@@ -24,36 +27,42 @@ npm run dev
 **Sample member starter (local only):** `482913`  
 Use it once per person, then choose your own 6-digit passcode.
 
-Jainam signs in with the admin starter whose hash is `INITIAL_ADMIN_CODE_HASH` (never commit plaintext).
-
 ### Acceptance checks
 
 ```bash
 npm run check:track0
+npm run check:track1
 npm run check:track2
 npm run check:track3
 ```
 
+Track 1 checks: unchanged re-sync → 0 AI calls; every passage has Drive id + anchor; sorting queue lists confidence &lt; 0.7.
+
 Drive one-pager export is a stub until `DRIVE_ROOT_FOLDER_ID` + service account are set.
 
-Apply migrations when Supabase is connected:
+### Library (Track 1)
 
-- `supabase/migrations/00001_track0_foundation.sql`
-- `supabase/migrations/00002_track2_case_brain.sql`
-- `supabase/migrations/00003_track3_revision.sql`
-- `supabase/seed.sql`
+- **Sync now** on `/library` (and Vercel cron `0 7 * * *` → `/api/cron/drive-sync`)
+- Digests only new/changed files (checksum + modified time)
+- Librarian tags case / type / confidence; passages ~600 words with anchors + stub embeddings
+- Reading room: `/library/[fileId]` — case pane + file, highlights, comments, ask Cruxy, → flashcard / Truth Source proposal
+- Search: `/library/search` · Sorting queue: `/library/sorting`
+- Nightly research cron `30 7 * * *` → `/api/cron/research`; book requests at `/admin/books` (tech admin only)
+- Research / reading / transcript ideas post into the shared Track 2 proposals queue
 
 ### Still needed from Jainam for production
 
-1. **Supabase** — `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-2. **AI gateway** — `AI_GATEWAY_API_KEY` or `OPENROUTER_API_KEY`
-3. **Drive** — share the Ethics Bowl root folder with the service account email (see secrets inventory), then set `DRIVE_ROOT_FOLDER_ID`
+1. **Supabase** — `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; apply `00001_track0_foundation.sql`, `00002_track2_case_brain.sql`, `00003_track1_library.sql`, `00004_track3_revision.sql`, and `supabase/seed.sql`
+2. **AI gateway** — `AI_GATEWAY_API_KEY` or `OPENROUTER_API_KEY` (Librarian/Researcher/Coach stub until set)
+3. **Drive** — share the Ethics Bowl root folder with `crux-drive-reader@crux-ethics-bowl-jainam-jain.iam.gserviceaccount.com`, then set `DRIVE_ROOT_FOLDER_ID` (service account JSON via `GOOGLE_SERVICE_ACCOUNT_JSON`)
+4. Optional: `CRON_SECRET` for cron routes
 
 ### Security
 
 - Never commit `.env`, `.env.local`, service account JSON, or secrets
 - `.env.example` has empty keys only
 - Passcodes: argon2 hash + AES-GCM copy for tech-admin reveal; Jainam’s own is hash-only
+- Book requests RLS / API: tech admin only
 
 ### Design tokens
 

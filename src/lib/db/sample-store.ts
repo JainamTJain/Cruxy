@@ -31,10 +31,19 @@ import type {
   Team,
 } from "@/lib/types";
 import type {
+  BookRequest,
+  Comment,
+  Flashcard,
+  Highlight,
+  LibraryFile,
+  Passage,
+  ResearchRun,
+  SyncRun,
+} from "@/lib/library/types";
+import type {
   CardFsrsState,
   CardReview,
   DeckOptIn,
-  Flashcard,
   JudgeAttempt,
   ModeratorQuestion,
   OnePager,
@@ -59,7 +68,16 @@ export interface SampleStore {
   ai_calls: AiCall[];
   competitions: Competition[];
   cases: CaseRow[];
-  /** Track 2 Case brain */
+  /** Track 1 Library */
+  files: LibraryFile[];
+  passages: Passage[];
+  highlights: Highlight[];
+  comments: Comment[];
+  flashcards: Flashcard[];
+  research_runs: ResearchRun[];
+  book_requests: BookRequest[];
+  sync_runs: SyncRun[];
+  /** Track 2 Case brain (proposals shared with Library research/reading) */
   claims: Claim[];
   supports: Support[];
   backings: Backing[];
@@ -75,9 +93,8 @@ export interface SampleStore {
   seeded_at: string;
   /** tech-admin reauth timestamp for reveal window */
   last_tech_reauth_at: string | null;
-  // Track 3 Revision
+  /** Track 3 Revision */
   one_pagers: OnePager[];
-  flashcards: Flashcard[];
   card_fsrs_states: CardFsrsState[];
   card_reviews: CardReview[];
   deck_opt_ins: DeckOptIn[];
@@ -132,10 +149,32 @@ function emptyCaseBrainFields(): Pick<
   };
 }
 
+function emptyLibraryFields(): Pick<
+  SampleStore,
+  | "files"
+  | "passages"
+  | "highlights"
+  | "comments"
+  | "flashcards"
+  | "research_runs"
+  | "book_requests"
+  | "sync_runs"
+> {
+  return {
+    files: [],
+    passages: [],
+    highlights: [],
+    comments: [],
+    flashcards: [],
+    research_runs: [],
+    book_requests: [],
+    sync_runs: [],
+  };
+}
+
 function emptyTrack3Fields(): Pick<
   SampleStore,
   | "one_pagers"
-  | "flashcards"
   | "card_fsrs_states"
   | "card_reviews"
   | "deck_opt_ins"
@@ -152,7 +191,6 @@ function emptyTrack3Fields(): Pick<
 > {
   return {
     one_pagers: [],
-    flashcards: [],
     card_fsrs_states: [],
     card_reviews: [],
     deck_opt_ins: [],
@@ -302,7 +340,6 @@ export async function buildSeedStore(): Promise<SampleStore> {
   const drB = people.find((p) => p.name === "Dr. B")!;
   const now = nowIso();
 
-  // Shared Team 1 Case 12 claim map (Tracks 2 + 3 demos)
   const claim1Id = randomUUID();
   const claim2Id = randomUUID();
   const claims: Claim[] = [
@@ -550,6 +587,7 @@ export async function buildSeedStore(): Promise<SampleStore> {
     ai_calls: [],
     competitions: [competition],
     cases,
+    ...emptyLibraryFields(),
     ...emptyCaseBrainFields(),
     claims,
     supports,
@@ -565,6 +603,7 @@ export async function buildSeedStore(): Promise<SampleStore> {
 
 function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
   const brain = emptyCaseBrainFields();
+  const library = emptyLibraryFields();
   const track3 = emptyTrack3Fields();
   return {
     teams: raw.teams ?? [],
@@ -574,6 +613,14 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     ai_calls: raw.ai_calls ?? [],
     competitions: raw.competitions ?? [],
     cases: raw.cases ?? [],
+    files: raw.files ?? library.files,
+    passages: raw.passages ?? library.passages,
+    highlights: raw.highlights ?? library.highlights,
+    comments: raw.comments ?? library.comments,
+    flashcards: raw.flashcards ?? library.flashcards,
+    research_runs: raw.research_runs ?? library.research_runs,
+    book_requests: raw.book_requests ?? library.book_requests,
+    sync_runs: raw.sync_runs ?? library.sync_runs,
     claims: raw.claims ?? brain.claims,
     supports: raw.supports ?? brain.supports,
     backings: raw.backings ?? brain.backings,
@@ -589,7 +636,6 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     seeded_at: raw.seeded_at ?? nowIso(),
     last_tech_reauth_at: raw.last_tech_reauth_at ?? null,
     one_pagers: raw.one_pagers ?? track3.one_pagers,
-    flashcards: raw.flashcards ?? track3.flashcards,
     card_fsrs_states: raw.card_fsrs_states ?? track3.card_fsrs_states,
     card_reviews: raw.card_reviews ?? track3.card_reviews,
     deck_opt_ins: raw.deck_opt_ins ?? track3.deck_opt_ins,

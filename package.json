@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check:track0": "tsx scripts/track0-checks.ts",
+    "check:track1": "tsx scripts/track1-checks.ts",
     "check:track2": "tsx scripts/track2-checks.ts",
     "check:track3": "tsx scripts/track3-checks.ts"
   },

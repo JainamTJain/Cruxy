@@ -109,20 +109,8 @@ export interface OnePager {
   created_by: string | null;
 }
 
-export interface Flashcard {
-  id: string;
-  team_id: string;
-  case_id: string;
-  deck: string;
-  front: string;
-  back: string;
-  citation_ids: string[];
-  truth_item_id: string | null;
-  source_kind: "truth" | "reading" | "case_card" | "manual";
-  created_at: string;
-  created_by: string | null;
-  updated_at: string;
-}
+/** Canonical flashcard shape lives in Library; Revision adds FSRS on top. */
+export type { Flashcard } from "@/lib/library/types";
 
 /** FSRS scheduling state per person × card */
 export interface CardFsrsState {

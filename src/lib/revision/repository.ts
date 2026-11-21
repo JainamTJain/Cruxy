@@ -298,7 +298,9 @@ export async function dueFlashcardsForPerson(personId: string) {
   )) {
     caseIds.add(role.case_id);
   }
-  const cards = store.flashcards.filter((c) => caseIds.has(c.case_id));
+  const cards = store.flashcards.filter(
+    (c) => c.case_id != null && caseIds.has(c.case_id),
+  );
   const now = Date.now();
   const due: { card: Flashcard; state: CardFsrsState | null }[] = [];
   for (const card of cards) {
