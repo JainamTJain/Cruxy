@@ -9,6 +9,7 @@ import {
   supportLabel,
 } from "@/components/case-brain/support-label";
 import { VersionConfirm } from "@/components/case-brain/version-confirm";
+import { TeamDocImport } from "@/components/team-doc-import";
 import type {
   CaseBrainSnapshot,
   CaseRoleKind,
@@ -88,6 +89,7 @@ function originLabel(
         : "From practice";
   }
   if (proposal.origin === "reading") return "Reading room";
+  if (proposal.origin === "team_doc") return "Team doc";
   return "Team member";
 }
 
@@ -839,7 +841,7 @@ export function CaseBrainClient({
               aria-labelledby="queue-heading"
               className="flex flex-col gap-3.5 rounded-[20px] bg-white p-5"
             >
-              <div className="flex items-baseline justify-between">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h2
                   id="queue-heading"
                   className="font-display m-0 text-[22px] font-extrabold"
@@ -850,6 +852,12 @@ export function CaseBrainClient({
                   {pending.length}
                 </span>
               </div>
+              <TeamDocImport
+                teamId={teamId}
+                caseId={caseId}
+                label="Import a team doc"
+                onImported={() => void load()}
+              />
 
               {pending.length === 0 ? (
                 <p className="text-sm leading-snug text-muted">

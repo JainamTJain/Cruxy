@@ -134,6 +134,7 @@ export async function librarianTag(input: {
         text,
         kind: "other" as const,
         citation_ids: [],
+        strength: "normal" as const,
       })),
     }),
   });

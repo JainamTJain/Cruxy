@@ -1,0 +1,22 @@
+{
+  "case_numbers": [1],
+  "type": "team_notes",
+  "confidence": 0.9,
+  "card": "What: Team working doc\nCase(s): 1\nType: team_notes\nNew: Responsibility gap\nOpen: Ready for Truth Sources?",
+  "ideas": [
+    {
+      "text": "Responsibility gap: when a machine selects a target, no one may be fully answerable for each death.",
+      "kind": "framework",
+      "case_number": 1,
+      "citation_ids": [],
+      "strength": "strong"
+    },
+    {
+      "text": "Automation bias: people formally in the loop come to defer to the system's recommendation.",
+      "kind": "fact",
+      "case_number": 1,
+      "citation_ids": [],
+      "strength": "normal"
+    }
+  ]
+}
