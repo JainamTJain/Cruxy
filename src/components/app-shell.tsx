@@ -1,8 +1,13 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { CruxyProvider, useCruxy } from "@/components/cruxy/cruxy-context";
+import { CruxyDrawer } from "@/components/cruxy/cruxy-drawer";
+import { CruxyLamp } from "@/components/cruxy/cruxy-lamp";
+import { FloatingCruxy } from "@/components/cruxy/floating-cruxy";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/types";
 
@@ -17,23 +22,58 @@ type Me = {
   dataMode?: string;
 };
 
-const NAV = [
+const SIDE_NAV = [
   { href: "/home", label: "Program map" },
-  { href: "/library", label: "Library" },
-  { href: "/case-brain", label: "Case brain" },
-  { href: "/revision", label: "Revision" },
-  { href: "/revision/roadmap", label: "Roadmap" },
-  { href: "/checklist", label: "First run" },
-  { href: "/settings", label: "Settings" },
-  { href: "/team", label: "Team" },
-  { href: "/team/chat", label: "Chat" },
+  { href: "/revision/roadmap", label: "My roadmap" },
+  { href: "/case-brain", label: "Cases" },
+  { href: "/library", label: "Reading room" },
   { href: "/practice", label: "Practice" },
+  { href: "/team", label: "Team" },
+  { href: "/team/chat", label: "Team chat" },
+  { href: "/revision", label: "Revision" },
+  { href: "/settings", label: "Settings" },
 ];
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+const PHONE_TABS = [
+  { href: "/home", label: "Today" },
+  { href: "/case-brain", label: "Cases" },
+  { href: "/practice", label: "Practice" },
+  { href: "/team", label: "Team" },
+];
+
+function navActive(pathname: string, href: string) {
+  if (href === "/home") return pathname === "/home" || pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function AskCruxyButton() {
+  const { wake, setDrawerOpen, awake } = useCruxy();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        if (!awake) wake();
+        else setDrawerOpen(true);
+      }}
+      className="flex items-center gap-2 rounded-xl bg-gold px-3 py-2 text-sm font-semibold text-ink shadow-sm transition hover:brightness-95"
+    >
+      <Image
+        src="/cruxy/cruxy-lamp.png"
+        alt=""
+        width={18}
+        height={18}
+        unoptimized
+      />
+      Ask Cruxy
+    </button>
+  );
+}
+
+function ShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
+  const { wake, setDrawerOpen, awake } = useCruxy();
 
   async function refresh() {
     const res = await fetch("/api/auth/me");
@@ -73,18 +113,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="mx-auto flex min-h-dvh max-w-6xl flex-col px-4 pb-24 pt-4 sm:pb-8 sm:pt-6">
       <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href="/home" className="font-display text-2xl font-semibold text-cardinal">
+          <Link
+            href="/home"
+            className="font-display text-2xl font-semibold text-cardinal"
+          >
             crux
           </Link>
           {me?.session ? (
             <p className="text-xs text-muted">
               {me.session.name}
-              {me.session.adminView ? " · admin view" : ""}
+              {me.session.adminView ? " · admin" : ""}
               {me.dataMode === "sample" ? " · sample data" : ""}
             </p>
           ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <div className="hidden sm:block">
+            <AskCruxyButton />
+          </div>
           {isAdminRole ? (
             <button
               type="button"
@@ -105,12 +151,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <div className="flex flex-1 gap-6">
-        <nav className="hidden w-44 shrink-0 flex-col gap-1 sm:flex">
-          {NAV.map((item) => {
-            const active =
-              item.href === "/home"
-                ? pathname === item.href
-                : pathname === item.href || pathname.startsWith(`${item.href}/`);
+        <nav className="hidden w-48 shrink-0 flex-col gap-1 sm:flex">
+          <div className="mb-3 rounded-2xl bg-ink px-3 py-4 text-paper shadow-md">
+            <p className="font-display text-lg font-semibold tracking-tight">
+              crux
+            </p>
+            <p className="mt-1 text-[11px] text-paper/60">
+              Ethics Bowl · USC
+            </p>
+            <div className="mt-3">
+              <AskCruxyButton />
+            </div>
+          </div>
+          {SIDE_NAV.map((item) => {
+            const active = navActive(pathname, item.href);
             return (
               <Link
                 key={item.href}
@@ -128,6 +182,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
           {me?.session?.adminView ? (
             <>
+              <div className="my-2 h-px bg-ink/10" />
               <Link
                 href="/admin"
                 className={cn(
@@ -204,25 +259,44 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="min-w-0 flex-1">{children}</div>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-ink/10 bg-paper/95 px-2 py-2 backdrop-blur sm:hidden">
-        <div className="mx-auto flex max-w-lg justify-around text-[11px]">
-          {NAV.map((item) => (
+      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-ink/10 bg-paper/95 px-1 py-2 backdrop-blur sm:hidden">
+        <div className="mx-auto flex max-w-lg items-stretch justify-around text-[11px]">
+          {PHONE_TABS.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "px-2 py-1",
-                pathname === item.href ? "font-semibold text-cardinal" : "text-muted",
+                "flex flex-1 flex-col items-center gap-0.5 px-1 py-1",
+                navActive(pathname, item.href)
+                  ? "font-semibold text-cardinal"
+                  : "text-muted",
               )}
             >
               {item.label}
             </Link>
           ))}
+          <button
+            type="button"
+            onClick={() => {
+              if (!awake) wake();
+              else setDrawerOpen(true);
+            }}
+            className="flex flex-1 flex-col items-center gap-0.5 px-1 py-1 text-muted"
+          >
+            <Image
+              src="/cruxy/cruxy-curious.png"
+              alt=""
+              width={20}
+              height={20}
+              unoptimized
+            />
+            Cruxy
+          </button>
           {me?.session?.adminView ? (
             <Link
               href="/admin"
               className={cn(
-                "px-2 py-1",
+                "flex flex-1 flex-col items-center px-1 py-1",
                 pathname.startsWith("/admin")
                   ? "font-semibold text-cardinal"
                   : "text-muted",
@@ -234,13 +308,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
 
-      {/* Lamp placeholder — full Cruxy float is Track 4 */}
-      <div
-        className="animate-bob fixed bottom-20 right-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-ink text-[10px] font-medium text-gold shadow-lg sm:bottom-6"
-        title="Cruxy's lamp (Track 4)"
-      >
-        lamp
-      </div>
+      <FloatingCruxy />
+      <CruxyLamp />
+      <CruxyDrawer />
     </div>
+  );
+}
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <CruxyProvider>
+      <ShellInner>{children}</ShellInner>
+    </CruxyProvider>
   );
 }
