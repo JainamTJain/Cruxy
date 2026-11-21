@@ -1,11 +1,10 @@
 -- Workstream E Wave 6: Mastery map (person × claim-node grid).
 -- Migration number reserved in wave6-innovation.md: E = 00033.
--- Compatible with F's node_mastery (00032): create-if-missing so E can ship
--- before F lands; F may extend columns later without dropping this shape.
--- Soft dependency on K's arg_edges (00028): read in app code; indexes already
--- exist from 00028.
+-- F's 00032 already owns node_mastery (person_id, claim_id, mastery,
+-- review_count, last_grade). This table is the map grid cache only;
+-- card-review evidence is read from F's node_mastery at compute time.
 
-create table if not exists node_mastery (
+create table if not exists mastery_map_cells (
   id uuid primary key default gen_random_uuid(),
   person_id uuid not null references people(id) on delete cascade,
   team_id uuid references teams(id) on delete cascade,
@@ -22,14 +21,14 @@ create table if not exists node_mastery (
   unique (person_id, node_kind, node_id)
 );
 
-create index if not exists node_mastery_case_team_idx
-  on node_mastery (case_id, team_id);
+create index if not exists mastery_map_cells_case_team_idx
+  on mastery_map_cells (case_id, team_id);
 
-create index if not exists node_mastery_person_case_idx
-  on node_mastery (person_id, case_id);
+create index if not exists mastery_map_cells_person_case_idx
+  on mastery_map_cells (person_id, case_id);
 
-alter table node_mastery enable row level security;
-revoke all on table node_mastery from anon, authenticated;
+alter table mastery_map_cells enable row level security;
+revoke all on table mastery_map_cells from anon, authenticated;
 
-comment on table node_mastery is
-  'Per-person mastery of a claim (or related) node. Filled from real card_reviews, answers and rounds. Personal; admins may read all for the mastery map.';
+comment on table mastery_map_cells is
+  'Mastery map grid cells (person × claim node). Computed from F node_mastery card reviews, drill answers and round feedback. Personal; admins may read all for the map.';

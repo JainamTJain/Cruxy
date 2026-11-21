@@ -7,8 +7,9 @@ import type { SampleStore } from "@/lib/db/sample-store";
 import type { ArgEdge } from "@/lib/graph/types";
 import type {
   ClaimNodeRef,
+  FNodeMastery,
+  MasteryMapCellRow,
   MasteryNodeKind,
-  NodeMasteryRow,
 } from "@/lib/mastery/types";
 
 type StoreSlice = Pick<
@@ -214,6 +215,7 @@ function roundHitsForNode(
 /**
  * Compute mastery 0..1 from real activity, or null when none.
  * Weights: card reviews 50%, answers 30%, round hits 20%.
+ * Prefers F's node_mastery (claim_id) for card-review evidence when present.
  */
 export function computeNodeMastery(input: {
   store: StoreSlice;
@@ -222,8 +224,18 @@ export function computeNodeMastery(input: {
   caseId: string;
   node: ClaimNodeRef;
   edges?: ArgEdge[] | null;
-}): { mastery: number | null; evidence: NodeMasteryRow["evidence"] } {
-  const { store, personId, teamId, caseId, node, edges } = input;
+  /** F's node_mastery rows for this person (keyed by claim_id). */
+  fNodeMastery?: FNodeMastery[] | null;
+}): { mastery: number | null; evidence: MasteryMapCellRow["evidence"] } {
+  const { store, personId, teamId, caseId, node, edges, fNodeMastery } = input;
+
+  const fRow =
+    node.node_kind === "claim"
+      ? (fNodeMastery ?? []).find(
+          (m) => m.person_id === personId && m.claim_id === node.node_id,
+        )
+      : undefined;
+
   const cardIds = new Set(cardsForNode(store, caseId, teamId, node));
   const reviews = store.card_reviews.filter(
     (r) => r.person_id === personId && cardIds.has(r.card_id),
@@ -235,7 +247,10 @@ export function computeNodeMastery(input: {
 
   const roundHits = roundHitsForNode(store, caseId, personId, node, edges);
 
-  const card_reviews = reviews.length;
+  // Prefer F's review_count when the claim is linked in node_mastery
+  const card_reviews = fRow
+    ? fRow.review_count
+    : reviews.length;
   const answerCount = answers.length;
   const round_hits = roundHits.length;
 
@@ -243,9 +258,11 @@ export function computeNodeMastery(input: {
     return { mastery: null, evidence: {} };
   }
 
-  // Card mastery: share of linked cards with at least one good review (grade >= 3)
+  // Card mastery: F's stored mastery wins when present
   let cardScore = 0;
-  if (cardIds.size > 0) {
+  if (fRow && fRow.review_count > 0) {
+    cardScore = Math.max(0, Math.min(1, fRow.mastery));
+  } else if (cardIds.size > 0) {
     const good = new Set(
       reviews.filter((r) => r.grade >= 3).map((r) => r.card_id),
     );
@@ -274,7 +291,8 @@ export function computeNodeMastery(input: {
   }
 
   const parts: { w: number; v: number }[] = [];
-  if (card_reviews > 0 || cardIds.size > 0) parts.push({ w: 0.5, v: cardScore });
+  if (card_reviews > 0 || cardIds.size > 0 || fRow)
+    parts.push({ w: 0.5, v: cardScore });
   if (answerCount > 0) parts.push({ w: 0.3, v: answerScore });
   if (round_hits > 0) parts.push({ w: 0.2, v: roundScore });
   const wSum = parts.reduce((s, p) => s + p.w, 0) || 1;
@@ -301,7 +319,8 @@ export function buildMasteryRows(input: {
   nodes: ClaimNodeRef[];
   nowIso: string;
   edges?: ArgEdge[] | null;
-}): Omit<NodeMasteryRow, "id">[] {
+  fNodeMastery?: FNodeMastery[] | null;
+}): Omit<MasteryMapCellRow, "id">[] {
   return input.nodes.map((node) => {
     const { mastery, evidence } = computeNodeMastery({
       store: input.store,
@@ -310,6 +329,7 @@ export function buildMasteryRows(input: {
       caseId: input.caseId,
       node,
       edges: input.edges,
+      fNodeMastery: input.fNodeMastery,
     });
     return {
       person_id: input.personId,

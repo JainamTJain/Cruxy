@@ -11,7 +11,8 @@ export type ClaimNodeRef = {
   ord: number;
 };
 
-export type NodeMasteryRow = {
+/** Cached grid cell in mastery_map_cells (E 00033). */
+export type MasteryMapCellRow = {
   id: string;
   person_id: string;
   team_id: string | null;
@@ -27,13 +28,28 @@ export type NodeMasteryRow = {
   updated_at: string;
 };
 
+/** @deprecated Use MasteryMapCellRow. */
+export type NodeMasteryRow = MasteryMapCellRow;
+
+/** F's node_mastery (00032): card-review mastery per claim. */
+export type FNodeMastery = {
+  id: string;
+  person_id: string;
+  claim_id: string;
+  mastery: number;
+  review_count: number;
+  last_grade: number | null;
+  updated_at: string;
+  created_at?: string;
+};
+
 export type MasteryCell = {
   person_id: string;
   node_id: string;
   node_kind: MasteryNodeKind;
   mastery: number | null;
   band: MasteryBand;
-  evidence: NodeMasteryRow["evidence"];
+  evidence: MasteryMapCellRow["evidence"];
 };
 
 export type MasteryMapView = {

@@ -74,6 +74,7 @@ async function main() {
     s.feedback_items = [];
     s.card_reviews = [];
     s.answers = [];
+    s.mastery_map_cells = [];
     s.node_mastery = [];
   });
 
@@ -148,6 +149,54 @@ async function main() {
   assert(
     katieCell?.evidence.card_reviews && katieCell.evidence.card_reviews >= 1,
     "evidence records card review",
+  );
+
+  // F's node_mastery (claim_id) feeds card evidence into the same cell
+  await updateStore((s) => {
+    s.card_reviews = [];
+    s.mastery_map_cells = [];
+    s.node_mastery = [
+      {
+        id: randomUUID(),
+        person_id: katie.id,
+        claim_id: nodes[0]!.node_id,
+        mastery: 0.72,
+        review_count: 3,
+        last_grade: 4,
+        updated_at: nowIso(),
+        created_at: nowIso(),
+      },
+    ];
+  });
+  await recomputeMasteryForCase({
+    caseId: case9.id,
+    teamId: katie.team_id,
+    personIds: [katie.id],
+  });
+  const fromF = await getMasteryMap({
+    caseId: case9.id,
+    teamId: katie.team_id,
+    access: lead2,
+  });
+  const fCell = fromF.cells.find(
+    (c) => c.person_id === katie.id && c.node_id === nodes[0]!.node_id,
+  );
+  assert(fCell && fCell.band !== "empty", "F node_mastery fills cell");
+  assert(fCell?.evidence.card_reviews === 3, "F review_count used as evidence");
+  assert(
+    fCell != null && fCell.mastery != null && fCell.mastery >= 0.7,
+    "F mastery value used for card score",
+  );
+
+  const stored = (await readStore()).mastery_map_cells;
+  assert(
+    stored.some(
+      (r) =>
+        r.person_id === katie.id &&
+        r.node_id === nodes[0]!.node_id &&
+        r.case_id === case9.id,
+    ),
+    "persisted into mastery_map_cells",
   );
 
   console.log("\nAll mastery-map checks passed.");
