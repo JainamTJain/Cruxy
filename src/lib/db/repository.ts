@@ -6,6 +6,7 @@ import {
   type SampleStore,
 } from "@/lib/db/sample-store";
 import * as sbAuth from "@/lib/db/supabase/foundation";
+import * as sbProgram from "@/lib/db/supabase/program";
 import type {
   ActivityLogEntry,
   AiCall,
@@ -198,6 +199,7 @@ export async function listActivityLog(limit = 100): Promise<ActivityLogEntry[]> 
 export async function insertAiCall(
   call: Omit<AiCall, "id" | "created_at">,
 ): Promise<AiCall> {
+  if (!isSampleDataMode()) return sbProgram.insertAiCall(call);
   const row: AiCall = {
     ...call,
     id: randomUUID(),
@@ -212,6 +214,7 @@ export async function insertAiCall(
 export async function sumMonthlySpendUsd(
   now = new Date(),
 ): Promise<number> {
+  if (!isSampleDataMode()) return sbProgram.sumMonthlySpendUsd(now);
   const store = await readStore();
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   return store.ai_calls
@@ -290,21 +293,25 @@ export async function dumpStoreForAdmin(): Promise<SampleStore> {
 // ---------- Track 6: program map / admin / spend ----------
 
 export async function listCases(): Promise<CaseRow[]> {
+  if (!isSampleDataMode()) return sbProgram.listCases();
   const store = await readStore();
   return store.cases;
 }
 
 export async function listCompetitions(): Promise<Competition[]> {
+  if (!isSampleDataMode()) return sbProgram.listCompetitions();
   const store = await readStore();
   return store.competitions;
 }
 
 export async function listReadiness(): Promise<ReadinessCell[]> {
+  if (!isSampleDataMode()) return sbProgram.listReadiness();
   const store = await readStore();
   return store.readiness;
 }
 
 export async function getProgramTotals(): Promise<ProgramTotals> {
+  if (!isSampleDataMode()) return sbProgram.getProgramTotals();
   const store = await readStore();
   return store.program_totals;
 }
@@ -316,6 +323,7 @@ export async function listPeopleFull(): Promise<Person[]> {
 }
 
 export async function getSpendCaps(): Promise<SpendCaps> {
+  if (!isSampleDataMode()) return sbProgram.getSpendCaps();
   const store = await readStore();
   return (
     store.spend_caps ?? {
@@ -334,6 +342,7 @@ export async function updateSpendCaps(
   patch: Partial<SpendCaps>,
   actorId: string,
 ): Promise<SpendCaps> {
+  if (!isSampleDataMode()) return sbProgram.updateSpendCaps(patch, actorId);
   let next!: SpendCaps;
   await updateStore((s) => {
     s.spend_caps = {
@@ -348,6 +357,7 @@ export async function updateSpendCaps(
 }
 
 export async function listAiCalls(): Promise<AiCall[]> {
+  if (!isSampleDataMode()) return sbProgram.listAiCalls();
   const store = await readStore();
   return store.ai_calls;
 }
