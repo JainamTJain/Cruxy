@@ -153,6 +153,7 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
           text,
           kind: "other" as const,
           citation_ids: [],
+          strength: "normal" as const,
         })),
         fileId: digested.file.id,
         fileType: digested.file.type,
