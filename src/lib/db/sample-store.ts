@@ -23,7 +23,6 @@ import {
 import { buildTeamSpaceSeed } from "@/lib/team/seed";
 import type { CaseStakeholderSeed } from "@/lib/seed/build-content";
 import type { ScoringCardItemSeed } from "@/lib/seed/scoring-card";
-import type { ArgEdge } from "@/lib/graph/types";
 import type {
   Backing,
   CaseRole,
@@ -227,8 +226,6 @@ export interface SampleStore {
   /** Workstream B content extras */
   case_stakeholders: CaseStakeholderSeed[];
   scoring_card_items: ScoringCardItemSeed[];
-  /** Argument graph edges. Kept so round attacks survive a reload. */
-  arg_edges: ArgEdge[];
   /** Workstream E Wave 5: team-editable roadmap deadlines */
   roadmap_deadline_overrides: {
     id: string;
@@ -778,7 +775,6 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     competition_logs: raw.competition_logs ?? admin.competition_logs,
     feature_useful: raw.feature_useful ?? admin.feature_useful,
     last_visits: raw.last_visits ?? admin.last_visits,
-    arg_edges: raw.arg_edges ?? [],
     case_stakeholders: raw.case_stakeholders ?? [],
     scoring_card_items: raw.scoring_card_items ?? [],
     roadmap_deadline_overrides:
