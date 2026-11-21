@@ -21,6 +21,8 @@ const NAV = [
   { href: "/home", label: "Program map" },
   { href: "/library", label: "Library" },
   { href: "/case-brain", label: "Case brain" },
+  { href: "/revision", label: "Revision" },
+  { href: "/revision/roadmap", label: "Roadmap" },
   { href: "/checklist", label: "First run" },
   { href: "/settings", label: "Settings" },
 ];

@@ -114,6 +114,7 @@ export interface BookRequest {
 
 /** Proposals live in case-brain types (shared Truth Sources queue). */
 
+/** Shared with Track 3 Revision (FSRS + Truth Source sync). */
 export interface Flashcard {
   id: string;
   team_id: string | null;
@@ -122,8 +123,11 @@ export interface Flashcard {
   front: string;
   back: string;
   citation_ids: string[];
+  truth_item_id: string | null;
+  source_kind: "truth" | "reading" | "case_card" | "manual";
   created_at: string;
   created_by: string | null;
+  updated_at: string;
 }
 
 export interface SyncRun {

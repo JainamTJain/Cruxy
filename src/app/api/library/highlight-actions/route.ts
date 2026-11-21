@@ -49,8 +49,11 @@ export async function POST(req: Request) {
       front: text.slice(0, 160),
       back: `From ${file?.name ?? "library"} · ${passage.anchor}`,
       citation_ids: [passage.id],
+      truth_item_id: null,
+      source_kind: "reading" as const,
       created_at: nowIso(),
       created_by: auth.session.personId,
+      updated_at: nowIso(),
     };
     await saveFlashcard(card);
     await logActivity({
