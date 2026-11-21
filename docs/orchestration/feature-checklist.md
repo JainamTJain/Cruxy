@@ -6,18 +6,18 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 ## How to build it
 
 - [x] F-001 0. Foundation · Next.js app, Supabase project, schema, sign in, roles, design tokens, activity log · Who uses it, Sign in, Data model, Privacy · Cursor [`src/lib/db/supabase/foundation.ts`, `src/lib/db/repository.ts`]
-- [ ] F-002 1. Library · Drive sync, digesting, search, reading room with highlights and comments · Library, Research · Cursor
-- [ ] F-003 2. Case brain · Claim maps, Truth Sources, Inspired by Team X, consistency checks · Case brain · Cursor
-- [ ] F-004 3. Revision · One pagers, flashcards, Socratic drills, moderator bank, roadmap · Revision, Moderator bank, Roadmap · Bolt for screens, Cursor for logic
-- [ ] F-005 4. Team space · Assignments, leads, team chat, Cruxy assistant · Assignments · Bolt for screens, Cursor for logic
-- [ ] F-006 5. Practice · Sessions, judging portal, recording, transcripts, grading, feedback · Sessions, Practice, Judging, Feedback · Cursor
-- [ ] F-007 6. Admin · Admin and coach console, spend caps, weekly summary · Admin console, Cost plan · Bolt
-- [ ] F-008 Read this whole doc before writing code; paste the relevant sections into each session.
+- [ ] F-002 1. Library · Drive sync, digesting, search, reading room with highlights and comments · Library, Research · Cursor (implemented: `src/lib/library/`, `src/app/(app)/library/`; owner F to verify)
+- [ ] F-003 2. Case brain · Claim maps, Truth Sources, Inspired by Team X, consistency checks · Case brain · Cursor (implemented: `src/app/(app)/case-brain/`, `src/lib/case-brain/`; owner C to verify)
+- [ ] F-004 3. Revision · One pagers, flashcards, Socratic drills, moderator bank, roadmap · Revision, Moderator bank, Roadmap · Bolt for screens, Cursor for logic (implemented: `src/app/(app)/revision/`; owner F/C to verify)
+- [ ] F-005 4. Team space · Assignments, leads, team chat, Cruxy assistant · Assignments · Bolt for screens, Cursor for logic (implemented: `src/app/(app)/team/`, `src/lib/team/`; owner E to verify)
+- [ ] F-006 5. Practice · Sessions, judging portal, recording, transcripts, grading, feedback · Sessions, Practice, Judging, Feedback · Cursor (implemented: `src/app/(app)/practice/`, `src/app/judging/`; owner D to verify)
+- [ ] F-007 6. Admin · Admin and coach console, spend caps, weekly summary · Admin console, Cost plan · Bolt (implemented: `src/app/(app)/admin/`; owner G to verify)
+- [x] F-008 Read this whole doc before writing code; paste the relevant sections into each session. [`AGENTS.md`, `docs/spec.md`]
 - [x] F-009 Every AI output stores the ids of the sources it used. No citation, no display. · [src/lib/cruxy/citations.ts]
-- [ ] F-010 Every AI call goes through one server function that logs tokens and cost and refuses calls over the cap.
-- [ ] F-011 Secrets live only in environment variables. Never paste passcodes or API keys into prompts or commit them.
-- [ ] F-012 Each track ends with the checks listed in Paste-ready prompts.
-- [ ] F-013 **Going fast.** Run the tracks as parallel agents (several Cursor windows or background agents, Bolt for screens built from the canvas), all sharing one types file and the schema from Track 0. Merge into main at least daily, and keep each track's checks green before merging. Cursor reads its context from the repo itself (AGENTS.md, .cursor/rules and docs/ in JainamTJain/Cruxy), so start each chat by mentioning AGENTS.md and the track's file in docs/tracks/, and update docs/spec.md there whenever this doc changes.
+- [x] F-010 Every AI call goes through one server function that logs tokens and cost and refuses calls over the cap. [`src/lib/cruxy/callCruxy.ts`]
+- [x] F-011 Secrets live only in environment variables. Never paste passcodes or API keys into prompts or commit them. [`.env.example`, `import "server-only"` on secret modules]
+- [x] F-012 Each track ends with the checks listed in Paste-ready prompts. [`package.json` `check:track0`–`check:track6`, `scripts/track*-checks.ts`]
+- [x] F-013 **Going fast.** Run the tracks as parallel agents (several Cursor windows or background agents, Bolt for screens built from the canvas), all sharing one types file and the schema from Track 0. Merge into main at least daily, and keep each track's checks green before merging. Cursor reads its context from the repo itself (AGENTS.md, .cursor/rules and docs/ in JainamTJain/Cruxy), so start each chat by mentioning AGENTS.md and the track's file in docs/tracks/, and update docs/spec.md there whenever this doc changes. [`docs/orchestration/waves.md`, `docs/orchestration/assignments.md`]
 
 ## Who uses it
 
@@ -27,16 +27,16 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-017 Judge · Guests or members, per session · Score the session they were let into · See anything else [`assertJudgeSessionAccess` in `src/lib/auth/capabilities.ts`; portal UI owned by D]
 - [x] F-018 Team membership is set only by admins and can change at any time; history keeps the old team on old records. [`setTeamMembership` in `src/lib/db/supabase/auth-extra.ts`, migration `00018_workstream_j_auth_attendance.sql`]
 - [x] F-019 Jainam appears twice (technical admin and Team 3 member). His member view shows only what any member sees; the admin view is a separate switch. [`effectiveRole`, Admin switch in `src/components/app-shell.tsx`, `/api/auth/admin-view`]
-- [ ] F-020 Leads, counter-arguers and supporters are case roles inside a team, set and changed by the team (see Assignments). Note: UI and APIs owned by Workstream E (`src/app/api/team/roles`).
+- [ ] F-020 Leads, counter-arguers and supporters are case roles inside a team, set and changed by the team (see Assignments). Note: UI and APIs owned by Workstream E (`src/app/api/team/roles`). (implemented: `src/app/api/team/roles/route.ts`, `src/lib/team/repository.ts`; owner J to verify)
 
 ## Cruxy
 
-- [ ] F-021 **Cites or stays quiet.** Every claim it shows links to a source, a transcript timestamp or a Truth Source. If it has none, it says "I couldn't find a source for this."
-- [ ] F-022 **Honest over pleasant.** It names weak arguments plainly and never flatters. Praise is specific ("your thesis came at 0:22, under the 30 second goal").
-- [ ] F-023 **Builds your reasoning, doesn't replace it.** It asks before it tells; Socratic questions come first, model answers second and only on request.
+- [ ] F-021 **Cites or stays quiet.** Every claim it shows links to a source, a transcript timestamp or a Truth Source. If it has none, it says "I couldn't find a source for this." (implemented: `src/lib/cruxy/citations.ts`, `src/lib/cruxy/prompts/shared.ts`; owner H to verify)
+- [ ] F-022 **Honest over pleasant.** It names weak arguments plainly and never flatters. Praise is specific ("your thesis came at 0:22, under the 30 second goal"). (implemented: `src/lib/cruxy/prompts/shared.ts`; owner H to verify)
+- [ ] F-023 **Builds your reasoning, doesn't replace it.** It asks before it tells; Socratic questions come first, model answers second and only on request. (implemented: `src/lib/cruxy/prompts/shared.ts`, `src/lib/cruxy/character.ts`; owner H to verify)
 - [ ] F-024 **Even-handed.** It argues every side of a case at full strength, keeps its own politics out, and flags when an example leans one way.
-- [ ] F-025 **Shows where things came from.** Items carry a small origin tag: Cruxy, Dr. B, a team member, Inspired by Team 1, APPE, or the case set.
-- [ ] F-026 **Short.** Answers fit on a phone screen unless the user asks for more.
+- [ ] F-025 **Shows where things came from.** Items carry a small origin tag: Cruxy, Dr. B, a team member, Inspired by Team 1, APPE, or the case set. (implemented: `src/components/case-brain/origin-tag.tsx`; owner H to verify)
+- [ ] F-026 **Short.** Answers fit on a phone screen unless the user asks for more. (implemented: `src/lib/cruxy/prompts/shared.ts`; owner H to verify)
 
 ## Cruxy's character, floating Cruxy and the lamp
 
@@ -104,18 +104,18 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-082 Extract text: Docs and Slides via Drive export, PDFs via text extraction (scanned PDFs flagged for Jainam). [src/lib/library/drive.ts]
 - [x] F-083 Sort: a small model tags each file with its cases (1, 3, 4, 5, 7, 9, 10, 11, 12, 13, 14, 15, or "general"), its type (case set, practice transcript, team notes, rules, research, coach guidance) and a confidence score. Under 0.7 goes to a sorting queue for Jainam. [src/lib/library/digest.ts]
 - [x] F-084 Split into passages of about 600 words with page or heading anchors, embed each, and store them for search. [src/lib/library/digest.ts]
-- [ ] F-085 Extract from each file: ideas raised, who raised them, frameworks named, facts with sources, moderator style questions, and coach decisions. Ideas from practice transcripts become Truth Source proposals for the team that raised them.
-- [ ] F-086 Write a 5 line file card: what it is, which case, what's new in it, open questions.
+- [ ] F-085 Extract from each file: ideas raised, who raised them, frameworks named, facts with sources, moderator style questions, and coach decisions. Ideas from practice transcripts become Truth Source proposals for the team that raised them. (implemented: `src/lib/library/digest.ts`, `src/lib/library/sync.ts`; owner F to verify)
+- [ ] F-086 Write a 5 line file card: what it is, which case, what's new in it, open questions. (implemented: `src/lib/cruxy/agents/librarian.ts`, `src/lib/library/digest.ts`; owner F to verify)
 - [x] F-087 **Reading room** (any time except while you are in a live practice) [src/app/(app)/library/[fileId]/page.tsx]
 - [x] F-088 Open any case or resource full screen, with the case set page and the file side by side. [src/app/(app)/library/[fileId]/page.tsx]
 - [x] F-089 Highlight text and leave a comment; highlights and comments are visible to all three teams, with names and team colours. [src/app/(app)/library/[fileId]/page.tsx]
 - [x] F-090 Ask Cruxy about a highlight: "explain this", "find a counterexample", "is this cited elsewhere in our Drive?" [src/app/api/library/ask/route.ts]
 - [x] F-091 Turn a highlight into a flashcard or a Truth Source proposal in one tap. [src/app/api/library/highlight-actions/route.ts]
-- [ ] F-092 Search across everything (passages, transcripts, Truth Sources, comments) with filters by case, team and type.
+- [ ] F-092 Search across everything (passages, transcripts, Truth Sources, comments) with filters by case, team and type. (implemented: `src/app/(app)/library/search/page.tsx`, `src/app/api/library/search/route.ts`; owner F to verify)
 
 ## Research
 
-- [ ] F-093 **Nightly loop per case (batch mode, cheapest rates)**
+- [ ] F-093 **Nightly loop per case (batch mode, cheapest rates)** (implemented: `src/app/api/cron/research/route.ts`, `src/lib/cruxy/agents/researcher.ts`; owner H to verify)
 - [x] F-094 Gap check: compare the case's claim maps across all three teams with the case set. List supports with no backing, outside facts not yet verified, counterclaims with no answer, and moderator questions with no prepared answer. · [src/lib/cruxy/agents/researcher.ts]
 - [x] F-095 Search free sources for each gap (list in Stack): encyclopedias, academic indexes, court opinions, open books, recent news. Prefer the last 2 years for anything that changes; keep classics for frameworks. · [src/lib/cruxy/agents/researcher.ts, callCruxy webSearch]
 - [ ] F-096 Read the best 3 to 5 results per gap in full, not snippets.
@@ -157,15 +157,15 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-126 Generated from readings, Truth Sources and the case card: facts with page numbers, claims and their logic lines, frameworks in one sentence, counterclaim responses, and change the facts answers. · [src/lib/seed/build-content.ts, supabase/seed/06_flashcards_roles_proposals.sql]
 - [x] F-127 Assigned by role: leads get their cases' decks automatically. Anyone else can add any deck, and their profile shows "studying Case 9 (not assigned)". · [src/lib/seed/build-content.ts deck_opt_ins for leads]
 - [x] F-128 Spaced repetition: cards come back sooner when missed (SM-2 or FSRS scheduling), and answers can be typed or spoken. [src/lib/revision/fsrs.ts]
-- [ ] F-129 Cruxy asks one question at a time aimed at the weakest link in the claim map, then follows up on the answer ("why does that follow?", "what would your opponent say?").
-- [ ] F-130 Ends with a 3 line summary of what held and what didn't, linked to the claim map.
+- [ ] F-129 Cruxy asks one question at a time aimed at the weakest link in the claim map, then follows up on the answer ("why does that follow?", "what would your opponent say?"). (implemented: `src/app/(app)/revision/socratic/page.tsx`; owner F to verify)
+- [ ] F-130 Ends with a 3 line summary of what held and what didn't, linked to the claim map. (implemented: `src/lib/revision/repository.ts`, `src/lib/db/supabase/revision.ts`; owner F to verify)
 - [ ] F-131 For each claim, Cruxy suggests: a plain sentence version under 25 words, 2 everyday analogies, 1 vivid example from the Truth Sources, and phrases to avoid (jargon, hedges, loaded words).
 - [ ] F-132 Members save their favourite phrasings to their personal phrasebook.
 - [x] F-133 A 10 minute warm up for the morning of a round: 5 flashcards, 2 moderator questions answered out loud, 1 counterclaim rebuttal, on cases picked at random. [src/app/(app)/revision/warmup/page.tsx]
 
 ## Moderator question bank
 
-- [ ] F-134 **Dr. B adds freely.** She can paste unstructured text (an email, a list, a voice note transcript); Cruxy splits it into single questions, tags each with its case, type and difficulty, and shows the result for her to confirm.
+- [ ] F-134 **Dr. B adds freely.** She can paste unstructured text (an email, a list, a voice note transcript); Cruxy splits it into single questions, tags each with its case, type and difficulty, and shows the result for her to confirm. (implemented: `src/app/(app)/revision/questions/page.tsx`; owner F to verify)
 - [ ] F-135 **Cruxy adds** using the five question types judges are trained to ask: follow ups on skipped issues, pushback on our own view, the other team's points re-asked, change the facts hypotheticals, and "state your view and main reasons". It also writes the case's own closing question in several wordings.
 - [x] F-136 **Members add** questions they heard or imagined; real regional questions get the tag "Asked at UCSB" afterwards. · [src/lib/seed/build-content.ts questions origin member]
 - [x] F-137 **Difficulty** 1 to 3, set by Cruxy and corrected by how people actually score on it. · [src/lib/seed/build-content.ts difficulty 1–3]
@@ -183,7 +183,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-146 Practiced · Spoke in at least one recorded round on the case · Everyone with a role on it
 - [ ] F-147 Judged · Judged at least twice (human or Cruxy judge), with your latest score above your own earlier one on this case · Leads
 - [x] F-148 **No fixed score cutoffs anywhere in Crux.** Every threshold compares a person with their own past (their first attempt, recent average or best), never with a set number or with other people. Judges still score on the APPE 1 to 10 scale, because that is how the regional is scored; progress, stages and "weak" flags are always measured as change from the person's own history. [src/lib/revision/roadmap.ts]
-- [ ] F-149 **Recommended deadlines (default for the December 5 regional; each team can edit theirs)**
+- [ ] F-149 **Recommended deadlines (default for the December 5 regional; each team can edit theirs)** (implemented: `src/lib/revision/roadmap.ts`, `src/app/(app)/revision/roadmap/page.tsx`; owner F to verify)
 - [ ] F-150 Read all 12 cases · Nov 24
 - [ ] F-151 Map own cases · Nov 25
 - [ ] F-152 One pagers · Nov 28
@@ -192,16 +192,16 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-155 Practiced · Dec 3
 - [ ] F-156 Judged · Dec 4
 - [x] F-157 A track per case with seven stations, a "today" line and a flag on each deadline; stations fill as work happens, and overdue ones turn red. [src/app/(app)/revision/roadmap/page.tsx]
-- [ ] F-158 A readiness number per case (share of required stages done, weighted toward judged and practiced) and per team.
+- [ ] F-158 A readiness number per case (share of required stages done, weighted toward judged and practiced) and per team. (implemented: `src/lib/revision/roadmap.ts`, `src/app/(app)/home/page.tsx`; owner F to verify)
 - [ ] F-159 "Do next": the three most useful actions for this person today, picked from overdue stages, weak feedback areas, and assignments.
 
 ## Assignments, team chat and the Cruxy assistant
 
-- [ ] F-160 An Assign button on every case, flashcard deck, one pager, reading and practice slot. Pick a person (or several), a role or task, and an optional due date.
-- [ ] F-161 Case roles (Lead 1, Lead 2, counter-arguer, supporter) are set per team per case; any team member can change them, in two taps, from the case brain or the team board. The change is logged and announced in team chat.
+- [ ] F-160 An Assign button on every case, flashcard deck, one pager, reading and practice slot. Pick a person (or several), a role or task, and an optional due date. (implemented: `src/components/assign-button.tsx`, `src/app/api/team/assignments/route.ts`; owner E to verify)
+- [ ] F-161 Case roles (Lead 1, Lead 2, counter-arguer, supporter) are set per team per case; any team member can change them, in two taps, from the case brain or the team board. The change is logged and announced in team chat. (implemented: `src/app/api/team/roles/route.ts`; owner E to verify)
 - [ ] F-162 Everything assigned appears on the person's profile and roadmap, with who assigned it.
-- [ ] F-163 A team board shows the 12 cases by role and person, so gaps (a case with no lead) are visible at a glance.
-- [ ] F-164 One channel per team plus one all-program channel; every channel is readable by everyone; posting is for members of that team (admins can post anywhere).
+- [ ] F-163 A team board shows the 12 cases by role and person, so gaps (a case with no lead) are visible at a glance. (implemented: `src/app/(app)/team/page.tsx`, `src/lib/db/supabase/team.ts`; owner E to verify)
+- [ ] F-164 One channel per team plus one all-program channel; every channel is readable by everyone; posting is for members of that team (admins can post anywhere). (implemented: `src/app/(app)/team/chat/page.tsx`, `src/app/api/team/chat/route.ts`; owner E to verify)
 - [ ] F-165 Messages can mention people, link a case, a passage, a timestamp or a Truth Source.
 - [ ] F-166 Chat does not create tasks by itself; assignments stay explicit.
 - [x] F-167 **One current position per case.** The claim map is versioned (v1, v2, ...). Any change to a claim, logic line or counterclaim response creates a new version with a one line "what changed and why", written by whoever changed it. [src/components/case-brain/version-confirm.tsx, src/lib/case-brain/publish-from-brain.ts] NOTE: case-brain publish path; team-chat/home fan-out remains E
@@ -211,7 +211,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-171 **Drift in practice.** In transcripts, Cruxy flags lines where someone argues an older version or contradicts the current one ("Katie used the v5 wording of C2 at 12:40"), and links the current wording.
 - [ ] F-172 **State of the case, out loud.** Every team session can open with a 2 minute read-aloud of the current one pager by the supporter, so the room starts from the same version.
 - [ ] F-173 **Bigger changes need two people.** Changing a claim itself (not its supports) needs the lead plus one more team member to accept, so a position never shifts on one person's say-so.
-- [ ] F-174 **Cruxy assistant (drawer on every page)**
+- [ ] F-174 **Cruxy assistant (drawer on every page)** (implemented: `src/components/cruxy/cruxy-drawer.tsx`, `src/app/api/cruxy/assistant/route.ts`; owner E to verify)
 - [ ] F-175 Knows where you are (case, page, highlight) and answers from your team's Truth Sources first, then the library, then the web, citing each.
 - [ ] F-176 Can: explain a passage, quiz you, find a source, draft a one pager row for your review, summarize what changed since your last visit, and tell you what to do next.
 - [ ] F-177 Won't: decide Truth Sources, change roles, or speak for the team.
@@ -269,8 +269,8 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-223 At the end, the full audio goes to the transcription service with speaker labels and word timestamps. [src/lib/practice/pipeline.ts]
 - [x] F-224 Speakers are matched to people; the transcript is stored with every line timestamped. [src/lib/practice/pipeline.ts]
 - [x] F-225 The audio file is deleted immediately after the transcript is saved. Only text remains. [src/lib/practice/recording.ts]
-- [ ] F-226 A glossary is built automatically per case from the case set, the Drive and the Truth Sources: philosophers, court cases, laws, organisations, places, coined terms (Nozick, Brandenburg, Kalshi, NAGPRA, looksmaxxing), plus every member's name and team names.
-- [ ] F-227 Each round sends that case's glossary and the names of the people present to the transcription service as key terms.
+- [ ] F-226 A glossary is built automatically per case from the case set, the Drive and the Truth Sources: philosophers, court cases, laws, organisations, places, coined terms (Nozick, Brandenburg, Kalshi, NAGPRA, looksmaxxing), plus every member's name and team names. (implemented: `src/lib/practice/glossary.ts`; owner D to verify)
+- [ ] F-227 Each round sends that case's glossary and the names of the people present to the transcription service as key terms. (implemented: `src/lib/practice/glossary.ts`, `src/lib/practice/pipeline.ts`; owner D to verify)
 - [ ] F-228 A correction pass then fixes glossary words from context, marks every correction, and flags uncertain words for a quick check. It never changes meaning.
 - [ ] F-229 When anyone fixes a word in a transcript, the correct term and the misheard form are added to the glossary, so the next transcript gets it right.
 - [ ] F-230 Unusual names get a pronunciation note taken from each person's voice sample.
@@ -350,44 +350,44 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-295 Book requests and the Drive sorting queue · Yes · No [`src/app/(app)/admin/admin-console.tsx`]
 - [x] F-296 Calibration view: judge weights, Cruxy score gaps · Yes · No [`src/app/(app)/admin/admin-console.tsx`]
 - [x] F-297 Activity log: every sign in, edit, decision, recording, failed passcode · Yes · Read only [`src/app/(app)/admin/admin-console.tsx`]
-- [ ] F-298 **Weekly summary for Dr. B (Sunday 6 pm, only if she opted in)**
-- [ ] F-299 One email: attendance by person, rounds and scores by team, biggest improvements, cases at risk (low readiness near a deadline), open disagreements between teams' Truth Sources, and Things to take care of added that week.
+- [ ] F-298 **Weekly summary for Dr. B (Sunday 6 pm, only if she opted in)** (implemented: `src/app/api/cron/weekly-summary/route.ts`, `src/lib/email/weekly-summary.ts`; owner G to verify)
+- [ ] F-299 One email: attendance by person, rounds and scores by team, biggest improvements, cases at risk (low readiness near a deadline), open disagreements between teams' Truth Sources, and Things to take care of added that week. (implemented: `src/lib/email/weekly-summary.ts`; owner G to verify)
 - [ ] F-300 Each line links into Crux. Jainam gets the same email plus spend and errors.
 - [ ] F-301 Use against improvement: do people who drill, redo and read more improve faster on their own scores?
 - [ ] F-302 Which features are used, by whom, and which are ignored; which Cruxy outputs are marked useful.
 - [ ] F-303 Shown only on Jainam's portal.
-- [ ] F-304 During and after each competition, a quick log per round: case, opponent, moderator question, judges' questions, judge comments, scores and result. Real questions enter the bank tagged "Asked at UCSB".
+- [ ] F-304 During and after each competition, a quick log per round: case, opponent, moderator question, judges' questions, judge comments, scores and result. Real questions enter the bank tagged "Asked at UCSB". (implemented: `src/app/(app)/admin/competition/page.tsx`; owner G to verify)
 - [ ] F-305 Season rollover: archive the season to the Drive, import the next case set, add or move members, reset roles and roadmaps, and keep the Things to take care of bank, Cruxy's example library and the glossary.
 
 ## Data model
 
-- [ ] F-306 people · name, team_id, role (member, coach_admin, tech_admin), consent_version, consent_at, recording_ok, voice_sample_path, digest_opt_in · Team history kept in team_memberships
-- [ ] F-307 teams, team_memberships · name, colour; person_id, team_id, from, to
+- [x] F-306 people · name, team_id, role (member, coach_admin, tech_admin), consent_version, consent_at, recording_ok, voice_sample_path, digest_opt_in · Team history kept in team_memberships [`supabase/migrations/00001_track0_foundation.sql`, `00018_workstream_j_auth_attendance.sql`, `src/lib/db/supabase/data-model-extra.ts`]
+- [x] F-307 teams, team_memberships · name, colour; person_id, team_id, from, to [`supabase/migrations/00001_track0_foundation.sql`, `00018_workstream_j_auth_attendance.sql`]
 - [x] F-308 auth_codes · kind (starter, personal, admin), person_id, hash, encrypted_copy (personal only), must_choose (bool), set_at, last_revealed_at · Hash to check; encrypted copy only for the technical admin to view; Jainam's own is hash only [`bootstrapAuthCodes` + repository]
-- [ ] F-309 competitions · name, date, place, timings · Drives deadlines and round defaults
+- [x] F-309 competitions · name, date, place, timings · Drives deadlines and round defaults [`supabase/migrations/00001_track0_foundation.sql`, `src/lib/db/supabase/data-model-extra.ts` `listCompetitions`]
 - [x] F-310 cases · number, title, case_set_page, crux, trap, closing_question, active · Cases 2, 6, 8 inactive for California · [supabase/seed.sql, src/lib/seed/build-content.ts]
-- [ ] F-311 files · drive_id, path, mime, modified_at, checksum, case_ids\[\], type, confidence, card · One row per Drive file version
-- [ ] F-312 passages · file_id, anchor (page or heading), text, embedding vector · Search and citations
-- [ ] F-313 highlights, comments · passage_id, range, person_id, body, thread_id · Reading room, visible to all
+- [x] F-311 files · drive_id, path, mime, modified_at, checksum, case_ids\[\], type, confidence, card · One row per Drive file version [`supabase/migrations/00001_track0_foundation.sql`, `00003_track1_library.sql`]
+- [x] F-312 passages · file_id, anchor (page or heading), text, embedding vector · Search and citations [`supabase/migrations/00001_track0_foundation.sql`, `00011_workstream_h_cruxy_brain.sql` `match_passages`]
+- [x] F-313 highlights, comments · passage_id, range, person_id, body, thread_id · Reading room, visible to all [`supabase/migrations/00001_track0_foundation.sql`]
 - [x] F-314 claims, supports, backings, counterclaims · team_id, case_id, text, logic_line, order, citation_ids\[\] · The claim map · [supabase/seed/02_claims.sql]
 - [x] F-315 truth_items · team_id, case_id, kind (fact, quote, example, framework), text, citation_ids\[\], status · Accepted items · [supabase/seed/03_truth_items.sql]
-- [ ] F-316 proposals · team_id, case_id, origin (transcript, research, reading, inspired_by_team), origin_ref, text, cruxy_note, status · Queue items
-- [ ] F-317 decisions · proposal_id, person_id, verdict (accept, reject, edit), reason (required), edited_text · Visible to all teams
-- [ ] F-318 case_roles, assignments · team_id, case_id, person_id, role; task, due, assigned_by, status
+- [x] F-316 proposals · team_id, case_id, origin (transcript, research, reading, inspired_by_team), origin_ref, text, cruxy_note, status · Queue items [`supabase/migrations/00001_track0_foundation.sql`, `00019_workstream_k_data_model_hardening.sql` origin check]
+- [x] F-317 decisions · proposal_id, person_id, verdict (accept, reject, edit), reason (required), edited_text · Visible to all teams [`supabase/migrations/00001_track0_foundation.sql`, `00019_workstream_k_data_model_hardening.sql`]
+- [x] F-318 case_roles, assignments · team_id, case_id, person_id, role; task, due, assigned_by, status [`supabase/migrations/00001_track0_foundation.sql`, `00006_track4_team_space.sql`]
 - [x] F-319 one_pagers, flashcards, card_reviews · team_id, case_id, version, body; deck, front, back, citation_ids\[\]; person_id, card_id, grade, next_due · Spaced repetition · [supabase/seed/05_opposing_and_one_pagers.sql, 06_flashcards_roles_proposals.sql]
-- [ ] F-320 questions, answers · case_id, text, type, difficulty, origin (dr_b, cruxy, member, asked_at_round); question_id, person_id, transcript_ref, score, feedback · Moderator bank
-- [ ] F-321 sessions, rounds · date, place, online, code_hash, created_by; session_id, case_id, teams, sides, moderator, judges, timings · Codes hashed, shown to admins only
-- [ ] F-322 attendance · session_id, person_id, status, source (admin, self, voice)
-- [ ] F-323 recordings · round_id, chunk_paths\[\], status, deleted_at · Rows stay, audio deleted
-- [ ] F-324 transcript_lines · round_id, start_ms, end_ms, speaker_person_id, text · Every citation into practice points here
-- [ ] F-325 judges, judge_cards, card_scores · name, background, weight; round_id, judge_id or cruxy, team_id; item, score, comment, evidence_line_ids\[\]
-- [ ] F-326 feedback_items, redos · round_id, person_id, kind, quote_line_id, reasoning, better_version; feedback_item_id, transcript_ref, score_before, score_after
-- [ ] F-327 bank_entries · lesson, example_line_id, why, improved, drill_id, seen_count · Things to take care of
-- [ ] F-328 roadmap_stages · person_id, case_id, stage, required, due, done_at
-- [ ] F-329 chats, messages · channel (team or program), person_id or cruxy, body, refs\[\]
-- [ ] F-330 research_runs, book_requests · case_id, gaps\[\], findings\[\]; title, reason, chapter, status · Book requests visible to Jainam only
-- [ ] F-331 ai_calls · feature, model, tokens_in, tokens_out, cost_usd, person_id · The cost ledger
-- [ ] F-332 activity_log · person_id, action, target, ip_hash, at · Admin view
+- [x] F-320 questions, answers · case_id, text, type, difficulty, origin (dr_b, cruxy, member, asked_at_round); question_id, person_id, transcript_ref, score, feedback · Moderator bank [`supabase/migrations/00001_track0_foundation.sql`, `00004_track3_revision.sql`, `00019_workstream_k_data_model_hardening.sql`]
+- [x] F-321 sessions, rounds · date, place, online, code_hash, created_by; session_id, case_id, teams, sides, moderator, judges, timings · Codes hashed, shown to admins only [`supabase/migrations/00001_track0_foundation.sql`, `00005_track5_practice.sql`]
+- [x] F-322 attendance · session_id, person_id, status, source (admin, self, voice) [`supabase/migrations/00001_track0_foundation.sql`, `00018_workstream_j_auth_attendance.sql`]
+- [x] F-323 recordings · round_id, chunk_paths\[\], status, deleted_at · Rows stay, audio deleted [`supabase/migrations/00001_track0_foundation.sql`, `00012_workstream_i_privacy_ops.sql` audio-chunks bucket]
+- [x] F-324 transcript_lines · round_id, start_ms, end_ms, speaker_person_id, text · Every citation into practice points here [`supabase/migrations/00001_track0_foundation.sql`]
+- [x] F-325 judges, judge_cards, card_scores · name, background, weight; round_id, judge_id or cruxy, team_id; item, score, comment, evidence_line_ids\[\] [`supabase/migrations/00001_track0_foundation.sql`, `00005_track5_practice.sql`]
+- [x] F-326 feedback_items, redos · round_id, person_id, kind, quote_line_id, reasoning, better_version; feedback_item_id, transcript_ref, score_before, score_after [`supabase/migrations/00001_track0_foundation.sql`, `00005_track5_practice.sql`]
+- [x] F-327 bank_entries · lesson, example_line_id, why, improved, drill_id, seen_count · Things to take care of [`supabase/migrations/00001_track0_foundation.sql`]
+- [x] F-328 roadmap_stages · person_id, case_id, stage, required, due, done_at [`supabase/migrations/00001_track0_foundation.sql`, `00004_track3_revision.sql`]
+- [x] F-329 chats, messages · channel (team or program), person_id or cruxy, body, refs\[\] [`supabase/migrations/00001_track0_foundation.sql`, `00006_track4_team_space.sql`]
+- [x] F-330 research_runs, book_requests · case_id, gaps\[\], findings\[\]; title, reason, chapter, status · Book requests visible to Jainam only [`supabase/migrations/00001_track0_foundation.sql`, `00003_track1_library.sql`]
+- [x] F-331 ai_calls · feature, model, tokens_in, tokens_out, cost_usd, person_id · The cost ledger [`supabase/migrations/00001_track0_foundation.sql`, `src/lib/db/supabase/data-model-extra.ts` `queryAiCallsLedger`]
+- [x] F-332 activity_log · person_id, action, target, ip_hash, at · Admin view [`supabase/migrations/00001_track0_foundation.sql`, `src/lib/db/supabase/foundation.ts` `logActivity`, `00019_workstream_k_data_model_hardening.sql`]
 
 ## Cruxy's agents, models and prompts
 
@@ -429,36 +429,36 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-365 Hosting, database, email · Vercel and Supabase free tiers; a free email service tier for the weekly summary · $0 at this size
 - [ ] F-366 **Caps (enforced in the one AI gateway function)**
 - [x] F-367 Monthly hard cap: $30. At 80% Jainam gets an alert; at 100% everything except reading and flashcard review pauses. [80% email: `src/lib/ops/spend-alert.ts` + daily cleanup cron; 100% refuse already in `callCruxy`]
-- [ ] F-368 Per round cap: $0.75. Per research night: $0.25. Per person per day for the assistant: $0.20.
+- [ ] F-368 Per round cap: $0.75. Per research night: $0.25. Per person per day for the assistant: $0.20. (implemented: `src/lib/cruxy/callCruxy.ts` `featureCap`, `spend_caps`; owner G to verify)
 - [x] F-369 Every call is logged in ai_calls; the admin console shows spend by feature and by person. [`src/app/(app)/admin/admin-console.tsx`]
-- [ ] F-370 **What keeps it cheap:** digest once and only re-digest changed files; search before sending context; cache the fixed prompt prefix; batch overnight work; delete audio after transcription; never send a whole library.
+- [ ] F-370 **What keeps it cheap:** digest once and only re-digest changed files; search before sending context; cache the fixed prompt prefix; batch overnight work; delete audio after transcription; never send a whole library. (implemented: `src/lib/cruxy/callCruxy.ts`, `src/lib/ops/audio-cleanup.ts`, digest skip-unchanged; owner G to verify)
 
 ## Stack, services and repos
 
-- [ ] F-371 App · Next.js (App Router, TypeScript), Tailwind, shadcn/ui as a base restyled to the Crux look · Bolt and Cursor both handle it well
-- [ ] F-372 Hosting · Vercel · Already connected; cron for nightly jobs
-- [ ] F-373 Database, files, search · Supabase: Postgres with pgvector, Storage for audio chunks, row level security, scheduled functions · One service for data, files and search
-- [ ] F-374 Drive · Google Drive API, read only, through the service account crux-drive-reader (Google Cloud project crux-ethics-bowl-jainam-jain), which the Ethics Bowl folder is shared with · Base library
-- [ ] F-375 Transcription · AssemblyAI Universal-3.5 Pro (speaker labels, key terms, word timestamps); Universal-2 for solo drills · Cheapest with labels
+- [x] F-371 App · Next.js (App Router, TypeScript), Tailwind, shadcn/ui as a base restyled to the Crux look · Bolt and Cursor both handle it well [`package.json`, `src/components/ui/button.tsx`, `src/app/globals.css`]
+- [x] F-372 Hosting · Vercel · Already connected; cron for nightly jobs [`vercel.json`, `.github/workflows/ci.yml`]
+- [x] F-373 Database, files, search · Supabase: Postgres with pgvector, Storage for audio chunks, row level security, scheduled functions · One service for data, files and search [`supabase/migrations/00001`–`00012`, `00018`, `00019_workstream_k_data_model_hardening.sql`, `@supabase/supabase-js`]
+- [x] F-374 Drive · Google Drive API, read only, through the service account crux-drive-reader (Google Cloud project crux-ethics-bowl-jainam-jain), which the Ethics Bowl folder is shared with · Base library [`src/lib/library/drive.ts`]
+- [x] F-375 Transcription · AssemblyAI Universal-3.5 Pro (speaker labels, key terms, word timestamps); Universal-2 for solo drills · Cheapest with labels [`src/lib/practice/transcription.ts`]
 - [x] F-376 Models · Through the Vercel AI SDK and AI Gateway, or OpenRouter · Swap models without code changes [`src/app/(app)/admin/admin-console.tsx`]
-- [ ] F-377 Embeddings · A small embedding model through the same gateway, or Supabase's built-in embedding function · Cheap search
-- [ ] F-378 In browser · MediaRecorder for audio, SpeechSynthesis to read questions aloud, SpeechRecognition for rough live captions · Free
-- [ ] F-379 Email · A transactional email service's free tier (for example Resend) · Weekly summary
-- [ ] F-380 PDF text · A server-side PDF text extractor; scanned PDFs flagged
-- [ ] F-381 **Free research sources:** OpenAlex, Semantic Scholar and Crossref (academic papers), Open Library and Google Books (book records), Project Gutenberg (public domain texts), the Stanford Encyclopedia of Philosophy and Internet Encyclopedia of Philosophy (frameworks), CourtListener (court opinions), Wikipedia (orientation only, never a final source), arXiv, and news sites' own APIs where free (for example the Guardian's).
-- [ ] F-382 [open-notebook](https://github.com/lfnovo/open-notebook): open source alternative to NotebookLM with cited answers and a REST API; a model for the library and assistant.
-- [ ] F-383 [Debby](https://github.com/RutanshP/Debby): records speeches in the browser, transcribes with AssemblyAI, plays an AI opponent and writes a judge decision; a model for the practice loop.
-- [ ] F-384 [debate-lab](https://github.com/dinesh-git17/debate-lab): Next.js debate engine with judge and summary views.
-- [ ] F-385 These are small projects: read their code and licence, borrow patterns, and don't depend on them.
+- [x] F-377 Embeddings · A small embedding model through the same gateway, or Supabase's built-in embedding function · Cheap search [`src/lib/cruxy/callCruxy.ts` `embedCruxy`, `model_settings` embed tier]
+- [ ] F-378 In browser · MediaRecorder for audio, SpeechSynthesis to read questions aloud, SpeechRecognition for rough live captions · Free (implemented: `src/components/practice/chunked-recorder.tsx`, `speechSynthesis` in `src/app/(app)/practice/rounds/[id]/page.tsx`; owner D to verify SpeechRecognition)
+- [x] F-379 Email · A transactional email service's free tier (for example Resend) · Weekly summary [`src/lib/ops/email.ts`]
+- [x] F-380 PDF text · A server-side PDF text extractor; scanned PDFs flagged [`src/lib/library/drive.ts` `extractPrintableFromPdf`]
+- [x] F-381 **Free research sources:** OpenAlex, Semantic Scholar and Crossref (academic papers), Open Library and Google Books (book records), Project Gutenberg (public domain texts), the Stanford Encyclopedia of Philosophy and Internet Encyclopedia of Philosophy (frameworks), CourtListener (court opinions), Wikipedia (orientation only, never a final source), arXiv, and news sites' own APIs where free (for example the Guardian's). [`src/lib/db/supabase/data-model-extra.ts` `FREE_RESEARCH_SOURCES`]
+- [x] F-382 [open-notebook](https://github.com/lfnovo/open-notebook): open source alternative to NotebookLM with cited answers and a REST API; a model for the library and assistant. [`THIRD_PARTY_NOTICES.md`]
+- [x] F-383 [Debby](https://github.com/RutanshP/Debby): records speeches in the browser, transcribes with AssemblyAI, plays an AI opponent and writes a judge decision; a model for the practice loop. [`THIRD_PARTY_NOTICES.md`]
+- [x] F-384 [debate-lab](https://github.com/dinesh-git17/debate-lab): Next.js debate engine with judge and summary views. [`THIRD_PARTY_NOTICES.md`]
+- [x] F-385 These are small projects: read their code and licence, borrow patterns, and don't depend on them. [`THIRD_PARTY_NOTICES.md`]
 
 ## Privacy and security
 
-- [ ] F-386 **Consent before recording.** Nobody is recorded without stored consent; a session with a text only member shows that on every screen, and their own device never records.
+- [ ] F-386 **Consent before recording.** Nobody is recorded without stored consent; a session with a text only member shows that on every screen, and their own device never records. (implemented: consent + `recording_ok` gates in practice chunk upload; owner I to verify)
 - [x] F-387 **Audio is temporary.** Chunks are deleted right after the transcript is saved; a nightly job deletes any audio older than 24 hours as a backstop. [`src/lib/ops/audio-cleanup.ts`, `src/app/api/cron/cleanup`]
 - [x] F-388 **Voice samples** are used only to label speakers, stored privately, and deleted on withdrawal or at season end. [`src/lib/ops/voice-samples.ts`]
-- [ ] F-389 **No training.** Transcripts go only to paid service tiers that don't train on customer data.
-- [ ] F-390 **Codes and keys.** Session codes stored as hashes; personal passcodes stored as a hash plus an encrypted copy only the technical admin can view, which people are told before they choose one; API keys only in Vercel environment variables; nothing secret in the repo, prompts or client code.
+- [ ] F-389 **No training.** Transcripts go only to paid service tiers that don't train on customer data. (implemented: ZDR / `gatewayZdr` in `src/lib/cruxy/callCruxy.ts`; owner I to verify)
+- [ ] F-390 **Codes and keys.** Session codes stored as hashes; personal passcodes stored as a hash plus an encrypted copy only the technical admin can view, which people are told before they choose one; API keys only in Vercel environment variables; nothing secret in the repo, prompts or client code. (implemented: `auth_codes` + `sessions.code_hash` + `.env.example`; owner I to verify)
 - [x] F-391 **Brute force limits** on sign in, session codes and the judging portal; failures go to the activity log. [`src/lib/ops/brute-force.ts` for session codes and judging portal; sign in already in Track 0]
-- [ ] F-392 **Guest judges** see only their round's scoring card, and their link expires when the session ends.
+- [ ] F-392 **Guest judges** see only their round's scoring card, and their link expires when the session ends. (implemented: `guest_judge_tokens` in `00005`, `src/lib/db/supabase/practice.ts`; owner D to verify)
 - [x] F-393 **Deletion on request.** Admins can delete a person's transcript lines, voice sample and comments in one action; aggregate scores remain anonymous. [`src/lib/ops/privacy-delete.ts`]
 - [x] F-394 **Season end.** An export of everything to the Drive, then deletion of transcripts older than the season unless the admins keep them. [`src/lib/ops/season-export.ts` — downloadable archive; Drive SA is read-only]
