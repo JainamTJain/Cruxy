@@ -833,4 +833,4 @@ Checks: Dr. B cannot change codes or caps; the weekly email sends only to opted-
 - [ ] Visual design: approve the v2 screens on the [Crux canvas](https://claude.ai/artifact/Wn6DyDVHszTeXyd61jh9rN) (cardinal #9D2235, Cruxy gold #F5B700, ink #111318; Bricolage Grotesque, Inter, IBM Plex Mono) before Track 0 sets the tokens.
 - [ ] Dr. B's starter code: how she receives it the first time (in person is safest); she then chooses her own passcode.
 - [ ] Later competitions: dates to enter once known, so roadmap deadlines re-space.
-- [ ] Case 10's exact title from the case set.
+- [ ] Case 10's exact title: settled, it is "To Be, or Not to Be…Forgotten?" (from the Drive).
