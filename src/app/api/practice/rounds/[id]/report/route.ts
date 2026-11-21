@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
+import { getPersonById } from "@/lib/db/repository";
 import { getReport, getRoundById } from "@/lib/db/practice-repository";
 import { getReportExtras } from "@/lib/db/supabase/practice-extra";
+import {
+  isAdminViewer,
+  redactPredictions,
+} from "@/lib/ops/privacy-scope";
 import { filterCitedFeedback } from "@/lib/practice/feedback";
 import { filterDisplayableScores } from "@/lib/practice/appe-card";
 import { getCalibratedJudgeForReport } from "@/lib/practice/calibrated-judge";
@@ -29,19 +34,35 @@ export async function GET(
     return filterDisplayableScores([s], true).length > 0;
   });
 
+  const me = await getPersonById(session.personId);
   const tech = session.adminView && session.role === "tech_admin";
+  const admin = isAdminViewer(me, session);
+
+  // Redos are personal: keep own (and unclaimed stubs); admins see all.
+  const redos = admin
+    ? data.redos
+    : data.redos.filter(
+        (r) =>
+          r.person_id === session.personId || r.person_id === "unknown",
+      );
   const calibrated = await getCalibratedJudgeForReport(id);
 
   return NextResponse.json({
     round,
     report: data.report,
     feedback,
-    redos: data.redos,
-    cards: data.cards.map((c) => ({
-      ...c,
-      calibration_note: tech ? c.calibration_note : undefined,
-      calibration_use: tech ? c.calibration_use : undefined,
-    })),
+    redos,
+    cards: data.cards.map((c) => {
+      const redacted = redactPredictions(c, {
+        viewerPersonId: session.personId,
+        adminViewer: admin,
+      });
+      return {
+        ...redacted,
+        calibration_note: tech ? c.calibration_note : undefined,
+        calibration_use: tech ? c.calibration_use : undefined,
+      };
+    }),
     scores,
     lines: data.lines,
     skills: extras.skills,

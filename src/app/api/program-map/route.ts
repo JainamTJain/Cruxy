@@ -85,9 +85,9 @@ export async function GET() {
     : null;
 
   let cells = readiness;
-  // When readiness_cells is empty, seed the board from this person's roadmap
-  // so Home is never a blank grid. Other teams show a muted estimate only
-  // for layout; never ranked against each other.
+  // When readiness_cells is empty, seed only this person's own team cells
+  // from their roadmap. Other teams stay at 0 (empty), never a muted copy
+  // of personal readiness (that leaked personal roadmap shape).
   if (cells.length === 0) {
     const active = cases.filter((c) => c.active);
     const ownTeam = person?.team_id ?? session.teamId;
@@ -97,9 +97,7 @@ export async function GET() {
         const own =
           roadmap?.cases.find((r) => r.case.id === c.id)?.readiness ?? 0;
         const pct =
-          ownTeam && team.id === ownTeam
-            ? own
-            : Math.max(0, Math.min(100, Math.round(own * 0.7)));
+          ownTeam && team.id === ownTeam ? own : 0;
         cells.push({
           id: `${team.id}-${c.id}`,
           team_id: team.id,

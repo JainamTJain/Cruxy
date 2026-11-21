@@ -783,6 +783,10 @@ export async function continueSocratic(args: {
   const store = await readStore();
   const cur = store.socratic_sessions.find((x) => x.id === args.sessionId);
   if (!cur) throw new Error("session not found");
+  // Personal Socratic transcript: only the owner may continue.
+  if (cur.person_id !== args.personId) {
+    throw new Error("That Socratic session belongs to someone else.");
+  }
   const turns = [
     ...cur.turns,
     { role: "person" as const, text: args.answer, at: nowIso() },

@@ -1209,6 +1209,10 @@ export async function continueSocratic(args: {
   );
   if (!row) throw new Error("session not found");
   const cur = mapSocratic(row);
+  // Personal Socratic transcript: only the owner may continue.
+  if (cur.person_id !== args.personId) {
+    throw new Error("That Socratic session belongs to someone else.");
+  }
 
   cur.turns.push({ role: "person", text: args.answer, at: nowIso() });
   const claims = await teamCaseClaims(cur.team_id, cur.case_id);

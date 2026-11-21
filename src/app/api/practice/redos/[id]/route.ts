@@ -22,8 +22,12 @@ export async function POST(
   if (!redo) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  // Personal redo scores: only the owner (or an unclaimed stub) may update.
   if (redo.person_id !== session.personId && redo.person_id !== "unknown") {
-    // Allow own redos; unknown stub speakers can be claimed by current user in sample
+    return NextResponse.json(
+      { error: "That redo belongs to someone else." },
+      { status: 403 },
+    );
   }
 
   const body = (await req.json()) as { scoreAfter?: number };
