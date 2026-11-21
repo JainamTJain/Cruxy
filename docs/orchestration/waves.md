@@ -8,6 +8,20 @@ Audit of main on Nov 21, 2026 (screenshots at 1440 wide, sample data): every pag
 
 ## Wave 1 (start now, in parallel)
 
+### 0. Wire Supabase (blocks the live site)
+
+Found Nov 21: the whole data layer runs only on the local JSON sample store. Six repositories throw "Supabase path not wired yet" (`src/lib/db/repository.ts`, `library-repository.ts`, `practice-repository.ts`, `src/lib/revision/repository.ts`, `src/lib/team/repository.ts`, and the case brain and admin code that call them). The live site on Vercel returns 500 on `/api/auth/people`, so nobody can sign in. The Supabase database is ready: all seven migrations and `seed.sql` were applied on Nov 21 (project `jwqjxsjwglukpkokpmcb`).
+
+Owns: every `*repository.ts` under `src/lib/`, a new `src/lib/db/supabase/` folder for the Postgres implementations, `src/lib/db/config.ts`.
+
+1. Implement the Supabase path for **every** function in every repository, against the applied schema, using `@supabase/supabase-js` with `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` on the server only. Keep the sample store for local development behind `USE_SAMPLE_DATA=1`.
+2. Same function signatures, so no page changes. If the schema lacks something a function needs, add a new migration (00008 and up); never edit an applied one.
+3. Starter codes: when `MEMBER_STARTER_CODE_HASH` is unset in Supabase mode, show admins a clear message in the admin console instead of crashing.
+4. Write an integration test script (`scripts/supabase-smoke.ts`) that, against a real project, signs a person in with the starter code, records consent, chooses a passcode, signs in again, posts a chat message, creates a proposal and a decision, and reads them back. Run it against the live project before opening the PR and paste the output in the PR.
+5. Every mutation still writes `activity_log`; every route still checks the session and role first.
+
+Done when the preview deployment of the PR lets Jainam sign in, and the smoke script passes.
+
 ### A. Design foundation, shell and Cruxy
 
 Builds on open PR #9 (`cursor/design-fidelity-4505`); continue that branch.

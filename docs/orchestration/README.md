@@ -51,4 +51,4 @@ The reference HTML is the layout, not a mood board. For each screen:
 
 ## Merge order
 
-Wave 1 (foundation and content) merges first. Wave 2 agents start from main after that and each owns one group of screens, so they don't collide. Claude reviews every pull request against the checklists and screenshots before it merges.
+Wave 1 (Supabase wiring, design foundation and content) merges first; Workstream 0 is the most urgent because the live site cannot sign anyone in until it lands. Wave 2 agents start from main after that and each owns one group of screens, so they don't collide. Claude reviews every pull request against the checklists and screenshots before it merges.
