@@ -16,6 +16,17 @@ import type {
   Person,
   Team,
 } from "@/lib/types";
+import type {
+  BookRequest,
+  Comment,
+  Flashcard,
+  Highlight,
+  LibraryFile,
+  Passage,
+  Proposal,
+  ResearchRun,
+  SyncRun,
+} from "@/lib/library/types";
 import { hashPasscode } from "@/lib/crypto/passcodes";
 import { nowIso } from "@/lib/utils";
 
@@ -30,6 +41,15 @@ export interface SampleStore {
   ai_calls: AiCall[];
   competitions: Competition[];
   cases: CaseRow[];
+  files: LibraryFile[];
+  passages: Passage[];
+  highlights: Highlight[];
+  comments: Comment[];
+  proposals: Proposal[];
+  flashcards: Flashcard[];
+  research_runs: ResearchRun[];
+  book_requests: BookRequest[];
+  sync_runs: SyncRun[];
   seeded_at: string;
   /** tech-admin reauth timestamp for reveal window */
   last_tech_reauth_at: string | null;
@@ -170,6 +190,15 @@ export async function buildSeedStore(): Promise<SampleStore> {
     ai_calls: [],
     competitions: [competition],
     cases,
+    files: [],
+    passages: [],
+    highlights: [],
+    comments: [],
+    proposals: [],
+    flashcards: [],
+    research_runs: [],
+    book_requests: [],
+    sync_runs: [],
     seeded_at: nowIso(),
     last_tech_reauth_at: null,
   };
@@ -177,11 +206,26 @@ export async function buildSeedStore(): Promise<SampleStore> {
 
 let writeChain: Promise<void> = Promise.resolve();
 
+function withLibraryDefaults(store: SampleStore): SampleStore {
+  return {
+    ...store,
+    files: store.files ?? [],
+    passages: store.passages ?? [],
+    highlights: store.highlights ?? [],
+    comments: store.comments ?? [],
+    proposals: store.proposals ?? [],
+    flashcards: store.flashcards ?? [],
+    research_runs: store.research_runs ?? [],
+    book_requests: store.book_requests ?? [],
+    sync_runs: store.sync_runs ?? [],
+  };
+}
+
 export async function readStore(): Promise<SampleStore> {
   await ensureDir();
   try {
     const raw = await fs.readFile(STORE_PATH, "utf8");
-    return JSON.parse(raw) as SampleStore;
+    return withLibraryDefaults(JSON.parse(raw) as SampleStore);
   } catch {
     const seeded = await buildSeedStore();
     await fs.writeFile(STORE_PATH, JSON.stringify(seeded, null, 2));
