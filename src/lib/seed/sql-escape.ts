@@ -1,7 +1,8 @@
 /** SQL literal helpers for generated seed files. */
 
-export function sqlStr(value: string | null | undefined): string {
+export function sqlStr(value: string | null | undefined | number | boolean): string {
   if (value == null) return "null";
+  if (typeof value !== "string") return sqlStr(String(value));
   return `'${value.replace(/'/g, "''")}'`;
 }
 

@@ -9,6 +9,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { buildContentSeed } from "../src/lib/seed/build-content";
 import { emitContentSql } from "../src/lib/seed/emit-sql";
+import { assertSeedQuality } from "../src/lib/seed/quality";
 
 const ROOT = path.resolve(__dirname, "..");
 const SEED_DIR = path.join(ROOT, "supabase/seed");
@@ -85,6 +86,10 @@ async function main() {
       throw new Error(`Case ${p.number} missing crux/trap`);
     }
   }
+
+  const { parsed: _parsed, ...shipped } = bundle;
+  assertSeedQuality(shipped);
+  console.log("seed quality: ok");
 }
 
 main().catch((err) => {

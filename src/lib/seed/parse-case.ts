@@ -23,6 +23,11 @@ export interface ParsedBacking {
 
 export interface ParsedSupport {
   label: string;
+  /** Short support title (e.g. "The responsibility gap"). */
+  title: string;
+  /** Body after the title. */
+  body: string;
+  /** Display text: "Title. Body" (or title alone). */
   text: string;
   backing: ParsedBacking;
 }
@@ -130,14 +135,20 @@ function parseClaim(block: string, headingPrefix: string): ParsedClaim {
   let sm: RegExpExecArray | null;
   while ((sm = supportRe.exec(block)) !== null) {
     const label = sm[1]!;
-    const head = sm[2]!.trim().replace(/\.$/, "");
-    const body = sm[3]!.trim();
-    const lines = body.split("\n").map((l) => l.trim()).filter(Boolean);
+    const title = sm[2]!.trim().replace(/\.$/, "");
+    const rawBody = sm[3]!.trim();
+    const lines = rawBody.split("\n").map((l) => l.trim()).filter(Boolean);
     const backingLine = lines.find((l) => /^\*Backing/i.test(l)) ?? "";
-    const textLines = lines.filter((l) => !/^\*Backing/i.test(l));
-    const text = [head, ...textLines].join(" ").replace(/\s+/g, " ").trim();
+    const body = lines
+      .filter((l) => !/^\*Backing/i.test(l))
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const text = body ? `${title}. ${body}` : title;
     supports.push({
       label,
+      title,
+      body,
       text,
       backing: parseBacking(backingLine || `*Backing (source):* ${text}`),
     });
@@ -167,13 +178,29 @@ function headFromFirstLine(block: string): string {
   return block.split("\n")[0]?.trim() ?? "";
 }
 
+function cleanSeedText(raw: string): string {
+  return raw
+    .replace(/\*\*/g, "")
+    // Unwrap short emphasis quotes so quality checks don't see orphans.
+    .replace(/"([^"]{1,60})"/g, "$1")
+    .replace(/“([^”]{1,60})”/g, "$1")
+    .replace(/\s+/g, " ")
+    .replace(/^["“]+|["”]+$/g, "")
+    .replace(/\s*\(post h$/i, "")
+    .trim();
+}
+
+function parseCounterclaimTitle(part: string): string {
+  const firstLine = (part.split("\n")[0] ?? "").trim();
+  const quoted = firstLine.match(/^["“]([^"“”]+)["”]/);
+  if (quoted) return cleanSeedText(quoted[1]!);
+  return cleanSeedText(firstLine.replace(/\*\*\s*$/, ""));
+}
+
 function parseCounterclaims(block: string): ParsedCounterclaim[] {
   const parts = block.split(/\*\*Counterclaim:\s*/i).slice(1);
   return parts.map((part) => {
-    const textMatch = part.match(/^"?([^"*]+)"?\*\*/);
-    const text = (textMatch?.[1] ?? part.split("\n")[0] ?? "")
-      .replace(/^"|"$/g, "")
-      .trim();
+    const text = parseCounterclaimTitle(part);
     const their =
       part
         .match(/\*Their supports:\*\s*([\s\S]*?)(?=\n\*Our response|$)/i)?.[1]
@@ -181,52 +208,41 @@ function parseCounterclaims(block: string): ParsedCounterclaim[] {
         .trim() ?? "";
     const response =
       part
-        .match(/\*Our response:\*\s*([\s\S]*?)(?=\n\*\*Counterclaim|\n##|$)/i)?.[1]
+        .match(
+          /\*Our response(?:\s*\([^)]*\))?:\*\s*([\s\S]*?)(?=\n\*\*Counterclaim|\n##|$)/i,
+        )?.[1]
         ?.trim() ?? "";
 
-    const concede =
-      response.match(/\*\*Concede\*\*\s*([^:]*?):\s*([^*]+?)(?=\s*\*\*Distinguish|\s*\*\*Rebut|$)/i)?.[0]
-        ?.replace(/\*\*Concede\*\*/i, "")
-        .trim() ??
-      response.match(/Concede[^:]*:\s*([^.]+)/i)?.[1]?.trim() ??
-      "";
-    const distinguish =
-      response.match(/\*\*Distinguish\*\*\s*([^:]*?):\s*([^*]+?)(?=\s*\*\*Rebut|$)/i)?.[0]
-        ?.replace(/\*\*Distinguish\*\*/i, "")
-        .trim() ??
-      response.match(/Distinguish[^:]*:\s*([^.]+)/i)?.[1]?.trim() ??
-      "";
-    const rebut =
-      response.match(/\*\*Rebut\*\*\s*([^:]*?):\s*([\s\S]+)/i)?.[0]
-        ?.replace(/\*\*Rebut\*\*/i, "")
-        .trim() ??
-      response.replace(/\*\*/g, "").trim();
-
-    // Prefer structured extract when present
     const concedeM = response.match(
-      /\*\*Concede\*\*[^(]*\(([^)]+)\):\s*([^*]+?)(?=\s*\*\*|$)/i,
+      /\*\*Concede\*\*[^(]*\(([^)]+)\):\s*([\s\S]+?)(?=\s*\*\*(?:Distinguish|Rebut)\b|$)/i,
     );
     const distinguishM = response.match(
-      /\*\*Distinguish\*\*[^(]*\(([^)]+)\):\s*([^*]+?)(?=\s*\*\*|$)/i,
+      /\*\*Distinguish\*\*[^(]*\(([^)]+)\):\s*([\s\S]+?)(?=\s*\*\*(?:Concede|Rebut)\b|$)/i,
+    );
+    const distinguishPlain = response.match(
+      /\*\*Distinguish:\*\*\s*([\s\S]+?)(?=\s*\*\*(?:Concede|Rebut)\b|$)/i,
     );
     const rebutM = response.match(
-      /\*\*Rebut\*\*[^(]*\(([^)]+)\):\s*([\s\S]+?)(?=\n\n|$)/i,
+      /\*\*Rebut\*\*[^(]*\(([^)]+)\):\s*([\s\S]+?)$/i,
     );
-    const rebutM2 = response.match(/\*\*Rebut\*\*\s*([^:]+):\s*([\s\S]+)/i);
+    const rebutPlain = response.match(/\*\*Rebut\*\*[^:]*:\s*([\s\S]+?)$/i);
+
+    const concede = concedeM
+      ? `(${concedeM[1]}) ${concedeM[2]}`
+      : "";
+    const distinguish = distinguishM
+      ? `(${distinguishM[1]}) ${distinguishM[2]}`
+      : distinguishPlain?.[1] ?? "";
+    const rebutRaw = rebutM?.[2] ?? rebutPlain?.[1] ?? "";
+    const rebut =
+      !concede && !distinguish && !rebutRaw ? response : rebutRaw;
 
     return {
       text,
-      theirSupports: their,
-      concede: concedeM
-        ? `(${concedeM[1]}) ${concedeM[2]}`.replace(/\s+/g, " ").trim()
-        : concede.replace(/\s+/g, " ").trim() || "See response.",
-      distinguish: distinguishM
-        ? `(${distinguishM[1]}) ${distinguishM[2]}`.replace(/\s+/g, " ").trim()
-        : distinguish.replace(/\s+/g, " ").trim() || "See response.",
-      rebut: (rebutM?.[2] ?? rebutM2?.[2] ?? rebut)
-        .replace(/\*\*/g, "")
-        .replace(/\s+/g, " ")
-        .trim() || response.replace(/\*\*/g, "").replace(/\s+/g, " ").trim(),
+      theirSupports: cleanSeedText(their),
+      concede: cleanSeedText(concede) || "See response.",
+      distinguish: cleanSeedText(distinguish) || "See response.",
+      rebut: cleanSeedText(rebut) || cleanSeedText(response),
     };
   });
 }

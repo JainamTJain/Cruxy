@@ -1,6 +1,7 @@
 -- Workstream B: tables needed to load real case-prep content.
 -- Safe to apply after 00001–00007. Workstream 0 may use 00008.
 -- Idempotent content upserts use deterministic primary keys (see scripts/seed-content.ts).
+-- All DB access is server-side via the service role (bypasses RLS).
 
 -- Stakeholders on each case card (from case prep docs).
 create table if not exists case_stakeholders (
@@ -35,31 +36,14 @@ create table if not exists scoring_card_items (
 alter table truth_items
   add column if not exists origin text;
 
--- RLS (deny anon by default; server uses service role).
+-- RLS on; no policies. Deny anon/authenticated by default (matches 00001 sensitive tables).
 alter table case_stakeholders enable row level security;
 alter table scoring_card_items enable row level security;
 
-do $$
-begin
-  if not exists (
-    select 1 from pg_policies where tablename = 'case_stakeholders' and policyname = 'stakeholders_read_all'
-  ) then
-    create policy stakeholders_read_all on case_stakeholders for select using (true);
-  end if;
-  if not exists (
-    select 1 from pg_policies where tablename = 'case_stakeholders' and policyname = 'stakeholders_write_auth'
-  ) then
-    create policy stakeholders_write_auth on case_stakeholders for all using (true) with check (true);
-  end if;
+drop policy if exists stakeholders_read_all on case_stakeholders;
+drop policy if exists stakeholders_write_auth on case_stakeholders;
+drop policy if exists scoring_items_read_all on scoring_card_items;
+drop policy if exists scoring_items_write_auth on scoring_card_items;
 
-  if not exists (
-    select 1 from pg_policies where tablename = 'scoring_card_items' and policyname = 'scoring_items_read_all'
-  ) then
-    create policy scoring_items_read_all on scoring_card_items for select using (true);
-  end if;
-  if not exists (
-    select 1 from pg_policies where tablename = 'scoring_card_items' and policyname = 'scoring_items_write_auth'
-  ) then
-    create policy scoring_items_write_auth on scoring_card_items for all using (true) with check (true);
-  end if;
-end $$;
+revoke all on case_stakeholders from anon, authenticated;
+revoke all on scoring_card_items from anon, authenticated;

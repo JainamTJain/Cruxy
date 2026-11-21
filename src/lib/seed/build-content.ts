@@ -107,20 +107,154 @@ function difficultyFor(text: string, index: number): 1 | 2 | 3 {
   return index % 3 === 2 ? 3 : 2;
 }
 
-function extractFrameworks(parsed: ParsedCase): string[] {
-  const out: string[] = [];
+/** Split a crux written as "X *versus* Y" (or plain versus) into scale poles. */
+export function splitCruxValues(crux: string): { left: string; right: string } {
+  const cleaned = crux.replace(/\*+/g, "").replace(/\s+/g, " ").trim();
+  const parts = cleaned.split(/\s+versus\s+/i);
+  if (parts.length >= 2 && parts[0]!.trim() && parts[1]!.trim()) {
+    return {
+      left: parts[0]!.trim().replace(/[.,;:]+$/, ""),
+      right: parts.slice(1).join(" versus ").trim().replace(/[.,;:]+$/, ""),
+    };
+  }
+  const vs = cleaned.split(/\s+vs\.?\s+/i);
+  if (vs.length >= 2 && vs[0]!.trim() && vs[1]!.trim()) {
+    return {
+      left: vs[0]!.trim().replace(/[.,;:]+$/, ""),
+      right: vs.slice(1).join(" vs ").trim().replace(/[.,;:]+$/, ""),
+    };
+  }
+  throw new Error(`Crux has no versus split: ${cleaned.slice(0, 120)}`);
+}
+
+/** Turn a framework backing / sentence into a short name + full one-liner. */
+export function nameFramework(text: string): { name: string; one_line: string } {
+  const one_line = text.replace(/\s+/g, " ").trim();
+
+  const quoted = one_line.match(
+    /([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)?)\s*'s\s+[“"']([^”"']+)[”"']\s*(\(\d{4}\))?/,
+  );
+  if (quoted) {
+    const year = quoted[3] ? ` ${quoted[3]}` : "";
+    return { name: `${quoted[1]}, ${quoted[2]}${year}`, one_line };
+  }
+
+  // Named works in italics: Margalit's *The Ethics of Memory*
+  const ital = one_line.match(
+    /([A-Z][a-zA-Z]+)\s*'s\s+\*([^*]+)\*/,
+  );
+  if (ital) return { name: `${ital[1]}, ${ital[2]}`, one_line };
+
+  if (/humanity formula/i.test(one_line)) {
+    return { name: "Kant, humanity formula", one_line };
+  }
+  if (/harm principle/i.test(one_line)) {
+    return { name: "Mill, harm principle", one_line };
+  }
+  if (/virtue ethics/i.test(one_line)) {
+    return { name: "Virtue ethics", one_line };
+  }
+  if (/corrective justice/i.test(one_line)) {
+    return { name: "Corrective justice", one_line };
+  }
+  if (/precautionary principle/i.test(one_line)) {
+    return { name: "Precautionary principle", one_line };
+  }
+  if (/social model of disability/i.test(one_line)) {
+    return { name: "Social model of disability", one_line };
+  }
+  if (/chilling.?effect/i.test(one_line)) {
+    return { name: "Chilling-effect argument", one_line };
+  }
+  if (/soft paternalism/i.test(one_line)) {
+    return { name: "Soft paternalism", one_line };
+  }
+  if (/ought implies can/i.test(one_line)) {
+    return { name: "Kant, ought implies can", one_line };
+  }
+  if (/entitlement theory/i.test(one_line)) {
+    return { name: "Nozick, entitlement theory", one_line };
+  }
+  if (/universalizability/i.test(one_line)) {
+    return { name: "Kant, universalizability", one_line };
+  }
+  if (/On Liberty/i.test(one_line)) {
+    return { name: "Mill, On Liberty", one_line };
+  }
+  if (/equal consideration/i.test(one_line)) {
+    return { name: "Singer, equal consideration of interests", one_line };
+  }
+  if (/social connection model/i.test(one_line)) {
+    return { name: "Young, social connection model", one_line };
+  }
+  if (/Goodhart/i.test(one_line)) {
+    return { name: "Goodhart's law", one_line };
+  }
+  if (/Crip Technoscience/i.test(one_line)) {
+    return { name: "Hamraie & Fritsch, Crip Technoscience", one_line };
+  }
+  if (/mistakes in moral mathematics/i.test(one_line)) {
+    return { name: "Parfit, mistakes in moral mathematics (1984)", one_line };
+  }
+  if (/leveling down/i.test(one_line)) {
+    return { name: "Parfit, leveling down", one_line };
+  }
+  if (/universal.?museum/i.test(one_line)) {
+    return { name: "Universal-museum argument", one_line };
+  }
+  if (/\bRegan\b/i.test(one_line) && /\bSinger\b/i.test(one_line)) {
+    return { name: "Singer and Regan (animal ethics)", one_line };
+  }
+  if (/\bWaldron\b/i.test(one_line)) {
+    return { name: "Waldron, dignity", one_line };
+  }
+  if (/\bNguyen\b/i.test(one_line)) {
+    return { name: "Nguyen, trust", one_line };
+  }
+
+  const thinker = one_line.match(
+    /\b(Kant|Mill|Nozick|Aristotle|Rawls|Sandel|Sparrow|Margalit|Khader|Young|Nguyen|Waldron|Parfit|Singer|Regan)\b(?:'s)?(?:\s+|,)\s*([A-Za-z][A-Za-z -]{0,40})?/i,
+  );
+  if (thinker) {
+    const label = (thinker[2] ?? "").trim().replace(/[,:;]+$/, "");
+    if (label && label.length >= 3) {
+      return { name: `${thinker[1]}, ${label}`, one_line };
+    }
+    return { name: thinker[1]!, one_line };
+  }
+
+  // First short clause, cut only at a word boundary.
+  const clause = one_line.split(/[:.]/)[0]!.trim();
+  if (clause.length <= 48) return { name: clause, one_line };
+  const cut = clause.slice(0, 48);
+  const at = cut.lastIndexOf(" ");
+  return { name: (at > 20 ? cut.slice(0, at) : cut).trim(), one_line };
+}
+
+function extractFrameworks(
+  parsed: ParsedCase,
+): { name: string; one_line: string }[] {
+  const seen = new Set<string>();
+  const out: { name: string; one_line: string }[] = [];
+  const push = (raw: string) => {
+    const item = nameFramework(raw);
+    const key = item.name.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(item);
+  };
   for (const claim of [parsed.claim1, parsed.claim2]) {
     for (const s of claim.supports) {
-      if (s.backing.kind === "framework") out.push(s.backing.text);
+      if (s.backing.kind === "framework") push(s.backing.text);
     }
     if (claim.ethicalAnalysis) {
       const named = claim.ethicalAnalysis.match(
-        /(?:Kant|utilitarian|virtue|Sparrow|Margalit|Khader|Nozick|Mill)[^.]*\./gi,
+        /(?:Kant|Mill|Nozick|Sparrow|Margalit|Khader|Young|Nguyen|virtue ethics|utilitarian)[^.]*\./gi,
       );
-      if (named) out.push(...named.map((x) => x.trim()));
+      if (named) for (const n of named) push(n.trim());
     }
   }
-  return [...new Set(out)].slice(0, 6);
+  return out.slice(0, 6);
 }
 
 function buildOnePagerBody(parsed: ParsedCase): OnePagerBody {
@@ -136,6 +270,7 @@ function buildOnePagerBody(parsed: ParsedCase): OnePagerBody {
   }));
   const cc = parsed.counterclaims[0];
   const frameworks = extractFrameworks(parsed);
+  const { left, right } = splitCruxValues(parsed.crux);
   return {
     claims,
     counterclaim: cc
@@ -166,9 +301,10 @@ function buildOnePagerBody(parsed: ParsedCase): OnePagerBody {
         kind: "values_scale",
         title: "Values in tension",
         payload: {
-          left: parsed.crux.split(/\s+versus\s+/i)[0]?.replace(/\*+/g, "").trim() ?? "Value A",
-          right: parsed.crux.split(/\s+versus\s+/i)[1]?.replace(/\*+/g, "").trim() ?? "Value B",
-          note: parsed.trap,
+          left,
+          right,
+          // Trap belongs in note; never invent a values placeholder note.
+          note: parsed.trap || null,
         },
       },
       {
@@ -198,8 +334,8 @@ function buildOnePagerBody(parsed: ParsedCase): OnePagerBody {
         title: "Frameworks",
         payload: {
           items: frameworks.map((f) => ({
-            name: f.slice(0, 40),
-            one_line: f,
+            name: f.name,
+            one_line: f.one_line,
           })),
         },
       },
@@ -218,9 +354,8 @@ function buildOnePagerBody(parsed: ParsedCase): OnePagerBody {
   };
 }
 
-function cardFront(kind: TruthItem["kind"], text: string): string {
-  if (kind === "framework")
-    return `Framework (one sentence): ${text.slice(0, 48)}${text.length > 48 ? "…" : ""}`;
+function cardFront(kind: TruthItem["kind"]): string {
+  if (kind === "framework") return "Framework (one sentence)";
   if (kind === "quote") return "Who said / where: recall this quote";
   if (kind === "example") return "Vivid example for this case";
   return "Fact with citation";
@@ -426,7 +561,7 @@ export async function buildContentSeed(
         team_id: TEAM3,
         case_id: cid,
         kind: "framework",
-        text: fw,
+        text: `${fw.name}: ${fw.one_line}`,
         citation_ids: [id],
         status: "accepted",
         created_at: NOW,
@@ -515,14 +650,15 @@ export async function buildContentSeed(
 
     // Commentary kit → opposing positions
     for (const [i, line] of p.commentaryKit.entries()) {
-      const ifMatch = line.match(/^If they argue\s+(.+?):\s*(.+)$/i);
-      const title = ifMatch
-        ? `They argue ${ifMatch[1]}`
-        : line.slice(0, 80);
-      const angle = ifMatch?.[2] ?? line;
+      const ifMatch = line.match(/^If they\s+(.+?):\s*(.+)$/i);
+      const title = ifMatch ? `They ${ifMatch[1]!.trim()}` : line.trim();
+      const angle = (ifMatch?.[2] ?? line).trim();
       const weak =
         p.counterclaims[0]?.rebut ??
         "Pressure this against our claim map and the case facts.";
+      const nextAngle =
+        p.commentaryKit[(i + 1) % Math.max(p.commentaryKit.length, 1)] ??
+        "Ask what their principle would require in a flipped case.";
       opposing_positions.push({
         id: seedUuid(`opp:${p.number}:${i}`),
         case_id: cid,
@@ -531,13 +667,8 @@ export async function buildContentSeed(
           p.counterclaims[0]?.theirSupports ||
           p.counterclaims[0]?.text ||
           "Their strongest reading of the case facts.",
-        weak_point: weak.slice(0, 280),
-        commentary_angles: [
-          angle.slice(0, 200),
-          (p.commentaryKit[(i + 1) % Math.max(p.commentaryKit.length, 1)] ??
-            "Ask what their principle would require in a flipped case.")
-            .slice(0, 200),
-        ],
+        weak_point: weak,
+        commentary_angles: [angle, nextAngle.trim()],
         origin: "team",
         added_by_team_id: TEAM3,
         created_at: NOW,
@@ -571,7 +702,7 @@ export async function buildContentSeed(
       team_id: item.team_id,
       case_id: item.case_id,
       deck: `case-${cases.find((c) => c.id === item.case_id)?.number ?? "?"}`,
-      front: cardFront(item.kind, item.text),
+      front: cardFront(item.kind),
       back: item.text,
       citation_ids: item.citation_ids.length ? item.citation_ids : [item.id],
       truth_item_id: item.id,

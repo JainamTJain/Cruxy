@@ -16,6 +16,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "seed:content": "tsx scripts/seed-content.ts",
+    "seed:quality": "tsx scripts/seed-quality.ts",
     "shots": "node scripts/shots.mjs"
   },
   "dependencies": {
