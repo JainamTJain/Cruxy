@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 export default function SettingsPage() {
   const [email, setEmail] = useState("");
   const [optIn, setOptIn] = useState(false);
+  const [digestOptIn, setDigestOptIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [hideFloat, setHideFloat] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -14,24 +16,38 @@ export default function SettingsPage() {
       .then((r) => r.json())
       .then(
         (d: {
-          person?: { email?: string | null; email_reminders_opt_in?: boolean };
+          session?: { role?: string };
+          person?: {
+            email?: string | null;
+            email_reminders_opt_in?: boolean;
+            digest_opt_in?: boolean;
+            role?: string;
+          };
         }) => {
           setEmail(d.person?.email ?? "");
           setOptIn(Boolean(d.person?.email_reminders_opt_in));
+          setDigestOptIn(Boolean(d.person?.digest_opt_in));
+          const role = d.person?.role ?? d.session?.role;
+          setIsAdmin(role === "tech_admin" || role === "coach_admin");
         },
       );
     void fetch("/api/prefs/cruxy")
       .then((r) => r.json())
       .then((d: { prefs?: { hide_floating_cruxy?: boolean } }) => {
         setHideFloat(Boolean(d.prefs?.hide_floating_cruxy));
-      });
+      })
+      .catch(() => undefined);
   }, []);
 
   async function saveReminders() {
     const res = await fetch("/api/settings/reminders", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email, emailRemindersOptIn: optIn }),
+      body: JSON.stringify({
+        email,
+        emailRemindersOptIn: optIn,
+        digestOptIn: isAdmin ? digestOptIn : undefined,
+      }),
     });
     setMsg(res.ok ? "Saved. Email only sends if you opted in." : "Could not save.");
   }
@@ -42,13 +58,7 @@ export default function SettingsPage() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ hide_floating_cruxy: hideFloat }),
     });
-    setMsg(
-      res.ok
-        ? hideFloat
-          ? "Floating Cruxy hidden. The lamp always stays."
-          : "Floating Cruxy shown again."
-        : "Could not save Cruxy preference.",
-    );
+    setMsg(res.ok ? "Cruxy preference saved." : "Could not save Cruxy preference.");
   }
 
   return (
@@ -78,23 +88,32 @@ export default function SettingsPage() {
         />
         Email reminders (opt in)
       </label>
+      {isAdmin ? (
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={digestOptIn}
+            onChange={(e) => setDigestOptIn(e.target.checked)}
+          />
+          Weekly summary email (admins)
+        </label>
+      ) : null}
       <Button onClick={() => void saveReminders()}>Save reminders</Button>
 
-      <section className="space-y-3 border-t border-ink/10 pt-6">
-        <h2 className="font-display text-xl font-semibold">Cruxy</h2>
-        <label className="flex items-center gap-2 text-sm">
+      <div className="border-t border-ink/10 pt-4">
+        <h2 className="font-display text-lg font-semibold">Cruxy</h2>
+        <label className="mt-3 flex items-center gap-2 text-sm">
           <input
             type="checkbox"
             checked={hideFloat}
             onChange={(e) => setHideFloat(e.target.checked)}
           />
-          Hide floating Cruxy (lamp always stays)
+          Hide floating Cruxy (lamp stays)
         </label>
-        <Button variant="secondary" onClick={() => void saveCruxy()}>
-          Save Cruxy preference
+        <Button className="mt-3" variant="outline" onClick={() => void saveCruxy()}>
+          Save Cruxy
         </Button>
-      </section>
-
+      </div>
       {msg ? <p className="text-sm text-muted">{msg}</p> : null}
     </main>
   );

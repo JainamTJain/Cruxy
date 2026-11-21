@@ -116,6 +116,7 @@ export async function setCaseRole(input: {
         due: null,
         done_at: nowIso(),
         created_at: nowIso(),
+        created_by: null,
       };
       s.roadmap_stages.push(roadmap);
     } else {

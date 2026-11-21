@@ -901,7 +901,14 @@ export async function recomputeRoadmapStages(personId: string) {
     const stages = s.roadmap_stages.filter((r) => r.person_id === personId);
     for (const stage of stages) {
       if (stage.done_at) continue;
-      if (isStageDone(s, personId, stage.case_id, stage.stage)) {
+      if (
+        isStageDone(
+          s,
+          personId,
+          stage.case_id,
+          stage.stage as RoadmapStageId,
+        )
+      ) {
         stage.done_at = nowIso();
       }
     }
@@ -1110,8 +1117,9 @@ export async function getRoadmapView(personId: string) {
       `${String(c.number).padStart(2, "0")} ${c.title}`,
     ]),
   );
+  const typedStages = stages as RoadmapStage[];
   const byCase = new Map<string, RoadmapStage[]>();
-  for (const s of stages) {
+  for (const s of typedStages) {
     const arr = byCase.get(s.case_id) ?? [];
     arr.push(s);
     byCase.set(s.case_id, arr);
@@ -1126,7 +1134,7 @@ export async function getRoadmapView(personId: string) {
 
   return {
     cases,
-    doNext: doNextActions(stages, caseTitles, 3),
+    doNext: doNextActions(typedStages, caseTitles, 3),
     competitionDate: store.competitions[0]?.date ?? "2026-12-05",
   };
 }
