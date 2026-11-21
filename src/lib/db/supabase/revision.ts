@@ -41,6 +41,7 @@ import type {
   CounterclaimRow,
   Flashcard,
   ModeratorQuestion,
+  NodeMastery,
   OnePager,
   OnePagerBody,
   PhrasebookEntry,
@@ -93,6 +94,7 @@ function mapFlashcard(r: Row): Flashcard {
     back: r.back,
     citation_ids: r.citation_ids ?? [],
     truth_item_id: r.truth_item_id ?? null,
+    claim_id: r.claim_id ?? null,
     source_kind: r.source_kind ?? "manual",
     created_at: iso(r.created_at),
     created_by: r.created_by ?? null,
@@ -110,6 +112,7 @@ function flashcardToRow(c: Flashcard): Row {
     back: c.back,
     citation_ids: c.citation_ids,
     truth_item_id: c.truth_item_id,
+    claim_id: c.claim_id,
     source_kind: c.source_kind,
     created_at: c.created_at,
     created_by: c.created_by,
@@ -516,7 +519,7 @@ export async function reviewFlashcard(args: {
   cardId: string;
   grade: FsrsRating;
   mode?: "typed" | "spoken";
-}): Promise<CardFsrsState> {
+}): Promise<{ state: CardFsrsState; mastery: NodeMastery | null }> {
   const sb = getServiceSupabase();
   const prior = await getOrCreateFsrsState(args.personId, args.cardId);
   const next = reviewCard(
@@ -573,8 +576,40 @@ export async function reviewFlashcard(args: {
     "reviewFlashcard.review",
   );
 
+  const { updateNodeMasteryAfterReview } = await import(
+    "@/lib/db/supabase/graph-flashcards"
+  );
+  const mastery = await updateNodeMasteryAfterReview({
+    personId: args.personId,
+    cardId: args.cardId,
+    grade: args.grade,
+  });
+
   await recomputeRoadmapStages(args.personId);
-  return getOrCreateFsrsState(args.personId, args.cardId);
+
+  const cardRow = must(
+    await sb
+      .from("flashcards")
+      .select("case_id")
+      .eq("id", args.cardId)
+      .maybeSingle(),
+    "reviewFlashcard.card",
+  );
+  if (cardRow?.case_id) {
+    const { observeClaimAttempt } = await import(
+      "@/lib/cruxy/socratic-outcomes"
+    );
+    await observeClaimAttempt({
+      personId: args.personId,
+      caseId: cardRow.case_id as string,
+      attemptKind: "flashcard",
+      scoreAfter: args.grade,
+      refId: args.cardId,
+    }).catch(() => undefined);
+  }
+
+  const state = await getOrCreateFsrsState(args.personId, args.cardId);
+  return { state, mastery };
 }
 
 export async function dueFlashcardsForPerson(
@@ -1115,6 +1150,30 @@ export async function answerQuestion(args: {
   assertOk((await sb.from("answers").insert(row)).error, "answerQuestion.insert");
 
   await recomputeRoadmapStages(args.personId);
+
+  if (row.score != null) {
+    const qRow = must(
+      await sb
+        .from("questions")
+        .select("case_id")
+        .eq("id", args.questionId)
+        .maybeSingle(),
+      "answerQuestion.question",
+    );
+    if (qRow?.case_id) {
+      const { observeClaimAttempt } = await import(
+        "@/lib/cruxy/socratic-outcomes"
+      );
+      await observeClaimAttempt({
+        personId: args.personId,
+        caseId: qRow.case_id as string,
+        attemptKind: "drill",
+        scoreAfter: row.score,
+        refId: row.id,
+      }).catch(() => undefined);
+    }
+  }
+
   return row;
 }
 
@@ -1209,6 +1268,10 @@ export async function continueSocratic(args: {
   );
   if (!row) throw new Error("session not found");
   const cur = mapSocratic(row);
+  // Personal Socratic transcript: only the owner may continue.
+  if (cur.person_id !== args.personId) {
+    throw new Error("That Socratic session belongs to someone else.");
+  }
 
   cur.turns.push({ role: "person", text: args.answer, at: nowIso() });
   const claims = await teamCaseClaims(cur.team_id, cur.case_id);
@@ -1243,6 +1306,12 @@ export async function continueSocratic(args: {
     ).error,
     "continueSocratic.update",
   );
+  if (cur.status === "done") {
+    const { openSocraticOutcomes } = await import(
+      "@/lib/cruxy/socratic-outcomes"
+    );
+    await openSocraticOutcomes(cur).catch(() => undefined);
+  }
   return cur;
 }
 

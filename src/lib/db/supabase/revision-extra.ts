@@ -2,15 +2,7 @@ import "server-only";
 import { randomUUID } from "crypto";
 import { assertOk, getServiceSupabase } from "@/lib/db/supabase/client";
 import { iso, isoOrNull, type Row } from "@/lib/db/supabase/util";
-import {
-  applyDailyCap,
-  dailyFlashcardTarget,
-  daysUntil,
-  isCramMode,
-  orderDeckForPerson,
-} from "@/lib/revision/deck";
 import type { CardFsrsState, Flashcard } from "@/lib/revision/types";
-import { listCompetitions } from "@/lib/db/repository";
 
 function must<T>(
   res: { data: T; error: { message: string } | null },
@@ -18,23 +10,6 @@ function must<T>(
 ): T {
   assertOk(res.error, ctx);
   return res.data;
-}
-
-function mapFlashcard(r: Row): Flashcard {
-  return {
-    id: r.id,
-    team_id: r.team_id ?? null,
-    case_id: r.case_id ?? null,
-    deck: r.deck ?? "",
-    front: r.front,
-    back: r.back,
-    citation_ids: r.citation_ids ?? [],
-    truth_item_id: r.truth_item_id ?? null,
-    source_kind: r.source_kind ?? "manual",
-    created_at: iso(r.created_at),
-    created_by: r.created_by ?? null,
-    updated_at: iso(r.updated_at ?? r.created_at),
-  };
 }
 
 function mapFsrs(r: Row): CardFsrsState {
@@ -58,12 +33,18 @@ function mapFsrs(r: Row): CardFsrsState {
 }
 
 export type DueDeckResult = {
-  cards: { card: Flashcard; state: CardFsrsState | null }[];
+  cards: {
+    card: Flashcard;
+    state: CardFsrsState | null;
+    underAttack?: boolean;
+    mastery?: number | null;
+  }[];
   dailyTarget: number;
   cramMode: boolean;
   daysToCompetition: number | null;
   leadCaseCount: number;
   totalInRotation: number;
+  openAttackCount?: number;
 };
 
 /** Pin (or unpin) a card in this person's deck. Keeps it in rotation when pinned. */
@@ -128,102 +109,23 @@ export async function setFlashcardPinned(args: {
 }
 
 /**
- * Due deck ordered by this person's FSRS state, with pins and cram mode.
- * Caps the session list to the rising daily target.
+ * Due deck ordered with graph-aware priority (claim mastery + open attacks).
+ * Caps the session list to the rising daily target; pin and cram still apply.
  */
 export async function dueDeckForPerson(
   personId: string,
 ): Promise<DueDeckResult> {
-  const sb = getServiceSupabase();
-  const [optIns, roles, competitions] = await Promise.all([
-    sb.from("deck_opt_ins").select("case_id").eq("person_id", personId),
-    sb
-      .from("case_roles")
-      .select("case_id")
-      .eq("person_id", personId)
-      .in("role", ["lead_1", "lead_2"]),
-    listCompetitions(),
-  ]);
-
-  const caseIds = new Set<string>();
-  const leadCaseIds = new Set<string>();
-  for (const r of must(optIns, "dueDeck.optIns") ?? []) caseIds.add(r.case_id);
-  for (const r of must(roles, "dueDeck.roles") ?? []) {
-    caseIds.add(r.case_id);
-    leadCaseIds.add(r.case_id);
-  }
-
-  const nextCompetition = competitions[0] ?? null;
-  const daysToCompetition = daysUntil(nextCompetition?.date);
-  const cramMode = isCramMode(daysToCompetition);
-  const dailyTarget = dailyFlashcardTarget({
-    daysToCompetition,
-    leadCaseCount: leadCaseIds.size,
-    cramMode,
-  });
-
-  if (caseIds.size === 0) {
-    return {
-      cards: [],
-      dailyTarget,
-      cramMode,
-      daysToCompetition,
-      leadCaseCount: leadCaseIds.size,
-      totalInRotation: 0,
-    };
-  }
-
-  const cardRows =
-    must(
-      await sb
-        .from("flashcards")
-        .select("*")
-        .in("case_id", [...caseIds])
-        .order("created_at", { ascending: true }),
-      "dueDeck.cards",
-    ) ?? [];
-  const cards = cardRows.map(mapFlashcard);
-  if (cards.length === 0) {
-    return {
-      cards: [],
-      dailyTarget,
-      cramMode,
-      daysToCompetition,
-      leadCaseCount: leadCaseIds.size,
-      totalInRotation: 0,
-    };
-  }
-
-  const stateRows =
-    must(
-      await sb
-        .from("card_fsrs_states")
-        .select("*")
-        .eq("person_id", personId)
-        .in(
-          "card_id",
-          cards.map((c) => c.id),
-        ),
-      "dueDeck.states",
-    ) ?? [];
-  const statesByCardId = new Map<string, CardFsrsState>(
-    stateRows.map((r: Row) => [r.card_id, mapFsrs(r)]),
+  const { dueGraphDeckForPerson } = await import(
+    "@/lib/db/supabase/graph-flashcards"
   );
-
-  const ordered = orderDeckForPerson({
-    cards,
-    statesByCardId,
-    leadCaseIds,
-    cramMode,
-  });
-  const capped = applyDailyCap(ordered, dailyTarget);
-
+  const deck = await dueGraphDeckForPerson(personId);
   return {
-    cards: capped,
-    dailyTarget,
-    cramMode,
-    daysToCompetition,
-    leadCaseCount: leadCaseIds.size,
-    totalInRotation: ordered.length,
+    cards: deck.cards,
+    dailyTarget: deck.dailyTarget,
+    cramMode: deck.cramMode,
+    daysToCompetition: deck.daysToCompetition,
+    leadCaseCount: deck.leadCaseCount,
+    totalInRotation: deck.totalInRotation,
+    openAttackCount: deck.openAttackCount,
   };
 }

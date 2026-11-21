@@ -22,8 +22,12 @@ export async function POST(
   if (!redo) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  // Personal redo scores: only the owner (or an unclaimed stub) may update.
   if (redo.person_id !== session.personId && redo.person_id !== "unknown") {
-    // Allow own redos; unknown stub speakers can be claimed by current user in sample
+    return NextResponse.json(
+      { error: "That redo belongs to someone else." },
+      { status: 403 },
+    );
   }
 
   const body = (await req.json()) as { scoreAfter?: number };
@@ -62,6 +66,24 @@ export async function POST(
     });
   } catch {
     /* outcomes table may not be applied yet locally */
+  }
+
+  // Wave 6: Socratic outcomes against the next round-item score.
+  try {
+    const { observeClaimAttempt } = await import(
+      "@/lib/cruxy/socratic-outcomes"
+    );
+    if (next.score_after != null) {
+      await observeClaimAttempt({
+        personId: next.person_id,
+        caseId: null,
+        attemptKind: "round",
+        scoreAfter: next.score_after,
+        refId: next.id,
+      });
+    }
+  } catch {
+    /* pending table may not be applied yet locally */
   }
 
   return NextResponse.json({ redo: next, skills: updated, improved });

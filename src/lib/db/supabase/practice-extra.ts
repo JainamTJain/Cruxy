@@ -342,8 +342,7 @@ export async function getReportExtras(roundId: string): Promise<{
   }
 
   const sb = getServiceSupabase();
-  const [skills, talk, bank, people, teams, judges] = await Promise.all([
-    must(await sb.from("skill_charts").select("*"), "getReportExtras.skills"),
+  const [talk, bank, people, teams, judges, feedback] = await Promise.all([
     must(
       await sb.from("talk_analytics").select("*").eq("round_id", roundId),
       "getReportExtras.talk",
@@ -361,10 +360,37 @@ export async function getReportExtras(roundId: string): Promise<{
       await sb.from("judges").select("id,name,person_id"),
       "getReportExtras.judges",
     ),
+    must(
+      await sb
+        .from("feedback_items")
+        .select("person_id")
+        .eq("round_id", roundId),
+      "getReportExtras.feedbackPeople",
+    ),
   ]);
 
+  // Skill charts are personal progress: only load charts for people in this round.
+  const personIds = [
+    ...new Set(
+      [
+        ...((talk as TalkAnalytics[] | null) ?? []).map((t) => t.person_id),
+        ...((feedback as { person_id: string }[] | null) ?? []).map(
+          (f) => f.person_id,
+        ),
+      ].filter(Boolean),
+    ),
+  ];
+  let skills: SkillChart[] = [];
+  if (personIds.length > 0) {
+    const skillRows = must(
+      await sb.from("skill_charts").select("*").in("person_id", personIds),
+      "getReportExtras.skills",
+    );
+    skills = (skillRows ?? []) as SkillChart[];
+  }
+
   return {
-    skills: (skills ?? []) as SkillChart[],
+    skills,
     talk: (talk ?? []) as TalkAnalytics[],
     bank: (bank ?? []) as BankEntry[],
     people: (people ?? []) as {

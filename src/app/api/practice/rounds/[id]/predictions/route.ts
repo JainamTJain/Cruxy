@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { getRoundById } from "@/lib/db/practice-repository";
 import { getPersonById } from "@/lib/db/repository";
+import { isAdminViewer } from "@/lib/ops/privacy-scope";
 import type { AppeItemKey, ItemPredictionInput } from "@/lib/practice/types";
 import {
   getPredictionGate,
@@ -25,24 +26,47 @@ export async function GET(
     getRoundById(id),
     getPersonById(session.personId),
   ]);
-  const mine = predictions.find((p) => p.person_id === session.personId) ?? null;
+  if (!round) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const mine =
+    predictions.find((p) => p.person_id === session.personId) ?? null;
   const teamIds = new Set(
     [
-      round?.sides.presenting,
-      round?.sides.commenting,
-      ...(round?.team_ids ?? []),
+      round.sides.presenting,
+      round.sides.commenting,
+      ...(round.team_ids ?? []),
     ].filter((x): x is string => Boolean(x)),
   );
-  const canPredict = Boolean(
+  const onRound = Boolean(
     (me?.team_id && teamIds.has(me.team_id)) ||
-      round?.created_by === session.personId ||
+      round.created_by === session.personId ||
       gate.speakers.some((s) => s.id === session.personId),
   );
+  const canPredict = onRound;
+  const admin = isAdminViewer(me, session);
+
+  // Personal: item scores stay in `mine` only. Who still needs to predict is
+  // visible to round participants and admins (needed to start the round), not
+  // to arbitrary members with a round id.
+  if (!admin && !onRound) {
+    return NextResponse.json({
+      gate: {
+        ready: gate.ready,
+        speakers: [],
+        missing: [],
+      },
+      mine: null,
+      canPredict: false,
+      predictedCount: predictions.length,
+    });
+  }
+
   return NextResponse.json({
     gate,
     mine,
     canPredict,
-    // Speakers see who still needs to predict; item scores stay private.
     predictedPersonIds: predictions.map((p) => p.person_id),
   });
 }

@@ -35,6 +35,7 @@ export async function GET(req: Request) {
       daysToCompetition: deck.daysToCompetition,
       leadCaseCount: deck.leadCaseCount,
       totalInRotation: deck.totalInRotation,
+      openAttackCount: deck.openAttackCount ?? 0,
     });
   }
   const cards = (await listFlashcards({ teamId, caseId })).map((card) => ({
@@ -64,13 +65,17 @@ export async function POST(req: Request) {
     if (!body.cardId || !body.grade) {
       return NextResponse.json({ error: "cardId and grade required" }, { status: 400 });
     }
-    const state = await reviewFlashcard({
+    const result = await reviewFlashcard({
       personId: auth.session.personId,
       cardId: body.cardId,
       grade: body.grade as FsrsRating,
       mode: body.mode,
     });
-    return NextResponse.json({ state });
+    // reviewFlashcard returns state; sample path may attach mastery.
+    if (result && typeof result === "object" && "state" in result) {
+      return NextResponse.json(result);
+    }
+    return NextResponse.json({ state: result });
   }
 
   if (body.action === "pin") {

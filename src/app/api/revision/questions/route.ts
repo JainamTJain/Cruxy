@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { getPersonById } from "@/lib/db/repository";
+import { isAdminViewer, isCaseLead } from "@/lib/ops/privacy-scope";
 import { requireSession } from "@/lib/revision/api-auth";
 import {
   answerQuestion,
@@ -15,6 +17,10 @@ import {
 export async function GET(req: Request) {
   const auth = await requireSession();
   if ("error" in auth) return auth.error;
+  const person = await getPersonById(auth.session.personId);
+  if (!person) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const url = new URL(req.url);
   const caseId = url.searchParams.get("caseId") ?? undefined;
   const teamId = url.searchParams.get("teamId") ?? undefined;
@@ -39,9 +45,22 @@ export async function GET(req: Request) {
     Awaited<ReturnType<typeof listAnswersForQuestion>>
   > = {};
 
+  // Robustness aggregates stay shared. Full answer text is personal:
+  // self always; case leads and admins see the team log.
+  const leadOrAdmin =
+    isAdminViewer(person, auth.session) ||
+    (await isCaseLead({
+      personId: person.id,
+      teamId,
+      caseId,
+    }));
+
   for (const q of questions) {
-  bestByQuestion[q.id] = await bestTeamAnswer(q.id, teamId);
-    answersByQuestion[q.id] = await listAnswersForQuestion(q.id, teamId);
+    bestByQuestion[q.id] = await bestTeamAnswer(q.id, teamId);
+    const all = await listAnswersForQuestion(q.id, teamId);
+    answersByQuestion[q.id] = leadOrAdmin
+      ? all
+      : all.filter((a) => a.person_id === person.id);
   }
 
   const robustness = await robustnessMeterForCase(caseId, teamId);

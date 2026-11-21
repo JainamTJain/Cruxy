@@ -128,6 +128,8 @@ export interface Flashcard {
   back: string;
   citation_ids: string[];
   truth_item_id: string | null;
+  /** Claim-map node this card drills (Wave 6 graph-aware flashcards). */
+  claim_id: string | null;
   source_kind: "truth" | "reading" | "case_card" | "manual";
   created_at: string;
   created_by: string | null;
