@@ -13,6 +13,14 @@ import {
   SAMPLE_MEMBER_STARTER,
   TOKENS,
 } from "@/lib/constants";
+import { buildContentSeed } from "@/lib/seed/build-content";
+import {
+  caseId,
+  SEED_PERSON_IDS,
+  SEED_TEAM_IDS,
+} from "@/lib/seed/ids";
+import type { CaseStakeholderSeed } from "@/lib/seed/build-content";
+import type { ScoringCardItemSeed } from "@/lib/seed/scoring-card";
 import type {
   Backing,
   CaseRole,
@@ -210,6 +218,9 @@ export interface SampleStore {
   competition_logs: CompetitionLogEntry[];
   feature_useful: { feature: string; person_id: string; at: string }[];
   last_visits: Record<string, string>;
+  /** Workstream B content extras */
+  case_stakeholders: CaseStakeholderSeed[];
+  scoring_card_items: ScoringCardItemSeed[];
 }
 
 function emptyCaseBrainFields(): Pick<
@@ -445,33 +456,52 @@ function emptyPerson(
   };
 }
 
+function personWithId(
+  id: string,
+  name: string,
+  teamId: string | null,
+  role: Person["role"],
+): Person {
+  return { ...emptyPerson(name, teamId, role), id };
+}
+
 export async function buildSeedStore(): Promise<SampleStore> {
+  const now = nowIso();
   const t1: Team = {
-    id: randomUUID(),
+    id: SEED_TEAM_IDS.team1,
     name: "Team 1",
     colour: TOKENS.team1,
-    created_at: nowIso(),
+    created_at: now,
   };
   const t2: Team = {
-    id: randomUUID(),
+    id: SEED_TEAM_IDS.team2,
     name: "Team 2",
     colour: TOKENS.team2,
-    created_at: nowIso(),
+    created_at: now,
   };
   const t3: Team = {
-    id: randomUUID(),
+    id: SEED_TEAM_IDS.team3,
     name: "Team 3",
     colour: TOKENS.team3,
-    created_at: nowIso(),
+    created_at: now,
   };
 
   const people: Person[] = [
-    ...ROSTER.team1.map((n) => emptyPerson(n, t1.id, "member")),
-    ...ROSTER.team2.map((n) => emptyPerson(n, t2.id, "member")),
-    ...ROSTER.team3.map((n) =>
-      emptyPerson(n, t3.id, n === "Jainam" ? "tech_admin" : "member"),
+    ...ROSTER.team1.map((n) =>
+      personWithId(SEED_PERSON_IDS[n], n, t1.id, "member"),
     ),
-    emptyPerson(ROSTER.coach, null, "coach_admin", COACH_PERSON_ID),
+    ...ROSTER.team2.map((n) =>
+      personWithId(SEED_PERSON_IDS[n], n, t2.id, "member"),
+    ),
+    ...ROSTER.team3.map((n) =>
+      personWithId(
+        SEED_PERSON_IDS[n],
+        n,
+        t3.id,
+        n === "Jainam" ? "tech_admin" : "member",
+      ),
+    ),
+    personWithId(SEED_PERSON_IDS["Dr. B"], ROSTER.coach, null, "coach_admin"),
   ];
 
   const memberStarterHash =
@@ -483,15 +513,15 @@ export async function buildSeedStore(): Promise<SampleStore> {
 
   const auth_codes: AuthCode[] = [
     {
-      id: randomUUID(),
+      id: "auth0000-0000-4000-8000-000000000001",
       kind: "starter",
       person_id: null,
       hash: memberStarterHash,
       encrypted_copy: null,
       must_choose: false,
-      set_at: nowIso(),
+      set_at: now,
       last_revealed_at: null,
-      created_at: nowIso(),
+      created_at: now,
     },
     {
       id: randomUUID(),
@@ -510,20 +540,20 @@ export async function buildSeedStore(): Promise<SampleStore> {
   if (adminHash) {
     const jainam = people.find((p) => p.name === "Jainam");
     auth_codes.push({
-      id: randomUUID(),
+      id: "auth0000-0000-4000-8000-000000000002",
       kind: "admin",
       person_id: jainam?.id ?? null,
       hash: adminHash,
       encrypted_copy: null,
       must_choose: true,
-      set_at: nowIso(),
+      set_at: now,
       last_revealed_at: null,
-      created_at: nowIso(),
+      created_at: now,
     });
   }
 
   const competition: Competition = {
-    id: randomUUID(),
+    id: "b0000000-0000-4000-8000-000000000001",
     name: "California Regional",
     date: "2026-12-05",
     place: "UCSB",
@@ -535,265 +565,22 @@ export async function buildSeedStore(): Promise<SampleStore> {
       qa_min: 10,
       qa_max: 15,
     },
-    created_at: nowIso(),
+    created_at: now,
   };
 
-  const cases: CaseRow[] = CASE_TITLES.map((c) => ({
-    id: randomUUID(),
-    number: c.number,
-    title: c.title,
-    case_set_page: null,
-    crux: null,
-    trap: null,
-    closing_question: null,
-    active: c.active,
-    created_at: nowIso(),
-  }));
+  // Workstream B: real content from docs/domain/cases
+  const content = await buildContentSeed(process.cwd());
 
-  const case12 = cases.find((c) => c.number === 12)!;
-  const case9 = cases.find((c) => c.number === 9)!;
-  const serena = people.find((p) => p.name === "Serena")!;
-  const drB = people.find((p) => p.name === "Dr. B")!;
-  const now = nowIso();
-
-  const claim1Id = randomUUID();
-  const claim2Id = randomUUID();
-  const claims: Claim[] = [
-    {
-      id: claim1Id,
-      team_id: t1.id,
-      case_id: case12.id,
-      text: "Platforms should treat medical misinformation with a least-restrictive tool first.",
-      logic_line:
-        "Because harm is serious but speech still carries moral weight, graduated remedies fit better than blanket bans.",
-      ord: 0,
-      citation_ids: [],
-      created_at: now,
-      created_by: serena.id,
-      updated_at: now,
-    },
-    {
-      id: claim2Id,
-      team_id: t1.id,
-      case_id: case12.id,
-      text: "Users retain a duty to seek reliable care; platforms should not displace clinical judgment.",
-      logic_line:
-        "Because clinicians are accountable for diagnoses, platform tools should route users toward care, not replace it.",
-      ord: 1,
-      citation_ids: [],
-      created_at: now,
-      created_by: serena.id,
-      updated_at: now,
-    },
-  ];
-
-  const supports: Support[] = [
-    {
-      id: randomUUID(),
-      claim_id: claim1Id,
-      team_id: t1.id,
-      case_id: case12.id,
-      text: "Least-restrictive remedies reduce collateral silencing of contested but good-faith speech.",
-      logic_line: null,
-      ord: 0,
-      citation_ids: [],
-      created_at: now,
-      created_by: serena.id,
-      updated_at: now,
-    },
-    {
-      id: randomUUID(),
-      claim_id: claim1Id,
-      team_id: t1.id,
-      case_id: case12.id,
-      text: "Escalating labels and friction still lets users see context.",
-      logic_line: null,
-      ord: 1,
-      citation_ids: [],
-      created_at: now,
-      created_by: serena.id,
-      updated_at: now,
-    },
-    {
-      id: randomUUID(),
-      claim_id: claim1Id,
-      team_id: t1.id,
-      case_id: case12.id,
-      text: "Blanket removal invites viewpoint-selection pressure without clear moral stop rules.",
-      logic_line: null,
-      ord: 2,
-      citation_ids: [],
-      created_at: now,
-      created_by: serena.id,
-      updated_at: now,
-    },
-    {
-      id: randomUUID(),
-      claim_id: claim2Id,
-      team_id: t1.id,
-      case_id: case12.id,
-      text: "Clinical standards require individual assessment platforms cannot perform.",
-      logic_line: null,
-      ord: 0,
-      citation_ids: [],
-      created_at: now,
-      created_by: serena.id,
-      updated_at: now,
-    },
-    {
-      id: randomUUID(),
-      claim_id: claim2Id,
-      team_id: t1.id,
-      case_id: case12.id,
-      text: "Routing to care respects patient autonomy better than platform verdicts.",
-      logic_line: null,
-      ord: 1,
-      citation_ids: [],
-      created_at: now,
-      created_by: serena.id,
-      updated_at: now,
-    },
-    {
-      id: randomUUID(),
-      claim_id: claim2Id,
-      team_id: t1.id,
-      case_id: case12.id,
-      text: "Displacing judgment blurs who is responsible when advice goes wrong.",
-      logic_line: null,
-      ord: 2,
-      citation_ids: [],
-      created_at: now,
-      created_by: serena.id,
-      updated_at: now,
-    },
-  ];
-
-  const counterclaims: Counterclaim[] = [
-    {
-      id: randomUUID(),
-      team_id: t1.id,
-      case_id: case12.id,
-      claim_id: claim1Id,
-      text: "Opponents say delayed removal costs lives when viral falsehoods spread fast.",
-      concede: "Speed of harm is a real moral weight.",
-      distinguish:
-        "We distinguish imminent concrete harm from contested guidance.",
-      rebut:
-        "Graduated tools can still act quickly on clear, high-risk falsehoods without a total speech ban.",
-      citation_ids: [],
-      created_at: now,
-      created_by: serena.id,
-      updated_at: now,
-    },
-    {
-      id: randomUUID(),
-      team_id: t1.id,
-      case_id: case12.id,
-      claim_id: claim2Id,
-      text: "Opponents say platforms already act as de facto clinicians when they recommend content.",
-      concede: "Recommendation systems shape what people see.",
-      distinguish:
-        "Routing to care is different from issuing a diagnosis or treatment plan.",
-      rebut:
-        "We keep clinicians accountable and use platform tools only to point toward care.",
-      citation_ids: [],
-      created_at: now,
-      created_by: serena.id,
-      updated_at: now,
-    },
-  ];
-
-  const truth_items: TruthItem[] = [
-    {
-      id: randomUUID(),
-      team_id: t1.id,
-      case_id: case12.id,
-      kind: "framework",
-      text: "Least restrictive means: pick the mildest tool that still protects the value at stake.",
-      citation_ids: [],
-      status: "accepted",
-      created_at: now,
-      created_by: serena.id,
-      updated_at: now,
-    },
-    {
-      id: randomUUID(),
-      team_id: t1.id,
-      case_id: case12.id,
-      kind: "fact",
-      text: "Case set notes platforms can label, demote, or remove posts under different policies.",
-      citation_ids: [],
-      status: "accepted",
-      created_at: now,
-      created_by: serena.id,
-      updated_at: now,
-    },
-    {
-      id: randomUUID(),
-      team_id: t1.id,
-      case_id: case12.id,
-      kind: "example",
-      text: "A parent sees a viral 'home remedy' clip; a label linking to clinic guidance is a milder first step than deletion.",
-      citation_ids: [],
-      status: "accepted",
-      created_at: now,
-      created_by: serena.id,
-      updated_at: now,
-    },
-    {
-      id: randomUUID(),
-      team_id: t1.id,
-      case_id: case9.id,
-      kind: "fact",
-      text: "GEM case: resource allocation trade-offs between rare-disease research and common illnesses.",
-      citation_ids: [],
-      status: "accepted",
-      created_at: now,
-      created_by: serena.id,
-      updated_at: now,
-    },
-  ];
-
-  const case_roles: CaseRole[] = [
-    {
-      id: randomUUID(),
-      team_id: t1.id,
-      case_id: case12.id,
-      person_id: serena.id,
-      role: "lead_1",
-      created_at: now,
-      created_by: serena.id,
-    },
-  ];
-
-  const questions: ModeratorQuestion[] = [
-    {
-      id: randomUUID(),
-      case_id: case12.id,
-      text: "State your view and main reasons in one sentence.",
-      type: "state_view",
-      difficulty: 1,
-      origin: "cruxy",
-      origin_label: "Cruxy",
-      status: "active",
-      asked_at_tag: null,
-      created_at: now,
-      created_by: null,
-    },
-    {
-      id: randomUUID(),
-      case_id: case12.id,
-      text: "What if the falsehood is about a time-sensitive treatment — does least-restrictive still hold?",
-      type: "change_facts",
-      difficulty: 3,
-      origin: "dr_b",
-      origin_label: "Dr. B",
-      status: "active",
-      asked_at_tag: null,
-      created_at: now,
-      created_by: drB.id,
-    },
-  ];
+  // Ensure CASE_TITLES inactive flags and Case 10 title stay authoritative
+  const cases: CaseRow[] = content.cases.map((c) => {
+    const meta = CASE_TITLES.find((t) => t.number === c.number)!;
+    return {
+      ...c,
+      id: caseId(c.number),
+      title: meta.title,
+      active: meta.active,
+    };
+  });
 
   return {
     teams: [t1, t2, t3],
@@ -805,18 +592,35 @@ export async function buildSeedStore(): Promise<SampleStore> {
     cases,
     ...emptyLibraryFields(),
     ...emptyCaseBrainFields(),
-    claims,
-    supports,
-    counterclaims,
-    truth_items,
-    case_roles,
+    claims: content.claims,
+    supports: content.supports,
+    backings: content.backings,
+    counterclaims: content.counterclaims,
+    truth_items: content.truth_items,
+    proposals: content.proposals,
+    case_roles: content.case_roles,
+    opposing_positions: content.opposing_positions,
     seeded_at: now,
     last_tech_reauth_at: null,
     ...emptyTrack3Fields(),
+    flashcards: content.flashcards,
+    one_pagers: content.one_pagers,
+    questions: content.questions,
+    deck_opt_ins: content.deck_opt_ins,
     ...emptyTeamSpaceFields(),
     ...emptyPracticeTables(),
     ...emptyAdminFields(),
-    questions,
+    case_stakeholders: content.stakeholders,
+    scoring_card_items: content.scoring_card_items,
+    program_totals: {
+      drive_files: 0,
+      passages_cited: 0,
+      ideas_accepted: 0,
+      sources_verified: content.truth_items.length,
+      bank_questions: content.questions.length,
+      rounds_graded: 0,
+      redo_improvements: 0,
+    },
   };
 }
 
@@ -909,6 +713,8 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     competition_logs: raw.competition_logs ?? admin.competition_logs,
     feature_useful: raw.feature_useful ?? admin.feature_useful,
     last_visits: raw.last_visits ?? admin.last_visits,
+    case_stakeholders: raw.case_stakeholders ?? [],
+    scoring_card_items: raw.scoring_card_items ?? [],
   };
 }
 

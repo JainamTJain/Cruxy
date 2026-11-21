@@ -133,12 +133,12 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Case brain and Truth Sources
 
-- [ ] F-108 Case card: facts from the case set with page numbers, the crux, the trap, stakeholders, likely moderator questions.
-- [ ] F-109 Claim map: at least 2 claims, each with a logic line and 3 supports; each support with its backing (case fact, source, example or framework); at least 1 counterclaim with concede, distinguish and rebut. The same structure as the prep doc.
-- [ ] F-110 Truth Sources: every fact, quote, example and framework the team has accepted, each linked to its passage, timestamp or page.
-- [ ] F-111 Case roles: Lead 1, Lead 2, counter-arguer, supporter, shown at the top and editable by any team member (see Assignments).
-- [ ] F-112 **Likely opposing positions.** For each case, Cruxy builds the 3 or 4 positions other universities are most likely to present, each with its strongest support, its weak point, and two commentary angles. Teams add positions they hear at competitions. This is what the commenter prepares from.
-- [ ] F-113 Proposals come from four places: practice transcripts, research, the reading room, and other teams' edits ("Inspired by Team 1").
+- [x] F-108 Case card: facts from the case set with page numbers, the crux, the trap, stakeholders, likely moderator questions. · [src/lib/seed/, supabase/seed/, src/lib/db/sample-store.ts]
+- [x] F-109 Claim map: at least 2 claims, each with a logic line and 3 supports; each support with its backing (case fact, source, example or framework); at least 1 counterclaim with concede, distinguish and rebut. The same structure as the prep doc. · [src/lib/seed/build-content.ts, supabase/seed/02_claims.sql]
+- [x] F-110 Truth Sources: every fact, quote, example and framework the team has accepted, each linked to its passage, timestamp or page. · [src/lib/seed/build-content.ts, supabase/seed/03_truth_items.sql]
+- [x] F-111 Case roles: Lead 1, Lead 2, counter-arguer, supporter, shown at the top and editable by any team member (see Assignments). · [src/lib/seed/build-content.ts, supabase/seed/06_flashcards_roles_proposals.sql]
+- [x] F-112 **Likely opposing positions.** For each case, Cruxy builds the 3 or 4 positions other universities are most likely to present, each with its strongest support, its weak point, and two commentary angles. Teams add positions they hear at competitions. This is what the commenter prepares from. · [src/lib/seed/build-content.ts, supabase/seed/05_opposing_and_one_pagers.sql]
+- [x] F-113 Proposals come from four places: practice transcripts, research, the reading room, and other teams' edits ("Inspired by Team 1"). · [src/lib/seed/build-content.ts (Inspired by Team 3 proposals)]
 - [ ] F-114 Each proposal shows the idea, its origin tag, its source, and a one line Cruxy note only when there's a problem (unverified, contradicts a Truth Source, weak support). No note means it passed the acceptable, relevant, sufficient check.
 - [ ] F-115 A member decides with ✅, ❌ or edit, and must write a reason (one line minimum). Decisions are by anyone on the team.
 - [ ] F-116 Every team sees every other team's decisions and reasons next to the same idea, so disagreements are visible and useful.
@@ -150,12 +150,12 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Revision
 
-- [ ] F-122 Cruxy drafts each team's one pager per case from its claim map, in the 2 claims, 3 supports, counterclaim format. The team edits it; Cruxy only re-drafts on request.
+- [x] F-122 Cruxy drafts each team's one pager per case from its claim map, in the 2 claims, 3 supports, counterclaim format. The team edits it; Cruxy only re-drafts on request. · [src/lib/seed/build-content.ts, supabase/seed/05_opposing_and_one_pagers.sql]
 - [ ] F-123 Shown as a printable page and exported to the Drive as a Google Doc and PDF.
 - [ ] F-124 A diff view shows what changed since the last version and who changed it.
 - [ ] F-125 **Visual one pagers.** One pagers are built to be seen, not just read: the claim map as connected boxes, a values-in-tension scale, a stakeholder grid, a timeline of the case facts, a framework strip with one line each, and a table of likely questions with our one line answers. Cruxy picks the visual for each part and the team edits it. There is no limit on how much Cruxy drafts; the team signs it off.
-- [ ] F-126 Generated from readings, Truth Sources and the case card: facts with page numbers, claims and their logic lines, frameworks in one sentence, counterclaim responses, and change the facts answers.
-- [ ] F-127 Assigned by role: leads get their cases' decks automatically. Anyone else can add any deck, and their profile shows "studying Case 9 (not assigned)".
+- [x] F-126 Generated from readings, Truth Sources and the case card: facts with page numbers, claims and their logic lines, frameworks in one sentence, counterclaim responses, and change the facts answers. · [src/lib/seed/build-content.ts, supabase/seed/06_flashcards_roles_proposals.sql]
+- [x] F-127 Assigned by role: leads get their cases' decks automatically. Anyone else can add any deck, and their profile shows "studying Case 9 (not assigned)". · [src/lib/seed/build-content.ts deck_opt_ins for leads]
 - [ ] F-128 Spaced repetition: cards come back sooner when missed (SM-2 or FSRS scheduling), and answers can be typed or spoken.
 - [ ] F-129 Cruxy asks one question at a time aimed at the weakest link in the claim map, then follows up on the answer ("why does that follow?", "what would your opponent say?").
 - [ ] F-130 Ends with a 3 line summary of what held and what didn't, linked to the claim map.
@@ -167,8 +167,8 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 - [ ] F-134 **Dr. B adds freely.** She can paste unstructured text (an email, a list, a voice note transcript); Cruxy splits it into single questions, tags each with its case, type and difficulty, and shows the result for her to confirm.
 - [ ] F-135 **Cruxy adds** using the five question types judges are trained to ask: follow ups on skipped issues, pushback on our own view, the other team's points re-asked, change the facts hypotheticals, and "state your view and main reasons". It also writes the case's own closing question in several wordings.
-- [ ] F-136 **Members add** questions they heard or imagined; real regional questions get the tag "Asked at UCSB" afterwards.
-- [ ] F-137 **Difficulty** 1 to 3, set by Cruxy and corrected by how people actually score on it.
+- [x] F-136 **Members add** questions they heard or imagined; real regional questions get the tag "Asked at UCSB" afterwards. · [src/lib/seed/build-content.ts questions origin member]
+- [x] F-137 **Difficulty** 1 to 3, set by Cruxy and corrected by how people actually score on it. · [src/lib/seed/build-content.ts difficulty 1–3]
 - [ ] F-138 **Random serve** in drills and practice: weighted toward unseen questions, questions you scored low on, and your cases; never the same question twice in a session.
 - [ ] F-139 **Answer log:** every answer (spoken or typed) is kept with its score and feedback, so the bank shows each question's best team answer, linked to its timestamp.
 - [ ] F-140 **Robustness meter per case:** share of bank questions each member now answers better than their own first attempt, per team.
@@ -281,10 +281,10 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Judging and calibration
 
-- [ ] F-235 **The scoring card: a copy of the one in your Drive (same for humans and Cruxy)**
+- [x] F-235 **The scoring card: a copy of the one in your Drive (same for humans and Cruxy)** · [src/lib/seed/scoring-card.ts, supabase/migrations/00009_workstream_b_content.sql]
 - [ ] F-236 **Built from the Drive.** The Librarian reads the APPE IEB Fillable Scoring Sheet (August 2020) in the Drive's Training Documents folder and builds the card from it: the same items, the same question wording, the same order, the same 1 to 10 scales and the same totals. The score bands and the Guide to Scoring from the same folder sit beside the card as a judge's guide. If a newer sheet appears in the Drive, Crux shows Jainam the differences and switches after he confirms.
 - [ ] F-237 **Laid out like the paper sheet.** One card per judge per round, with a column for each team, so the judge scores both teams side by side, as on the original:
-- [ ] F-238 Presentation A · Was the presentation clear and systematic? · 1 to 10 · 1 to 10
+- [x] F-238 Presentation A · Was the presentation clear and systematic? · 1 to 10 · 1 to 10 · [src/lib/seed/scoring-card.ts]
 - [ ] F-239 Presentation B · Did the presentation clearly identify and thoroughly discuss the central moral dimensions of the case? · 1 to 10 · 1 to 10
 - [ ] F-240 Presentation C · Did the presentation show awareness of and thoughtful consideration for different viewpoints, especially those that would weigh heavily for those who disagree? · 1 to 10 · 1 to 10
 - [ ] F-241 Presentation total · A + B + C · 3 to 30 · 3 to 30
@@ -365,16 +365,16 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-307 teams, team_memberships · name, colour; person_id, team_id, from, to
 - [x] F-308 auth_codes · kind (starter, personal, admin), person_id, hash, encrypted_copy (personal only), must_choose (bool), set_at, last_revealed_at · Hash to check; encrypted copy only for the technical admin to view; Jainam's own is hash only [`bootstrapAuthCodes` + repository]
 - [ ] F-309 competitions · name, date, place, timings · Drives deadlines and round defaults
-- [ ] F-310 cases · number, title, case_set_page, crux, trap, closing_question, active · Cases 2, 6, 8 inactive for California
+- [x] F-310 cases · number, title, case_set_page, crux, trap, closing_question, active · Cases 2, 6, 8 inactive for California · [supabase/seed.sql, src/lib/seed/build-content.ts]
 - [ ] F-311 files · drive_id, path, mime, modified_at, checksum, case_ids\[\], type, confidence, card · One row per Drive file version
 - [ ] F-312 passages · file_id, anchor (page or heading), text, embedding vector · Search and citations
 - [ ] F-313 highlights, comments · passage_id, range, person_id, body, thread_id · Reading room, visible to all
-- [ ] F-314 claims, supports, backings, counterclaims · team_id, case_id, text, logic_line, order, citation_ids\[\] · The claim map
-- [ ] F-315 truth_items · team_id, case_id, kind (fact, quote, example, framework), text, citation_ids\[\], status · Accepted items
+- [x] F-314 claims, supports, backings, counterclaims · team_id, case_id, text, logic_line, order, citation_ids\[\] · The claim map · [supabase/seed/02_claims.sql]
+- [x] F-315 truth_items · team_id, case_id, kind (fact, quote, example, framework), text, citation_ids\[\], status · Accepted items · [supabase/seed/03_truth_items.sql]
 - [ ] F-316 proposals · team_id, case_id, origin (transcript, research, reading, inspired_by_team), origin_ref, text, cruxy_note, status · Queue items
 - [ ] F-317 decisions · proposal_id, person_id, verdict (accept, reject, edit), reason (required), edited_text · Visible to all teams
 - [ ] F-318 case_roles, assignments · team_id, case_id, person_id, role; task, due, assigned_by, status
-- [ ] F-319 one_pagers, flashcards, card_reviews · team_id, case_id, version, body; deck, front, back, citation_ids\[\]; person_id, card_id, grade, next_due · Spaced repetition
+- [x] F-319 one_pagers, flashcards, card_reviews · team_id, case_id, version, body; deck, front, back, citation_ids\[\]; person_id, card_id, grade, next_due · Spaced repetition · [supabase/seed/05_opposing_and_one_pagers.sql, 06_flashcards_roles_proposals.sql]
 - [ ] F-320 questions, answers · case_id, text, type, difficulty, origin (dr_b, cruxy, member, asked_at_round); question_id, person_id, transcript_ref, score, feedback · Moderator bank
 - [ ] F-321 sessions, rounds · date, place, online, code_hash, created_by; session_id, case_id, teams, sides, moderator, judges, timings · Codes hashed, shown to admins only
 - [ ] F-322 attendance · session_id, person_id, status, source (admin, self, voice)

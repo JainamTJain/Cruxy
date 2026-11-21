@@ -15,6 +15,8 @@
     "lint": "eslint",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "seed:content": "tsx scripts/seed-content.ts",
+    "seed:quality": "tsx scripts/seed-quality.ts",
     "shots": "node scripts/shots.mjs",
     "smoke:supabase": "node --require ./scripts/preload-server-only.cjs ./node_modules/tsx/dist/cli.mjs scripts/supabase-smoke.ts",
     "check:supabase-wired": "tsx scripts/check-supabase-wired.ts"
