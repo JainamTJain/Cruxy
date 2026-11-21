@@ -10,6 +10,7 @@ import {
   listAttendanceDetailed,
   sessionHasTextOnlyMembers,
 } from "@/lib/attendance";
+import { listTeams } from "@/lib/db/repository";
 
 export async function GET(
   _req: Request,
@@ -27,12 +28,17 @@ export async function GET(
   const admin =
     session.adminView &&
     (session.role === "tech_admin" || session.role === "coach_admin");
-  const [attendance, textOnlyBanner] = await Promise.all([
+  const [attendance, textOnlyBanner, teams] = await Promise.all([
     listAttendanceDetailed(id),
     sessionHasTextOnlyMembers(id),
+    listTeams(),
   ]);
   const roster = await listSessionRoster(id);
   const creator = roster.people.find((p) => p.id === row.created_by);
+
+  // Members who started the practice can invite; admins always can.
+  const canInvite =
+    admin || row.created_by === session.personId || row.kind === "member_practice";
 
   return NextResponse.json({
     session: {
@@ -42,9 +48,11 @@ export async function GET(
     attendance,
     textOnlyBanner,
     admin,
+    canInvite,
     people: roster.people,
     joinedJudgeIds: roster.joinedJudgeIds,
     creatorName: creator?.name ?? "Coach",
+    teams: teams.map((t) => ({ id: t.id, name: t.name, colour: t.colour })),
   });
 }
 

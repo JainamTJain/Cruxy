@@ -17,6 +17,7 @@ import { nowIso } from "@/lib/utils";
 /**
  * Chunked resumable upload. Client sends short audio parts.
  * Killing the browser loses at most one unfinished part (~10s).
+ * Own-device / mixed layouts store one recording row per person.
  */
 export async function POST(
   req: Request,
@@ -32,13 +33,11 @@ export async function POST(
     return NextResponse.json({ error: "Round not found" }, { status: 404 });
   }
 
-  // Text-only members never record from their device
-  // (consent check lives on person; enforce via header from client + server person)
   const { getPersonById } = await import("@/lib/db/repository");
   const person = await getPersonById(session.personId);
   if (person && !person.recording_ok && person.consent_version) {
     return NextResponse.json(
-      { error: "Text-only consent — this device does not record" },
+      { error: "Text-only consent. This device does not record." },
       { status: 403 },
     );
   }
@@ -57,12 +56,24 @@ export async function POST(
     return NextResponse.json({ error: "Invalid index" }, { status: 400 });
   }
 
-  let recording = await getRecordingForRound(roundId);
+  const layout = round.recording_layout ?? "room";
+  const perDevice = layout === "own_device" || layout === "mixed";
+  const ownerKey = perDevice ? session.personId : null;
+
+  let recording = await getRecordingForRound(roundId, ownerKey);
+  if (!recording && !perDevice) {
+    // Room layout: also accept a legacy first row without owner.
+    recording = await getRecordingForRound(roundId);
+  }
   if (!recording) {
-    recording = newRecording(roundId, session.personId);
+    recording = newRecording(roundId, session.personId, {
+      ownerPersonId: ownerKey,
+      startedAt: nowIso(),
+    });
+  } else if (!recording.started_at) {
+    recording = { ...recording, started_at: nowIso() };
   }
 
-  // Resume: if client sends an index already stored, acknowledge without rewrite
   const existing = recording.chunk_meta.find((c) => c.index === index);
   if (existing) {
     return NextResponse.json({
@@ -71,12 +82,12 @@ export async function POST(
       nextIndex: nextChunkIndex(recording),
       maxLossMs: CHUNK_DURATION_MS,
       resumed: true,
+      ownerPersonId: recording.owner_person_id ?? null,
     });
   }
 
   const expected = nextChunkIndex(recording);
   if (index !== expected && index !== expected - 1) {
-    // Allow gap-fill only for next expected; client should resume from nextIndex
     return NextResponse.json(
       {
         error: "Out of order chunk",
@@ -112,12 +123,11 @@ export async function POST(
       { index, bytes: saved.bytes, uploaded_at: nowIso() },
     ].sort((a, b) => a.index - b.index),
   };
-  // Keep object paths aligned with meta order (storage keys, not local FS).
   recording.chunk_paths = recording.chunk_meta.map((c) => {
-    const existing = recording!.chunk_paths.find((p) =>
+    const existingPath = recording!.chunk_paths.find((p) =>
       p.includes(`chunk-${String(c.index).padStart(4, "0")}`),
     );
-    return existing ?? chunkPath(roundId, c.index);
+    return existingPath ?? chunkPath(roundId, c.index);
   });
 
   await saveRecording(recording);
@@ -129,6 +139,7 @@ export async function POST(
     bytes: saved.bytes,
     maxLossMs: CHUNK_DURATION_MS,
     resumed: false,
+    ownerPersonId: recording.owner_person_id ?? null,
   });
 }
 
@@ -141,12 +152,20 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id: roundId } = await ctx.params;
-  const recording = await getRecordingForRound(roundId);
+  const round = await getRoundById(roundId);
+  const layout = round?.recording_layout ?? "room";
+  const perDevice = layout === "own_device" || layout === "mixed";
+  const recording = await getRecordingForRound(
+    roundId,
+    perDevice ? session.personId : undefined,
+  );
   return NextResponse.json({
     nextIndex: recording ? nextChunkIndex(recording) : 0,
     chunks: recording?.chunk_meta.length ?? 0,
     status: recording?.status ?? null,
     deleted_at: recording?.deleted_at ?? null,
     maxLossMs: CHUNK_DURATION_MS,
+    ownerPersonId: recording?.owner_person_id ?? null,
+    layout,
   });
 }

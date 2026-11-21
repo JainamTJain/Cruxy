@@ -32,6 +32,9 @@ export type RecordingStatus =
   | "ready"
   | "failed";
 
+/** How the room records (F-218 room, F-219 own device, F-220 mixed). */
+export type RecordingLayout = "room" | "own_device" | "mixed";
+
 export type JudgePortalPath = "known" | "guest" | "cruxy";
 
 export interface RoundTimings {
@@ -141,6 +144,8 @@ export interface PracticeRound {
   ended_at: string | null;
   created_at: string;
   created_by: string | null;
+  /** One mic in the room, each phone, or both lined up by time. */
+  recording_layout?: RecordingLayout;
 }
 
 export interface AttendanceRow {
@@ -163,6 +168,10 @@ export interface RecordingRow {
   transcript_job_id: string | null;
   created_at: string;
   created_by: string | null;
+  /** Own-device path: this recording belongs to one person. */
+  owner_person_id?: string | null;
+  /** Wall-clock start for lining mixed devices up by timestamp. */
+  started_at?: string | null;
 }
 
 export interface TranscriptLine {

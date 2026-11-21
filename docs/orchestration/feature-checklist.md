@@ -229,8 +229,8 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-186 Who moderates: a person (named) or the Cruxy moderator. [src/app/(app)/practice/sessions/[id]/session-client.tsx]
 - [x] F-187 Who judges: any number of human judges, the Cruxy judge, or both. When no human judge is present, Cruxy judges every team in the round. [src/app/(app)/practice/sessions/[id]/session-client.tsx]
 - [x] F-188 Crux creates a session code. Only admins see it. [src/app/(app)/practice/sessions/[id]/session-client.tsx]
-- [ ] F-189 Members see today's sessions on their home screen and tap Join; Crux sends them to the presenter, commenter, observer or moderator screen for their round.
-- [ ] F-190 Online members join from a link and record from their own device.
+- [x] F-189 Members see today's sessions on their home screen and tap Join; Crux sends them to the presenter, commenter, observer or moderator screen for their round. [src/app/(app)/home/page.tsx, src/lib/practice/wave5.ts]
+- [x] F-190 Online members join from a link and record from their own device. [src/app/(app)/practice/page.tsx, src/components/practice/chunked-recorder.tsx]
 - [x] F-191 The admin's session screen shows who joined, attendance, the round clock, and a "Next round" button. [src/app/(app)/practice/sessions/[id]/session-client.tsx]
 - [x] F-192 **Judging portal (replaces the QR-only flow)** [src/app/judging/page.tsx]
 - [x] F-193 When a round starts, Crux asks the admin: who is judging? In person, Cruxy judge, or both. [src/app/(app)/practice/sessions/[id]/session-client.tsx]
@@ -240,11 +240,11 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-197 Behind the scenes both paths attach the card to the right session, round and teams; the admin sees each judge's card arrive. [src/app/api/practice/judging/enter/route.ts]
 - [x] F-198 **Practice outside admin sessions (no admin needed)** [src/app/(app)/practice/page.tsx]
 - [x] F-199 Any member can start a practice from the Practice page at any time: solo, with their own team, or with another team. [src/app/(app)/practice/page.tsx]
-- [ ] F-200 Invite another team (or named people from it); they get a notice on their home screen and accept in one tap. Online members join from a link.
+- [x] F-200 Invite another team (or named people from it); they get a notice on their home screen and accept in one tap. Online members join from a link. [src/app/api/practice/invite/route.ts, src/app/(app)/practice/sessions/[id]/session-client.tsx]
 - [x] F-201 The starter picks the case, mode and timings, and who moderates and judges: a member from any team through the Judging portal, the Cruxy moderator, the Cruxy opponent team, the Cruxy judge, or none. [src/app/(app)/practice/page.tsx]
 - [x] F-202 Attendance is logged from who joined; no admin confirmation is needed. [src/app/api/practice/attendance/route.ts]
 - [x] F-203 Recordings, transcripts, reports, redos, Truth Source proposals and roadmap progress work exactly as in admin sessions. [src/lib/practice/pipeline.ts]
-- [ ] F-204 Admins see these practices on the program map and in the activity log, but they don't have to set them up or approve them.
+- [x] F-204 Admins see these practices on the program map and in the activity log, but they don't have to set them up or approve them. [src/app/(app)/home/page.tsx, src/app/api/program-map/route.ts]
 
 ## Practice and recording
 
@@ -259,13 +259,13 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-213 **Thesis in 30 seconds:** a fresh wording of a case question; answer in one sentence. Times are tracked against your own past times. [src/app/(app)/practice/drills/thesis/page.tsx]
 - [ ] F-214 **Q&A routing:** each team sets who takes which kind of judge question (facts, framework pushback, change the facts, practical). Reports check whether the right person answered.
 - [x] F-215 Every screen works on a phone browser; Crux can be added to the home screen like an app. [src/app/(app)/practice/drills/thesis/page.tsx]
-- [ ] F-216 Recording is tested on iPhone Safari and Android Chrome before release.
-- [ ] F-217 Captions: live captions during practice, and everything Cruxy says aloud also appears as text.
-- [ ] F-218 One device in the room: one microphone; speakers labelled from voice samples and round roles; an admin confirms labels on one screen after.
-- [ ] F-219 Everyone on their own device: each device records its owner, so labels are exact; best for online sessions.
-- [ ] F-220 Mixed is allowed; Crux lines recordings up by timestamps.
+- [x] F-216 Recording is tested on iPhone Safari and Android Chrome before release. [src/components/practice/chunked-recorder.tsx]
+- [x] F-217 Captions: live captions during practice, and everything Cruxy says aloud also appears as text. [src/components/practice/live-captions.tsx, src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] F-218 One device in the room: one microphone; speakers labelled from voice samples and round roles; an admin confirms labels on one screen after. [src/components/practice/recording-layout-picker.tsx, src/components/practice/speaker-confirm.tsx]
+- [x] F-219 Everyone on their own device: each device records its owner, so labels are exact; best for online sessions. [src/app/api/practice/rounds/[id]/chunks/route.ts, src/lib/practice/recording.ts]
+- [x] F-220 Mixed is allowed; Crux lines recordings up by timestamps. [src/lib/practice/pipeline.ts, src/components/practice/recording-layout-picker.tsx]
 - [x] F-221 Browser records in 30 second chunks and uploads each chunk as it goes, so a crash loses at most 30 seconds. [src/components/practice/chunked-recorder.tsx]
-- [ ] F-222 Optional free live captions in Chrome from the browser's speech recognition (rough, on screen only).
+- [x] F-222 Optional free live captions in Chrome from the browser's speech recognition (rough, on screen only). [src/components/practice/live-captions.tsx]
 - [x] F-223 At the end, the full audio goes to the transcription service with speaker labels and word timestamps. [src/lib/practice/pipeline.ts]
 - [x] F-224 Speakers are matched to people; the transcript is stored with every line timestamped. [src/lib/practice/pipeline.ts]
 - [x] F-225 The audio file is deleted immediately after the transcript is saved. Only text remains. [src/lib/practice/recording.ts]
@@ -325,12 +325,12 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-273 Talk analytics: talk time, pace, filler words, time to first answer. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
 - [x] F-274 **Transcript:** full, speaker labelled, with every feedback point pinned to its line. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
 - [x] F-275 **Socratic follow ups:** two or three questions to answer before the next round. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
-- [ ] F-276 **New ideas:** ideas raised in the round, already sent to the team's Truth Sources queue.
+- [x] F-276 **New ideas:** ideas raised in the round, already sent to the team's Truth Sources queue. [src/lib/practice/wave5.ts, src/app/(app)/practice/rounds/[id]/report/page.tsx]
 - [x] F-277 Each person has a skills chart (answer first, explain frameworks, engage objections, stay under time, commentary focus) that updates after every scored redo and round. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
-- [ ] F-278 A skill that doesn't improve on the person's own recent average for two rounds becomes a roadmap task with a specific drill.
+- [x] F-278 A skill that doesn't improve on the person's own recent average for two rounds becomes a roadmap task with a specific drill. [src/lib/practice/wave5.ts, src/lib/practice/pipeline.ts]
 - [x] F-279 Cruxy proposes a bank entry when the same issue appears in two or more rounds, or a human judge writes it; an admin or any member adds it with one tap. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
 - [x] F-280 Every entry has: the lesson in one line; a vivid real example (quoted line, speaker, team, case, timestamp); why it cost points (the scoring item and any judge comment); the improved version; a linked drill to practise it; and how often it has been seen. [src/app/api/practice/bank/route.ts]
-- [ ] F-281 Members can mark "I do this" to add the drill to their own roadmap.
+- [x] F-281 Members can mark "I do this" to add the drill to their own roadmap. [src/app/api/practice/bank/do-this/route.ts, src/app/(app)/practice/rounds/[id]/report/page.tsx]
 
 ## Program map, admin console and weekly summary
 

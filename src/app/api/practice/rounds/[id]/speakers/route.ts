@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { getSpeakerConfirm } from "@/lib/db/practice-repository";
+import {
+  getSpeakerConfirm,
+  getTranscript,
+} from "@/lib/db/practice-repository";
 import { confirmSpeakerLabels } from "@/lib/practice/pipeline";
 
 export async function GET(
@@ -13,7 +16,30 @@ export async function GET(
   }
   const { id } = await ctx.params;
   const row = await getSpeakerConfirm(id);
-  return NextResponse.json({ speakers: row });
+  if (row) {
+    return NextResponse.json({ speakers: row });
+  }
+  // Prefill from transcript labels (voice samples + roles already mapped in pipeline).
+  const lines = await getTranscript(id);
+  const byLabel = new Map<string, string | null>();
+  for (const l of lines) {
+    if (!l.speaker_label) continue;
+    if (!byLabel.has(l.speaker_label)) {
+      byLabel.set(l.speaker_label, l.speaker_person_id);
+    }
+  }
+  const mappings = [...byLabel.entries()].map(([speaker_label, person_id]) => ({
+    speaker_label,
+    person_id,
+  }));
+  return NextResponse.json({
+    speakers: {
+      round_id: id,
+      mappings,
+      confirmed_by: null,
+      confirmed_at: null,
+    },
+  });
 }
 
 export async function POST(

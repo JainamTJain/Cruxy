@@ -60,6 +60,7 @@ export async function saveChunk(opts: {
 export function newRecording(
   roundId: string,
   createdBy: string | null,
+  opts?: { ownerPersonId?: string | null; startedAt?: string | null },
 ): RecordingRow {
   return {
     id: randomUUID(),
@@ -71,6 +72,8 @@ export function newRecording(
     transcript_job_id: null,
     created_at: nowIso(),
     created_by: createdBy,
+    owner_person_id: opts?.ownerPersonId ?? null,
+    started_at: opts?.startedAt ?? nowIso(),
   };
 }
 

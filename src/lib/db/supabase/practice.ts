@@ -85,6 +85,7 @@ function mapRound(r: Row): PracticeRound {
     ended_at: isoOrNull(r.ended_at),
     created_at: iso(r.created_at),
     created_by: r.created_by ?? null,
+    recording_layout: (r.recording_layout as PracticeRound["recording_layout"]) ?? "room",
   };
 }
 
@@ -106,6 +107,7 @@ function roundToRow(r: PracticeRound): Row {
     ended_at: r.ended_at,
     created_at: r.created_at,
     created_by: r.created_by,
+    recording_layout: r.recording_layout ?? "room",
   };
 }
 
@@ -131,6 +133,8 @@ function mapRecording(r: Row): RecordingRow {
     transcript_job_id: r.transcript_job_id ?? null,
     created_at: iso(r.created_at),
     created_by: r.created_by ?? null,
+    owner_person_id: (r.owner_person_id as string | null) ?? null,
+    started_at: isoOrNull(r.started_at),
   };
 }
 
@@ -469,6 +473,7 @@ export async function createSession(
     ended_at: null,
     created_at: at,
     created_by: input.createdBy,
+    recording_layout: input.online ? "own_device" : "room",
   }));
 
   assertOk(
@@ -797,6 +802,8 @@ export async function saveRecording(row: RecordingRow): Promise<void> {
           transcript_job_id: row.transcript_job_id,
           created_at: row.created_at,
           created_by: row.created_by,
+          owner_person_id: row.owner_person_id ?? null,
+          started_at: row.started_at ?? null,
         },
         { onConflict: "id" },
       )
@@ -807,19 +814,49 @@ export async function saveRecording(row: RecordingRow): Promise<void> {
 
 export async function getRecordingForRound(
   roundId: string,
+  ownerPersonId?: string | null,
 ): Promise<RecordingRow | null> {
   const sb = getServiceSupabase();
-  const row = must(
+  let q = sb
+    .from("recordings")
+    .select("*")
+    .eq("round_id", roundId)
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (ownerPersonId) {
+    q = sb
+      .from("recordings")
+      .select("*")
+      .eq("round_id", roundId)
+      .eq("owner_person_id", ownerPersonId)
+      .order("created_at", { ascending: true })
+      .limit(1);
+  } else if (ownerPersonId === null) {
+    q = sb
+      .from("recordings")
+      .select("*")
+      .eq("round_id", roundId)
+      .is("owner_person_id", null)
+      .order("created_at", { ascending: true })
+      .limit(1);
+  }
+  const row = must(await q.maybeSingle(), "getRecordingForRound");
+  return row ? mapRecording(row) : null;
+}
+
+export async function listRecordingsForRound(
+  roundId: string,
+): Promise<RecordingRow[]> {
+  const sb = getServiceSupabase();
+  const rows = must(
     await sb
       .from("recordings")
       .select("*")
       .eq("round_id", roundId)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
-    "getRecordingForRound",
+      .order("started_at", { ascending: true }),
+    "listRecordingsForRound",
   );
-  return row ? mapRecording(row) : null;
+  return (rows as Row[]).map(mapRecording);
 }
 
 export async function saveTranscriptLines(lines: TranscriptLine[]): Promise<void> {

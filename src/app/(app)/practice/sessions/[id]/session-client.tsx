@@ -75,6 +75,7 @@ export function SessionClient() {
   const [people, setPeople] = useState<Person[]>([]);
   const [joinedJudgeIds, setJoinedJudgeIds] = useState<string[]>([]);
   const [admin, setAdmin] = useState(false);
+  const [canInvite, setCanInvite] = useState(false);
   const [code, setCode] = useState<string | null>(null);
   const [codeHidden, setCodeHidden] = useState(false);
   const [judgeMode, setJudgeMode] = useState<"in_person" | "cruxy" | "both">(
@@ -82,6 +83,10 @@ export function SessionClient() {
   );
   const [msg, setMsg] = useState<string | null>(null);
   const [creatorName, setCreatorName] = useState("Dr. B");
+  const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
+  const [inviteTeamId, setInviteTeamId] = useState("");
+  const [inviteMsg, setInviteMsg] = useState<string | null>(null);
+  const [shareLink, setShareLink] = useState<string | null>(null);
 
   async function refresh() {
     const res = await fetch(`/api/practice/sessions/${params.id}`);
@@ -90,10 +95,20 @@ export function SessionClient() {
     setSession(data.session);
     setAttendance(data.attendance ?? []);
     setAdmin(Boolean(data.admin));
+    setCanInvite(Boolean(data.canInvite));
     setPeople(data.people ?? []);
     setJoinedJudgeIds(data.joinedJudgeIds ?? []);
     if (data.code) setCode(data.code);
     if (data.creatorName) setCreatorName(data.creatorName);
+    if (data.teams) setTeams(data.teams);
+    if (typeof window !== "undefined") {
+      const origin = window.location.origin;
+      setShareLink(
+        data.code
+          ? `${origin}/practice?code=${data.code}`
+          : `${origin}/practice/sessions/${params.id}`,
+      );
+    }
     const r0 = data.session?.rounds?.[0] as Round | undefined;
     if (r0) {
       if (r0.judges.cruxy && r0.judges.humans.length) setJudgeMode("both");
@@ -493,6 +508,64 @@ export function SessionClient() {
                 </Link>
               </section>
             )}
+
+            {canInvite ? (
+              <section className="flex flex-col gap-2 rounded-[20px] bg-white p-5">
+                <h2 className="font-display m-0 text-[22px] font-extrabold">
+                  Invite another team
+                </h2>
+                <p className="m-0 text-sm text-muted">
+                  They get a notice on Home and accept in one tap.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <select
+                    className="h-10 min-w-[160px] rounded-xl border border-line bg-white px-3 text-sm"
+                    value={inviteTeamId}
+                    onChange={(e) => setInviteTeamId(e.target.value)}
+                  >
+                    <option value="">Pick a team</option>
+                    {teams.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="h-10 rounded-xl bg-ink px-4 text-sm font-semibold text-white"
+                    onClick={() => {
+                      if (!inviteTeamId || !session) return;
+                      void fetch("/api/practice/invite", {
+                        method: "POST",
+                        headers: { "content-type": "application/json" },
+                        body: JSON.stringify({
+                          action: "invite",
+                          sessionId: session.id,
+                          teamId: inviteTeamId,
+                        }),
+                      }).then(async (r) => {
+                        const d = await r.json();
+                        setInviteMsg(
+                          r.ok
+                            ? `Invited. ${d.notified ?? 0} people got a notice on Home.`
+                            : d.error ?? "Invite failed",
+                        );
+                      });
+                    }}
+                  >
+                    Send invite
+                  </button>
+                </div>
+                {inviteMsg ? (
+                  <p className="m-0 text-sm text-muted">{inviteMsg}</p>
+                ) : null}
+                {shareLink ? (
+                  <p className="m-0 break-all text-xs text-muted">
+                    Online join link: {shareLink}
+                  </p>
+                ) : null}
+              </section>
+            ) : null}
           </div>
 
           <aside className="flex w-full flex-col gap-1.5 rounded-[20px] bg-white p-5 sm:w-[320px] sm:shrink-0">

@@ -39,6 +39,8 @@ export default function PracticePage() {
   const [joinMsg, setJoinMsg] = useState<string | null>(null);
   const [createdCode, setCreatedCode] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [online, setOnline] = useState(false);
+  const [inviteTeamId, setInviteTeamId] = useState("");
 
   async function refresh() {
     const res = await fetch("/api/practice/sessions");
@@ -50,7 +52,27 @@ export default function PracticePage() {
   }
 
   useEffect(() => {
-    void refresh();
+    void (async () => {
+      await refresh();
+      if (typeof window === "undefined") return;
+      const q = new URLSearchParams(window.location.search);
+      const fromLink = q.get("code");
+      if (!fromLink) return;
+      const upper = fromLink.toUpperCase();
+      setCode(upper);
+      // F-190: open the link → join and land on the session (own-device record).
+      const res = await fetch("/api/practice/join", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ code: upper }),
+      });
+      const data = await res.json();
+      if (res.ok && data.session?.id) {
+        window.location.href = `/practice/sessions/${data.session.id}?screen=${data.screen ?? "observer"}`;
+      } else {
+        setJoinMsg(data.error ?? "Could not join from link");
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -66,6 +88,8 @@ export default function PracticePage() {
         kind: "member_practice",
         title: `${MODES.find((m) => m.id === mode)?.label ?? "Practice"}`,
         mode,
+        online,
+        inviteTeamIds: inviteTeamId ? [inviteTeamId] : [],
         rounds: [
           {
             caseId: caseId || null,
@@ -125,7 +149,7 @@ export default function PracticePage() {
               >
                 {MODES.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.label} — {m.blurb}
+                    {m.label}: {m.blurb}
                   </option>
                 ))}
               </select>
@@ -144,19 +168,50 @@ export default function PracticePage() {
                 ))}
               </select>
             </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={online}
+                onChange={(e) => setOnline(e.target.checked)}
+              />
+              Online (each person records on their own phone)
+            </label>
+            <label className="block text-sm">
+              Invite another team
+              <select
+                className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-3 py-2"
+                value={inviteTeamId}
+                onChange={(e) => setInviteTeamId(e.target.value)}
+              >
+                <option value="">None</option>
+                {teams.slice(1).map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <Button type="button" disabled={busy} onClick={() => void startPractice()}>
               {busy ? "Starting…" : "Start"}
             </Button>
             {createdCode ? (
-              <p className="font-mono text-sm">Join code: {createdCode}</p>
+              <div className="space-y-1 text-sm">
+                <p className="font-mono">Join code: {createdCode}</p>
+                <p className="break-all text-muted">
+                  Online link:{" "}
+                  {typeof window !== "undefined"
+                    ? `${window.location.origin}/practice?code=${createdCode}`
+                    : `/practice?code=${createdCode}`}
+                </p>
+              </div>
             ) : null}
           </div>
         </div>
 
         <div className="rounded-2xl border border-ink/10 bg-white/70 p-4">
-          <h2 className="font-display text-xl font-semibold">Join with a code</h2>
+          <h2 className="font-display text-xl font-semibold">Join with a code or link</h2>
           <p className="mt-1 text-sm text-muted">
-            Members tap Join from home; judges use the{" "}
+            Members tap Join from home; online friends open the shared link. Judges use the{" "}
             <Link href="/judging" className="underline">
               Judging portal
             </Link>
