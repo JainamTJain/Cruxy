@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { isSampleDataMode } from "@/lib/db/config";
 import { readStore, updateStore } from "@/lib/db/sample-store";
 import { logActivity } from "@/lib/db/repository";
+import * as teamSb from "@/lib/db/supabase/team";
 import { nowIso } from "@/lib/utils";
 import { programChannel, teamChannel } from "@/lib/team/channels";
 import type {
@@ -23,26 +24,33 @@ import type {
   TruthItem,
 } from "@/lib/team/types";
 import { CASE_ROLE_LABELS, CASE_ROLE_SLOTS } from "@/lib/team/types";
+import type { TeamBoardSnapshot } from "@/lib/db/supabase/team";
+import { buildAlignmentQuestions } from "@/lib/team/alignment";
 
-function requireSample() {
-  if (!isSampleDataMode()) {
-    throw new Error("Supabase path not wired yet — set USE_SAMPLE_DATA=1");
-  }
+async function sb() {
+  return teamSb;
 }
 
 export async function listCases() {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).listCases();
+  }
   const store = await readStore();
   return store.cases;
 }
 
 export async function getCaseById(id: string) {
+  if (!isSampleDataMode()) {
+    return (await sb()).getCaseById(id);
+  }
   const store = await readStore();
   return store.cases.find((c) => c.id === id) ?? null;
 }
 
 export async function listCaseRoles(teamId?: string): Promise<CaseRole[]> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).listCaseRoles(teamId);
+  }
   const store = await readStore();
   return store.case_roles.filter((r) => !teamId || r.team_id === teamId);
 }
@@ -54,7 +62,9 @@ export async function setCaseRole(input: {
   personId: string;
   actorId: string;
 }): Promise<{ role: CaseRole; chatMessage: ChatMessage }> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).setCaseRole(input);
+  }
   if (!CASE_ROLE_SLOTS.includes(input.role)) {
     throw new Error("Invalid role slot");
   }
@@ -173,7 +183,9 @@ export async function createAssignment(input: {
   due?: string | null;
   assignedBy: string;
 }): Promise<Assignment[]> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).createAssignment(input);
+  }
   const created: Assignment[] = [];
   await updateStore((s) => {
     for (const personId of input.personIds) {
@@ -207,7 +219,9 @@ export async function listAssignments(filter?: {
   personId?: string;
   teamId?: string;
 }): Promise<Assignment[]> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).listAssignments(filter);
+  }
   const store = await readStore();
   return store.assignments.filter((a) => {
     if (filter?.personId && a.person_id !== filter.personId) return false;
@@ -217,13 +231,17 @@ export async function listAssignments(filter?: {
 }
 
 export async function listChats(): Promise<ChatChannel[]> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).listChats();
+  }
   const store = await readStore();
   return store.chats;
 }
 
 export async function listMessages(chatId: string): Promise<ChatMessage[]> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).listMessages(chatId);
+  }
   const store = await readStore();
   return store.messages
     .filter((m) => m.chat_id === chatId)
@@ -241,7 +259,9 @@ export async function postMessage(input: {
   actorTeamId: string | null;
   actorRole: string;
 }): Promise<ChatMessage> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).postMessage(input);
+  }
   let saved!: ChatMessage;
   await updateStore((s) => {
     const chat = s.chats.find((c) => c.id === input.chatId);
@@ -275,7 +295,9 @@ export async function markMessageIdea(
   messageId: string,
   actorId: string,
 ): Promise<ChatMessage> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).markMessageIdea(messageId, actorId);
+  }
   let saved!: ChatMessage;
   await updateStore((s) => {
     const msg = s.messages.find((m) => m.id === messageId);
@@ -296,7 +318,9 @@ export async function getCurrentClaimMap(
   teamId: string,
   caseId: string,
 ): Promise<ClaimMapVersion | null> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).getCurrentClaimMap(teamId, caseId);
+  }
   const store = await readStore();
   const versions = store.claim_map_versions
     .filter((v) => v.team_id === teamId && v.case_id === caseId)
@@ -308,7 +332,9 @@ export async function listClaimMapVersions(
   teamId: string,
   caseId: string,
 ): Promise<ClaimMapVersion[]> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).listClaimMapVersions(teamId, caseId);
+  }
   const store = await readStore();
   return store.claim_map_versions
     .filter((v) => v.team_id === teamId && v.case_id === caseId)
@@ -318,6 +344,9 @@ export async function listClaimMapVersions(
 export async function listConfirmations(
   versionId: string,
 ): Promise<ClaimMapConfirmation[]> {
+  if (!isSampleDataMode()) {
+    return (await sb()).listConfirmations(versionId);
+  }
   const store = await readStore();
   return store.claim_map_confirmations.filter((c) => c.version_id === versionId);
 }
@@ -330,7 +359,9 @@ export async function publishClaimMapEdit(input: {
   changeSummary: string;
   actorId: string;
 }): Promise<ClaimMapVersion> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).publishClaimMapEdit(input);
+  }
   let saved!: ClaimMapVersion;
   await updateStore((s) => {
     const current = s.claim_map_versions
@@ -399,17 +430,6 @@ export async function publishClaimMapEdit(input: {
   return saved;
 }
 
-function buildAlignmentQuestions(version: ClaimMapVersion): string[] {
-  const c1 = version.body.claims[0]?.text;
-  const c2 = version.body.claims[1]?.text;
-  const qs = [
-    c1 ? `What is our Claim 1 now?` : "What is our current lead claim?",
-    c2 ? `What is our Claim 2 now?` : "Name one support under Claim 1.",
-    "How do we answer the main counterclaim?",
-  ];
-  return qs.slice(0, 3);
-}
-
 export async function proposeClaimChange(input: {
   teamId: string;
   caseId: string;
@@ -418,7 +438,9 @@ export async function proposeClaimChange(input: {
   reason: string;
   actorId: string;
 }): Promise<ClaimChangeProposal> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).proposeClaimChange(input);
+  }
   let saved!: ClaimChangeProposal;
   await updateStore((s) => {
     const current = s.claim_map_versions
@@ -454,7 +476,9 @@ export async function acceptClaimChange(input: {
   proposal: ClaimChangeProposal;
   version: ClaimMapVersion | null;
 }> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).acceptClaimChange(input);
+  }
   let proposal!: ClaimChangeProposal;
   let version: ClaimMapVersion | null = null;
 
@@ -559,7 +583,9 @@ export async function confirmClaimMapVersion(input: {
   versionId: string;
   personId: string;
 }): Promise<ClaimMapConfirmation> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).confirmClaimMapVersion(input);
+  }
   let saved!: ClaimMapConfirmation;
   await updateStore((s) => {
     const existing = s.claim_map_confirmations.find(
@@ -590,7 +616,9 @@ export async function answerAlignment(input: {
   answers: string[];
   personId: string;
 }): Promise<{ set: AlignmentQuestionSet; drift: DriftFlag | null }> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).answerAlignment(input);
+  }
   let set!: AlignmentQuestionSet;
   let drift: DriftFlag | null = null;
 
@@ -644,7 +672,9 @@ export async function flagTranscriptDrift(input: {
   detail: string;
   transcriptRef: string;
 }): Promise<DriftFlag> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).flagTranscriptDrift(input);
+  }
   let flag!: DriftFlag;
   await updateStore((s) => {
     flag = {
@@ -666,6 +696,9 @@ export async function flagTranscriptDrift(input: {
 }
 
 export async function listDriftFlags(teamId: string): Promise<DriftFlag[]> {
+  if (!isSampleDataMode()) {
+    return (await sb()).listDriftFlags(teamId);
+  }
   const store = await readStore();
   return store.drift_flags.filter((d) => d.team_id === teamId);
 }
@@ -674,7 +707,9 @@ export async function listTruthItems(filter: {
   teamId: string;
   caseId?: string;
 }): Promise<TruthItem[]> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).listTruthItems(filter);
+  }
   const store = await readStore();
   return store.truth_items.filter(
     (t) =>
@@ -685,7 +720,9 @@ export async function listTruthItems(filter: {
 }
 
 export async function getPersonPrefs(personId: string): Promise<PersonPrefs> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).getPersonPrefs(personId);
+  }
   const store = await readStore();
   return (
     store.person_prefs.find((p) => p.person_id === personId) ?? {
@@ -702,7 +739,9 @@ export async function getPersonPrefs(personId: string): Promise<PersonPrefs> {
 export async function savePersonPrefs(
   prefs: Partial<PersonPrefs> & { person_id: string },
 ): Promise<PersonPrefs> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).savePersonPrefs(prefs);
+  }
   let saved!: PersonPrefs;
   await updateStore((s) => {
     const i = s.person_prefs.findIndex((p) => p.person_id === prefs.person_id);
@@ -727,6 +766,9 @@ export async function savePersonPrefs(
 export async function listRoadmapForPerson(
   personId: string,
 ): Promise<RoadmapStage[]> {
+  if (!isSampleDataMode()) {
+    return (await sb()).listRoadmapForPerson(personId);
+  }
   const store = await readStore();
   return store.roadmap_stages.filter((r) => r.person_id === personId);
 }
@@ -734,7 +776,9 @@ export async function listRoadmapForPerson(
 export async function homeDiffsForPerson(
   personId: string,
 ): Promise<HomeDiffItem[]> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).homeDiffsForPerson(personId);
+  }
   const store = await readStore();
   const person = store.people.find((p) => p.id === personId);
   if (!person?.team_id) return [];
@@ -773,8 +817,12 @@ export async function homeDiffsForPerson(
   return diffs;
 }
 
-export async function teamBoardSnapshot(teamId: string) {
-  requireSample();
+export async function teamBoardSnapshot(
+  teamId: string,
+): Promise<TeamBoardSnapshot> {
+  if (!isSampleDataMode()) {
+    return (await sb()).teamBoardSnapshot(teamId);
+  }
   const store = await readStore();
   const cases = store.cases.filter((c) => c.active);
   const roles = store.case_roles.filter((r) => r.team_id === teamId);
