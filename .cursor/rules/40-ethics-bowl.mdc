@@ -1,0 +1,13 @@
+---
+description: Ethics Bowl domain knowledge: rules, roles, scoring, cases. Use when building practice, judging, case brain or revision features, or writing Cruxy prompts.
+alwaysApply: false
+---
+
+# Ethics Bowl domain
+
+- Read `docs/domain/ethics-bowl.md` (rules, roles, timing, scoring guide, judges' question types, coach decisions, how the team builds an argument) before building practice, judging, case brain or revision features.
+- The scoring card is in `docs/domain/scoring-card.md`. Use those exact item names and wording.
+- The 12 California regional cases are 1, 3, 4, 5, 7, 9, 10, 11, 12, 13, 14, 15. Cases 2, 6 and 8 are inactive. Each case's team review is in `docs/domain/cases/case-NN.md` and the one-pager and review templates are in `docs/domain/templates.md`.
+- Case roles per team: Lead 1 (argument architect), Lead 2 (case expert), counter-arguer, supporter.
+- Claim map shape: at least 2 claims, 3 supports each with backing, at least 1 counterclaim answered by concede, distinguish or rebut.
+- Words to use exactly as the team does: Truth Sources, claim map, vN (version), "Inspired by Team N", Things to take care of bank, one pager, crux, trap, counterclaim, commentary, response to commentary, judges' Q&A, conferral, spirit points.

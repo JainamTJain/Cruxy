@@ -1,0 +1,155 @@
+<!-- Crux design reference. Translate to Next.js + Tailwind; ignore the <x-dc>, <helmet> and DCLogic wrappers. Sample data only. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crux: admin console</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;font-family:Inter,system-ui,sans-serif;color:#111318}
+a{color:inherit;text-decoration:none}
+.disp{font-family:'Bricolage Grotesque',Inter,sans-serif}
+.lab{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5A606B}
+.nav{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;font-size:15px;font-weight:500;color:#C9CCD3}
+.card{background:#FFFFFF;border-radius:20px;padding:20px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px}
+.only{align-self:flex-start;font-size:11px;font-weight:700;letter-spacing:.08em;color:#8A6500;background:#FFF3C4;border-radius:6px;padding:3px 7px}
+.p{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:10px;background:#F7F8FA;font-size:14px}
+.ok{font-size:12px;font-weight:700;color:#0B5E53}
+.warn{font-size:12px;font-weight:700;color:#C62828}
+.btn{height:38px;padding:0 12px;border-radius:10px;border:1px solid #E3E5E9;background:#FFFFFF;font:600 13px Inter,sans-serif;color:#111318;cursor:pointer}
+.mono{font-family:'IBM Plex Mono',monospace}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 248px; background: #111318; color: #FFFFFF; padding: 28px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 28px">
+    <span class="disp" style="font-size: 38px; font-weight: 800; letter-spacing: -0.04em; padding: 0 12px">crux</span>
+    <span style="align-self: flex-start; margin-left: 12px; font-size: 12px; font-weight: 700; letter-spacing: .1em; color: #111318; background: #F5B700; border-radius: 6px; padding: 4px 8px">ADMIN</span>
+    <nav aria-label="Admin" style="display: flex; flex-direction: column; gap: 2px">
+      <a class="nav" href="Session.html">Sessions</a>
+      <a class="nav" href="Admin.html" style="background: #9D2235; color: #FFFFFF">People and teams</a>
+      <a class="nav" href="Admin.html">Program analytics</a>
+      <a class="nav" href="#">Question bank</a>
+      <a class="nav" href="Home.html">Back to member view</a>
+    </nav>
+  </aside>
+
+  <main style="flex: 999 1 640px; min-width: 0; padding: 32px 40px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <span class="lab">Admin console · sample data</span>
+        <h1 class="disp" style="margin: 0; font-size: 48px; line-height: 1; font-weight: 800; letter-spacing: -0.02em">Running the program</h1>
+      </div>
+      <span style="font-size: 13px; color: #5A606B; max-width: 360px; text-align: right">Dr. B sees everything here except the panels marked <span class="only">ONLY JAINAM</span></span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+      <div class="card" style="gap: 6px"><span class="lab">Team 1 ready</span><span class="disp" style="font-size: 40px; font-weight: 800; line-height: 1; color: #0F7B6C">51%</span><span style="font-size: 13px; color: #5A606B">+9 this week</span></div>
+      <div class="card" style="gap: 6px"><span class="lab">Team 2 ready</span><span class="disp" style="font-size: 40px; font-weight: 800; line-height: 1; color: #4F46E5">54%</span><span style="font-size: 13px; color: #5A606B">+6 this week</span></div>
+      <div class="card" style="gap: 6px"><span class="lab">Team 3 ready</span><span class="disp" style="font-size: 40px; font-weight: 800; line-height: 1; color: #C2410C">52%</span><span style="font-size: 13px; color: #5A606B">+11 this week</span></div>
+      <div class="card" style="gap: 6px"><span class="lab">Attendance</span><span class="disp" style="font-size: 40px; font-weight: 800; line-height: 1">86%</span><span style="font-size: 13px; color: #5A606B">last 3 sessions</span></div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+      <section class="card" style="border-top: 5px solid #0F7B6C">
+        <div style="display: flex; justify-content: space-between"><strong>Team 1</strong><span class="mono" style="font-size: 13px">5</span></div>
+        <div class="p"><span>Serena</span><span class="ok">recorded ✓ voice ✓</span></div>
+        <div class="p"><span>Ivan</span><span class="ok">recorded ✓ voice ✓</span></div>
+        <div class="p"><span>Ashton</span><span class="ok">recorded ✓ voice ✓</span></div>
+        <div class="p"><span>Stolei</span><span class="warn">hasn't signed in</span></div>
+        <div class="p"><span>Tri</span><span class="ok">recorded ✓ voice ✓</span></div>
+      </section>
+      <section class="card" style="border-top: 5px solid #4F46E5">
+        <div style="display: flex; justify-content: space-between"><strong>Team 2</strong><span class="mono" style="font-size: 13px">5</span></div>
+        <div class="p"><span>Lehar</span><span class="ok">recorded ✓ voice ✓</span></div>
+        <div class="p"><span>Camerin</span><span class="ok">recorded ✓ voice ✓</span></div>
+        <div class="p"><span>Jade</span><span style="font-size: 12px; font-weight: 700; color: #5A606B">text only</span></div>
+        <div class="p"><span>Bethany</span><span class="ok">recorded ✓ voice ✓</span></div>
+        <div class="p"><span>Quixote</span><span class="ok">recorded ✓ voice ✓</span></div>
+      </section>
+      <section class="card" style="border-top: 5px solid #C2410C">
+        <div style="display: flex; justify-content: space-between"><strong>Team 3</strong><span class="mono" style="font-size: 13px">4</span></div>
+        <div class="p"><span>Nick</span><span class="ok">recorded ✓ voice ✓</span></div>
+        <div class="p"><span>Daniel</span><span class="ok">recorded ✓ voice ✓</span></div>
+        <div class="p"><span>Katie</span><span class="ok">recorded ✓ voice ✓</span></div>
+        <div class="p"><span>Jainam</span><span class="ok">recorded ✓ voice ✓</span></div>
+        <button class="btn" style="align-self: flex-start">Add or move a person</button>
+      </section>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+      <section class="card">
+        <span class="only">ONLY JAINAM</span>
+        <div style="display: flex; justify-content: space-between; align-items: baseline"><strong>Spend this month</strong><span class="mono" style="font-size: 18px; font-weight: 600">$11.40 / $30</span></div>
+        <div style="height: 10px; border-radius: 999px; background: #ECEEF1"><div style="width: 38%; height: 10px; border-radius: 999px; background: #111318"></div></div>
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 6px; font-size: 13px"><span>Transcription</span><span class="mono">$0.00 · free credit</span><span>Judging and reports</span><span class="mono">$6.80</span><span>Research</span><span class="mono">$2.90</span><span>Assistant and drills</span><span class="mono">$1.70</span></div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap"><button class="btn">Caps</button><button class="btn">Pause research</button></div>
+      </section>
+      <section class="card">
+        <span class="only">ONLY JAINAM</span>
+        <strong>Books Cruxy asked for</strong>
+        <div class="p"><span><em>Who Owns Antiquity?</em> · Case 9 · ch. 3</span><button class="btn">Upload</button></div>
+        <div class="p"><span><em>The Harm in Hate Speech</em> · Case 13</span><button class="btn">Upload</button></div>
+        <strong style="padding-top: 4px">Drive sorting queue</strong>
+        <div class="p"><span>"notes final v2.docx" · Case 10 or 11?</span><button class="btn">Sort</button></div>
+      </section>
+      <section class="card">
+        <span class="only">ONLY JAINAM</span>
+        <strong>Calibration</strong>
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 6px; font-size: 13px"><span>Human cards so far</span><span class="mono">9</span><span>Cruxy vs judges, Presentation A</span><span class="mono">−0.6</span><span>Cruxy vs judges, Response to judges</span><span class="mono">−1.1</span><span>Most weighted judge</span><span>Prof. [name]</span></div>
+        <span style="font-size: 12px; color: #5A606B">Members never see weights or gaps.</span>
+      </section>
+    </div>
+
+    <section class="card" aria-labelledby="pc">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+        <span style="display: flex; align-items: center; gap: 10px"><span class="only">ONLY JAINAM</span><strong id="pc" style="font-size: 17px">Passcodes</strong></span>
+        <span style="display: flex; gap: 8px; flex-wrap: wrap"><span style="font-size: 13px; color: #5A606B; align-self: center">Starter code for new members: set</span><button class="btn">Change starter code</button></span>
+      </div>
+      <div style="overflow-x: auto">
+        <table style="width: 100%; min-width: 640px; border-collapse: collapse; font-size: 14px">
+          <thead><tr style="text-align: left; color: #5A606B; font-size: 12px"><th style="padding: 8px 10px; font-weight: 700">Person</th><th style="padding: 8px 10px; font-weight: 700">Team</th><th style="padding: 8px 10px; font-weight: 700">Passcode</th><th style="padding: 8px 10px; font-weight: 700">Chosen</th><th style="padding: 8px 10px; font-weight: 700">Last sign in</th><th style="padding: 8px 10px"><span style="position: absolute; left: -9999px">Actions</span></th></tr></thead>
+          <tbody>
+            <tr style="border-top: 1px solid #ECEEF1"><td style="padding: 10px">Serena</td><td style="padding: 10px">Team 1</td><td class="mono" style="padding: 10px; letter-spacing: .2em">••••••</td><td style="padding: 10px">Nov 18</td><td style="padding: 10px">today 09:40</td><td style="padding: 10px; text-align: right; white-space: nowrap"><button class="btn">Show</button> <button class="btn">Reset</button></td></tr>
+            <tr style="border-top: 1px solid #ECEEF1; background: #FFF7DB"><td style="padding: 10px; font-weight: 600">Lehar</td><td style="padding: 10px">Team 2</td><td style="padding: 10px"><span class="mono" style="font-size: 18px; font-weight: 600; letter-spacing: .15em">48 17 05</span> <span style="font-size: 12px; color: #8A6500">sample · hides in 18s</span></td><td style="padding: 10px">Nov 19</td><td style="padding: 10px">yesterday</td><td style="padding: 10px; text-align: right; white-space: nowrap"><button class="btn">Hide</button> <button class="btn">Reset</button></td></tr>
+            <tr style="border-top: 1px solid #ECEEF1"><td style="padding: 10px">Stolei</td><td style="padding: 10px">Team 1</td><td style="padding: 10px; color: #5A606B">Hasn't chosen one yet</td><td style="padding: 10px">·</td><td style="padding: 10px; color: #C62828">never</td><td style="padding: 10px; text-align: right; white-space: nowrap"><button class="btn">Send starter code</button></td></tr>
+            <tr style="border-top: 1px solid #ECEEF1"><td style="padding: 10px">Daniel</td><td style="padding: 10px">Team 3</td><td class="mono" style="padding: 10px; letter-spacing: .2em">••••••</td><td style="padding: 10px">Nov 17</td><td style="padding: 10px">today 09:12</td><td style="padding: 10px; text-align: right; white-space: nowrap"><button class="btn">Show</button> <button class="btn">Reset</button></td></tr>
+            <tr style="border-top: 1px solid #ECEEF1"><td style="padding: 10px">Dr. B</td><td style="padding: 10px">Admin</td><td class="mono" style="padding: 10px; letter-spacing: .2em">••••••</td><td style="padding: 10px">Nov 16</td><td style="padding: 10px">today 08:30</td><td style="padding: 10px; text-align: right; white-space: nowrap"><button class="btn">Show</button> <button class="btn">Reset</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <span style="font-size: 12px; color: #5A606B">Showing 5 of 14 · sample. The first Show in 10 minutes asks for your own passcode. Every Show and Reset goes in the activity log. Your own passcode is never listed. Everyone was told you can see theirs when they chose it.</span>
+    </section>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start">
+      <section class="card" style="flex: 2 1 560px; min-width: 0">
+        <div style="display: flex; justify-content: space-between; align-items: baseline"><strong>Activity log</strong><span style="font-size: 12px; color: #5A606B">Dr. B: read only</span></div>
+        <div style="display: grid; grid-template-columns: 64px 110px 1fr; gap: 8px 12px; font-size: 13px">
+          <span class="mono">09:44</span><span>Jainam</span><span>Showed Lehar's passcode (she forgot it)</span>
+          <span class="mono">09:41</span><span>Serena</span><span>✅ "repair, not payout" · Case 7 · "Matches DRA's own goal"</span>
+          <span class="mono">09:12</span><span>Daniel</span><span>❌ Unit 731 example · Case 3 · "Can't verify in time"</span>
+          <span class="mono">08:30</span><span>Dr. B</span><span>Created session Tue Nov 24, 3 rounds</span>
+          <span class="mono">08:02</span><span>unknown</span><span style="color: #C62828">5 wrong codes on "Tri" · locked 10 min</span>
+        </div>
+      </section>
+      <section class="card" style="flex: 1 1 300px; background: #111318; color: #FFFFFF">
+        <strong>Weekly summary</strong>
+        <span style="font-size: 14px; line-height: 1.5; color: #D6D9DF">Dr. B opted in. Next email Sunday 6 pm: attendance, scores by team, biggest improvements, cases at risk, open disagreements.</span>
+        <a href="#" style="font-size: 14px; font-weight: 600; color: #F5B700">Preview this week's email</a>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

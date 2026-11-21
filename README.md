@@ -1,6 +1,8 @@
 # Crux
 
-Web app for USC’s three Ethics Bowl teams. **Cruxy** is the built-in thinking partner (users never see “AI” or model names).
+Web app for USC’s three Ethics Bowl teams.
+
+**Building with Cursor:** start every chat by @-mentioning `AGENTS.md` and the track file in `docs/tracks/`. Everything about the product is indexed in `docs/README.md`. **Cruxy** is the built-in thinking partner (users never see “AI” or model names).
 
 ## Track 0 Foundation
 

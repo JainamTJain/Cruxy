@@ -1,0 +1,114 @@
+<!-- Crux design reference. Translate to Next.js + Tailwind; ignore the <x-dc>, <helmet> and DCLogic wrappers. Sample data only. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crux: team board and chat</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;font-family:Inter,system-ui,sans-serif;color:#111318}
+a{color:inherit;text-decoration:none}
+.disp{font-family:'Bricolage Grotesque',Inter,sans-serif}
+.lab{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5A606B}
+.nav{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;font-size:15px;font-weight:500;color:#C9CCD3}
+.nav:hover{background:#1E2129;color:#FFFFFF}
+.mono{font-family:'IBM Plex Mono',monospace}
+.who{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:#F3F4F6;font-size:13px;font-weight:600}
+.msg{display:flex;flex-direction:column;gap:4px;font-size:14px;line-height:1.45}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 248px; background: #111318; color: #FFFFFF; padding: 28px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 28px">
+    <span class="disp" style="font-size: 38px; font-weight: 800; letter-spacing: -0.04em; padding: 0 12px">crux</span>
+    <nav aria-label="Main" style="display: flex; flex-direction: column; gap: 2px">
+      <a class="nav" href="Home.html">Program map</a>
+      <a class="nav" href="Roadmap.html">My roadmap</a>
+      <a class="nav" href="CaseBrain.html">Cases</a>
+      <a class="nav" href="Reading.html">Reading room</a>
+      <a class="nav" href="Practice.html">Practice</a>
+      <a class="nav" href="Feedback.html">Reports</a>
+      <a class="nav" href="TeamBoard.html" style="background: #9D2235; color: #FFFFFF">Team</a>
+    </nav>
+    <button style="margin-top: auto; height: 44px; border-radius: 12px; border: none; background: #F5B700; color: #111318; font: 700 15px Inter, sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px"><img src="/cruxy/cruxy-lamp.png" alt="" style="width: 42px; height: auto">Ask Cruxy</button>
+  </aside>
+
+  <main style="flex: 999 1 640px; min-width: 0; padding: 32px 40px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <span class="lab">Team 3 · sample data</span>
+        <h1 class="disp" style="margin: 0; font-size: 48px; line-height: 1; font-weight: 800; letter-spacing: -0.02em">Who's on what</h1>
+      </div>
+      <button style="height: 46px; padding: 0 18px; border-radius: 12px; border: none; background: #111318; color: #FFFFFF; font: 600 15px Inter, sans-serif; cursor: pointer">Assign</button>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+      <section aria-labelledby="board" style="flex: 999 1 640px; min-width: 0; background: #FFFFFF; border-radius: 20px; overflow: hidden">
+        <div style="overflow-x: auto">
+          <table style="width: 100%; min-width: 760px; border-collapse: collapse; font-size: 14px">
+            <caption id="board" style="text-align: left; padding: 18px 20px 10px; font: 800 22px 'Bricolage Grotesque', sans-serif">Roles and versions, 12 cases</caption>
+            <thead><tr style="background: #F7F8FA; text-align: left; font-size: 13px"><th style="padding: 10px 20px">Case</th><th style="padding: 10px">Lead 1</th><th style="padding: 10px">Lead 2</th><th style="padding: 10px">Counter</th><th style="padding: 10px">Supporter</th><th style="padding: 10px">On the same page</th></tr></thead>
+            <tbody>
+              <sc-for list="{{rows}}" as="r" hint-placeholder-count="12">
+                <tr style="border-top: 1px solid #ECEEF1">
+                  <td style="padding: 10px 20px"><span class="disp" style="font-size: 20px; font-weight: 800; color: #9D2235; margin-right: 8px">{{r.num}}</span>{{r.title}}</td>
+                  <td style="padding: 8px 10px"><span class="who" style="{{r.l1s}}">{{r.l1}}</span></td>
+                  <td style="padding: 8px 10px"><span class="who" style="{{r.l2s}}">{{r.l2}}</span></td>
+                  <td style="padding: 8px 10px"><span class="who">{{r.co}}</span></td>
+                  <td style="padding: 8px 10px"><span class="who">{{r.su}}</span></td>
+                  <td style="padding: 8px 10px"><span class="mono" style="font-size: 13px; font-weight: 600">{{r.v}}</span> <span style="font-size: 13px; {{r.cs}}">{{r.conf}}</span></td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside aria-labelledby="chat" style="flex: 1 1 340px; background: #FFFFFF; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <h2 id="chat" class="disp" style="margin: 0; font-size: 22px; font-weight: 800">Team 3 chat</h2>
+          <span style="font-size: 12px; color: #5A606B">readable by all teams</span>
+        </div>
+        <div class="msg" style="background: #FFF7DB; border-radius: 14px; padding: 12px">
+          <span style="font-size: 12px; font-weight: 700; color: #8A6500">CRUXY · CASE 9 IS NOW v7</span>
+          <span>Claim 2 changed: <span style="text-decoration: line-through; color: #5A606B">"return it now"</span> → "return it with a partnership, now". Reason (Katie): Team 1's Louvre point.</span>
+          <span style="display: flex; gap: 8px; margin-top: 6px"><button style="height: 34px; padding: 0 12px; border-radius: 10px; border: none; background: #111318; color: #FFFFFF; font: 600 13px Inter, sans-serif; cursor: pointer">I've got v7</button><span style="font-size: 13px; color: #5A606B; align-self: center">3 of 4 confirmed</span></span>
+        </div>
+        <div class="msg"><strong style="font-size: 13px">Nick</strong><span>Can someone own the Case 13 counterclaim row by Monday?</span></div>
+        <div class="msg"><strong style="font-size: 13px">Daniel</strong><span>On it. Also: the Panthers example shows why the law must stay narrow.</span><span style="font-size: 12px; font-weight: 700; color: #9D2235">Marked as idea → sent to Case 13 queue</span></div>
+        <div class="msg" style="background: #F7F8FA; border-radius: 14px; padding: 12px"><span style="font-size: 12px; font-weight: 700; color: #5A606B">ROLE CHANGE</span><span>Katie made Jainam Lead 1 on Case 9.</span></div>
+        <label for="m" style="font-size: 13px; font-weight: 600">Message</label>
+        <input id="m" placeholder="Write to Team 3" style="height: 44px; border-radius: 12px; border: 1px solid #E3E5E9; padding: 0 12px; font: 400 14px Inter, sans-serif">
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1060}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = [
+      [1, 'CTRL-ALT-DEFENSE', 'Nick', 'Katie', 'Daniel', 'Jainam', 'v4', 4],
+      [3, 'Sister City No More', 'Daniel', 'Jainam', 'Katie', 'Nick', 'v3', 4],
+      [4, 'Judging a Book by the Cover', 'Katie', 'Nick', 'Jainam', 'Daniel', 'v2', 3],
+      [5, 'The Gambler', 'Jainam', 'Daniel', 'Nick', 'Katie', 'v5', 4],
+      [7, 'Equal Access Activism', 'Nick', 'Daniel', 'Katie', 'Jainam', 'v6', 4],
+      [9, 'GEM in the Rough', 'Jainam', 'Katie', 'Daniel', 'Nick', 'v7', 3],
+      [10, 'Right to Be Forgotten', '', 'Nick', 'Jainam', 'Katie', 'v1', 2],
+      [11, 'The Cost of a Conscience', 'Katie', 'Jainam', 'Nick', 'Daniel', 'v3', 4],
+      [12, 'Medicine and Misinformation', 'Nick', 'Jainam', 'Daniel', 'Katie', 'v8', 4],
+      [13, 'Normally Distributed Violence', 'Katie', 'Daniel', 'Jainam', 'Nick', 'v6', 2],
+      [14, 'The Allure of the Machine', 'Jainam', 'Nick', 'Katie', 'Daniel', 'v2', 4],
+      [15, 'Udderly Conflicted', 'Daniel', 'Katie', 'Nick', 'Jainam', 'v3', 4]
+    ];
+    const gap = 'background:#FDECEC;color:#C62828';
+    return { rows: t.map((r) => ({ num: r[0], title: r[1], l1: r[2] || 'No lead', l1s: r[2] ? '' : gap, l2: r[3], l2s: '', co: r[4], su: r[5], v: r[6],
+      conf: r[7] === 4 ? '4 of 4 ✅' : r[7] + ' of 4 confirmed', cs: r[7] === 4 ? 'color:#0B5E53;font-weight:600' : 'color:#C62828;font-weight:600' })) };
+  }
+}
+</script>
+</body>
+</html>

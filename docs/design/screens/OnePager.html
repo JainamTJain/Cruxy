@@ -1,0 +1,137 @@
+<!-- Crux design reference. Translate to Next.js + Tailwind; ignore the <x-dc>, <helmet> and DCLogic wrappers. Sample data only. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crux: visual one pager</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#E9EBEF;font-family:Inter,system-ui,sans-serif;color:#111318}
+a{color:inherit;text-decoration:none}
+.disp{font-family:'Bricolage Grotesque',Inter,sans-serif}
+.lab{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5A606B}
+.mono{font-family:'IBM Plex Mono',monospace}
+.sup{flex:1;border:1.5px solid #111318;border-radius:10px;padding:10px;font-size:13px;line-height:1.35;background:#FFFFFF;position:relative}
+.sup::before{content:'';position:absolute;left:50%;top:-14px;width:1.5px;height:14px;background:#111318}
+.tile{background:#F7F8FA;border-radius:12px;padding:12px;font-size:13px;line-height:1.4}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+</style>
+</helmet>
+<div style="min-height: 100vh; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 16px">
+  <div style="width: 100%; max-width: 1100px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px">
+    <a href="CaseBrain.html" style="font-size: 14px; font-weight: 600">← Back to the case brain</a>
+    <div style="display: flex; gap: 8px">
+      <button style="height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid #C9CCD3; background: #FFFFFF; font: 600 13px Inter, sans-serif; cursor: pointer">Export PDF</button>
+      <button style="height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid #C9CCD3; background: #FFFFFF; font: 600 13px Inter, sans-serif; cursor: pointer">Save to Drive as a Doc</button>
+      <button style="height: 40px; padding: 0 14px; border-radius: 10px; border: none; background: #111318; color: #FFFFFF; font: 600 13px Inter, sans-serif; cursor: pointer">Sign off v7</button>
+    </div>
+  </div>
+
+  <article style="width: 100%; max-width: 1100px; background: #FFFFFF; border-radius: 6px; padding: 36px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px">
+    <header style="display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; border-bottom: 3px solid #111318; padding-bottom: 14px; flex-wrap: wrap">
+      <div style="display: flex; align-items: flex-end; gap: 16px">
+        <span class="disp" style="font-size: 72px; line-height: .8; font-weight: 800; color: #9D2235">09</span>
+        <div><div class="lab">One pager · Team 3 · v7 · sample</div><h1 class="disp" style="margin: 0; font-size: 34px; font-weight: 800">GEM in the Rough</h1></div>
+      </div>
+      <span style="font-size: 13px; color: #5A606B">Leads Jainam, Katie · counter Daniel · supporter Nick · signed off 3 of 4</span>
+    </header>
+
+    <section style="background: #111318; color: #FFFFFF; border-radius: 12px; padding: 16px 20px">
+      <div class="lab" style="color: #F5B700">Our answer in one sentence</div>
+      <p class="disp" style="margin: 6px 0 0; font-size: 22px; line-height: 1.25; font-weight: 600">A museum may not keep a taken object once a people with a continuous tie asks and can care for it; the Stone should go to Egypt with a partnership, now.</p>
+    </section>
+
+    <section style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px">
+      <div style="display: flex; flex-direction: column; gap: 14px">
+        <div style="border: 2px solid #111318; border-radius: 12px; padding: 12px; background: #FFF7DB"><span class="lab" style="color: #8A6500">Claim 1</span><div style="font-size: 15px; font-weight: 600; margin-top: 4px">The title is defective; the duty falls on whoever still benefits.</div></div>
+        <div style="display: flex; gap: 10px">
+          <div class="sup"><strong>S1</strong> Broken first link <span class="mono" style="display: block; font-size: 11px; color: #5A606B; margin-top: 4px">Nozick</span></div>
+          <div class="sup"><strong>S2</strong> Caretaker rule fails <span class="mono" style="display: block; font-size: 11px; color: #5A606B; margin-top: 4px">Kant</span></div>
+          <div class="sup"><strong>S3</strong> Responsibility, not blame <span class="mono" style="display: block; font-size: 11px; color: #5A606B; margin-top: 4px">Young</span></div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 14px">
+        <div style="border: 2px solid #111318; border-radius: 12px; padding: 12px; background: #FFF7DB"><span class="lab" style="color: #8A6500">Claim 2</span><div style="font-size: 15px; font-weight: 600; margin-top: 4px">The old reasons to keep it no longer hold; return it with a partnership.</div></div>
+        <div style="display: flex; gap: 10px">
+          <div class="sup"><strong>S1</strong> Care is now a tie <span class="mono" style="display: block; font-size: 11px; color: #5A606B; margin-top: 4px">GEM</span></div>
+          <div class="sup"><strong>S2</strong> The law already bends <span class="mono" style="display: block; font-size: 11px; color: #5A606B; margin-top: 4px">HTA s.47</span></div>
+          <div class="sup"><strong>S3</strong> Return early, well <span class="mono" style="display: block; font-size: 11px; color: #5A606B; margin-top: 4px">Louvre 2009</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 18px">
+      <div style="border-radius: 12px; border: 2px solid #9D2235; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+        <span class="lab" style="color: #9D2235">Counterclaim and our answer</span>
+        <span style="font-size: 15px; font-weight: 600">"After 225 years, the claim is superseded." (Waldron)</span>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-size: 13px; line-height: 1.35">
+          <div class="tile"><strong>Concede</strong><br>True for land: return displaces people.</div>
+          <div class="tile"><strong>Distinguish</strong><br>One object displaces no one.</div>
+          <div class="tile"><strong>Rebut</strong><br>We argue responsibility, not blame.</div>
+        </div>
+      </div>
+      <div style="border-radius: 12px; background: #F7F8FA; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+        <span class="lab">Values in tension · where we land</span>
+        <div style="position: relative; height: 34px">
+          <div style="position: absolute; left: 0; right: 0; top: 15px; height: 4px; border-radius: 2px; background: #C9CCD3"></div>
+          <div style="position: absolute; left: 28%; top: 6px; width: 22px; height: 22px; border-radius: 50%; background: #9D2235; border: 3px solid #FFFFFF; box-sizing: border-box"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600"><span>Righting a wartime taking</span><span>Preservation, access, law</span></div>
+        <span style="font-size: 12px; color: #5A606B">We lean to repair, and meet access with a partnership.</span>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 8px">
+      <span class="lab">Case facts in order</span>
+      <div style="position: relative; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; padding-top: 14px">
+        <div style="position: absolute; left: 4%; right: 4%; top: 19px; height: 3px; background: #111318"></div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; font-size: 12px; position: relative"><span class="dot" style="background: #111318; width: 14px; height: 14px"></span><strong class="mono">1790s</strong>French find it</div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; font-size: 12px; position: relative"><span class="dot" style="background: #111318; width: 14px; height: 14px"></span><strong class="mono">1801</strong>To Britain as a war prize</div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; font-size: 12px; position: relative"><span class="dot" style="background: #111318; width: 14px; height: 14px"></span><strong class="mono">1963</strong>British Museum Act limits returns</div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; font-size: 12px; position: relative"><span class="dot" style="background: #111318; width: 14px; height: 14px"></span><strong class="mono">2022</strong>Return petitions</div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; font-size: 12px; position: relative"><span class="dot" style="background: #9D2235; width: 14px; height: 14px"></span><strong class="mono">Nov 2025</strong>GEM opens</div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; font-size: 12px; position: relative"><span class="dot" style="background: #F5B700; width: 14px; height: 14px"></span><strong class="mono">Now</strong>No formal request yet</div>
+      </div>
+    </section>
+
+    <section style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 18px">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span class="lab">Stakeholders · stake · voice in the case</span>
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; font-size: 13px">
+          <span>Egyptian public</span><span><span class="dot" style="background: #111318"></span> <span class="dot" style="border: 2px solid #111318; box-sizing: border-box"></span></span>
+          <span>British Museum, visitors</span><span><span class="dot" style="background: #111318"></span> <span class="dot" style="background: #111318"></span></span>
+          <span>Egyptian scholars</span><span><span class="dot" style="background: #111318"></span> <span class="dot" style="border: 2px solid #111318; box-sizing: border-box"></span></span>
+          <span>Other claimant nations</span><span><span class="dot" style="border: 2px solid #111318; box-sizing: border-box"></span> <span class="dot" style="border: 2px solid #111318; box-sizing: border-box"></span></span>
+        </div>
+        <span class="lab" style="margin-top: 8px">Frameworks in one line</span>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px">
+          <div class="tile"><strong>Corrective justice:</strong> who benefits from a wrong repairs it.</div>
+          <div class="tile"><strong>Kant:</strong> a rule must work for everyone.</div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span class="lab">Hardest questions · our line</span>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px">
+          <tr style="border-top: 1px solid #E3E5E9"><td style="padding: 8px 8px 8px 0; font-weight: 600; width: 42%">Parthenon Marbles too?</td><td style="padding: 8px 0">Apply the test aloud; likely yes. Consistency is the point.</td></tr>
+          <tr style="border-top: 1px solid #E3E5E9"><td style="padding: 8px 8px 8px 0; font-weight: 600">What if Egypt never asks?</td><td style="padding: 8px 0">A standing public offer; never forced return.</td></tr>
+          <tr style="border-top: 1px solid #E3E5E9"><td style="padding: 8px 8px 8px 0; font-weight: 600">Isn't a replica enough?</td><td style="padding: 8px 0">Then London should keep the replica.</td></tr>
+          <tr style="border-top: 1px solid #E3E5E9; border-bottom: 1px solid #E3E5E9"><td style="padding: 8px 8px 8px 0; font-weight: 600">Egypt took from Nubia?</td><td style="padding: 8px 0">Same test applies; a principle that only runs one way isn't one.</td></tr>
+        </table>
+      </div>
+    </section>
+  </article>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

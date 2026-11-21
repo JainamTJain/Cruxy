@@ -1,0 +1,57 @@
+<!-- Crux design reference. Translate to Next.js + Tailwind; ignore the <x-dc>, <helmet> and DCLogic wrappers. Sample data only. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crux: Cruxy's moods</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,system-ui,sans-serif;color:#111318}
+.disp{font-family:'Bricolage Grotesque',Inter,sans-serif}
+.card{background:#FFFFFF;border-radius:18px;padding:14px 16px;display:flex;gap:14px;align-items:center;box-sizing:border-box}
+.card img{width:96px;height:180px;object-fit:contain;flex:0 0 96px}
+.card strong{font-family:'Bricolage Grotesque',Inter,sans-serif;font-size:20px;font-weight:800}
+.card p{margin:4px 0 0;font-size:14px;line-height:1.45;color:#3B404A}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1000px; box-sizing: border-box; background: #ECEEF1; display: flex; gap: 28px; padding: 40px">
+  <section style="flex: 0 0 360px; background: #111318; color: #FFFFFF; border-radius: 24px; padding: 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+    <img src="/cruxy/cruxy-lamp.png" alt="Cruxy's lamp" style="width: 200px; height: auto">
+    <h1 class="disp" style="margin: 0; font-size: 52px; line-height: .95; font-weight: 800; letter-spacing: -0.03em">Cruxy</h1>
+    <p style="margin: 0; font-size: 17px; line-height: 1.5; color: #E3E5E9">A wise, careful learner who would rather ask you a good question than hand you an answer.</p>
+    <ul style="margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.45; color: #C9CCD3">
+      <li>Asks first. Answers only after you've tried, or when you ask twice.</li>
+      <li>Gives hints one at a time, never the whole answer.</li>
+      <li>Cites every claim, and says plainly when it doesn't know.</li>
+      <li>Is honest about weak arguments, kindly, and never flatters.</li>
+      <li>Learns from every round and every judge, after weighing them.</li>
+    </ul>
+    <span style="margin-top: auto; font-size: 12px; color: #8C929D">Changing moods is a nice to have. If it isn't built, Cruxy stays curious.</span>
+  </section>
+
+  <section style="flex: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 14px">
+    <div class="card" style="border: 3px solid #111318"><img src="/cruxy/cruxy-curious.png" alt="Cruxy looking curious"><div><strong>Curious</strong><p>The default. Cruxy is asking you a question.</p></div></div>
+    <div class="card"><img src="/cruxy/cruxy-neutral.png" alt="Cruxy listening"><div><strong>Listening</strong><p>While you type, speak or record an answer.</p></div></div>
+    <div class="card"><img src="/cruxy/cruxy-winking.png" alt="Cruxy winking"><div><strong>Hint</strong><p>One nudge, never the answer.</p></div></div>
+    <div class="card"><img src="/cruxy/cruxy-happy.png" alt="Cruxy happy"><div><strong>Pleased</strong><p>You did better than your own past, or answered well.</p></div></div>
+    <div class="card"><img src="/cruxy/cruxy-excited.png" alt="Cruxy excited"><div><strong>Excited</strong><p>A personal best, or the team signs off a new version.</p></div></div>
+    <div class="card"><img src="/cruxy/cruxy-surprised.png" alt="Cruxy surprised"><div><strong>Surprised</strong><p>Something new: a drift flag, a new source, an unexpected judge comment.</p></div></div>
+    <div class="card"><img src="/cruxy/cruxy-sad.png" alt="Cruxy sad"><div><strong>Sad</strong><p>A round went worse than your own past. Cruxy feels it with you, then asks what you'd change.</p></div></div>
+    <div class="card"><img src="/cruxy/cruxy-sleepy.png" alt="Cruxy sleepy"><div><strong>Sleepy</strong><p>Going back to the lamp, or nothing has happened for 5 minutes.</p></div></div>
+    <div class="card" style="background: #FDECEC"><img src="/cruxy/cruxy-angry.png" alt="Cruxy fierce"><div><strong>Fierce</strong><p>Only while Cruxy plays the other team in practice. Never aimed at a person.</p></div></div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
