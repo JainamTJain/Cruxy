@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { callCruxy } from "@/lib/cruxy/callCruxy";
+import { runLibrarianTag } from "@/lib/cruxy/agents/librarian";
 import { checksumOf, embedPassageText, stubEmbed } from "@/lib/library/embeddings";
 import type { CaseRow } from "@/lib/types";
 import {
@@ -119,64 +120,36 @@ export async function librarianTag(input: {
     return { ...fallback, aiCalls: 0 };
   }
 
-  const caseList = input.cases
-    .filter((c) => c.active)
-    .map((c) => `${c.number}: ${c.title}`)
-    .join("; ");
-
-  const result = await callCruxy({
-    feature: "librarian_tag",
-    tier: "small",
-    personId: input.personId ?? null,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are Cruxy's Librarian. Return JSON only: {case_numbers:number[], type:string, confidence:number, card:string, ideas:string[]}. Types: case_set, practice_transcript, team_notes, rules, research, coach_guidance, general. Confidence 0-1. Card is 5 short lines.",
-      },
-      {
-        role: "user",
-        content: `File: ${input.listed.name}\nPath: ${input.listed.path}\nActive cases: ${caseList}\nText (truncated):\n${input.text.slice(0, 4000)}`,
-      },
-    ],
+  const tagged = await runLibrarianTag({
+    listed: input.listed,
+    text: input.text,
+    cases: input.cases,
+    personId: input.personId,
+    stubFallback: () => ({
+      case_numbers: fallback.case_numbers,
+      type: fallback.type,
+      confidence: fallback.confidence,
+      card: fallback.card,
+      ideas: fallback.ideas.map((text) => ({
+        text,
+        kind: "other" as const,
+        citation_ids: [],
+      })),
+    }),
   });
 
-  if (!result.ok) {
-    return { ...fallback, aiCalls: 1 };
-  }
+  const type = FILE_TYPES.includes(tagged.type as LibraryFileType)
+    ? (tagged.type as LibraryFileType)
+    : fallback.type;
 
-  // Stub responses are not real JSON — use heuristic, but the AI call was logged.
-  if (result.stub || !result.text.trim().startsWith("{")) {
-    return { ...fallback, aiCalls: 1 };
-  }
-
-  try {
-    const parsed = JSON.parse(result.text) as {
-      case_numbers?: number[];
-      type?: string;
-      confidence?: number;
-      card?: string;
-      ideas?: string[];
-    };
-    const type = FILE_TYPES.includes(parsed.type as LibraryFileType)
-      ? (parsed.type as LibraryFileType)
-      : fallback.type;
-    return {
-      case_numbers: Array.isArray(parsed.case_numbers)
-        ? parsed.case_numbers.filter((n) => typeof n === "number")
-        : fallback.case_numbers,
-      type,
-      confidence:
-        typeof parsed.confidence === "number"
-          ? parsed.confidence
-          : fallback.confidence,
-      card: parsed.card || fallback.card,
-      ideas: Array.isArray(parsed.ideas) ? parsed.ideas : fallback.ideas,
-      aiCalls: 1,
-    };
-  } catch {
-    return { ...fallback, aiCalls: 1 };
-  }
+  return {
+    case_numbers: tagged.case_numbers,
+    type,
+    confidence: tagged.confidence,
+    card: tagged.card,
+    ideas: tagged.ideas.map((i) => i.text),
+    aiCalls: tagged.aiCalls,
+  };
 }
 
 /** Sync split used by tests; embeddings are stubs only. */

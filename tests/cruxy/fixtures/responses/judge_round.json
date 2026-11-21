@@ -1,0 +1,51 @@
+{
+  "scores": [
+    {
+      "item": "presentation_a",
+      "score": 7,
+      "comment": "Clear and systematic opening.",
+      "evidence": [
+        {
+          "line_id": "line-1",
+          "quote": "We answer the moderator in the first thirty seconds"
+        }
+      ]
+    },
+    {
+      "item": "presentation_b",
+      "score": 6,
+      "comment": "Moral dimensions named late.",
+      "evidence": [
+        {
+          "line_id": "line-1",
+          "quote": "responsibility gap"
+        }
+      ]
+    }
+  ],
+  "spirit": 4,
+  "spirit_comment": "Respectful.",
+  "overall_comment": "Strengthen the counterclaim answer.",
+  "speaker_feedback": [
+    {
+      "speaker_id": "speaker-1",
+      "worked": "Clear systematic opening.",
+      "fix": "Name the moral tension earlier.",
+      "why_cost_points": "Judges heard policy before ethics.",
+      "better_version": "Lead with values in tension, then one support.",
+      "redo_prompt": "Redo your opening in 60 seconds naming the crux first.",
+      "citation_ids": ["line-1"]
+    }
+  ],
+  "socratic_followups": [
+    "What would the other side say is your weakest support?"
+  ],
+  "headline": "Biggest fix: name the moral tension first.",
+  "claims": [
+    {
+      "text": "The presentation opened systematically.",
+      "quote": "We answer the moderator in the first thirty seconds",
+      "citation_ids": ["line-1"]
+    }
+  ]
+}
