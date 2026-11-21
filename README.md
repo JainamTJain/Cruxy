@@ -87,3 +87,13 @@ Track 5 checks: mid-round chunk loss ≤30s; audio gone after transcription; eve
 - `npm run check:track3`
 - `npm run check:track4`
 - `npm run check:track5`
+
+
+## Track checks
+- `npm run check:track0`
+- `npm run check:track1`
+- `npm run check:track2`
+- `npm run check:track3`
+- `npm run check:track4`
+- `npm run check:track5`
+- `npm run check:track6`

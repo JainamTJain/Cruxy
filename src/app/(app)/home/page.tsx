@@ -1,23 +1,70 @@
-import Link from "next/link";
-import { CASE_TITLES } from "@/lib/constants";
-import { getSession } from "@/lib/auth/session";
-import { listCasesForBrain } from "@/lib/case-brain/service";
-import { listTeams } from "@/lib/db/repository";
-import { listCaseRoles } from "@/lib/team/repository";
-import { HomeDiffs } from "@/components/home-diffs";
+"use client";
 
-export default async function HomePage() {
-  const session = await getSession();
-  const [teams, cases, roles] = await Promise.all([
-    listTeams(),
-    listCasesForBrain(),
-    listCaseRoles(session?.teamId ?? undefined),
-  ]);
-  const active = CASE_TITLES.filter((c) => c.active);
-  const caseByNumber = new Map(cases.map((c) => [c.number, c]));
-  const days = Math.ceil(
-    (new Date("2026-12-05").getTime() - Date.now()) / (1000 * 60 * 60 * 24),
-  );
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+type Team = { id: string; name: string; colour: string };
+type CaseRow = { id: string; number: number; title: string };
+type Cell = {
+  team_id: string;
+  case_id: string;
+  readiness_pct: number;
+  lead_names: string[];
+  latest_event: string | null;
+};
+type Change = {
+  id: string;
+  action: string;
+  personName: string;
+  target: string | null;
+  at: string;
+};
+
+type MapData = {
+  teams: Team[];
+  cases: CaseRow[];
+  readiness: Cell[];
+  totals: Record<string, number>;
+  teamAverages: { team_id: string; avg: number; delta_week: number }[];
+  competition: { name: string; date: string; place: string | null } | null;
+  daysToCompetition: number | null;
+  changes: Change[];
+  nextActions: string[];
+};
+
+export default function HomePage() {
+  const [data, setData] = useState<MapData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void fetch("/api/program-map")
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Could not load program map");
+        return r.json() as Promise<MapData>;
+      })
+      .then(setData)
+      .catch((e: Error) => setError(e.message));
+  }, []);
+
+  if (error) {
+    return <p className="text-sm text-cardinal">{error}</p>;
+  }
+  if (!data) {
+    return <p className="text-sm text-muted">Loading program map…</p>;
+  }
+
+  const cellFor = (teamId: string, caseId: string) =>
+    data.readiness.find((c) => c.team_id === teamId && c.case_id === caseId);
+
+  const totalRows: [string, string][] = [
+    [String(data.totals.drive_files ?? "—"), "Drive files"],
+    [String(data.totals.passages_cited ?? "—"), "passages cited"],
+    [String(data.totals.ideas_accepted ?? "—"), "ideas accepted"],
+    [String(data.totals.sources_verified ?? "—"), "sources verified"],
+    [String(data.totals.bank_questions ?? "—"), "bank questions"],
+    [String(data.totals.rounds_graded ?? "—"), "rounds graded"],
+    [String(data.totals.redo_improvements ?? "—"), "redos improved"],
+  ];
 
   return (
     <main className="animate-fade-up space-y-8">
@@ -27,32 +74,23 @@ export default async function HomePage() {
             Where the program stands
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Case brain + team space ·{" "}
+            12 cases × 3 teams · readiness, leads, and what changed ·{" "}
             <Link href="/case-brain" className="underline">
-              case brain
-            </Link>
-            {" · "}
-            <Link href="/team" className="underline">
-              team board
+              Case brain
             </Link>
           </p>
         </div>
-        <p className="rounded-xl bg-gold/20 px-3 py-2 font-mono text-sm text-ink">
-          {Math.max(0, days)} days to UCSB Regional, Dec 5
-        </p>
+        {data.daysToCompetition != null && data.competition ? (
+          <p className="rounded-xl bg-gold/20 px-3 py-2 font-mono text-sm text-ink">
+            {data.daysToCompetition} days to {data.competition.name}
+            {data.competition.place ? `, ${data.competition.place}` : ""} ·{" "}
+            {data.competition.date}
+          </p>
+        ) : null}
       </div>
 
-      <HomeDiffs />
-
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {[
-          ["—", "Drive files"],
-          [String(roles.length), "roles set"],
-          ["—", "sources verified"],
-          ["—", "bank questions"],
-          ["—", "rounds graded"],
-          ["—", "redos improved"],
-        ].map(([n, label]) => (
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+        {totalRows.map(([n, label]) => (
           <div
             key={label}
             className="rounded-2xl border border-ink/10 bg-white/60 px-3 py-4"
@@ -63,18 +101,40 @@ export default async function HomePage() {
         ))}
       </section>
 
+      <section className="grid gap-3 sm:grid-cols-3">
+        {data.teams.map((t) => {
+          const a = data.teamAverages.find((x) => x.team_id === t.id);
+          return (
+            <div
+              key={t.id}
+              className="rounded-2xl border border-ink/10 bg-white/60 px-4 py-3"
+            >
+              <p
+                className="text-xs font-semibold uppercase tracking-wide"
+                style={{ color: t.colour }}
+              >
+                {t.name} ready
+              </p>
+              <p className="font-display text-3xl font-semibold">
+                {a?.avg ?? 0}%
+              </p>
+              <p className="text-xs text-muted">+{a?.delta_week ?? 0} this week</p>
+            </div>
+          );
+        })}
+      </section>
+
       <section>
         <h2 className="font-display text-xl font-semibold">Case board</h2>
         <p className="mt-1 text-sm text-muted">
-          Readiness fills in as Tracks 1–5 land. Teams:{" "}
-          {teams.map((t) => t.name).join(", ")}.
+          Each cell: readiness, leads, latest event. Case titles open Case brain.
         </p>
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
               <tr className="border-b border-ink/10 text-xs uppercase tracking-wide text-muted">
                 <th className="py-2 pr-3">Case</th>
-                {teams.map((t) => (
+                {data.teams.map((t) => (
                   <th
                     key={t.id}
                     className="py-2 pr-3"
@@ -86,74 +146,100 @@ export default async function HomePage() {
               </tr>
             </thead>
             <tbody>
-              {active.map((c) => {
-                const row = caseByNumber.get(c.number);
-                return (
-                  <tr key={c.number} className="border-b border-ink/5">
-                    <td className="py-3 pr-3 font-medium">
-                      {row ? (
-                        <Link
-                          href={`/case-brain/${row.id}`}
-                          className="hover:text-cardinal"
-                        >
-                          <span className="font-mono text-xs text-muted">
-                            {String(c.number).padStart(2, "0")}
-                          </span>{" "}
-                          {c.title}
-                        </Link>
-                      ) : (
-                        <>
-                          <span className="font-mono text-xs text-muted">
-                            {String(c.number).padStart(2, "0")}
-                          </span>{" "}
-                          {c.title}
-                        </>
-                      )}
-                    </td>
-                    {teams.map((t) => (
-                      <td key={t.id} className="py-3 pr-3 text-muted">
-                        {row ? (
+              {data.cases.map((c) => (
+                <tr key={c.id} className="border-b border-ink/5 align-top">
+                  <td className="py-3 pr-3 font-medium">
+                    <Link
+                      href={`/case-brain/${c.id}`}
+                      className="hover:text-cardinal"
+                    >
+                      <span className="font-mono text-xs text-muted">
+                        {String(c.number).padStart(2, "0")}
+                      </span>{" "}
+                      {c.title}
+                    </Link>
+                  </td>
+                  {data.teams.map((t) => {
+                    const cell = cellFor(t.id, c.id);
+                    return (
+                      <td key={t.id} className="py-3 pr-3">
+                        {cell ? (
+                          <div>
+                            <p className="font-mono text-sm font-semibold">
+                              {cell.readiness_pct}%
+                            </p>
+                            <p className="text-xs text-muted">
+                              {cell.lead_names.join(" · ")}
+                            </p>
+                            {cell.latest_event ? (
+                              <p className="mt-1 text-[11px] text-ink/70">
+                                {cell.latest_event}
+                              </p>
+                            ) : null}
+                            <Link
+                              href={`/case-brain/${c.id}?team=${t.id}`}
+                              className="mt-1 inline-block text-[11px] underline-offset-2 hover:underline"
+                              style={{ color: t.colour }}
+                            >
+                              Open brain
+                            </Link>
+                          </div>
+                        ) : (
                           <Link
-                            href={`/case-brain/${row.id}?team=${t.id}`}
+                            href={`/case-brain/${c.id}?team=${t.id}`}
                             className="text-xs underline-offset-2 hover:underline"
                             style={{ color: t.colour }}
                           >
                             Open
                           </Link>
-                        ) : (
-                          "—"
                         )}
                       </td>
-                    ))}
-                  </tr>
-                );
-              })}
+                    );
+                  })}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-ink/10 bg-white/60 p-4">
-        <h2 className="font-display text-lg font-semibold">Your next three</h2>
-        <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm">
-          <li>
-            Open{" "}
-            <Link href="/case-brain" className="underline">
-              Case brain
-            </Link>{" "}
-            or check the{" "}
-            <Link href="/team" className="underline">
-              team board
-            </Link>{" "}
-            for gaps
-          </li>
-          <li>Confirm any new claim-map version on home</li>
-          <li>
-            {session?.role === "tech_admin"
-              ? "Use Admin switch → Passcodes when helping teammates"
-              : "Ask Cruxy from the lamp — it cites Truth Sources or stays quiet"}
-          </li>
-        </ol>
+      <section className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-ink/10 bg-white/60 p-4">
+          <h2 className="font-display text-lg font-semibold">
+            Since your last visit
+          </h2>
+          <ul className="mt-3 space-y-2 text-sm">
+            {data.changes.length === 0 ? (
+              <li className="text-muted">Nothing new yet — welcome back.</li>
+            ) : (
+              data.changes.map((e) => (
+                <li key={e.id} className="border-b border-ink/5 pb-2">
+                  <span className="font-mono text-xs text-muted">
+                    {new Date(e.at).toLocaleString()}
+                  </span>
+                  <br />
+                  <span className="font-medium">{e.personName}</span>{" "}
+                  <span className="text-muted">{e.action}</span>
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+        <div className="rounded-2xl border border-ink/10 bg-white/60 p-4">
+          <h2 className="font-display text-lg font-semibold">Your next three</h2>
+          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm">
+            <li>
+              Open{" "}
+              <Link href="/case-brain" className="underline">
+                Case brain
+              </Link>{" "}
+              and edit your claim map
+            </li>
+            {data.nextActions.slice(0, 2).map((a) => (
+              <li key={a}>{a}</li>
+            ))}
+          </ol>
+        </div>
       </section>
     </main>
   );
