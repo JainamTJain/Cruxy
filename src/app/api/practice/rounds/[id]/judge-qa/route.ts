@@ -60,5 +60,29 @@ export async function POST(req: Request, { params }: Params) {
     seatCount: body.seats ?? 3,
     personId: session.personId,
   });
+
+  // Wave 6: classify onto claim nodes as open attacks.
+  if (seats.length && round.case_id) {
+    try {
+      const { getCaseBrain } = await import("@/lib/case-brain/service");
+      const { classifyJudgeQuestionsForRound } = await import(
+        "@/lib/arg-graph/classify-judge-q"
+      );
+      for (const teamId of round.team_ids) {
+        const brain = await getCaseBrain(teamId, round.case_id);
+        await classifyJudgeQuestionsForRound({
+          roundId: round.id,
+          teamId,
+          caseId: round.case_id,
+          nodes: brain.claims,
+          personId: session.personId,
+          questions: seats,
+        });
+      }
+    } catch {
+      // Best-effort; seats still returned.
+    }
+  }
+
   return NextResponse.json({ seats });
 }

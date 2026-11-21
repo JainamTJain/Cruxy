@@ -225,6 +225,20 @@ export interface RobustnessScores {
   overall: number;
 }
 
+/** DF-QuAD gradual-semantics score (Wave 6). Computed in code from the graph. */
+export interface ClaimGraphScore {
+  claim_id: string;
+  team_id: string;
+  case_id: string;
+  score: number;
+  score_pct: number;
+  attacks_answered: number;
+  attacks_open: number;
+  open_from_rounds: string[];
+  support_strength: number;
+  attack_strength: number;
+}
+
 export interface CaseBrainSnapshot {
   case_id: string;
   team_id: string;
@@ -244,4 +258,14 @@ export interface CaseBrainSnapshot {
   change_the_facts: ChangeTheFactsItem[];
   consistency_flags: ConsistencyFlag[];
   robustness: RobustnessScores;
+  /** Per-claim DF-QuAD scores for this team's map (shared visibility). */
+  claim_scores: Record<string, ClaimGraphScore>;
+  /**
+   * Other teams' claim scores for this case (Jainam: visible to all three).
+   * Keyed by team_id.
+   */
+  peer_claim_scores: Record<
+    string,
+    { team_name: string; scores: ClaimGraphScore[] }
+  >;
 }

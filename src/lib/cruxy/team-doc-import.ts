@@ -432,6 +432,12 @@ export async function importTeamDoc(
   let inspiredOffered = 0;
   let ideasSkipped = 0;
   const originRef = `team_doc:${importId}`;
+  const candidateIdeas: Array<{
+    text: string;
+    kind: string;
+    proposalId: string;
+    citationIds: string[];
+  }> = [];
 
   for (const idea of tagged.ideas) {
     const ideaText = idea.text.trim();
@@ -469,6 +475,12 @@ export async function importTeamDoc(
     });
     proposalsCreated += 1;
     existingKeys.add(key);
+    candidateIdeas.push({
+      text: ideaText,
+      kind,
+      proposalId: proposal.id,
+      citationIds,
+    });
 
     const strong =
       idea.strength === "strong" ||
@@ -486,6 +498,22 @@ export async function importTeamDoc(
         citationIds,
       });
     }
+  }
+
+  // Wave 6: candidate nodes for the argument graph.
+  try {
+    const { writeCandidateNodesFromTeamDoc } = await import(
+      "@/lib/arg-graph/candidate-nodes"
+    );
+    await writeCandidateNodesFromTeamDoc({
+      teamId: input.teamId,
+      caseId: input.caseId,
+      importId,
+      personId: input.personId,
+      ideas: candidateIdeas,
+    });
+  } catch {
+    // Migration 00029 may not be applied yet.
   }
 
   await logActivity({
