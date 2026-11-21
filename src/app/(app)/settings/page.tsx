@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Keypad } from "@/components/keypad";
@@ -146,7 +147,11 @@ export default function SettingsPage() {
         <h1 className="font-display text-3xl font-semibold">Settings</h1>
         <p className="mt-1 text-sm text-muted">
           Reminders stay in-app by default. Email only if you add an address and
-          opt in.
+          opt in.{" "}
+          <Link href="/practice/calibration" className="underline">
+            Your score prediction trend
+          </Link>{" "}
+          stays private to you.
         </p>
       </div>
       <label className="block text-sm">

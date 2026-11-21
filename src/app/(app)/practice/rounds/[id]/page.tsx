@@ -7,6 +7,7 @@ import { ChunkedRecorder } from "@/components/practice/chunked-recorder";
 import { CruxyJudgeQa } from "@/components/practice/cruxy-judge-qa";
 import { LiveCaptions } from "@/components/practice/live-captions";
 import { RecordingLayoutPicker } from "@/components/practice/recording-layout-picker";
+import { ScorePredictionForm } from "@/components/practice/score-prediction-form";
 import { TextOnlyBanner } from "@/components/practice/text-only-banner";
 import type { RecordingLayout } from "@/lib/practice/types";
 
@@ -80,6 +81,9 @@ export default function RoundPage() {
   const [paused, setPaused] = useState(false);
   const [showFullCommentary, setShowFullCommentary] = useState(false);
   const [cruxySpoken, setCruxySpoken] = useState<string[]>([]);
+  const [predictionsReady, setPredictionsReady] = useState(false);
+  const [personId, setPersonId] = useState<string | null>(null);
+  const [startMsg, setStartMsg] = useState<string | null>(null);
   const cruxyPrompt =
     "Your four-part test would also send back the Parthenon Marbles. Are you ready to say that?";
 
@@ -99,12 +103,20 @@ export default function RoundPage() {
         ? (data.textOnlyBanner.names as string[])
         : [],
     );
+    if (data.round?.phase !== "setup") setPredictionsReady(true);
   }
 
   useEffect(() => {
     void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
+
+  useEffect(() => {
+    void fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => setPersonId(d?.person?.id ?? d?.session?.personId ?? null))
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     if (paused || round?.phase === "done" || round?.phase === "setup") return;
@@ -134,11 +146,17 @@ export default function RoundPage() {
     micOn || recording?.status === "recording" || round?.phase === "response";
 
   async function start() {
-    await fetch(`/api/practice/rounds/${params.id}`, {
+    setStartMsg(null);
+    const res = await fetch(`/api/practice/rounds/${params.id}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ action: "start" }),
     });
+    const data = await res.json();
+    if (!res.ok) {
+      setStartMsg(data.error ?? "Could not start. Everyone must predict first.");
+      return;
+    }
     setElapsed(0);
     setPaused(false);
     await refresh();
@@ -355,10 +373,13 @@ export default function RoundPage() {
               {round.phase === "setup" ? (
                 <button
                   type="button"
+                  disabled={!predictionsReady}
                   onClick={() => void start()}
-                  className="h-[46px] rounded-xl border border-[#F2F3F5] bg-[#F2F3F5] px-[18px] text-sm font-semibold text-[#0C0D11]"
+                  className="h-[46px] rounded-xl border border-[#F2F3F5] bg-[#F2F3F5] px-[18px] text-sm font-semibold text-[#0C0D11] disabled:opacity-40"
                 >
-                  Start round
+                  {predictionsReady
+                    ? "Start round"
+                    : "Waiting on predictions"}
                 </button>
               ) : (
                 <button
@@ -369,6 +390,9 @@ export default function RoundPage() {
                   Next phase
                 </button>
               )}
+              {startMsg ? (
+                <p className="m-0 text-sm text-[#F87171]">{startMsg}</p>
+              ) : null}
             </div>
 
             <LiveCaptions cruxyLines={cruxySpoken} />
@@ -410,6 +434,13 @@ export default function RoundPage() {
           </section>
 
           <aside className="flex w-full flex-col gap-4 sm:w-[300px]">
+            {round.phase === "setup" ? (
+              <ScorePredictionForm
+                roundId={round.id}
+                personId={personId}
+                onGateChange={setPredictionsReady}
+              />
+            ) : null}
             <section className="flex flex-col gap-3 rounded-[20px] border border-[#262934] bg-[#16181F] p-5 text-[#F2F3F5]">
               <RecordingLayoutPicker
                 roundId={round.id}

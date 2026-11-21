@@ -159,6 +159,12 @@ export async function POST(req: Request) {
     meta: { teamId: body.teamId, use: bundle.analysis.effective_use },
   });
 
+  // Wave 6: refresh personal Brier when human cards arrive.
+  const { computeBrierAfterJudging } = await import(
+    "@/lib/practice/predictions"
+  );
+  await computeBrierAfterJudging({ roundId: body.roundId });
+
   return NextResponse.json({
     card: {
       ...card,

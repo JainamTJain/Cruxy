@@ -250,6 +250,20 @@ export default function PracticePage() {
         </div>
       </section>
 
+      <section className="rounded-2xl border border-ink/10 bg-white/60 p-4">
+        <h2 className="font-display text-lg font-semibold">Your prediction trend</h2>
+        <p className="mt-1 text-sm text-muted">
+          After rounds are judged, see how close your guesses were. Compared
+          only with your own past.
+        </p>
+        <Link
+          href="/practice/calibration"
+          className="mt-3 inline-block text-sm text-cardinal underline"
+        >
+          Open your score predictions
+        </Link>
+      </section>
+
       <section>
         <h2 className="font-display text-xl font-semibold">Your sessions</h2>
         <ul className="mt-3 space-y-2">
