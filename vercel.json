@@ -28,5 +28,12 @@
       "path": "/api/cron/weekly-review",
       "schedule": "0 3 * * 1"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "cursor/**": false,
+      "wsA": false,
+      "merge-*": false
+    }
+  }
 }
