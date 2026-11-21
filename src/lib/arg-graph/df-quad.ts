@@ -3,7 +3,10 @@
  * Computed in code only — never ask a model for the number.
  *
  * Aggregation σ(E) = 1 - ∏(1 - v(e))
- * Score φ(b, σ⁺, σ⁻) = b - b·σ⁻ + (1 - b)·σ⁺
+ * Combination (DF-QuAD): if σ⁻ >= σ⁺ then b - b·(σ⁻ - σ⁺), else b + (1 - b)·(σ⁺ - σ⁻)
+ * A supporter or attacker contributes its own strength: a leaf argument starts
+ * at the base score (0.5) times its edge weight, so one support does not
+ * saturate a claim at 100%.
  * Supporters raise the score; unanswered attacks lower it.
  */
 import type { ArgEdge, ClaimRobustnessScore } from "@/lib/arg-graph/types";
@@ -29,14 +32,16 @@ export function dfQuadScore(input: {
   const b = input.base ?? BASE;
   const plus = dfQuadAggregate(input.supportStrengths);
   const minus = dfQuadAggregate(input.unansweredAttackStrengths);
-  const score = b - b * minus + (1 - b) * plus;
+  const score =
+    minus >= plus ? b - b * (minus - plus) : b + (1 - b) * (plus - minus);
   return Math.min(1, Math.max(0, score));
 }
 
+/** Strength of the argument on the far end of an edge: leaf base score times edge weight. */
 function edgeStrength(e: ArgEdge): number {
   const w = Number(e.weight);
-  if (!Number.isFinite(w) || w <= 0) return 0.5;
-  return Math.min(1, Math.max(0.05, w));
+  const weight = !Number.isFinite(w) || w <= 0 ? 1 : Math.min(1, w);
+  return Math.max(0.05, BASE * weight);
 }
 
 /**
@@ -118,11 +123,8 @@ export function formatAttackSummary(row: ClaimRobustnessScore): string {
   if (row.attacks_answered === 0 && row.attacks_open === 0) {
     return "No attacks recorded yet.";
   }
+  const n = row.open_from_rounds.length;
   const roundPart =
-    row.open_from_rounds.length > 0
-      ? ` (from round ${row.open_from_rounds
-          .map((id) => id.slice(0, 8))
-          .join(", ")})`
-      : "";
+    n > 0 ? ` (from ${n === 1 ? "a practice round" : `${n} practice rounds`})` : "";
   return `${row.attacks_answered} attack${row.attacks_answered === 1 ? "" : "s"} answered, ${row.attacks_open} open${row.attacks_open ? roundPart : ""}`;
 }
