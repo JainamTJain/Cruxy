@@ -1,5 +1,6 @@
 export {
   countArgEdges,
+  getGraphSpineStats,
   isGraphSpineReady,
   listEdgesForNode,
   recordEdge,
@@ -9,5 +10,13 @@ export {
   type ArgEdge,
   type ArgEdgeType,
   type ArgNodeKind,
+  type GraphSpineStats,
   type RecordEdgeInput,
 } from "@/lib/graph/recordEdge";
+
+export {
+  backfillArgEdges,
+  backfillNodeEmbeddings,
+  runGraphSpineBackfill,
+  type GraphBackfillCounts,
+} from "@/lib/graph/backfill";

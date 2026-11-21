@@ -32,6 +32,11 @@ import {
   hashSessionCode,
 } from "@/lib/practice/session-codes";
 import { buildCaseGlossary } from "@/lib/practice/glossary";
+import {
+  afterBankEntrySaved,
+  afterFeedbackSaved,
+  afterJudgeCardSaved,
+} from "@/lib/graph/after-writes";
 import { nowIso, addMinutes } from "@/lib/utils";
 
 export async function listCases() {
@@ -510,7 +515,11 @@ export async function saveJudgeCard(
   card: JudgeCard,
   scores: CardScore[],
 ) {
-  if (!isSampleDataMode()) return sb.saveJudgeCard(card, scores);
+  if (!isSampleDataMode()) {
+    await sb.saveJudgeCard(card, scores);
+    await afterJudgeCardSaved(card);
+    return;
+  }
   await updateStore((s) => {
     const i = s.judge_cards.findIndex((c) => c.id === card.id);
     if (i >= 0) s.judge_cards[i] = card;
@@ -521,6 +530,7 @@ export async function saveJudgeCard(
       else s.card_scores.push(score);
     }
   });
+  await afterJudgeCardSaved(card);
 }
 
 export async function listJudgeCards(roundId: string) {
@@ -540,7 +550,12 @@ export async function saveJudgmentBundle(opts: {
   redos: RedoRow[];
   report: RoundReport;
 }) {
-  if (!isSampleDataMode()) return sb.saveJudgmentBundle(opts);
+  if (!isSampleDataMode()) {
+    await sb.saveJudgmentBundle(opts);
+    for (const c of opts.cards) await afterJudgeCardSaved(c);
+    await afterFeedbackSaved(opts.feedback);
+    return;
+  }
   await updateStore((s) => {
     for (const c of opts.cards) {
       const i = s.judge_cards.findIndex((x) => x.id === c.id);
@@ -566,6 +581,8 @@ export async function saveJudgmentBundle(opts: {
     if (ri >= 0) s.round_reports[ri] = opts.report;
     else s.round_reports.push(opts.report);
   });
+  for (const c of opts.cards) await afterJudgeCardSaved(c);
+  await afterFeedbackSaved(opts.feedback);
 }
 
 export async function getReport(roundId: string) {
@@ -582,10 +599,15 @@ export async function getReport(roundId: string) {
 }
 
 export async function saveBankEntry(entry: BankEntry) {
-  if (!isSampleDataMode()) return sb.saveBankEntry(entry);
+  if (!isSampleDataMode()) {
+    await sb.saveBankEntry(entry);
+    await afterBankEntrySaved(entry);
+    return;
+  }
   await updateStore((s) => {
     s.bank_entries.push(entry);
   });
+  await afterBankEntrySaved(entry);
 }
 
 export async function listBankEntries() {
