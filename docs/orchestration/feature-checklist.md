@@ -27,7 +27,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-017 Judge · Guests or members, per session · Score the session they were let into · See anything else [`assertJudgeSessionAccess` in `src/lib/auth/capabilities.ts`; portal UI owned by D]
 - [x] F-018 Team membership is set only by admins and can change at any time; history keeps the old team on old records. [`setTeamMembership` in `src/lib/db/supabase/auth-extra.ts`, migration `00018_workstream_j_auth_attendance.sql`]
 - [x] F-019 Jainam appears twice (technical admin and Team 3 member). His member view shows only what any member sees; the admin view is a separate switch. [`effectiveRole`, Admin switch in `src/components/app-shell.tsx`, `/api/auth/admin-view`]
-- [ ] F-020 Leads, counter-arguers and supporters are case roles inside a team, set and changed by the team (see Assignments). Note: UI and APIs owned by Workstream E (`src/app/api/team/roles`). (implemented: `src/app/api/team/roles/route.ts`, `src/lib/team/repository.ts`; owner J to verify)
+- [x] F-020 Leads, counter-arguers and supporters are case roles inside a team, set and changed by the team (see Assignments). [`canSetCaseRole` in `src/lib/auth/capabilities.ts`, gated in `src/app/api/team/roles/route.ts`; UI `src/app/(app)/team/page.tsx`; repo `src/lib/team/repository.ts`; smoke `scripts/smoke-case-roles.ts`]
 
 ## Cruxy
 

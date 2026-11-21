@@ -79,51 +79,52 @@ export default function SignInPage() {
 
   return (
     <main className="flex min-h-dvh flex-col bg-paper lg:flex-row">
-      <section className="flex flex-1 flex-col justify-between gap-10 bg-cardinal px-8 py-10 text-white sm:px-12 sm:py-12">
-        <div className="flex items-center justify-between gap-4 text-[13px] font-semibold tracking-[0.08em]">
-          <span>USC ETHICS BOWL</span>
-          <span className="text-right">
+      <section className="flex flex-1 flex-col gap-8 bg-cardinal px-6 py-8 text-white sm:gap-10 sm:px-12 sm:py-12 lg:justify-between">
+        <header className="relative z-20 flex shrink-0 items-center justify-between gap-4 bg-cardinal text-[13px] font-semibold tracking-[0.08em]">
+          <span className="min-w-0">USC ETHICS BOWL</span>
+          <span className="shrink-0 text-right">
             California Regional
             <br />
             Dec 5
           </span>
+        </header>
+
+        {/* Hero stays below the label at every width; Genie is clipped to its stack. */}
+        <div className="relative z-10 flex min-h-0 flex-1 flex-col justify-center">
+          <div className="flex flex-col items-start gap-5 min-[520px]:flex-row min-[520px]:items-end min-[520px]:gap-6">
+            <div className="relative h-[220px] w-[120px] shrink-0 overflow-hidden sm:h-[260px] sm:w-[140px]">
+              <Image
+                src="/cruxy/cruxy-lamp.png"
+                alt=""
+                width={160}
+                height={118}
+                className="absolute bottom-0 left-1/2 w-[100px] -translate-x-1/2 drop-shadow-[0_8px_16px_rgba(0,0,0,0.35)] sm:w-[120px]"
+                unoptimized
+                priority
+              />
+              <Image
+                src="/cruxy/cruxy-curious.png"
+                alt="Cruxy rising from the lamp"
+                width={150}
+                height={300}
+                className="animate-genie-rise absolute bottom-[40px] left-1/2 w-[88px] -translate-x-1/2 drop-shadow-[0_10px_18px_rgba(0,0,0,0.35)] sm:bottom-[46px] sm:w-[105px]"
+                unoptimized
+                priority
+              />
+            </div>
+            <div className="min-w-0 flex-1 pb-1">
+              <h1 className="font-display inline-block max-w-full rounded-[18px] border-[3px] border-genie-bright bg-transparent px-3 py-1 text-[clamp(3.5rem,12vw,8rem)] font-extrabold leading-[0.82] tracking-[-0.05em] text-white shadow-[0_0_0_2px_rgba(47,127,224,0.35)] sm:px-4">
+                crux
+              </h1>
+              <p className="mt-4 max-w-md text-base leading-relaxed text-white/90">
+                Three teams, twelve cases, one place where every argument is
+                built, tested and backed by a source.
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-end gap-4 sm:gap-6">
-          <div className="relative h-[200px] w-[140px] shrink-0 sm:h-[240px] sm:w-[160px]">
-            <Image
-              src="/cruxy/cruxy-lamp.png"
-              alt=""
-              width={160}
-              height={118}
-              className="absolute bottom-0 left-1/2 w-[120px] -translate-x-1/2 drop-shadow-[0_8px_16px_rgba(0,0,0,0.35)] sm:w-[140px]"
-              unoptimized
-              priority
-            />
-            <Image
-              src="/cruxy/cruxy-curious.png"
-              alt="Cruxy rising from the lamp"
-              width={150}
-              height={300}
-              className="animate-genie-rise absolute bottom-[52px] left-1/2 w-[110px] -translate-x-1/2 drop-shadow-[0_10px_18px_rgba(0,0,0,0.35)] sm:bottom-[58px] sm:w-[130px]"
-              unoptimized
-              priority
-            />
-          </div>
-          <div className="min-w-0 flex-1 pb-2">
-            <h1
-              className="font-display inline-block rounded-[18px] border-[3px] border-genie-bright bg-transparent px-3 py-1 text-[clamp(4.5rem,14vw,9rem)] font-extrabold leading-[0.82] tracking-[-0.05em] text-white shadow-[0_0_0_2px_rgba(47,127,224,0.35)] sm:px-4"
-            >
-              crux
-            </h1>
-            <p className="mt-4 max-w-md text-base leading-relaxed text-white/90">
-              Three teams, twelve cases, one place where every argument is built,
-              tested and backed by a source.
-            </p>
-          </div>
-        </div>
-
-        <div>
+        <div className="relative z-10 shrink-0">
           <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-white/70">
             Built so far
           </p>

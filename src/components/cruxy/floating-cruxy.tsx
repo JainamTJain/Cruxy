@@ -35,6 +35,9 @@ const FIGURE = 150;
 const FIGURE_PHONE = 96;
 const ASPECT = 2;
 const TAB_BAR = 88;
+/** Lamp sits bottom-right; keep the figure clear so the lamp stays tappable. */
+const LAMP_CLEAR_X = 140;
+const LAMP_CLEAR_Y = 160;
 
 function figureFor(w: number): number {
   return w < 640 ? FIGURE_PHONE : FIGURE;
@@ -68,17 +71,31 @@ function savePos(pos: Pos) {
 function snapToEdge(x: number, y: number, w: number, h: number): Pos {
   const size = figureFor(w);
   const midX = w / 2;
-  const nx = x < midX ? 12 : w - size - 12;
-  return { x: nx, y: Math.min(Math.max(12, y), h - size * ASPECT - TAB_BAR) };
+  const bottom = w < 640 ? TAB_BAR + LAMP_CLEAR_Y : LAMP_CLEAR_Y;
+  const nx = x < midX ? 12 : Math.max(12, w - size - LAMP_CLEAR_X);
+  return {
+    x: nx,
+    y: Math.min(Math.max(12, y), h - size * ASPECT - bottom),
+  };
 }
 
 function clampToViewport(p: Pos, w: number, h: number): Pos {
   const size = figureFor(w);
-  const bottom = w < 640 ? TAB_BAR : 24;
-  return {
-    x: Math.min(Math.max(8, p.x), w - size - 8),
-    y: Math.min(Math.max(8, p.y), h - size * ASPECT - bottom),
-  };
+  const bottom = w < 640 ? TAB_BAR + 12 : 24;
+  const maxY = h - size * ASPECT - bottom;
+  const maxX = w - size - 8;
+  let x = Math.min(Math.max(8, p.x), maxX);
+  let y = Math.min(Math.max(8, p.y), maxY);
+  // If the figure sits over the lamp corner, nudge left (and up if needed)
+  const lampLeft = w - LAMP_CLEAR_X;
+  const lampTop = h - (w < 640 ? TAB_BAR : 0) - LAMP_CLEAR_Y;
+  if (x + size > lampLeft && y + size * ASPECT > lampTop) {
+    x = Math.max(8, lampLeft - size - 8);
+    if (x + size > lampLeft) {
+      y = Math.max(8, lampTop - size * ASPECT - 8);
+    }
+  }
+  return { x, y };
 }
 
 export function FloatingCruxy() {
@@ -109,9 +126,13 @@ export function FloatingCruxy() {
     const h = window.innerHeight;
     const saved = loadPos();
     const size = figureFor(w);
+    // Default: above and left of the lamp so the lamp stays open for taps.
     const start = saved ?? {
-      x: w - size - (w < 640 ? 12 : 24),
-      y: h - size * ASPECT - (w < 640 ? TAB_BAR + 12 : 110),
+      x: Math.max(8, w - size - LAMP_CLEAR_X - 8),
+      y: Math.max(
+        8,
+        h - size * ASPECT - (w < 640 ? TAB_BAR + LAMP_CLEAR_Y : LAMP_CLEAR_Y),
+      ),
     };
     setPos(clampToViewport(start, w, h));
     const onResize = () => {
