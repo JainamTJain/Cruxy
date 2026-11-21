@@ -25,6 +25,12 @@ export const REAUTH_WINDOW_MS = 10 * 60 * 1000;
 /** Local/dev sample member starter only — not for production. */
 export const SAMPLE_MEMBER_STARTER = "482913";
 
+/** Local/dev sample coach starter (Dr. B) only — not for production. */
+export const SAMPLE_COACH_STARTER = "719304";
+
+/** Stable seed id for Dr. B (matches supabase/seed.sql). */
+export const COACH_PERSON_ID = "a0000000-0000-0000-0000-0000000000b0";
+
 export const CASE_TITLES: { number: number; title: string; active: boolean }[] =
   [
     { number: 1, title: "CTRL-ALT-DEFENSE", active: true },

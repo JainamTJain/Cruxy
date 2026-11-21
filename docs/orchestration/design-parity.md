@@ -235,21 +235,21 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## ChooseCode.html
 
-- [ ] D-0225 Crux: choose your passcode
-- [ ] D-0226 USC ETHICS BOWL
-- [ ] D-0227 FIRST SIGN IN · JAINAM · SAMPLE
-- [ ] D-0228 [image] Cruxy, thinking
-- [ ] D-0229 Cruxy
-- [ ] D-0230 What six digits will you still remember the morning of the regional, that nobody could guess?
-- [ ] D-0231 crux
-- [ ] D-0232 Step 3 of 3 · first time only
-- [ ] D-0233 Choose your passcode
-- [ ] D-0234 From now on you'll sign in with your name and this passcode. The member code stops working for you.
-- [ ] D-0235 Jainam, as technical admin, can see your passcode so he can help if you forget it. Don't reuse a code you use anywhere else.
-- [ ] D-0236 Passcode saved
-- [ ] D-0237 Change it any time in Settings. Forgot it? Ask Jainam.
-- [ ] D-0238 Enter Crux
-- [ ] D-0239 Try the flow again
+- [x] D-0225 Crux: choose your passcode [src/app/choose-passcode/page.tsx]
+- [x] D-0226 USC ETHICS BOWL [src/app/choose-passcode/page.tsx]
+- [x] D-0227 FIRST SIGN IN · JAINAM · SAMPLE [src/app/choose-passcode/page.tsx]
+- [x] D-0228 [image] Cruxy, thinking
+- [x] D-0229 Cruxy [src/app/choose-passcode/page.tsx]
+- [x] D-0230 What six digits will you still remember the morning of the regional, that nobody could guess? [src/app/choose-passcode/page.tsx]
+- [x] D-0231 crux [src/app/choose-passcode/page.tsx]
+- [x] D-0232 Step 3 of 3 · first time only [src/app/choose-passcode/page.tsx]
+- [x] D-0233 Choose your passcode [src/app/choose-passcode/page.tsx]
+- [x] D-0234 From now on you'll sign in with your name and this passcode. The member code stops working for you. [src/app/choose-passcode/page.tsx]
+- [x] D-0235 Jainam, as technical admin, can see your passcode so he can help if you forget it. Don't reuse a code you use anywhere else. [src/app/choose-passcode/page.tsx]
+- [x] D-0236 Passcode saved [src/app/choose-passcode/page.tsx]
+- [x] D-0237 Change it any time in Settings. Forgot it? Ask Jainam. [src/app/choose-passcode/page.tsx]
+- [x] D-0238 Enter Crux [src/app/choose-passcode/page.tsx]
+- [x] D-0239 Try the flow again [src/app/choose-passcode/page.tsx]
 
 ## Cruxy.html
 
@@ -271,30 +271,30 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0255 After 225 years, the claim is superseded. (Waldron)
 - [ ] D-0256 Truth Sources
 - [ ] D-0257 14 accepted · 3 rejected · 2 waiting for Team 3
-- [ ] D-0258 Drag Cruxy anywhere. Drop it on the lamp, or press "Back to the lamp", and it falls asleep there. Tap the lamp to call it back.
-- [ ] D-0259 [image] {{moodSrc}}
-- [ ] D-0260 Cruxy
+- [x] D-0258 Drag Cruxy anywhere. Drop it on the lamp, or press "Back to the lamp", and it falls asleep there. Tap the lamp to call it back. [src/components/cruxy/floating-cruxy.tsx]
+- [x] D-0259 [image] {{moodSrc}}
+- [x] D-0260 Cruxy [src/components/cruxy/floating-cruxy.tsx]
 - [ ] D-0261 Before I tell you what I think: what is the strongest reason the British Museum would give for keeping the Stone?
 - [ ] D-0262 Your answer
 - [ ] D-0263 [input] One sentence is enough
 - [ ] D-0264 Send
-- [ ] D-0265 One hint, please
+- [x] D-0265 One hint, please [src/components/cruxy/floating-cruxy.tsx]
 - [ ] D-0266 One nudge, not the answer: who can see the Stone today, and who can't?
 - [ ] D-0267 Let me try again
 - [ ] D-0268 That's the access argument, and you put it more fairly than last week. Now press on it: does it still hold now that GEM is open?
 - [ ] D-0269 From your Case 9 practice, Nov 14
 - [ ] D-0270 Ask me another
-- [ ] D-0271 You called. What are you trying to figure out?
+- [x] D-0271 You called. What are you trying to figure out? [src/components/cruxy/cruxy-context.tsx]
 - [ ] D-0272 Quiz me on Case 9
 - [ ] D-0273 Back to the lamp. Tap it whenever you want to think something through.
-- [ ] D-0274 Back to the lamp
-- [ ] D-0275 z z
-- [ ] D-0276 [image] /cruxy/cruxy-lamp.png
+- [x] D-0274 Back to the lamp [src/components/cruxy/floating-cruxy.tsx]
+- [x] D-0275 z z [src/components/cruxy/cruxy-lamp.tsx]
+- [x] D-0276 [image] /cruxy/cruxy-lamp.png
 
 ## CruxyMoods.html
 
 - [ ] D-0277 Crux: Cruxy's moods
-- [ ] D-0278 [image] Cruxy's lamp
+- [x] D-0278 [image] Cruxy's lamp
 - [ ] D-0279 Cruxy
 - [ ] D-0280 A wise, careful learner who would rather ask you a good question than hand you an answer.
 - [ ] D-0281 Asks first. Answers only after you've tried, or when you ask twice.
@@ -302,41 +302,41 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0283 Cites every claim, and says plainly when it doesn't know.
 - [ ] D-0284 Is honest about weak arguments, kindly, and never flatters.
 - [ ] D-0285 Learns from every round and every judge, after weighing them.
-- [ ] D-0286 Changing moods is a nice to have. If it isn't built, Cruxy stays curious.
-- [ ] D-0287 [image] Cruxy looking curious
+- [x] D-0286 Changing moods is a nice to have. If it isn't built, Cruxy stays curious. [src/components/cruxy/floating-cruxy.tsx]
+- [x] D-0287 [image] Cruxy looking curious
 - [ ] D-0288 Curious
 - [ ] D-0289 The default. Cruxy is asking you a question.
-- [ ] D-0290 [image] Cruxy listening
+- [x] D-0290 [image] Cruxy listening
 - [ ] D-0291 Listening
 - [ ] D-0292 While you type, speak or record an answer.
-- [ ] D-0293 [image] Cruxy winking
+- [x] D-0293 [image] Cruxy winking
 - [ ] D-0294 Hint
 - [ ] D-0295 One nudge, never the answer.
-- [ ] D-0296 [image] Cruxy happy
+- [x] D-0296 [image] Cruxy happy
 - [ ] D-0297 Pleased
 - [ ] D-0298 You did better than your own past, or answered well.
-- [ ] D-0299 [image] Cruxy excited
+- [x] D-0299 [image] Cruxy excited
 - [ ] D-0300 Excited
 - [ ] D-0301 A personal best, or the team signs off a new version.
-- [ ] D-0302 [image] Cruxy surprised
+- [x] D-0302 [image] Cruxy surprised
 - [ ] D-0303 Surprised
 - [ ] D-0304 Something new: a drift flag, a new source, an unexpected judge comment.
-- [ ] D-0305 [image] Cruxy sad
+- [x] D-0305 [image] Cruxy sad
 - [ ] D-0306 Sad
 - [ ] D-0307 A round went worse than your own past. Cruxy feels it with you, then asks what you'd change.
-- [ ] D-0308 [image] Cruxy sleepy
+- [x] D-0308 [image] Cruxy sleepy
 - [ ] D-0309 Sleepy
 - [ ] D-0310 Going back to the lamp, or nothing has happened for 5 minutes.
-- [ ] D-0311 [image] Cruxy fierce
+- [x] D-0311 [image] Cruxy fierce
 - [ ] D-0312 Fierce
 - [ ] D-0313 Only while Cruxy plays the other team in practice. Never aimed at a person.
 
 ## Drawer.html
 
-- [ ] D-0314 Crux: Cruxy drawer in admin mode
-- [ ] D-0315 [image] /cruxy/cruxy-lamp.png
-- [ ] D-0316 Cruxy
-- [ ] D-0317 ADMIN MODE · Dr. B
+- [x] D-0314 Crux: Cruxy drawer in admin mode [src/components/cruxy/cruxy-drawer.tsx]
+- [x] D-0315 [image] /cruxy/cruxy-lamp.png
+- [x] D-0316 Cruxy [src/components/cruxy/cruxy-drawer.tsx]
+- [x] D-0317 ADMIN MODE · Dr. B [src/components/cruxy/cruxy-drawer.tsx]
 - [ ] D-0318 Which team needs help on Case 13, and why?
 - [ ] D-0319 Team 2. Their Case 13 counterclaim has no answer yet, and 2 of 5 haven't caught up with their latest version.
 - [ ] D-0320 Team 2 progress on their own path
@@ -354,14 +354,14 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0332 Team 2 board
 - [ ] D-0333 Create session
 - [ ] D-0334 From roadmaps, case brains and attendance, updated 4 minutes ago.
-- [ ] D-0335 Ask about the program
+- [x] D-0335 Ask about the program [src/components/cruxy/cruxy-drawer.tsx]
 - [ ] D-0336 Who is ready to lead Case 9?
 - [ ] D-0337 What happened today?
 - [ ] D-0338 Where do teams disagree?
 - [ ] D-0339 Readiness brief for UCSB
-- [ ] D-0340 Ask Cruxy
-- [ ] D-0341 [input] Who hasn't practised Case 5?
-- [ ] D-0342 Ask
+- [x] D-0340 Ask Cruxy [src/components/cruxy/cruxy-drawer.tsx]
+- [x] D-0341 [input] Who hasn't practised Case 5?
+- [x] D-0342 Ask [src/components/cruxy/cruxy-drawer.tsx]
 
 ## DrillPhone.html
 
@@ -483,19 +483,19 @@ For each screen, every visible label, number, button and image in the reference 
 ## Home.html
 
 - [ ] D-0451 Crux: program map
-- [ ] D-0452 crux
-- [ ] D-0453 Program map
-- [ ] D-0454 My roadmap
-- [ ] D-0455 Cases
-- [ ] D-0456 Reading room
-- [ ] D-0457 Practice
-- [ ] D-0458 Reports
-- [ ] D-0459 Team chat
-- [ ] D-0460 [image] /cruxy/cruxy-lamp.png
-- [ ] D-0461 Ask Cruxy
-- [ ] D-0462 J
-- [ ] D-0463 Jainam
-- [ ] D-0464 Team 3 · admin
+- [x] D-0452 crux [src/components/app-shell.tsx]
+- [x] D-0453 Program map [src/components/app-shell.tsx]
+- [x] D-0454 My roadmap [src/components/app-shell.tsx]
+- [x] D-0455 Cases [src/components/app-shell.tsx]
+- [x] D-0456 Reading room [src/components/app-shell.tsx]
+- [x] D-0457 Practice [src/components/app-shell.tsx]
+- [x] D-0458 Reports [src/components/app-shell.tsx]
+- [x] D-0459 Team chat [src/components/app-shell.tsx]
+- [x] D-0460 [image] /cruxy/cruxy-lamp.png
+- [x] D-0461 Ask Cruxy [src/components/app-shell.tsx]
+- [x] D-0462 J [src/components/app-shell.tsx]
+- [x] D-0463 Jainam [src/components/app-shell.tsx]
+- [x] D-0464 Team 3 · admin [src/components/app-shell.tsx]
 - [ ] D-0465 Saturday, Nov 21 · sample data
 - [ ] D-0466 Where the program stands
 - [ ] D-0467 14
@@ -576,74 +576,74 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## Main.html
 
-- [ ] D-0539 Crux: sign in and meet Cruxy
-- [ ] D-0540 USC ETHICS BOWL
-- [ ] D-0541 CALIFORNIA REGIONAL · DEC 5
-- [ ] D-0542 crux
-- [ ] D-0543 Three teams, twelve cases, one place where every argument is built, tested and backed by a source.
-- [ ] D-0544 BUILT SO FAR · SAMPLE DATA
-- [ ] D-0545 412
-- [ ] D-0546 Drive files read and cited
-- [ ] D-0547 96
-- [ ] D-0548 ideas accepted into Truth Sources
-- [ ] D-0549 238
-- [ ] D-0550 moderator questions in the bank
-- [ ] D-0551 27
-- [ ] D-0552 practice rounds graded
-- [ ] D-0553 61
-- [ ] D-0554 new sources verified
-- [ ] D-0555 14
-- [ ] D-0556 days to the regional
-- [ ] D-0557 Step 1 of 3
-- [ ] D-0558 Tap your name
-- [ ] D-0559 Team 1
-- [ ] D-0560 Serena
-- [ ] D-0561 Ivan
-- [ ] D-0562 Ashton
-- [ ] D-0563 Stolei
-- [ ] D-0564 Tri
-- [ ] D-0565 Team 2
-- [ ] D-0566 Lehar
-- [ ] D-0567 Camerin
-- [ ] D-0568 Jade
-- [ ] D-0569 Bethany
-- [ ] D-0570 Quixote
-- [ ] D-0571 Team 3
-- [ ] D-0572 Nick
-- [ ] D-0573 Daniel
-- [ ] D-0574 Katie
-- [ ] D-0575 Jainam
-- [ ] D-0576 Passcode
-- [ ] D-0577 1
-- [ ] D-0578 2
-- [ ] D-0579 3
-- [ ] D-0580 4
-- [ ] D-0581 5
-- [ ] D-0582 6
-- [ ] D-0583 7
-- [ ] D-0584 8
-- [ ] D-0585 9
-- [ ] D-0586 Clear
-- [ ] D-0587 0
-- [ ] D-0588 Enter
-- [ ] D-0589 First time? Use the member code Jainam gave you. After that, your own passcode. Forgot it? Ask Jainam.
-- [ ] D-0590 Step 2 of 3 · first time only
-- [ ] D-0591 Meet Cruxy
-- [ ] D-0592 [image] /cruxy/cruxy-neutral.png
-- [ ] D-0593 Cruxy is our built-in thinking partner. It would rather ask you a good question than hand you an answer. It reads our Drive and the cases, finds new sources, asks practice questions, plays the other team or the judge when we need one, and gives feedback that quotes what you said. It can be wrong, so it always shows its source, and a person accepts every new idea. It floats on every page; drag it anywhere, or tap its lamp to send it to sleep.
-- [ ] D-0594 What Crux records
-- [ ] D-0595 When
-- [ ] D-0596 Only after someone presses Record in practice. A red bar shows while it's on.
-- [ ] D-0597 What
-- [ ] D-0598 Audio of the room, turned into a transcript of who said what, and when.
-- [ ] D-0599 Your voice
-- [ ] D-0600 A 20 second sample so the transcript knows which lines are yours.
-- [ ] D-0601 Who sees it
-- [ ] D-0602 All three teams, Dr. B and Jainam. Nobody else.
-- [ ] D-0603 How long
-- [ ] D-0604 Audio is deleted once the transcript is saved. Transcripts stay for the season.
-- [ ] D-0605 I agree: record my voice sample
-- [ ] D-0606 Not now, use Crux without being recorded
+- [x] D-0539 Crux: sign in and meet Cruxy [src/app/sign-in/page.tsx]
+- [x] D-0540 USC ETHICS BOWL [src/app/sign-in/page.tsx]
+- [x] D-0541 CALIFORNIA REGIONAL · DEC 5 [src/app/sign-in/page.tsx]
+- [x] D-0542 crux [src/app/sign-in/page.tsx]
+- [x] D-0543 Three teams, twelve cases, one place where every argument is built, tested and backed by a source. [src/app/sign-in/page.tsx]
+- [x] D-0544 BUILT SO FAR · SAMPLE DATA [src/app/sign-in/page.tsx]
+- [x] D-0545 412 [src/app/sign-in/page.tsx]
+- [x] D-0546 Drive files read and cited [src/app/sign-in/page.tsx]
+- [x] D-0547 96 [src/app/sign-in/page.tsx]
+- [x] D-0548 ideas accepted into Truth Sources [src/app/sign-in/page.tsx]
+- [x] D-0549 238 [src/app/sign-in/page.tsx]
+- [x] D-0550 moderator questions in the bank [src/app/sign-in/page.tsx]
+- [x] D-0551 27 [src/app/sign-in/page.tsx]
+- [x] D-0552 practice rounds graded [src/app/sign-in/page.tsx]
+- [x] D-0553 61 [src/app/sign-in/page.tsx]
+- [x] D-0554 new sources verified [src/app/sign-in/page.tsx]
+- [x] D-0555 14 [src/app/sign-in/page.tsx]
+- [x] D-0556 days to the regional [src/app/sign-in/page.tsx]
+- [x] D-0557 Step 1 of 3 [src/app/sign-in/page.tsx]
+- [x] D-0558 Tap your name [src/app/sign-in/page.tsx]
+- [x] D-0559 Team 1 [src/app/sign-in/page.tsx]
+- [x] D-0560 Serena [src/app/sign-in/page.tsx]
+- [x] D-0561 Ivan [src/app/sign-in/page.tsx]
+- [x] D-0562 Ashton [src/app/sign-in/page.tsx]
+- [x] D-0563 Stolei [src/app/sign-in/page.tsx]
+- [x] D-0564 Tri [src/app/sign-in/page.tsx]
+- [x] D-0565 Team 2 [src/app/sign-in/page.tsx]
+- [x] D-0566 Lehar [src/app/sign-in/page.tsx]
+- [x] D-0567 Camerin [src/app/sign-in/page.tsx]
+- [x] D-0568 Jade [src/app/sign-in/page.tsx]
+- [x] D-0569 Bethany [src/app/sign-in/page.tsx]
+- [x] D-0570 Quixote [src/app/sign-in/page.tsx]
+- [x] D-0571 Team 3 [src/app/sign-in/page.tsx]
+- [x] D-0572 Nick [src/app/sign-in/page.tsx]
+- [x] D-0573 Daniel [src/app/sign-in/page.tsx]
+- [x] D-0574 Katie [src/app/sign-in/page.tsx]
+- [x] D-0575 Jainam [src/app/sign-in/page.tsx]
+- [x] D-0576 Passcode [src/app/sign-in/page.tsx]
+- [x] D-0577 1 [src/app/sign-in/page.tsx]
+- [x] D-0578 2 [src/app/sign-in/page.tsx]
+- [x] D-0579 3 [src/app/sign-in/page.tsx]
+- [x] D-0580 4 [src/app/sign-in/page.tsx]
+- [x] D-0581 5 [src/app/sign-in/page.tsx]
+- [x] D-0582 6 [src/app/sign-in/page.tsx]
+- [x] D-0583 7 [src/app/sign-in/page.tsx]
+- [x] D-0584 8 [src/app/sign-in/page.tsx]
+- [x] D-0585 9 [src/app/sign-in/page.tsx]
+- [x] D-0586 Clear [src/app/sign-in/page.tsx]
+- [x] D-0587 0 [src/app/sign-in/page.tsx]
+- [x] D-0588 Enter [src/app/sign-in/page.tsx]
+- [x] D-0589 First time? Use the member code Jainam gave you. After that, your own passcode. Forgot it? Ask Jainam. [src/app/sign-in/page.tsx]
+- [x] D-0590 Step 2 of 3 · first time only [src/app/consent/page.tsx]
+- [x] D-0591 Meet Cruxy [src/app/consent/page.tsx]
+- [x] D-0592 [image] /cruxy/cruxy-neutral.png
+- [x] D-0593 Cruxy is our built-in thinking partner. It would rather ask you a good question than hand you an answer. It reads our Drive and the cases, finds new sources, asks practice questions, plays the other team or the judge when we need one, and gives feedback that quotes what you said. It can be wrong, so it always shows its source, and a person accepts every new idea. It floats on every page; drag it anywhere, or tap its lamp to send it to sleep. [src/app/consent/page.tsx]
+- [x] D-0594 What Crux records [src/app/consent/page.tsx]
+- [x] D-0595 When [src/app/consent/page.tsx]
+- [x] D-0596 Only after someone presses Record in practice. A red bar shows while it's on. [src/app/consent/page.tsx]
+- [x] D-0597 What [src/app/consent/page.tsx]
+- [x] D-0598 Audio of the room, turned into a transcript of who said what, and when. [src/app/consent/page.tsx]
+- [x] D-0599 Your voice [src/app/consent/page.tsx]
+- [x] D-0600 A 20 second sample so the transcript knows which lines are yours. [src/app/consent/page.tsx]
+- [x] D-0601 Who sees it [src/app/consent/page.tsx]
+- [x] D-0602 All three teams, Dr. B and Jainam. Nobody else. [src/app/consent/page.tsx]
+- [x] D-0603 How long [src/app/consent/page.tsx]
+- [x] D-0604 Audio is deleted once the transcript is saved. Transcripts stay for the season. [src/app/consent/page.tsx]
+- [x] D-0605 I agree: record my voice sample [src/app/consent/page.tsx]
+- [x] D-0606 Not now, use Crux without being recorded [src/app/consent/page.tsx]
 
 ## OnePager.html
 
@@ -995,9 +995,9 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0934 REMINDERS
 - [ ] D-0935 Session Tue 6 pm, THH 210. Attendance from your voice.
 - [ ] D-0936 Email copies on · change in settings
-- [ ] D-0937 Today
-- [ ] D-0938 Cases
-- [ ] D-0939 Practice
-- [ ] D-0940 Team
-- [ ] D-0941 [image] /cruxy/cruxy-lamp.png
-- [ ] D-0942 Cruxy
+- [x] D-0937 Today [src/components/app-shell.tsx]
+- [x] D-0938 Cases [src/components/app-shell.tsx]
+- [x] D-0939 Practice [src/components/app-shell.tsx]
+- [x] D-0940 Team [src/components/app-shell.tsx]
+- [x] D-0941 [image] /cruxy/cruxy-lamp.png
+- [x] D-0942 Cruxy [src/components/app-shell.tsx]

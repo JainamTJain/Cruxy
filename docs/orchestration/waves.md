@@ -59,6 +59,6 @@ Each one: make every D-item of its screens match, wire every F-item of its spec 
 - **D. Practice, sessions, judging, feedback:** `Session.html`, `Practice.html`, `JudgePhone.html`, `Feedback.html`, `DrillPhone.html`; spec "Sessions", "Practice and recording", "Judging and calibration", "Feedback reports and the bank". Owns `src/app/(app)/practice/**`, `src/app/judging/**`, related components and API routes.
 - **E. Team space:** `TeamBoard.html`; spec "Assignments, team chat and the Cruxy assistant" (roles by case, gaps, Assign, chat with version diffs, mark as idea, alignment questions). Owns `src/app/(app)/team/**`.
 - **F. Home, roadmap, revision and library:** `Home.html`, `Roadmap.html`, `FlashPhone.html`, `Reading.html`; spec "Program map", "Personal roadmap", "Revision" (flashcards, drills, language, warm-up), "Moderator question bank", "Library and Drive sync", "Research". Owns `src/app/(app)/home/**`, `src/app/(app)/revision/**` (except one pagers), `src/app/(app)/library/**`.
-- **G. Admin:** `Admin.html`, passcodes panel; spec "Program map, admin console and weekly summary", "Cost plan and caps", "Sign in" passcode rules. Owns `src/app/(app)/admin/**`.
+- **G. Admin:** `Admin.html`, passcodes panel, model settings panel (uses `getModelSettings`/`updateModelSettings` from Workstream M); spec "Program map, admin console and weekly summary", "Cost plan and caps", "Sign in" passcode rules. Owns `src/app/(app)/admin/**`.
 
 After Wave 2: one agent runs both checklists top to bottom, fixes what's left, and lists anything still unticked.

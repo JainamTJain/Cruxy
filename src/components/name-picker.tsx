@@ -23,39 +23,47 @@ export function NamePicker({
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-5 sm:grid-cols-3">
         {byTeam.map(({ team, members }) => (
           <div key={team.id} className="animate-fade-up">
             <p
-              className="mb-2 text-xs font-semibold uppercase tracking-[0.14em]"
+              className="mb-2 text-xs font-bold uppercase tracking-[0.12em]"
               style={{ color: team.colour }}
             >
               {team.name}
             </p>
             <ul className="space-y-1.5">
-              {members.map((m) => (
-                <li key={m.id}>
-                  <button
-                    type="button"
-                    onClick={() => onSelect(m.id)}
-                    className={cn(
-                      "w-full rounded-xl px-3 py-2.5 text-left text-sm transition",
-                      selectedId === m.id
-                        ? "bg-ink text-white"
-                        : "bg-white/70 text-ink hover:bg-white",
-                    )}
-                  >
-                    {m.name}
-                  </button>
-                </li>
-              ))}
+              {members.map((m) => {
+                const active = selectedId === m.id;
+                return (
+                  <li key={m.id}>
+                    <button
+                      type="button"
+                      onClick={() => onSelect(m.id)}
+                      className={cn(
+                        "w-full rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition",
+                        active
+                          ? "border-transparent text-white"
+                          : "border-mist bg-white text-ink hover:border-ink/20",
+                      )}
+                      style={
+                        active
+                          ? { backgroundColor: team.colour }
+                          : undefined
+                      }
+                    >
+                      {m.name}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         ))}
       </div>
       {coach.length > 0 ? (
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted">
             Coach
           </p>
           <div className="flex flex-wrap gap-2">
@@ -65,10 +73,10 @@ export function NamePicker({
                 type="button"
                 onClick={() => onSelect(m.id)}
                 className={cn(
-                  "rounded-xl px-4 py-2.5 text-sm transition",
+                  "rounded-xl border px-4 py-2.5 text-sm font-medium transition",
                   selectedId === m.id
-                    ? "bg-ink text-white"
-                    : "bg-white/70 text-ink hover:bg-white",
+                    ? "border-transparent bg-ink text-white"
+                    : "border-mist bg-white text-ink",
                 )}
               >
                 {m.name}

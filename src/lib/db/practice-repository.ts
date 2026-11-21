@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { isSampleDataMode } from "@/lib/db/config";
 import { readStore, updateStore } from "@/lib/db/sample-store";
 import { logActivity } from "@/lib/db/repository";
+import * as sb from "@/lib/db/supabase/practice";
 import {
   DEFAULT_ROUND_TIMINGS,
   type AttendanceRow,
@@ -35,14 +36,8 @@ import {
 import { buildCaseGlossary } from "@/lib/practice/glossary";
 import { nowIso, addMinutes } from "@/lib/utils";
 
-function requireSample() {
-  if (!isSampleDataMode()) {
-    throw new Error("Supabase path not wired yet — set USE_SAMPLE_DATA=1");
-  }
-}
-
 export async function listCases() {
-  requireSample();
+  if (!isSampleDataMode()) return sb.listCases();
   const store = await readStore();
   return store.cases;
 }
@@ -53,7 +48,7 @@ export async function listSessions(opts?: {
 }): Promise<
   (PracticeSession & { code?: string | null; rounds: PracticeRound[] })[]
 > {
-  requireSample();
+  if (!isSampleDataMode()) return sb.listSessions(opts);
   const store = await readStore();
   const rounds = store.practice_rounds;
   return store.practice_sessions.map((s) => ({
@@ -67,7 +62,7 @@ export async function listSessions(opts?: {
 export async function getSessionById(
   id: string,
 ): Promise<(PracticeSession & { rounds: PracticeRound[] }) | null> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.getSessionById(id);
   const store = await readStore();
   const s = store.practice_sessions.find((x) => x.id === id);
   if (!s) return null;
@@ -80,7 +75,7 @@ export async function getSessionById(
 export async function getRoundById(
   id: string,
 ): Promise<(PracticeRound & { session: PracticeSession }) | null> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.getRoundById(id);
   const store = await readStore();
   const round = store.practice_rounds.find((r) => r.id === id);
   if (!round) return null;
@@ -113,7 +108,7 @@ export type CreateSessionInput = {
 export async function createSession(
   input: CreateSessionInput,
 ): Promise<{ session: PracticeSession; rounds: PracticeRound[]; plainCode: string | null }> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.createSession(input);
   const plainCode =
     input.kind === "admin" ? generateSessionCode() : generateSessionCode();
   const codeHash = await hashSessionCode(plainCode);
@@ -194,7 +189,7 @@ export async function rotateSessionCode(
   sessionId: string,
   adminId: string,
 ): Promise<string> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.rotateSessionCode(sessionId, adminId);
   const plain = generateSessionCode();
   const hash = await hashSessionCode(plain);
   await updateStore((s) => {
@@ -219,7 +214,7 @@ export async function joinWithSessionCode(opts: {
   | { ok: true; session: PracticeSession; rounds: PracticeRound[] }
   | { ok: false; reason: string }
 > {
-  requireSample();
+  if (!isSampleDataMode()) return sb.joinWithSessionCode(opts);
   const key = `code:${normalizeCode(opts.code)}:${opts.ipKey ?? "local"}`;
   const store = await readStore();
   const attempt = store.session_code_attempts.find((a) => a.key === key);
@@ -280,7 +275,7 @@ export async function upsertAttendance(opts: {
   status: AttendanceStatus;
   source: AttendanceRow["source"];
 }): Promise<AttendanceRow> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.upsertAttendance(opts);
   let row!: AttendanceRow;
   await updateStore((s) => {
     const existing = s.attendance.find(
@@ -306,13 +301,13 @@ export async function upsertAttendance(opts: {
 }
 
 export async function listAttendance(sessionId: string) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.listAttendance(sessionId);
   const store = await readStore();
   return store.attendance.filter((a) => a.session_id === sessionId);
 }
 
 export async function startRound(roundId: string): Promise<PracticeRound | null> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.startRound(roundId);
   let round: PracticeRound | null = null;
   await updateStore((s) => {
     const r = s.practice_rounds.find((x) => x.id === roundId);
@@ -330,7 +325,7 @@ export async function advanceRoundPhase(
   roundId: string,
   phase: PracticeRound["phase"],
 ): Promise<PracticeRound | null> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.advanceRoundPhase(roundId, phase);
   let round: PracticeRound | null = null;
   await updateStore((s) => {
     const r = s.practice_rounds.find((x) => x.id === roundId);
@@ -343,7 +338,7 @@ export async function advanceRoundPhase(
 }
 
 export async function saveRecording(row: RecordingRow) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.saveRecording(row);
   await updateStore((s) => {
     const i = s.recordings.findIndex((r) => r.id === row.id);
     if (i >= 0) s.recordings[i] = row;
@@ -354,13 +349,13 @@ export async function saveRecording(row: RecordingRow) {
 export async function getRecordingForRound(
   roundId: string,
 ): Promise<RecordingRow | null> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.getRecordingForRound(roundId);
   const store = await readStore();
   return store.recordings.find((r) => r.round_id === roundId) ?? null;
 }
 
 export async function saveTranscriptLines(lines: TranscriptLine[]) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.saveTranscriptLines(lines);
   await updateStore((s) => {
     for (const line of lines) {
       const i = s.transcript_lines.findIndex((l) => l.id === line.id);
@@ -371,7 +366,7 @@ export async function saveTranscriptLines(lines: TranscriptLine[]) {
 }
 
 export async function getTranscript(roundId: string): Promise<TranscriptLine[]> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.getTranscript(roundId);
   const store = await readStore();
   return store.transcript_lines
     .filter((l) => l.round_id === roundId)
@@ -379,7 +374,7 @@ export async function getTranscript(roundId: string): Promise<TranscriptLine[]> 
 }
 
 export async function getGlossary(caseId: string | null): Promise<GlossaryTerm[]> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.getGlossary(caseId);
   const store = await readStore();
   return store.glossary.filter(
     (g) => g.case_id === caseId || g.case_id === null,
@@ -387,7 +382,7 @@ export async function getGlossary(caseId: string | null): Promise<GlossaryTerm[]
 }
 
 export async function updateGlossary(terms: GlossaryTerm[]) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.updateGlossary(terms);
   await updateStore((s) => {
     for (const t of terms) {
       const i = s.glossary.findIndex((g) => g.id === t.id);
@@ -398,7 +393,7 @@ export async function updateGlossary(terms: GlossaryTerm[]) {
 }
 
 export async function saveSpeakerConfirm(row: SpeakerLabelConfirm) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.saveSpeakerConfirm(row);
   await updateStore((s) => {
     const i = s.speaker_confirms.findIndex((x) => x.round_id === row.round_id);
     if (i >= 0) s.speaker_confirms[i] = row;
@@ -409,7 +404,7 @@ export async function saveSpeakerConfirm(row: SpeakerLabelConfirm) {
 export async function getSpeakerConfirm(
   roundId: string,
 ): Promise<SpeakerLabelConfirm | null> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.getSpeakerConfirm(roundId);
   const store = await readStore();
   return store.speaker_confirms.find((x) => x.round_id === roundId) ?? null;
 }
@@ -419,7 +414,7 @@ export async function upsertJudge(opts: {
   background: string | null;
   personId: string | null;
 }): Promise<JudgeRow> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.upsertJudge(opts);
   let judge!: JudgeRow;
   await updateStore((s) => {
     if (opts.personId) {
@@ -450,7 +445,7 @@ export async function createGuestJudgeAccess(opts: {
   background: string | null;
   roundId: string;
 }): Promise<{ judge: JudgeRow; token: string }> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.createGuestJudgeAccess(opts);
   const token = generateGuestToken();
   const tokenHash = hashGuestToken(token);
   const judge: JudgeRow = {
@@ -477,7 +472,7 @@ export async function createGuestJudgeAccess(opts: {
 export async function resolveGuestToken(
   token: string,
 ): Promise<{ judge: JudgeRow; roundId: string } | null> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.resolveGuestToken(token);
   const hash = hashGuestToken(token);
   const store = await readStore();
   const entry = store.guest_judge_tokens.find((t) => t.token_hash === hash);
@@ -492,7 +487,7 @@ export async function saveJudgeCard(
   card: JudgeCard,
   scores: CardScore[],
 ) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.saveJudgeCard(card, scores);
   await updateStore((s) => {
     const i = s.judge_cards.findIndex((c) => c.id === card.id);
     if (i >= 0) s.judge_cards[i] = card;
@@ -506,7 +501,7 @@ export async function saveJudgeCard(
 }
 
 export async function listJudgeCards(roundId: string) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.listJudgeCards(roundId);
   const store = await readStore();
   const cards = store.judge_cards.filter((c) => c.round_id === roundId);
   const scores = store.card_scores.filter((s) =>
@@ -522,7 +517,7 @@ export async function saveJudgmentBundle(opts: {
   redos: RedoRow[];
   report: RoundReport;
 }) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.saveJudgmentBundle(opts);
   await updateStore((s) => {
     for (const c of opts.cards) {
       const i = s.judge_cards.findIndex((x) => x.id === c.id);
@@ -551,7 +546,7 @@ export async function saveJudgmentBundle(opts: {
 }
 
 export async function getReport(roundId: string) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.getReport(roundId);
   const store = await readStore();
   const report = store.round_reports.find((r) => r.round_id === roundId) ?? null;
   const feedback = store.feedback_items.filter((f) => f.round_id === roundId);
@@ -564,26 +559,26 @@ export async function getReport(roundId: string) {
 }
 
 export async function saveBankEntry(entry: BankEntry) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.saveBankEntry(entry);
   await updateStore((s) => {
     s.bank_entries.push(entry);
   });
 }
 
 export async function listBankEntries() {
-  requireSample();
+  if (!isSampleDataMode()) return sb.listBankEntries();
   const store = await readStore();
   return store.bank_entries;
 }
 
 export async function getSkillChart(personId: string): Promise<SkillChart | null> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.getSkillChart(personId);
   const store = await readStore();
   return store.skill_charts.find((c) => c.person_id === personId) ?? null;
 }
 
 export async function saveSkillChart(chart: SkillChart) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.saveSkillChart(chart);
   await updateStore((s) => {
     const i = s.skill_charts.findIndex((c) => c.person_id === chart.person_id);
     if (i >= 0) s.skill_charts[i] = chart;
@@ -592,7 +587,7 @@ export async function saveSkillChart(chart: SkillChart) {
 }
 
 export async function saveRedo(redo: RedoRow) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.saveRedo(redo);
   await updateStore((s) => {
     const i = s.redos.findIndex((r) => r.id === redo.id);
     if (i >= 0) s.redos[i] = redo;
@@ -601,7 +596,7 @@ export async function saveRedo(redo: RedoRow) {
 }
 
 export async function getRedo(id: string): Promise<RedoRow | null> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.getRedo(id);
   const store = await readStore();
   return store.redos.find((r) => r.id === id) ?? null;
 }

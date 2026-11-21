@@ -3,11 +3,13 @@ import path from "path";
 import { randomUUID } from "crypto";
 import {
   CASE_TITLES,
+  COACH_PERSON_ID,
   MONTHLY_CAP_USD_DEFAULT,
   PER_PERSON_ASSISTANT_DAY_CAP_USD,
   PER_RESEARCH_NIGHT_CAP_USD,
   PER_ROUND_CAP_USD,
   ROSTER,
+  SAMPLE_COACH_STARTER,
   SAMPLE_MEMBER_STARTER,
   TOKENS,
 } from "@/lib/constants";
@@ -425,9 +427,10 @@ function emptyPerson(
   name: string,
   teamId: string | null,
   role: Person["role"],
+  id?: string,
 ): Person {
   return {
-    id: randomUUID(),
+    id: id ?? randomUUID(),
     name,
     team_id: teamId,
     role,
@@ -504,6 +507,9 @@ export async function buildSeedStore(): Promise<SampleStore> {
   const memberStarterHash =
     process.env.MEMBER_STARTER_CODE_HASH?.trim() ||
     (await hashPasscode(SAMPLE_MEMBER_STARTER));
+  const coachStarterHash =
+    process.env.COACH_STARTER_CODE_HASH?.trim() ||
+    (await hashPasscode(SAMPLE_COACH_STARTER));
 
   const auth_codes: AuthCode[] = [
     {
@@ -516,6 +522,17 @@ export async function buildSeedStore(): Promise<SampleStore> {
       set_at: now,
       last_revealed_at: null,
       created_at: now,
+    },
+    {
+      id: randomUUID(),
+      kind: "starter",
+      person_id: COACH_PERSON_ID,
+      hash: coachStarterHash,
+      encrypted_copy: null,
+      must_choose: false,
+      set_at: nowIso(),
+      last_revealed_at: null,
+      created_at: nowIso(),
     },
   ];
 

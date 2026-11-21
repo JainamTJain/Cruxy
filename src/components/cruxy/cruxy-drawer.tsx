@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 import { useCruxy } from "@/components/cruxy/cruxy-context";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type Cite = { id: string; text: string; kind: string };
+
+type AdminAnswer = {
+  text: string;
+  citations?: Cite[];
+  suggestedNext?: string | null;
+  stats?: Record<string, string | number | boolean>;
+};
 
 export function CruxyDrawer() {
   const {
@@ -23,6 +31,25 @@ export function CruxyDrawer() {
   const [citations, setCitations] = useState<Cite[]>([]);
   const [prompt, setPrompt] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [adminMode, setAdminMode] = useState(false);
+  const [adminName, setAdminName] = useState("Admin");
+  const [adminExtra, setAdminExtra] = useState<AdminAnswer | null>(null);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    void fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then(
+        (d: {
+          session?: { adminView?: boolean; name?: string; role?: string };
+        }) => {
+          const admin = Boolean(d.session?.adminView);
+          setAdminMode(admin);
+          if (d.session?.name) setAdminName(d.session.name);
+        },
+      )
+      .catch(() => undefined);
+  }, [drawerOpen]);
 
   if (!drawerOpen) return null;
 
@@ -30,7 +57,31 @@ export function CruxyDrawer() {
     if (!question.trim()) return;
     setBusy(true);
     setMood("neutral");
+    setAdminExtra(null);
     try {
+      if (adminMode) {
+        const res = await fetch("/api/cruxy/admin", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ question }),
+        });
+        const data = (await res.json()) as AdminAnswer & {
+          error?: string;
+          text?: string;
+        };
+        if (!res.ok) {
+          setAnswer(data.error ?? "Could not answer in admin mode.");
+          setMood("surprised");
+        } else {
+          setAnswer(data.text ?? "");
+          setCitations(data.citations ?? []);
+          setAdminExtra(data);
+          setMood("winking");
+          setBubble(null);
+        }
+        return;
+      }
+
       const res = await fetch("/api/cruxy/assistant", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -62,22 +113,43 @@ export function CruxyDrawer() {
     }
   }
 
+  const chips = adminMode
+    ? [
+        "Which team needs help?",
+        "Who is ready to lead Case 9?",
+        "What happened today?",
+        "Where do teams disagree?",
+        "Readiness brief for UCSB",
+      ]
+    : ["Quiz me on this case", "One hint, please"];
+
   return (
     <div
       className={cn(
-        "fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-ink/10 bg-paper/98 shadow-xl backdrop-blur",
+        "fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-mist bg-paper shadow-xl",
       )}
       role="dialog"
       aria-label="Cruxy assistant"
     >
-      <header className="flex items-center justify-between border-b border-ink/10 px-4 py-3">
-        <div>
-          <p className="font-display text-lg font-semibold text-cardinal">
-            Cruxy
-          </p>
-          <p className="text-[11px] text-muted">
-            Knows this page · cites Truth Sources first
-          </p>
+      <header className="flex items-center justify-between border-b border-mist px-4 py-3">
+        <div className="flex items-center gap-3">
+          <Image
+            src="/cruxy/cruxy-lamp.png"
+            alt=""
+            width={36}
+            height={36}
+            unoptimized
+          />
+          <div>
+            <p className="font-display text-lg font-extrabold text-cardinal">
+              Cruxy
+            </p>
+            <p className="text-[11px] text-muted">
+              {adminMode
+                ? `ADMIN MODE · ${adminName}`
+                : "Knows this page · cites Truth Sources first"}
+            </p>
+          </div>
         </div>
         <button
           type="button"
@@ -89,18 +161,37 @@ export function CruxyDrawer() {
       </header>
 
       <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 text-sm">
-        <p className="rounded-xl bg-mist/60 px-3 py-2 text-xs text-muted">
-          Page: <span className="font-mono text-ink">{page}</span>
-          {highlight ? (
-            <>
-              <br />
-              Highlight: {highlight}
-            </>
-          ) : null}
-        </p>
+        {!adminMode ? (
+          <p className="rounded-xl bg-mist/60 px-3 py-2 text-xs text-muted">
+            Page: <span className="font-mono text-ink">{page}</span>
+            {highlight ? (
+              <>
+                <br />
+                Highlight: {highlight}
+              </>
+            ) : null}
+          </p>
+        ) : (
+          <p className="text-xs text-muted">
+            Ask about the program — roadmaps, case brains and attendance.
+          </p>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          {chips.map((c) => (
+            <button
+              key={c}
+              type="button"
+              className="rounded-full border border-mist bg-white px-3 py-1 text-xs"
+              onClick={() => setQuestion(c)}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
 
         {prompt ? (
-          <div className="rounded-2xl border border-gold/40 bg-gold/10 px-3 py-3">
+          <div className="rounded-2xl border border-gold/40 bg-[#FFF7DB] px-3 py-3">
             <p className="font-medium">Cruxy asks first</p>
             <p className="mt-1">{prompt}</p>
             <Button
@@ -118,7 +209,12 @@ export function CruxyDrawer() {
 
         {answer ? (
           <div className="space-y-2">
-            <p className="rounded-2xl bg-white/80 px-3 py-3">{answer}</p>
+            <p className="rounded-2xl bg-white px-3 py-3 shadow-sm">{answer}</p>
+            {adminExtra?.suggestedNext ? (
+              <p className="text-xs text-muted">
+                Suggested next step: {adminExtra.suggestedNext}
+              </p>
+            ) : null}
             {citations.length ? (
               <ul className="space-y-1 text-xs text-muted">
                 {citations.map((c, i) => (
@@ -132,10 +228,12 @@ export function CruxyDrawer() {
         ) : null}
       </div>
 
-      <footer className="space-y-2 border-t border-ink/10 p-4">
+      <footer className="space-y-2 border-t border-mist p-4">
         <textarea
-          className="min-h-[72px] w-full rounded-xl border border-ink/15 bg-white/80 px-3 py-2 text-sm"
-          placeholder="Ask Cruxy…"
+          className="min-h-[72px] w-full rounded-xl border border-mist bg-white px-3 py-2 text-sm"
+          placeholder={
+            adminMode ? "Who hasn't practised Case 5?" : "Ask Cruxy…"
+          }
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
         />

@@ -5,7 +5,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## How to build it
 
-- [ ] F-001 0. Foundation · Next.js app, Supabase project, schema, sign in, roles, design tokens, activity log · Who uses it, Sign in, Data model, Privacy · Cursor
+- [x] F-001 0. Foundation · Next.js app, Supabase project, schema, sign in, roles, design tokens, activity log · Who uses it, Sign in, Data model, Privacy · Cursor [`src/lib/db/supabase/foundation.ts`, `src/lib/db/repository.ts`]
 - [ ] F-002 1. Library · Drive sync, digesting, search, reading room with highlights and comments · Library, Research · Cursor
 - [ ] F-003 2. Case brain · Claim maps, Truth Sources, Inspired by Team X, consistency checks · Case brain · Cursor
 - [ ] F-004 3. Revision · One pagers, flashcards, Socratic drills, moderator bank, roadmap · Revision, Moderator bank, Roadmap · Bolt for screens, Cursor for logic
@@ -67,15 +67,15 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Sign in, consent and attendance
 
-- [ ] F-051 Pick your name from a list grouped by team (admins add names; no self sign up).
-- [ ] F-052 Enter your own 6 digit passcode on a keypad. The very first time, enter the shared member code (Dr. B: her starter code); after consent Crux asks you to choose your own passcode. An admin's passcode also opens the admin switch.
+- [x] F-051 Pick your name from a list grouped by team (admins add names; no self sign up). [`listPeoplePublic` Supabase path]
+- [x] F-052 Enter your own 6 digit passcode on a keypad. The very first time, enter the shared member code (Dr. B: her starter code); after consent Crux asks you to choose your own passcode. An admin's passcode also opens the admin switch. [`passcode-rules` + auth_codes bootstrap]
 - [ ] F-053 Stay signed in for 30 days on that browser; resetting someone's passcode signs that person out everywhere.
-- [ ] F-054 5 wrong tries on one name locks it for 10 minutes and writes an activity log entry.
-- [ ] F-055 Store each personal passcode twice: an argon2 hash used to check sign in, and a copy encrypted (AES-GCM) with a key in the PASSCODE_VIEW_KEY environment variable, which only the technical admin's Passcodes panel can decrypt. Jainam's own admin passcode is set from an environment variable at deploy, is stored as a hash only, and is never shown anywhere.
-- [ ] F-056 Right after consent on the first sign in (Dr. B included), Crux asks the person to choose a 6 digit passcode and type it twice.
+- [x] F-054 5 wrong tries on one name locks it for 10 minutes and writes an activity log entry. [`attemptSignIn` + `activity_log`]
+- [x] F-055 Store each personal passcode twice: an argon2 hash used to check sign in, and a copy encrypted (AES-GCM) with a key in the PASSCODE_VIEW_KEY environment variable, which only the technical admin's Passcodes panel can decrypt. Jainam's own admin passcode is set from an environment variable at deploy, is stored as a hash only, and is never shown anywhere. [`replacePersonalCode` Supabase]
+- [x] F-056 Right after consent on the first sign in (Dr. B included), Crux asks the person to choose a 6 digit passcode and type it twice. [`mustChoosePasscode` after starter]
 - [ ] F-057 Refused: the shared member code, one digit repeated (111111), and straight runs (123456, 654321).
 - [ ] F-058 The screen says plainly, before they choose: "Jainam, as technical admin, can see your passcode so he can help if you forget it. Don't reuse a code you use anywhere else."
-- [ ] F-059 After that, the shared member code no longer signs that name in. People can change their passcode any time in Settings by entering the current one.
+- [x] F-059 After that, the shared member code no longer signs that name in. People can change their passcode any time in Settings by entering the current one. [`attemptSignIn` rejects starter after personal]
 - [ ] F-060 Forgot it? The keypad shows "Forgot your passcode? Ask Jainam." He can tell them, or reset it, which gives them a new one-time code and asks them to choose again.
 - [ ] F-061 In the admin console, a Passcodes panel lists everyone by team: passcode hidden as dots, when it was set, and last sign in.
 - [ ] F-062 Show reveals one passcode for 20 seconds. The first reveal in 10 minutes asks Jainam to re-enter his own passcode.
@@ -85,7 +85,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-066 One screen, plain words: what is recorded, when, why, who sees it, where it goes, how long it stays, and what Cruxy is.
 - [ ] F-067 Two choices: "I agree to be recorded in practice" or "Not now: text only". Agreeing includes a 20 second voice sample, recorded right there, so transcripts can label who spoke.
 - [ ] F-068 Text only members use everything except being recorded; a session that includes them shows a banner so the room knows.
-- [ ] F-069 Consent, the date and the wording version are stored; anyone can change it in Settings; withdrawing deletes their voice sample.
+- [x] F-069 Consent, the date and the wording version are stored; anyone can change it in Settings; withdrawing deletes their voice sample. [`saveConsent` → people row]
 - [ ] F-070 Dr. B's weekly summary email is a separate opt in on her first admin sign in.
 - [ ] F-071 Every session has an attendance list. Either admin can mark present, late or absent; members can tap "I'm here" on the session page.
 - [ ] F-072 During a recorded session Cruxy pre-fills attendance from matched voices and joined devices; an admin confirms with one tap.
@@ -363,7 +363,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 - [ ] F-306 people · name, team_id, role (member, coach_admin, tech_admin), consent_version, consent_at, recording_ok, voice_sample_path, digest_opt_in · Team history kept in team_memberships
 - [ ] F-307 teams, team_memberships · name, colour; person_id, team_id, from, to
-- [ ] F-308 auth_codes · kind (starter, personal, admin), person_id, hash, encrypted_copy (personal only), must_choose (bool), set_at, last_revealed_at · Hash to check; encrypted copy only for the technical admin to view; Jainam's own is hash only
+- [x] F-308 auth_codes · kind (starter, personal, admin), person_id, hash, encrypted_copy (personal only), must_choose (bool), set_at, last_revealed_at · Hash to check; encrypted copy only for the technical admin to view; Jainam's own is hash only [`bootstrapAuthCodes` + repository]
 - [ ] F-309 competitions · name, date, place, timings · Drives deadlines and round defaults
 - [x] F-310 cases · number, title, case_set_page, crux, trap, closing_question, active · Cases 2, 6, 8 inactive for California · [supabase/seed.sql, src/lib/seed/build-content.ts]
 - [ ] F-311 files · drive_id, path, mime, modified_at, checksum, case_ids\[\], type, confidence, card · One row per Drive file version
