@@ -35,7 +35,7 @@ Track 5 checks: mid-round chunk loss ≤30s; audio gone after transcription; eve
 
 ### Still needed from Jainam for production
 
-1. **Supabase** — `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; apply `supabase/migrations/00001_track0_foundation.sql`, `00002_track5_practice.sql` + `supabase/seed.sql`
+1. **Supabase** — `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; apply `supabase/migrations/00001_track0_foundation.sql`, `00005_track5_practice.sql` + `supabase/seed.sql`
 2. **AI gateway** — `AI_GATEWAY_API_KEY` or `OPENROUTER_API_KEY` (Cruxy judge/feedback stubs until set; AssemblyAI key may already be present)
 3. **Drive** — share the Ethics Bowl root folder with the service account email (see secrets inventory), then set `DRIVE_ROOT_FOLDER_ID`
 
