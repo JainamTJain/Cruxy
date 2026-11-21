@@ -27,7 +27,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Crux",
   description:
-    "USC Ethics Bowl — cases, notes, research, and practice in one place. Cruxy is the built-in thinking partner.",
+    "USC Ethics Bowl: cases, notes, research, and practice in one place. Cruxy is the built-in thinking partner.",
   applicationName: "Crux",
   manifest: "/manifest.webmanifest",
   appleWebApp: {

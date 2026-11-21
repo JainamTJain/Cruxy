@@ -173,7 +173,7 @@ export function CruxyDrawer() {
           </p>
         ) : (
           <p className="text-xs text-muted">
-            Ask about the program — roadmaps, case brains and attendance.
+            Ask about the program: roadmaps, case brains and attendance.
           </p>
         )}
 
@@ -202,7 +202,7 @@ export function CruxyDrawer() {
                 void ask();
               }}
             >
-              I tried — give me the answer
+              I tried. Give me the answer
             </Button>
           </div>
         ) : null}
