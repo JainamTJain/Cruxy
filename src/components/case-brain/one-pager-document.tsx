@@ -84,6 +84,13 @@ export function OnePagerDocument({
   const claims = page.body.claims.slice(0, 2);
   const cc = page.body.counterclaim;
   const signed = page.signed_off_by.length;
+  const emptyRows = page.body.empty_rows ?? [];
+  const hasEmptyRows = emptyRows.length > 0;
+  const placeholderCc =
+    Boolean(cc) &&
+    [cc?.concede, cc?.distinguish, cc?.rebut].some(
+      (x) => !x || /^see response\.?$/i.test(x.trim()),
+    );
 
   const stakeCells = (stakeholders?.cells ?? []).map((c) =>
     typeof c === "string"
@@ -133,15 +140,37 @@ export function OnePagerDocument({
           {canSign ? (
             <button
               type="button"
-              disabled={busy}
+              disabled={busy || hasEmptyRows}
               onClick={onSignOff}
               className="h-10 rounded-[10px] bg-ink px-3.5 text-[13px] font-semibold text-white disabled:opacity-50"
+              title={
+                hasEmptyRows
+                  ? "Fill empty rows before signing off"
+                  : undefined
+              }
             >
               Sign off v{page.version}
             </button>
           ) : null}
         </div>
       </div>
+
+      {hasEmptyRows || placeholderCc ? (
+        <div className="w-full max-w-[1100px] rounded-[14px] border border-[#C62828]/30 bg-white px-4 py-3 text-sm">
+          {hasEmptyRows ? (
+            <p className="m-0">
+              Empty rows still open: {emptyRows.join(", ")}. Fill them before
+              sign-off.
+            </p>
+          ) : null}
+          {placeholderCc ? (
+            <p className={hasEmptyRows ? "mt-1 mb-0" : "m-0"}>
+              Counterclaim answers still say &quot;See response.&quot; Replace
+              them with concede, distinguish and rebut.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {status ? (
         <p className="w-full max-w-[1100px] text-xs text-muted">{status}</p>

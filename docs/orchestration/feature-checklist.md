@@ -177,7 +177,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 - [ ] F-141 Read · Case set page and every file Cruxy tagged "core" opened for at least 60% of reading time · Everyone, all 12 cases
 - [ ] F-142 Map · Person has contributed to or reviewed every claim on their team's map · Leads, counter-arguer
-- [ ] F-143 One pager · Team one pager has no empty rows and the person has signed it off · Leads, supporter
+- [x] F-143 One pager · Team one pager has no empty rows and the person has signed it off · Leads, supporter [src/components/case-brain/one-pager-document.tsx]
 - [ ] F-144 Flashcards · 90% of the case deck recalled correctly twice · Leads; anyone who opts in
 - [ ] F-145 Question drill · 10 bank questions answered, with your average above your own first attempts on this case · Leads, counter-arguer
 - [ ] F-146 Practiced · Spoke in at least one recorded round on the case · Everyone with a role on it
@@ -204,9 +204,9 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-164 One channel per team plus one all-program channel; every channel is readable by everyone; posting is for members of that team (admins can post anywhere).
 - [ ] F-165 Messages can mention people, link a case, a passage, a timestamp or a Truth Source.
 - [ ] F-166 Chat does not create tasks by itself; assignments stay explicit.
-- [ ] F-167 **One current position per case.** The claim map is versioned (v1, v2, ...). Any change to a claim, logic line or counterclaim response creates a new version with a one line "what changed and why", written by whoever changed it.
+- [x] F-167 **One current position per case.** The claim map is versioned (v1, v2, ...). Any change to a claim, logic line or counterclaim response creates a new version with a one line "what changed and why", written by whoever changed it. [src/components/case-brain/version-confirm.tsx, src/lib/case-brain/publish-from-brain.ts] NOTE: case-brain publish path; team-chat/home fan-out remains E
 - [ ] F-168 **Changes reach everyone.** A new version posts to team chat and to each member's home screen as a short diff (old wording struck through, new wording shown).
-- [ ] F-169 **Read and confirm.** Each member taps "I've got v7" after reading the diff. The case board shows who is still on an older version; a session start warns the admin if anyone in that round hasn't confirmed.
+- [x] F-169 **Read and confirm.** Each member taps "I've got v7" after reading the diff. The case board shows who is still on an older version; a session start warns the admin if anyone in that round hasn't confirmed. [src/components/case-brain/version-confirm.tsx] NOTE: case-brain confirm + who is behind; session-start warn remains D/E
 - [ ] F-170 **Alignment check.** After a change, Cruxy asks each member 2 or 3 quick questions ("What is our Claim 2 now?", "How do we answer Waldron?"). Answers that drift from the current version are flagged to that person and the leads, privately at first.
 - [ ] F-171 **Drift in practice.** In transcripts, Cruxy flags lines where someone argues an older version or contradicts the current one ("Katie used the v5 wording of C2 at 12:40"), and links the current wording.
 - [ ] F-172 **State of the case, out loud.** Every team session can open with a 2 minute read-aloud of the current one pager by the supporter, so the room starts from the same version.

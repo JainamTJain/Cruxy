@@ -143,7 +143,7 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0133 [image] /cruxy/cruxy-lamp.png
 - [ ] D-0134 Ask Cruxy
 - [x] D-0135 09 [src/components/case-brain/case-brain-client.tsx]
-- [x] D-0136 Case brain · Team 3 · sample data [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0136 Case brain · Team 3 · vN (live omits "sample data") [src/components/case-brain/case-brain-client.tsx]
 - [x] D-0137 GEM in the Rough [src/components/case-brain/case-brain-client.tsx]
 - [x] D-0138 Crux: righting a wartime taking [src/components/case-brain/case-brain-client.tsx]
 - [x] D-0139 versus [src/components/case-brain/case-brain-client.tsx]
@@ -192,7 +192,7 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0182 S2 · The law already bends
 - [ ] D-0183 Human Tissue Act s.47
 - [ ] D-0184 S3 · Return well, and early
-- [ ] D-0185 No backing yet · 1 waiting in the queue
+- [x] D-0185 No backing yet · 1 waiting in the queue [src/components/case-brain/case-brain-client.tsx]
 - [x] D-0186 vs [src/components/case-brain/case-brain-client.tsx]
 - [x] D-0187 Counterclaim · Daniel [src/components/case-brain/case-brain-client.tsx]
 - [x] D-0188 "After 225 years, the claim is superseded." (Waldron 1992) [src/components/case-brain/case-brain-client.tsx]
@@ -204,7 +204,7 @@ For each screen, every visible label, number, button and image in the reference 
 - [x] D-0194 the claim rests on responsibility, not blame. [src/components/case-brain/case-brain-client.tsx]
 - [x] D-0195 Flashcards from these readings · 64 cards. [src/components/case-brain/case-brain-client.tsx]
 - [x] D-0196 Leads Jainam and Katie get them automatically. Also studying: Daniel [src/components/case-brain/case-brain-client.tsx]
-- [ ] D-0197 (not assigned)
+- [x] D-0197 (not assigned) [src/app/api/case-brain/[caseId]/route.ts]
 - [x] D-0198 Study the deck [src/components/case-brain/case-brain-client.tsx]
 - [x] D-0199 Waiting for Team 3 [src/components/case-brain/case-brain-client.tsx]
 - [x] D-0200 4 [src/components/case-brain/case-brain-client.tsx]
@@ -261,7 +261,7 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0245 Practice
 - [ ] D-0246 Team 3
 - [ ] D-0247 09
-- [ ] D-0248 Case brain · Team 3 · v7 · sample
+- [x] D-0248 Case brain · Team 3 · vN (live copy omits "sample") [src/components/case-brain/case-brain-client.tsx]
 - [ ] D-0249 GEM in the Rough
 - [ ] D-0250 Claim 1
 - [ ] D-0251 The title is defective; the duty falls on whoever still benefits.
@@ -269,8 +269,8 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0253 The old reasons to keep it no longer hold; return it with a partnership.
 - [ ] D-0254 Counterclaim
 - [ ] D-0255 After 225 years, the claim is superseded. (Waldron)
-- [ ] D-0256 Truth Sources
-- [ ] D-0257 14 accepted · 3 rejected · 2 waiting for Team 3
+- [x] D-0256 Truth Sources [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0257 14 accepted · 3 rejected · 2 waiting for Team 3 [src/components/case-brain/case-brain-client.tsx]
 - [x] D-0258 Drag Cruxy anywhere. Drop it on the lamp, or press "Back to the lamp", and it falls asleep there. Tap the lamp to call it back. [src/components/cruxy/floating-cruxy.tsx]
 - [x] D-0259 [image] {{moodSrc}}
 - [x] D-0260 Cruxy [src/components/cruxy/floating-cruxy.tsx]

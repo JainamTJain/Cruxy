@@ -11,10 +11,29 @@ export function supportLabel(text: string): { title: string; body: string } {
   return { title: trimmed, body: "" };
 }
 
-export function backingChip(text: string): string {
-  const short = text.replace(/\s+/g, " ").trim();
-  if (short.length <= 42) return short;
-  const cut = short.slice(0, 42);
+type BackingLike = {
+  kind?: string;
+  text: string;
+};
+
+/** Short mono chip for a backing (prefer source label over a long sentence). */
+export function backingChip(backing: string | BackingLike): string {
+  const kind = typeof backing === "string" ? undefined : backing.kind;
+  const text = (typeof backing === "string" ? backing : backing.text)
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (kind === "case_fact" || /\bcase set\b/i.test(text)) {
+    const head = text.split(/[.;]/)[0]?.trim() ?? text;
+    const short = head.length <= 28 ? head : `${head.slice(0, 24).trim()}…`;
+    return /\bcase set\b/i.test(short) ? short : `${short}, case set`;
+  }
+
+  // Prefer a short proper-noun / Act / year label before the first period.
+  const first = text.split(/[.;:]/)[0]?.trim() ?? text;
+  if (first.length > 0 && first.length <= 42) return first;
+
+  const cut = text.slice(0, 42);
   const at = cut.lastIndexOf(" ");
   return `${(at > 16 ? cut.slice(0, at) : cut).trim()}…`;
 }
