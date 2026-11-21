@@ -3,8 +3,12 @@ import { getSession } from "@/lib/auth/session";
 import {
   getSessionById,
   listAttendance,
-  rotateSessionCode,
 } from "@/lib/db/practice-repository";
+import {
+  listSessionRoster,
+  revealSessionCode,
+  setRoundJudgeMode,
+} from "@/lib/db/supabase/practice-extra";
 
 export async function GET(
   _req: Request,
@@ -23,6 +27,9 @@ export async function GET(
     session.adminView &&
     (session.role === "tech_admin" || session.role === "coach_admin");
   const attendance = await listAttendance(id);
+  const roster = await listSessionRoster(id);
+  const creator = roster.people.find((p) => p.id === row.created_by);
+
   return NextResponse.json({
     session: {
       ...row,
@@ -30,6 +37,9 @@ export async function GET(
     },
     attendance,
     admin,
+    people: roster.people,
+    joinedJudgeIds: roster.joinedJudgeIds,
+    creatorName: creator?.name ?? "Coach",
   });
 }
 
@@ -48,10 +58,27 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const { id } = await ctx.params;
-  const body = (await req.json()) as { action?: string };
-  if (body.action === "rotate_code") {
-    const code = await rotateSessionCode(id, session.personId);
+  const body = (await req.json()) as {
+    action?: string;
+    roundId?: string;
+    mode?: "in_person" | "cruxy" | "both";
+    humanIds?: string[];
+  };
+
+  if (body.action === "reveal_code" || body.action === "rotate_code") {
+    const code = await revealSessionCode(id, session.personId);
     return NextResponse.json({ code });
   }
+
+  if (body.action === "set_judges" && body.roundId && body.mode) {
+    await setRoundJudgeMode({
+      roundId: body.roundId,
+      mode: body.mode,
+      humanIds: body.humanIds,
+      actorId: session.personId,
+    });
+    return NextResponse.json({ ok: true });
+  }
+
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }
