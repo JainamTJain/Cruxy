@@ -1,10 +1,32 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { VoiceSampleRecorder } from "@/components/voice-sample-recorder";
-import { CRUXY_PLAIN_WORDS } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+
+const PLAIN = `Cruxy is our built-in thinking partner. It would rather ask you a good question than hand you an answer. It reads our Drive and the cases, finds new sources, asks practice questions, plays the other team or the judge when we need one, and gives feedback that quotes what you said. It can be wrong, so it always shows its source, and a person accepts every new idea. It floats on every page; drag it anywhere, or tap its lamp to send it to sleep.`;
+
+const ROWS: [string, string][] = [
+  [
+    "When",
+    "Only after someone presses Record in practice. A red bar shows while it's on.",
+  ],
+  [
+    "What",
+    "Audio of the room, turned into a transcript of who said what, and when.",
+  ],
+  [
+    "Your voice",
+    "A 20 second sample so the transcript knows which lines are yours.",
+  ],
+  ["Who sees it", "All three teams, Dr. B and Jainam. Nobody else."],
+  [
+    "How long",
+    "Audio is deleted once the transcript is saved. Transcripts stay for the season.",
+  ],
+];
 
 export default function ConsentPage() {
   const router = useRouter();
@@ -32,54 +54,36 @@ export default function ConsentPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-3xl flex-col px-4 py-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col px-4 py-10 sm:px-8">
+      <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
         Step 2 of 3 · first time only
       </p>
-      <h1 className="mt-2 font-display text-3xl font-semibold text-ink">
+      <h1 className="mt-2 font-display text-3xl font-extrabold text-ink sm:text-4xl">
         Meet Cruxy
       </h1>
-      <p className="mt-4 text-base leading-relaxed text-ink/90">
-        {CRUXY_PLAIN_WORDS}
-      </p>
+
+      <div className="mt-6 flex gap-3.5 rounded-2xl bg-[#FFF7DB] p-4">
+        <Image
+          src="/cruxy/cruxy-neutral.png"
+          alt=""
+          width={64}
+          height={64}
+          className="h-16 w-16 shrink-0"
+          unoptimized
+        />
+        <p className="text-[15px] leading-relaxed text-ink">{PLAIN}</p>
+      </div>
 
       <section className="mt-8 space-y-3">
-        <h2 className="font-display text-xl font-semibold">What Crux records</h2>
-        <dl className="space-y-3 text-sm">
-          <div>
-            <dt className="font-medium">When</dt>
-            <dd className="text-muted">
-              Only after someone presses Record in practice. A red bar shows
-              while it&apos;s on.
-            </dd>
-          </div>
-          <div>
-            <dt className="font-medium">What</dt>
-            <dd className="text-muted">
-              Audio of the room, turned into a transcript of who said what, and
-              when.
-            </dd>
-          </div>
-          <div>
-            <dt className="font-medium">Your voice</dt>
-            <dd className="text-muted">
-              A 20 second sample so the transcript knows which lines are yours.
-            </dd>
-          </div>
-          <div>
-            <dt className="font-medium">Who sees it</dt>
-            <dd className="text-muted">
-              All three teams, Dr. B and Jainam. Nobody else.
-            </dd>
-          </div>
-          <div>
-            <dt className="font-medium">How long</dt>
-            <dd className="text-muted">
-              Audio is deleted once the transcript is saved. Transcripts stay
-              for the season.
-            </dd>
-          </div>
-        </dl>
+        <h2 className="text-[15px] font-bold">What Crux records</h2>
+        <div className="grid grid-cols-[96px_1fr] gap-x-3 gap-y-2 text-sm leading-snug">
+          {ROWS.map(([k, v]) => (
+            <div key={k} className="contents">
+              <span className="font-semibold text-muted">{k}</span>
+              <span>{v}</span>
+            </div>
+          ))}
+        </div>
       </section>
 
       <div className="mt-6">

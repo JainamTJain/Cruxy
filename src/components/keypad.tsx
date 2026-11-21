@@ -1,35 +1,41 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function Keypad({
   onSubmit,
   disabled,
   footer,
+  onDigitsChange,
 }: {
   onSubmit: (code: string) => void | Promise<void>;
   disabled?: boolean;
   footer?: React.ReactNode;
+  onDigitsChange?: (digits: string) => void;
 }) {
   const [digits, setDigits] = useState("");
   const [busy, setBusy] = useState(false);
   const [pressed, setPressed] = useState<string | null>(null);
 
+  function set(next: string) {
+    setDigits(next);
+    onDigitsChange?.(next);
+  }
+
   function press(d: string) {
     if (disabled || busy) return;
     setPressed(d);
     setTimeout(() => setPressed(null), 120);
-    setDigits((prev) => (prev.length >= 6 ? prev : prev + d));
+    set(digits.length >= 6 ? digits : digits + d);
   }
 
   function clear() {
-    setDigits("");
+    set("");
   }
 
   function backspace() {
-    setDigits((prev) => prev.slice(0, -1));
+    set(digits.slice(0, -1));
   }
 
   async function enter() {
@@ -39,7 +45,7 @@ export function Keypad({
       await onSubmit(digits);
     } finally {
       setBusy(false);
-      setDigits("");
+      set("");
     }
   }
 
@@ -63,16 +69,16 @@ export function Keypad({
           const isClear = k === "Clear";
           const isEnter = k === "Enter";
           return (
-            <Button
+            <button
               key={k}
               type="button"
-              size="key"
-              variant={isEnter ? "default" : "outline"}
-              className={cn(
-                pressed === k && "animate-press",
-                isClear && "text-sm",
-              )}
               disabled={disabled || busy || (isEnter && digits.length !== 6)}
+              className={cn(
+                "h-[60px] rounded-[14px] border border-mist bg-[#F7F8FA] text-[22px] font-semibold text-ink disabled:opacity-40",
+                pressed === k && "animate-press",
+                isEnter && "bg-cardinal text-white border-cardinal",
+                isClear && "text-sm font-semibold",
+              )}
               onClick={() => {
                 if (isClear) clear();
                 else if (isEnter) void enter();
@@ -86,11 +92,13 @@ export function Keypad({
               }}
             >
               {k}
-            </Button>
+            </button>
           );
         })}
       </div>
-      {footer ? <div className="mt-4 text-center text-sm text-muted">{footer}</div> : null}
+      {footer ? (
+        <div className="mt-4 text-center text-sm text-muted">{footer}</div>
+      ) : null}
     </div>
   );
 }
