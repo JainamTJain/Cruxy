@@ -610,6 +610,7 @@ export async function postMessage(input: {
   mentionIds?: string[];
   caseId?: string | null;
   isIdea?: boolean;
+  linkRefs?: Record<string, unknown> | null;
   actorTeamId: string | null;
   actorRole: string;
 }): Promise<ChatMessage> {
@@ -630,6 +631,11 @@ export async function postMessage(input: {
     (chat.team_id != null && chat.team_id === input.actorTeamId);
   if (!canPost) throw new Error("Cannot post to this channel");
 
+  const mentionIds = [...(input.mentionIds ?? [])];
+  const link_refs: Record<string, unknown> = { ...(input.linkRefs ?? {}) };
+  if (mentionIds.length) link_refs.mentions = mentionIds;
+  if (input.caseId) link_refs.case_id = input.caseId;
+
   const { data, error } = await sb
     .from("messages")
     .insert({
@@ -639,9 +645,9 @@ export async function postMessage(input: {
       from_cruxy: false,
       body: input.body,
       is_idea: Boolean(input.isIdea),
-      mention_ids: input.mentionIds ?? [],
+      mention_ids: mentionIds,
       case_id: input.caseId ?? null,
-      link_refs: null,
+      link_refs: Object.keys(link_refs).length ? link_refs : null,
       created_at: nowIso(),
     })
     .select("*")

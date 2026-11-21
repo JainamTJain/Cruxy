@@ -35,6 +35,10 @@ export async function POST(req: Request) {
     caseId?: string | null;
     isIdea?: boolean;
     markIdeaId?: string;
+    linkRefs?: Record<string, unknown> | null;
+    truthSourceId?: string | null;
+    passageRef?: string | null;
+    timestampRef?: string | null;
   };
 
   if (body.markIdeaId) {
@@ -46,6 +50,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing chatId or message" }, { status: 400 });
   }
 
+  const linkRefs: Record<string, unknown> = { ...(body.linkRefs ?? {}) };
+  if (body.truthSourceId) linkRefs.truth_source_id = body.truthSourceId;
+  if (body.passageRef) linkRefs.passage = body.passageRef;
+  if (body.timestampRef) linkRefs.timestamp = body.timestampRef;
+
   try {
     const message = await postMessage({
       chatId: body.chatId,
@@ -54,6 +63,7 @@ export async function POST(req: Request) {
       mentionIds: body.mentionIds,
       caseId: body.caseId,
       isIdea: body.isIdea,
+      linkRefs: Object.keys(linkRefs).length ? linkRefs : null,
       actorTeamId: session.teamId,
       actorRole: session.adminView ? session.role : "member",
     });

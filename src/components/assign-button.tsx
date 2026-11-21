@@ -69,7 +69,7 @@ export function AssignButton(props: {
   return (
     <div className="rounded-2xl border border-ink/10 bg-white/90 p-3 text-sm shadow-sm">
       <p className="font-medium">
-        Assign · tap {step === 1 ? "1 of 2" : "2 of 2"}
+        Assign, tap {step === 1 ? "1 of 2" : "2 of 2"}
       </p>
       {step === 1 ? (
         <div className="mt-2 space-y-2">

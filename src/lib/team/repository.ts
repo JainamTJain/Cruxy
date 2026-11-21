@@ -255,6 +255,7 @@ export async function postMessage(input: {
   mentionIds?: string[];
   caseId?: string | null;
   isIdea?: boolean;
+  linkRefs?: Record<string, unknown> | null;
   /** Admins can post anywhere; members only to their team + program */
   actorTeamId: string | null;
   actorRole: string;
@@ -274,6 +275,24 @@ export async function postMessage(input: {
       (chat.team_id != null && chat.team_id === input.actorTeamId);
     if (!canPost) throw new Error("Cannot post to this channel");
 
+    const mentionIds = [...(input.mentionIds ?? [])];
+    // Resolve @Name mentions from the body against known people
+    for (const p of s.people) {
+      const needle = `@${p.name}`;
+      if (
+        input.body.toLowerCase().includes(needle.toLowerCase()) &&
+        !mentionIds.includes(p.id)
+      ) {
+        mentionIds.push(p.id);
+      }
+    }
+
+    const link_refs: Record<string, unknown> = {
+      ...(input.linkRefs ?? {}),
+    };
+    if (mentionIds.length) link_refs.mentions = mentionIds;
+    if (input.caseId) link_refs.case_id = input.caseId;
+
     saved = {
       id: randomUUID(),
       chat_id: input.chatId,
@@ -281,9 +300,9 @@ export async function postMessage(input: {
       from_cruxy: false,
       body: input.body,
       is_idea: Boolean(input.isIdea),
-      mention_ids: input.mentionIds ?? [],
+      mention_ids: mentionIds,
       case_id: input.caseId ?? null,
-      link_refs: null,
+      link_refs: Object.keys(link_refs).length ? link_refs : null,
       created_at: nowIso(),
     };
     s.messages.push(saved);

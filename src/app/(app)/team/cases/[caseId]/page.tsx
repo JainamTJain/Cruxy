@@ -35,6 +35,12 @@ function CaseClaimMapInner() {
   const [claimEdits, setClaimEdits] = useState<Record<string, string>>({});
   const [reason, setReason] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [readAloud, setReadAloud] = useState<{
+    script: string;
+    version: number | null;
+    source: string;
+    caseNumber: number | null;
+  } | null>(null);
 
   const load = useCallback(async () => {
     let tid = teamId;
@@ -63,6 +69,13 @@ function CaseClaimMapInner() {
       }
       setClaimEdits(map);
     }
+    const aloud = await fetch(
+      `/api/team/read-aloud?teamId=${tid}&caseId=${caseId}`,
+    );
+    if (aloud.ok) {
+      const body = await aloud.json();
+      setReadAloud(body);
+    }
   }, [caseId, teamId]);
 
   useEffect(() => {
@@ -75,9 +88,9 @@ function CaseClaimMapInner() {
       return;
     }
     const body: ClaimMapBody = JSON.parse(JSON.stringify(current.body));
-    // support-level: bump logic_line note as sample non-claim edit
+    // Non-claim edit: bump logic line so a new version publishes
     if (body.claims[0]) {
-      body.claims[0].logic_line = `${body.claims[0].logic_line} · revised`;
+      body.claims[0].logic_line = `${body.claims[0].logic_line} (revised)`;
     }
     const res = await fetch("/api/team/claim-maps", {
       method: "POST",
@@ -154,13 +167,63 @@ function CaseClaimMapInner() {
       </div>
 
       {teamId ? (
-        <AssignButton
-          teamId={teamId}
-          caseId={caseId}
-          targetKind="one_pager"
-          people={people}
-          defaultTask="Refresh one-pager from claim map"
-        />
+        <div className="flex flex-wrap gap-3">
+          <AssignButton
+            teamId={teamId}
+            caseId={caseId}
+            targetKind="case"
+            people={people}
+            defaultTask="Prep this case"
+          />
+          <AssignButton
+            teamId={teamId}
+            caseId={caseId}
+            targetKind="one_pager"
+            people={people}
+            defaultTask="Refresh one-pager from claim map"
+          />
+          <AssignButton
+            teamId={teamId}
+            caseId={caseId}
+            targetKind="deck"
+            people={people}
+            defaultTask="Review flashcards for this case"
+          />
+          <AssignButton
+            teamId={teamId}
+            caseId={caseId}
+            targetKind="reading"
+            people={people}
+            defaultTask="Read the linked sources"
+          />
+          <AssignButton
+            teamId={teamId}
+            caseId={caseId}
+            targetKind="practice"
+            people={people}
+            defaultTask="Book a practice slot"
+          />
+        </div>
+      ) : null}
+
+      {readAloud ? (
+        <section className="space-y-2 rounded-2xl border border-ink/10 bg-white/70 p-4">
+          <h2 className="font-display text-lg font-semibold">
+            State of the case, out loud
+          </h2>
+          <p className="text-sm text-muted">
+            About two minutes. The supporter reads this so the room starts from
+            the same version
+            {readAloud.version ? ` (v${readAloud.version})` : ""}.
+          </p>
+          {readAloud.source === "empty" ? (
+            <p className="text-sm text-muted">{readAloud.script}</p>
+          ) : (
+            <pre className="whitespace-pre-wrap rounded-xl bg-[#F7F8FA] p-3 text-sm leading-relaxed">
+              {readAloud.script}
+            </pre>
+          )}
+        </section>
       ) : null}
 
       {current ? (
@@ -205,7 +268,12 @@ function CaseClaimMapInner() {
           </label>
         </section>
       ) : (
-        <p className="text-sm text-muted">No claim map yet for this case.</p>
+        <section className="rounded-2xl border border-ink/10 bg-white/70 p-4">
+          <p className="text-sm text-muted">
+            No claim map yet for this case. When your team publishes the first
+            version, it will show here with a short reason for each change.
+          </p>
+        </section>
       )}
 
       <section className="rounded-2xl border border-ink/10 bg-white/70 p-4">
@@ -237,7 +305,7 @@ function CaseClaimMapInner() {
               </p>
               <p className="text-xs text-muted">{p.reason}</p>
               <p className="text-xs text-muted">
-                Lead OK: {p.lead_accepter_id ? "yes" : "no"} · Second:{" "}
+                Lead OK: {p.lead_accepter_id ? "yes" : "no"}, Second:{" "}
                 {p.second_accepter_id ? "yes" : "no"}
               </p>
               <Button
@@ -255,7 +323,9 @@ function CaseClaimMapInner() {
       <section className="rounded-2xl border border-ink/10 bg-white/70 p-4">
         <h2 className="font-display text-lg font-semibold">Confirmations</h2>
         <p className="text-sm text-muted">
-          {confirmations.length} teammate(s) confirmed this version.
+          {confirmations.length
+            ? `${confirmations.length} teammate(s) confirmed this version.`
+            : "No one has confirmed this version yet. Tap below once you have read it."}
         </p>
         <Button className="mt-3" variant="gold" onClick={() => void confirm()}>
           I&apos;ve got v{current?.version ?? "?"}

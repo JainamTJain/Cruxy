@@ -54,6 +54,22 @@ export default function TeamBoardPage() {
   const [assignDue, setAssignDue] = useState("");
   const [assignCaseId, setAssignCaseId] = useState<string>("");
   const [msgText, setMsgText] = useState("");
+  const [msgCaseId, setMsgCaseId] = useState<string>("");
+  const [msgMentions, setMsgMentions] = useState<string[]>([]);
+  const [msgPassage, setMsgPassage] = useState("");
+  const [msgTimestamp, setMsgTimestamp] = useState("");
+  const [driftFlags, setDriftFlags] = useState<
+    {
+      id: string;
+      case_id: string;
+      detail: string;
+      transcript_ref: string | null;
+      version_id: string | null;
+      resolved_at: string | null;
+    }[]
+  >([]);
+  const [cruxyAsk, setCruxyAsk] = useState<string | null>(null);
+  const [cruxyReply, setCruxyReply] = useState<string | null>(null);
   const [alignAnswers, setAlignAnswers] = useState<string[]>([]);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -80,6 +96,17 @@ export default function TeamBoardPage() {
       if (pending[0]) {
         setAlignAnswers(pending[0].questions.map(() => ""));
       }
+    }
+    const driftRes = await fetch(
+      `/api/team/drift?teamId=${payload.teamId}`,
+    );
+    if (driftRes.ok) {
+      const driftBody = (await driftRes.json()) as {
+        flags?: typeof driftFlags;
+      };
+      setDriftFlags(
+        (driftBody.flags ?? []).filter((f) => !f.resolved_at).slice(0, 8),
+      );
     }
   }, [assignCaseId]);
 
@@ -152,12 +179,48 @@ export default function TeamBoardPage() {
     const res = await fetch("/api/team/chat", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ chatId: data.chat.id, message: msgText }),
+      body: JSON.stringify({
+        chatId: data.chat.id,
+        message: msgText,
+        mentionIds: msgMentions,
+        caseId: msgCaseId || null,
+        passageRef: msgPassage.trim() || null,
+        timestampRef: msgTimestamp.trim() || null,
+      }),
     });
     if (res.ok) {
       setMsgText("");
+      setMsgMentions([]);
+      setMsgPassage("");
+      setMsgTimestamp("");
       await load(teamId ?? undefined);
     }
+  }
+
+  async function askCruxy(prompt: string) {
+    setCruxyAsk(prompt);
+    setCruxyReply("Asking Cruxy…");
+    const res = await fetch("/api/cruxy/assistant", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        question: prompt,
+        caseId: assignCaseId || msgCaseId || null,
+        page: "/team",
+      }),
+    });
+    if (!res.ok) {
+      setCruxyReply("Could not reach Cruxy.");
+      return;
+    }
+    const body = (await res.json()) as {
+      text?: string;
+      questionFirst?: string | null;
+    };
+    setCruxyReply(
+      [body.questionFirst, body.text].filter(Boolean).join("\n\n") ||
+        "No answer yet.",
+    );
   }
 
   async function markIdea(id: string) {
@@ -249,6 +312,87 @@ export default function TeamBoardPage() {
 
       {status ? <p className="text-sm text-muted">{status}</p> : null}
 
+      {driftFlags.length ? (
+        <section
+          aria-labelledby="drift"
+          className="rounded-[20px] bg-white p-5"
+        >
+          <h2
+            id="drift"
+            className="font-display m-0 text-[22px] font-extrabold"
+          >
+            Drift flags
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            Lines that drifted from the current version. Open the claim map for
+            the wording to use now.
+          </p>
+          <ul className="mt-3 space-y-2 text-sm">
+            {driftFlags.map((f) => {
+              const c = cases.find((x) => x.case.id === f.case_id)?.case;
+              return (
+                <li key={f.id} className="rounded-xl bg-[#F7F8FA] px-3 py-2">
+                  <p>{f.detail}</p>
+                  {f.transcript_ref ? (
+                    <p className="text-xs text-muted">{f.transcript_ref}</p>
+                  ) : null}
+                  {c ? (
+                    <Link
+                      href={`/team/cases/${c.id}?teamId=${teamId}`}
+                      className="text-xs font-semibold text-cardinal underline"
+                    >
+                      Current Case {c.number} wording
+                    </Link>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
+
+      <section
+        aria-labelledby="cruxy-help"
+        className="rounded-[20px] bg-white p-5"
+      >
+        <h2
+          id="cruxy-help"
+          className="font-display m-0 text-[22px] font-extrabold"
+        >
+          Ask Cruxy
+        </h2>
+        <p className="mt-1 text-sm text-muted">
+          Explain a passage, quiz you, find a source, draft a one-pager row,
+          summarize what changed, or suggest what to do next.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {[
+            "Explain our Claim 2 in plain words",
+            "Quiz me on the current position",
+            "Find a source for the partnership point",
+            "Draft a one-pager row for review",
+            "Summarize what changed since my last visit",
+            "What should I do next?",
+          ].map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              className="rounded-xl border border-mist px-3 py-2 text-left text-[13px] font-semibold hover:bg-[#F7F8FA]"
+              onClick={() => void askCruxy(prompt)}
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+        {cruxyAsk ? (
+          <div className="mt-3 rounded-xl bg-[#F7F8FA] p-3 text-sm">
+            <p className="text-xs font-bold text-muted">You asked</p>
+            <p>{cruxyAsk}</p>
+            <p className="mt-2 whitespace-pre-wrap">{cruxyReply}</p>
+          </div>
+        ) : null}
+      </section>
+
       {pendingAlign ? (
         <section
           aria-labelledby="align"
@@ -311,6 +455,17 @@ export default function TeamBoardPage() {
                 </tr>
               </thead>
               <tbody>
+                {!cases.length ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-5 py-8 text-sm text-muted"
+                    >
+                      No active cases on this board yet. When cases are opened
+                      for the season, roles and versions will show here.
+                    </td>
+                  </tr>
+                ) : null}
                 {cases.map(({ case: c, current, confirmations }) => {
                   const confCount = confirmations.length;
                   const allIn = confCount >= teamSize && teamSize > 0;
@@ -412,7 +567,8 @@ export default function TeamBoardPage() {
             ))}
             {!data.chat?.messages?.length ? (
               <p className="text-sm text-muted">
-                No messages yet. Start the thread for Case 9.
+                No messages yet. Say hello, link a case, or share a note the
+                team can build on.
               </p>
             ) : null}
           </div>
@@ -427,9 +583,78 @@ export default function TeamBoardPage() {
             onKeyDown={(e) => {
               if (e.key === "Enter") void sendMessage();
             }}
-            placeholder={`Write to ${chatName}`}
+            placeholder={`Write to ${chatName}. Use @Name to mention.`}
             className="h-11 rounded-xl border border-mist px-3 text-sm"
           />
+          <div className="flex flex-wrap gap-2">
+            {people.map((p) => {
+              const on = msgMentions.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    setMsgMentions((prev) =>
+                      on ? prev.filter((x) => x !== p.id) : [...prev, p.id],
+                    );
+                    if (!on && !msgText.includes(`@${p.name}`)) {
+                      setMsgText((t) => `${t}${t ? " " : ""}@${p.name} `);
+                    }
+                  }}
+                  className={
+                    on
+                      ? "rounded-lg bg-ink px-2 py-1 text-[11px] text-white"
+                      : "rounded-lg border border-mist px-2 py-1 text-[11px]"
+                  }
+                >
+                  @{p.name}
+                </button>
+              );
+            })}
+          </div>
+          <label className="text-[12px] font-semibold text-muted">
+            Link a case
+            <select
+              className="mt-1 h-10 w-full rounded-xl border border-mist px-2 text-sm"
+              value={msgCaseId}
+              onChange={(e) => setMsgCaseId(e.target.value)}
+            >
+              <option value="">No case link</option>
+              {cases.map(({ case: c }) => (
+                <option key={c.id} value={c.id}>
+                  Case {c.number}: {c.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="text-[12px] font-semibold text-muted">
+              Passage
+              <input
+                className="mt-1 h-9 w-full rounded-xl border border-mist px-2 text-sm"
+                value={msgPassage}
+                onChange={(e) => setMsgPassage(e.target.value)}
+                placeholder="optional"
+              />
+            </label>
+            <label className="text-[12px] font-semibold text-muted">
+              Timestamp
+              <input
+                className="mt-1 h-9 w-full rounded-xl border border-mist px-2 text-sm"
+                value={msgTimestamp}
+                onChange={(e) => setMsgTimestamp(e.target.value)}
+                placeholder="e.g. 12:40"
+              />
+            </label>
+          </div>
+          <button
+            type="button"
+            onClick={() => void sendMessage()}
+            disabled={!msgText.trim()}
+            className="h-10 rounded-[10px] bg-ink px-4 text-[13px] font-semibold text-white disabled:opacity-40"
+          >
+            Send
+          </button>
         </aside>
       </div>
 
@@ -437,7 +662,7 @@ export default function TeamBoardPage() {
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-ink/30 p-4 sm:items-center">
           <div className="w-full max-w-sm rounded-2xl bg-paper p-4 shadow-xl">
             <p className="font-display text-lg font-semibold">
-              Set {CASE_ROLE_LABELS[edit.role]} · tap {edit.step} of 2
+              Set {CASE_ROLE_LABELS[edit.role]}, tap {edit.step} of 2
             </p>
             {edit.step === 1 ? (
               <div className="mt-3 flex flex-wrap gap-2">
@@ -496,7 +721,7 @@ export default function TeamBoardPage() {
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-ink/30 p-4 sm:items-center">
           <div className="w-full max-w-sm rounded-2xl bg-paper p-4 shadow-xl">
             <p className="font-display text-lg font-semibold">
-              Assign · tap {assignStep} of 2
+              Assign, tap {assignStep} of 2
             </p>
             {assignStep === 1 ? (
               <div className="mt-3 space-y-3">
@@ -610,13 +835,11 @@ function ChatBubble(props: {
   const refs = (m.link_refs ?? {}) as Record<string, unknown>;
   const kind = typeof refs.kind === "string" ? refs.kind : null;
 
-  if (kind === "claim_diff" || (m.from_cruxy && /IS NOW v\d+/i.test(m.body))) {
+  if (kind === "claim_diff" || (m.from_cruxy && /is now v\d+/i.test(m.body))) {
     const oldText =
-      typeof refs.old_text === "string" ? refs.old_text : "return it now";
+      typeof refs.old_text === "string" ? refs.old_text : null;
     const newText =
-      typeof refs.new_text === "string"
-        ? refs.new_text
-        : "return it with a partnership, now";
+      typeof refs.new_text === "string" ? refs.new_text : null;
     const version =
       typeof refs.version === "number"
         ? refs.version
@@ -624,33 +847,40 @@ function ChatBubble(props: {
     const versionId =
       typeof refs.version_id === "string" ? refs.version_id : null;
     const confirmed =
-      typeof refs.confirmed_count === "number" ? refs.confirmed_count : 0;
-    const reasonMatch = m.body.match(/Reason \([^)]+\):[^.]+/);
+      typeof refs.confirmed_count === "number" ? refs.confirmed_count : null;
+    const caseLabel = m.case_id
+      ? `Case update`
+      : "Case update";
     return (
       <div className="flex flex-col gap-1 rounded-[14px] bg-[#FFF7DB] p-3 text-sm leading-[1.45]">
         <span className="text-[12px] font-bold text-[#8A6500]">
-          CRUXY · CASE 9 IS NOW v{version || 7}
+          Cruxy: {caseLabel}
+          {version ? ` is now v${version}` : ""}
         </span>
-        <span>
-          Claim 2 changed:{" "}
-          <span className="text-muted line-through">&quot;{oldText}&quot;</span>{" "}
-          → &quot;{newText}&quot;.{" "}
-          {reasonMatch?.[0] ??
-            "Reason (Katie): Team 1's Louvre point."}
-        </span>
+        {oldText && newText ? (
+          <span>
+            Changed:{" "}
+            <span className="text-muted line-through">&quot;{oldText}&quot;</span>{" "}
+            → &quot;{newText}&quot;.
+          </span>
+        ) : (
+          <span className="whitespace-pre-wrap">{m.body}</span>
+        )}
         <span className="mt-1.5 flex flex-wrap items-center gap-2">
-          {versionId ? (
+          {versionId && version ? (
             <button
               type="button"
               className="h-[34px] rounded-[10px] bg-ink px-3 text-[13px] font-semibold text-white"
-              onClick={() => props.onConfirm(versionId, version || 7)}
+              onClick={() => props.onConfirm(versionId, version)}
             >
-              I&apos;ve got v{version || 7}
+              I&apos;ve got v{version}
             </button>
           ) : null}
-          <span className="self-center text-[13px] text-muted">
-            {confirmed || 3} of {props.teamSize || 4} confirmed
-          </span>
+          {confirmed != null ? (
+            <span className="self-center text-[13px] text-muted">
+              {confirmed} of {props.teamSize} confirmed
+            </span>
+          ) : null}
         </span>
       </div>
     );
@@ -659,10 +889,22 @@ function ChatBubble(props: {
   if (kind === "role_change" || (m.from_cruxy && /Lead 1|ROLE/i.test(m.body))) {
     return (
       <div className="flex flex-col gap-1 rounded-[14px] bg-[#F7F8FA] p-3 text-sm leading-[1.45]">
-        <span className="text-[12px] font-bold text-muted">ROLE CHANGE</span>
+        <span className="text-[12px] font-bold text-muted">Role change</span>
         <span>{m.body.replace(/^ROLE CHANGE\s*/i, "")}</span>
       </div>
     );
+  }
+
+  const linkBits: string[] = [];
+  if (m.case_id) linkBits.push("linked case");
+  if (typeof refs.passage === "string" && refs.passage) {
+    linkBits.push(`passage: ${refs.passage}`);
+  }
+  if (typeof refs.timestamp === "string" && refs.timestamp) {
+    linkBits.push(`at ${refs.timestamp}`);
+  }
+  if (typeof refs.truth_source_id === "string") {
+    linkBits.push("Truth Source linked");
   }
 
   return (
@@ -670,12 +912,21 @@ function ChatBubble(props: {
       <strong className="text-[13px]">
         {m.from_cruxy ? "Cruxy" : m.person_name ?? "Member"}
       </strong>
-      <span>{m.body}</span>
+      <span className="whitespace-pre-wrap">{m.body}</span>
+      {m.mention_ids?.length ? (
+        <span className="text-[12px] text-muted">
+          Mentions: {m.mention_ids.length}
+        </span>
+      ) : null}
+      {linkBits.length ? (
+        <span className="text-[12px] text-muted">{linkBits.join(", ")}</span>
+      ) : null}
       {m.is_idea ? (
         <span className="text-[12px] font-bold text-cardinal">
-          Marked as idea → sent to Case{" "}
-          {typeof refs.case_number === "number" ? refs.case_number : "queue"}{" "}
-          queue
+          Marked as idea
+          {typeof refs.case_number === "number"
+            ? ` → Case ${refs.case_number} queue`
+            : " → Truth Sources queue"}
         </span>
       ) : !m.from_cruxy ? (
         <button
