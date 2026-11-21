@@ -171,9 +171,19 @@ export function CruxyDrawer() {
               Cruxy
             </p>
             <p className="text-[11px] text-muted">
-              {adminMode
-                ? `ADMIN MODE · ${adminName}`
-                : "Knows this page · cites Truth Sources first"}
+              {adminMode ? (
+                <>
+                  Admin mode
+                  <br />
+                  {adminName}
+                </>
+              ) : (
+                <>
+                  Knows this page
+                  <br />
+                  Cites Truth Sources first
+                </>
+              )}
             </p>
           </div>
         </div>

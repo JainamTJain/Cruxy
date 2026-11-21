@@ -6,6 +6,8 @@
   --crux-gold: #F5B700;          /* anything Cruxy does or says */
   --crux-gold-soft: #FFF7DB;     /* Cruxy notes, admin-only tags background */
   --crux-gold-text: #8A6500;     /* gold text on light backgrounds (passes 4.5:1) */
+  --crux-genie: #2F7FE0;         /* Genie blue (from cruxy-curious.png) */
+  --crux-genie-bright: #3BA0F0;  /* Genie blue highlight / borders */
   --crux-ink: #111318;           /* text, dark panels, primary buttons */
 
   /* surfaces */
