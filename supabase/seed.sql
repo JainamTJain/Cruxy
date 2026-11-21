@@ -3,9 +3,9 @@
 -- INITIAL_ADMIN_CODE_HASH in env; app sample-data path seeds locally.
 
 insert into teams (id, name, colour) values
-  ('11111111-1111-1111-1111-111111111111', 'Team 1', '#9D2235'),
-  ('22222222-2222-2222-2222-222222222222', 'Team 2', '#1B4F72'),
-  ('33333333-3333-3333-3333-333333333333', 'Team 3', '#1F6F4A')
+  ('11111111-1111-1111-1111-111111111111', 'Team 1', '#0F7B6C'),
+  ('22222222-2222-2222-2222-222222222222', 'Team 2', '#4F46E5'),
+  ('33333333-3333-3333-3333-333333333333', 'Team 3', '#C2410C')
 on conflict (id) do nothing;
 
 insert into competitions (name, date, place) values
@@ -22,7 +22,7 @@ insert into cases (number, title, active) values
   (7, 'Equal Access Activism', true),
   (8, '(inactive for California)', false),
   (9, 'GEM in the Rough', true),
-  (10, 'Right to Be Forgotten', true),
+  (10, 'To Be, or Not to Be…Forgotten?', true),
   (11, 'The Cost of a Conscience', true),
   (12, 'Medicine and Misinformation', true),
   (13, 'Normally Distributed Violence', true),
