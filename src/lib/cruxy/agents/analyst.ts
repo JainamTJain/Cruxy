@@ -25,7 +25,7 @@ export function detectProposalProblems(input: {
 }): { problem: AnalystProblem; note: string | null } {
   const text = input.text.trim();
   if (!text) {
-    return { problem: "empty", note: "Empty proposal — nothing to decide." };
+    return { problem: "empty", note: "Empty proposal. Nothing to decide." };
   }
 
   if (

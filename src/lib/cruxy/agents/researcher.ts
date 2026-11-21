@@ -282,7 +282,7 @@ export async function runNightlyResearcher(opts?: {
         ? {
             title: `Ethics Bowl companion reading for Case ${c.number}`,
             reason: `Gap check on "${c.title}" points to a chapter the team does not own.`,
-            chapter: "Ch. 3 — Values in tension",
+            chapter: "Ch. 3: Values in tension",
           }
         : null);
 

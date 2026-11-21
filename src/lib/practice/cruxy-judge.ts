@@ -152,7 +152,7 @@ function emptyOutput(roundId: string): CruxyJudgeOutput {
     report: {
       id: randomUUID(),
       round_id: roundId,
-      headline: "Judging paused — monthly Cruxy spend cap reached.",
+      headline: "Judging paused. Monthly Cruxy spend cap reached.",
       socratic_followups: [],
       proposal_ids: [],
       created_at: nowIso(),
