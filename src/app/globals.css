@@ -4,12 +4,12 @@
   --crux-cardinal: #9d2235;
   --crux-gold: #f5b700;
   --crux-ink: #111318;
-  --crux-paper: #f7f4ef;
-  --crux-mist: #e8e4dc;
-  --crux-muted: #5c6170;
-  --crux-team-1: #9d2235;
-  --crux-team-2: #1b4f72;
-  --crux-team-3: #1f6f4a;
+  --crux-paper: #f3f4f6;
+  --crux-mist: #e3e5e9;
+  --crux-muted: #5a606b;
+  --crux-team-1: #0f7b6c;
+  --crux-team-2: #4f46e5;
+  --crux-team-3: #c2410c;
   --background: var(--crux-paper);
   --foreground: var(--crux-ink);
 }
@@ -38,10 +38,7 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(245, 183, 0, 0.18), transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, rgba(157, 34, 53, 0.12), transparent 50%),
-    linear-gradient(180deg, #faf7f2 0%, var(--crux-paper) 40%, #efeae2 100%);
+  background: var(--crux-paper);
   color: var(--foreground);
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
@@ -51,6 +48,7 @@ h2,
 h3,
 .font-display {
   font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
   letter-spacing: -0.02em;
 }
 

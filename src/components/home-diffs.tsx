@@ -39,34 +39,30 @@ export function HomeDiffs() {
   if (!diffs.length) return null;
 
   return (
-    <section className="space-y-3">
-      <h2 className="font-display text-xl font-semibold">
-        Since last visit · map versions
+    <section className="space-y-3 rounded-2xl border border-ink/10 bg-white/60 p-4">
+      <h2 className="font-display text-lg font-semibold">
+        Position updates
       </h2>
       {diffs.map((d) => (
-        <div
-          key={d.version_id}
-          className="rounded-2xl border border-gold/40 bg-gold/10 px-4 py-4 text-sm"
-        >
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink/70">
-            Case changed to v{d.version}
+        <div key={d.version_id} className="text-sm">
+          <p className="text-xs text-muted">
+            v{d.version} · {d.change_summary}
           </p>
-          <p className="mt-1 text-muted">{d.change_summary}</p>
-          <p className="mt-2">
+          <p>
             <span className="text-muted line-through">{d.old_text}</span>
           </p>
-          <p className="font-medium">{d.new_text}</p>
+          <p>{d.new_text}</p>
           {!d.confirmed ? (
             <Button
               size="sm"
-              className="mt-3"
+              className="mt-2"
               variant="gold"
               onClick={() => void confirm(d.version_id)}
             >
               I&apos;ve got v{d.version}
             </Button>
           ) : (
-            <p className="mt-2 text-xs text-muted">Confirmed</p>
+            <p className="mt-1 text-xs text-muted">Confirmed</p>
           )}
         </div>
       ))}
