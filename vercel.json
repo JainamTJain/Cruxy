@@ -31,7 +31,6 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "cursor/**": false,
       "wsA": false,
       "merge-*": false
     }
