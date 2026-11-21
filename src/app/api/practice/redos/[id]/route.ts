@@ -64,5 +64,23 @@ export async function POST(
     /* outcomes table may not be applied yet locally */
   }
 
+  // Wave 6: Socratic outcomes against the next round-item score.
+  try {
+    const { observeClaimAttempt } = await import(
+      "@/lib/cruxy/socratic-outcomes"
+    );
+    if (next.score_after != null) {
+      await observeClaimAttempt({
+        personId: next.person_id,
+        caseId: null,
+        attemptKind: "round",
+        scoreAfter: next.score_after,
+        refId: next.id,
+      });
+    }
+  } catch {
+    /* pending table may not be applied yet locally */
+  }
+
   return NextResponse.json({ redo: next, skills: updated, improved });
 }

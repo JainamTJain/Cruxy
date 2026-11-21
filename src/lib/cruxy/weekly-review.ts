@@ -31,6 +31,20 @@ export async function draftWeeklyReview(opts?: {
 }): Promise<WeeklyReviewDraftRow> {
   const weekStart = mondayOf();
   const feedback = await recentCruxyFeedback({ sinceDays: 7, limit: 100 });
+  const { summarizeSocraticOutcomesForWeek } = await import(
+    "@/lib/cruxy/socratic-outcomes"
+  );
+  const socraticWeek = await summarizeSocraticOutcomesForWeek({
+    sinceDays: 7,
+  }).catch(() => ({
+    sampleSize: 0,
+    improved: 0,
+    liftRate: null as number | null,
+    byAttempt: { drill: 0, flashcard: 0, round: 0 },
+    lines: [
+      "Socratic outcomes: none yet this week. They appear after a finished drill and a later attempt on the same case.",
+    ],
+  }));
 
   const useful = feedback.filter((f) => f.verdict === "useful").length;
   const notUseful = feedback.filter((f) => f.verdict === "not_useful").length;
@@ -39,6 +53,7 @@ export async function draftWeeklyReview(opts?: {
   const summaryLines = [
     `Week of ${weekStart}`,
     `Feedback: ${useful} useful, ${notUseful} not useful, ${wrong} marked wrong.`,
+    ...socraticWeek.lines,
     ...feedback.slice(0, 12).map(
       (f) =>
         `- [${f.verdict}] ${f.agent}/${f.feature}${f.reason ? `: ${f.reason.slice(0, 80)}` : ""}`,
@@ -66,11 +81,13 @@ export async function draftWeeklyReview(opts?: {
 
   const draftBody =
     result.ok && !result.stub
-      ? result.text
+      ? `${result.text}\n\n${socraticWeek.lines.join("\n")}`
       : [
           `Weekly Cruxy review (${weekStart})`,
           "",
           `Useful ${useful}, not useful ${notUseful}, wrong ${wrong}.`,
+          "",
+          ...socraticWeek.lines,
           "",
           "Proposed actions:",
           "- Keep high-scoring redo critiques as strong examples.",
@@ -118,6 +135,10 @@ export async function draftWeeklyReview(opts?: {
       {
         check: "fixed_test_set",
         note: "Re-run npm run test:cruxy; ship only if score is same or higher.",
+      },
+      {
+        kind: "socratic_outcomes",
+        text: socraticWeek.lines[0] ?? "No Socratic outcomes this week.",
       },
     ],
     status: "pending",
