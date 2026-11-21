@@ -11,6 +11,10 @@ import type { CaseRow } from "@/lib/types";
 /**
  * Workstream F extras. Do not edit existing functions in library.ts —
  * add new reads/writes here and dispatch with isSampleDataMode().
+ *
+ * Migration slot: 00016 (00016b if needed). Workstream H owns Librarian
+ * prompts, Researcher, and pgvector `match_passages` (00011). Until H
+ * lands, digest/search stay minimal behind callCruxy / embedCruxy.
  */
 
 export type RelatedLibraryFile = {
@@ -116,8 +120,8 @@ export async function listCasePagesForNumbers(
 }
 
 /**
- * Vector search using the embed tier for the query.
- * Falls back to stub vectors when the gateway is stubbed.
+ * Interim cosine search until Workstream H's match_passages RPC lands.
+ * Embeds the query with the embed tier; falls back to stub vectors.
  */
 export async function searchLibraryWithEmbed(input: {
   q: string;
@@ -235,6 +239,31 @@ export async function searchLibraryWithEmbed(input: {
   }
 
   return hits.sort((a, b) => b.score - a.score).slice(0, limit);
+}
+
+/** Live library counts for the program map (files + passages). */
+export async function countLibraryForProgramMap(): Promise<{
+  drive_files: number;
+  passages: number;
+}> {
+  if (isSampleDataMode()) {
+    const store = await readStore();
+    return {
+      drive_files: store.files.length,
+      passages: store.passages.length,
+    };
+  }
+  const sb = getServiceSupabase();
+  const [files, passages] = await Promise.all([
+    sb.from("files").select("id", { count: "exact", head: true }),
+    sb.from("passages").select("id", { count: "exact", head: true }),
+  ]);
+  assertOk(files.error, "countLibraryForProgramMap.files");
+  assertOk(passages.error, "countLibraryForProgramMap.passages");
+  return {
+    drive_files: files.count ?? 0,
+    passages: passages.count ?? 0,
+  };
 }
 
 /**

@@ -80,7 +80,11 @@ export default function ReadingRoomPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"case" | "file" | string>("file");
 
-  const primaryCase = casePages[0] ?? null;
+  const primaryCase =
+    casePages.find((c) => c.number === 9) ??
+    casePages.find((c) => file?.case_numbers.includes(c.number)) ??
+    casePages[0] ??
+    null;
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/library/files/${fileId}`);

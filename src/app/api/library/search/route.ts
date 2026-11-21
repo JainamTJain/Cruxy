@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/require-session";
+// Interim: H owns match_passages; swap when that RPC ships.
 import { searchLibraryWithEmbed } from "@/lib/db/supabase/library-extra";
 
 export async function GET(req: Request) {
