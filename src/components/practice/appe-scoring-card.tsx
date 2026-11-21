@@ -191,7 +191,7 @@ export function AppeScoringCard({
       </table>
 
       <label className="block text-sm">
-        Spirit (1–5)
+        Spirit (1 to 5)
         <input
           type="number"
           min={1}

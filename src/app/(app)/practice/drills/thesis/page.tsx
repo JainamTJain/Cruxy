@@ -8,7 +8,7 @@ const PROMPT =
   "Is it ever ethical to profit from predicting a war?";
 
 /**
- * Thesis in 30 seconds — DrillPhone.html parity.
+ * Thesis in 30 seconds. DrillPhone.html parity.
  */
 export default function ThesisDrillPage() {
   const [seconds, setSeconds] = useState(18);
