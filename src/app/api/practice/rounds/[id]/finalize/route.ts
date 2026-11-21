@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { advanceRoundPhase, getRoundById } from "@/lib/db/practice-repository";
+import {
+  applyTranscriptQualityAfterFinalize,
+  refreshCaseGlossary,
+} from "@/lib/practice/glossary-extra";
 import { finalizeRound } from "@/lib/practice/pipeline";
+import { computeAndSaveTalkAnalytics } from "@/lib/practice/talk-analytics-extra";
 
 export async function POST(
   req: Request,
@@ -21,10 +26,30 @@ export async function POST(
     forceCruxy?: boolean;
   };
 
+  // F-226: enrich glossary before transcription key terms are sent.
+  if (round.case_id) {
+    await refreshCaseGlossary({
+      caseId: round.case_id,
+      personId: session.personId,
+    });
+  }
+
   const result = await finalizeRound({
     roundId: id,
     personId: session.personId,
     forceCruxy: body.forceCruxy,
+  });
+
+  // F-228 / F-231: correction pass, uncertain flags, accuracy estimate.
+  const quality = await applyTranscriptQualityAfterFinalize({
+    roundId: id,
+    personId: session.personId,
+  });
+
+  // F-234: talk analytics per person.
+  const talk = await computeAndSaveTalkAnalytics({
+    roundId: id,
+    personId: session.personId,
   });
 
   await advanceRoundPhase(id, "scoring");
@@ -37,5 +62,9 @@ export async function POST(
     cruxyCards: result.judgment?.cards.length ?? 0,
     teamsScored: result.judgment?.cards.map((c) => c.team_id) ?? [],
     reportId: result.judgment?.report.id ?? null,
+    glossaryAccuracy: quality.accuracy,
+    uncertainCount: quality.uncertain_count,
+    correctionCount: quality.correction_count,
+    talkPeople: talk.length,
   });
 }

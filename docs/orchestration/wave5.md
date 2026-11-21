@@ -7,7 +7,7 @@ Jainam's call: finish every remaining F item first, then the innovation plan. Ve
 - Real data only. Never invent rounds, messages, scores, transcripts or edits attributed to real people. Empty states are fine.
 - Only Vercel AI Gateway through `callCruxy` tiers (`small`, `strong`). No provider SDKs, no Anthropic.
 - No middle dots and no em dashes anywhere in the UI. For an empty value, write "Not set" or leave it blank.
-- New migration? Next free numbers: 00020 onward, one per agent, say which in your PR. Every new table: RLS on, `revoke all ... from anon, authenticated`.
+- New migration? Next free numbers: 00020 onward, one per agent, say which in your PR. Every new table: RLS on, `revoke all ... from anon, authenticated`. (K: **00022** transcript quality.)
 - Tick an item only when the code is on your branch and you can name the file. Add `[path]` after the item.
 - One PR per agent. Keep it green on CI.
 
