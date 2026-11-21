@@ -14,9 +14,17 @@ import { listPeopleFull, logActivity } from "@/lib/db/repository";
 import { readStore, updateStore } from "@/lib/db/sample-store";
 import { getServiceSupabase } from "@/lib/db/supabase/client";
 import { applicableItems } from "@/lib/practice/appe-card";
-import { meanBrier } from "@/lib/practice/brier";
+import {
+  bandHit,
+  calibrationBuckets,
+  clampConfidence,
+  meanBrier,
+  normalizeItemPrediction,
+} from "@/lib/practice/brier";
 import type {
   AppeItemKey,
+  ItemPrediction,
+  ItemPredictionInput,
   PracticeRound,
   PredictionBrierScore,
   RoundScorePrediction,
@@ -129,12 +137,7 @@ export async function getPredictionGate(roundId: string): Promise<{
     const complete =
       Boolean(p) &&
       Boolean(p!.expected_question.trim()) &&
-      requiredItems.every(
-        (k) =>
-          typeof p!.item_scores[k] === "number" &&
-          (p!.item_scores[k] as number) >= 1 &&
-          (p!.item_scores[k] as number) <= 10,
-      );
+      requiredItems.every((k) => normalizeItemPrediction(p!.item_scores[k]));
     return { id: s.id, name: s.name, predicted: complete };
   });
 
@@ -150,7 +153,7 @@ export async function getPredictionGate(roundId: string): Promise<{
 export async function saveRoundPrediction(opts: {
   roundId: string;
   personId: string;
-  itemScores: Partial<Record<AppeItemKey, number>>;
+  itemScores: Partial<Record<AppeItemKey, ItemPredictionInput>>;
   expectedQuestion: string;
 }): Promise<
   | { ok: true; prediction: RoundScorePrediction }
@@ -178,11 +181,13 @@ export async function saveRoundPrediction(opts: {
   }
 
   const required = scoredItemsForRound(round);
+  const item_scores: Partial<Record<AppeItemKey, ItemPrediction>> = {};
   for (const key of required) {
-    const v = opts.itemScores[key];
-    if (typeof v !== "number" || v < 1 || v > 10) {
+    const normalized = normalizeItemPrediction(opts.itemScores[key]);
+    if (!normalized) {
       return { ok: false, reason: `Predict every item (${key})` };
     }
+    item_scores[key] = normalized;
   }
   const q = opts.expectedQuestion.trim();
   if (q.length < 8) {
@@ -193,8 +198,6 @@ export async function saveRoundPrediction(opts: {
   }
 
   const at = nowIso();
-  const item_scores: Partial<Record<AppeItemKey, number>> = {};
-  for (const key of required) item_scores[key] = opts.itemScores[key];
 
   let prediction: RoundScorePrediction;
 
@@ -347,11 +350,15 @@ export async function computeBrierAfterJudging(opts: {
     if (!teamId) continue;
 
     const teamCards = cards.filter((c) => c.team_id === teamId);
-    const pairs: { predicted: number; actual: number; item: AppeItemKey }[] =
-      [];
+    const pairs: {
+      predicted: number;
+      actual: number;
+      confidence: number;
+      item: AppeItemKey;
+    }[] = [];
     for (const item of required) {
-      const predicted = pred.item_scores[item];
-      if (typeof predicted !== "number") continue;
+      const normalized = normalizeItemPrediction(pred.item_scores[item]);
+      if (!normalized) continue;
       const itemScores = scores.filter(
         (s) =>
           s.item === item && teamCards.some((c) => c.id === s.card_id),
@@ -359,11 +366,17 @@ export async function computeBrierAfterJudging(opts: {
       if (!itemScores.length) continue;
       const actual =
         itemScores.reduce((sum, s) => sum + s.score, 0) / itemScores.length;
-      pairs.push({ predicted, actual, item });
+      pairs.push({
+        predicted: normalized.score,
+        actual,
+        confidence: normalized.confidence,
+        item,
+      });
     }
     if (!pairs.length) continue;
 
     const result = meanBrier(pairs);
+    if (result.brier == null) continue;
     const at = nowIso();
     const row: PredictionBrierScore = {
       id: randomUUID(),
@@ -412,4 +425,83 @@ export async function computeBrierAfterJudging(opts: {
   }
 
   return { computed };
+}
+
+async function listPredictionsForPerson(
+  personId: string,
+): Promise<RoundScorePrediction[]> {
+  if (isSampleDataMode()) {
+    const store = await readStore();
+    const bag = store as PredBag;
+    return (bag.round_score_predictions ?? []).filter(
+      (p) => p.person_id === personId,
+    );
+  }
+  const sb = getServiceSupabase();
+  const { data, error } = await sb
+    .from("round_score_predictions")
+    .select("*")
+    .eq("person_id", personId)
+    .order("created_at", { ascending: false })
+    .limit(40);
+  if (error) throw new Error(`listPredictionsForPerson: ${error.message}`);
+  return ((data ?? []) as Record<string, unknown>[]).map(mapPrediction);
+}
+
+/**
+ * Stated confidence vs how often the predicted band actually hit.
+ * Personal only. Needs enough scored rounds before rates are meaningful.
+ */
+export async function getPersonalCalibration(personId: string): Promise<{
+  buckets: {
+    confidence: number;
+    n: number;
+    hitRate: number | null;
+  }[];
+  sampleCount: number;
+  enough: boolean;
+}> {
+  const preds = await listPredictionsForPerson(personId);
+  const people = await listPeopleFull();
+  const person = people.find((p) => p.id === personId);
+  const samples: { confidence: number; hit: boolean }[] = [];
+
+  for (const pred of preds) {
+    const round = await getRoundById(pred.round_id);
+    if (!round) continue;
+    const { cards, scores } = await listJudgeCards(pred.round_id);
+    if (!cards.length) continue;
+    const teamId =
+      person?.team_id &&
+      (person.team_id === round.sides.presenting ||
+        person.team_id === round.sides.commenting ||
+        round.team_ids.includes(person.team_id))
+        ? person.team_id
+        : round.sides.presenting ?? round.team_ids[0] ?? null;
+    if (!teamId) continue;
+    const teamCards = cards.filter((c) => c.team_id === teamId);
+    const required = scoredItemsForRound(round);
+    for (const item of required) {
+      const normalized = normalizeItemPrediction(pred.item_scores[item]);
+      if (!normalized) continue;
+      const itemScores = scores.filter(
+        (s) =>
+          s.item === item && teamCards.some((c) => c.id === s.card_id),
+      );
+      if (!itemScores.length) continue;
+      const actual =
+        itemScores.reduce((sum, s) => sum + s.score, 0) / itemScores.length;
+      samples.push({
+        confidence: clampConfidence(normalized.confidence),
+        hit: bandHit(normalized.score, actual),
+      });
+    }
+  }
+
+  return {
+    buckets: calibrationBuckets(samples),
+    sampleCount: samples.length,
+    /** Rough floor before the chart is worth reading. */
+    enough: samples.length >= 8,
+  };
 }

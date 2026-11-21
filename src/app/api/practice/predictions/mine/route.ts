@@ -1,15 +1,21 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { getRoundById } from "@/lib/db/practice-repository";
-import { listMyBrierTrend } from "@/lib/practice/predictions";
+import {
+  getPersonalCalibration,
+  listMyBrierTrend,
+} from "@/lib/practice/predictions";
 
-/** Personal Brier trend only. Never returns other people's scores. */
+/** Personal Brier + calibration only. Never returns other people's scores. */
 export async function GET() {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const rows = await listMyBrierTrend(session.personId, 30);
+  const [rows, calibration] = await Promise.all([
+    listMyBrierTrend(session.personId, 30),
+    getPersonalCalibration(session.personId),
+  ]);
   const enriched = [];
   for (const r of rows) {
     const round = await getRoundById(r.round_id);
@@ -34,5 +40,6 @@ export async function GET() {
     points: enriched,
     latest,
     vsOwnPast,
+    calibration,
   });
 }

@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import { getRoundById } from "@/lib/db/practice-repository";
 import { getPersonById } from "@/lib/db/repository";
 import { isAdminViewer } from "@/lib/ops/privacy-scope";
-import type { AppeItemKey } from "@/lib/practice/types";
+import type { AppeItemKey, ItemPredictionInput } from "@/lib/practice/types";
 import {
   getPredictionGate,
   listPredictionsForRound,
@@ -81,7 +81,7 @@ export async function POST(
   }
   const { id } = await ctx.params;
   const body = (await req.json()) as {
-    itemScores?: Partial<Record<AppeItemKey, number>>;
+    itemScores?: Partial<Record<AppeItemKey, ItemPredictionInput>>;
     expectedQuestion?: string;
   };
   if (!body.itemScores || typeof body.expectedQuestion !== "string") {
