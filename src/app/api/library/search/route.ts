@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/require-session";
-import { searchLibrary } from "@/lib/db/library-repository";
+// Interim: H owns match_passages; swap when that RPC ships.
+import { searchLibraryWithEmbed } from "@/lib/db/supabase/library-extra";
 
 export async function GET(req: Request) {
   const auth = await requireSession();
@@ -9,15 +10,20 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const q = url.searchParams.get("q") ?? "";
   const caseNumber = url.searchParams.get("case");
-  const teamId = url.searchParams.get("team");
   const type = url.searchParams.get("type");
 
-  const hits = await searchLibrary({
+  const hits = await searchLibraryWithEmbed({
     q,
-    caseNumber: caseNumber ? Number(caseNumber) : null,
-    teamId: teamId || null,
-    type: type || null,
+    caseNumber: caseNumber ? Number(caseNumber) : undefined,
+    type: type || undefined,
+    personId: auth.session.personId,
   });
 
-  return NextResponse.json({ hits, q });
+  return NextResponse.json({
+    hits: hits.map((h) => ({
+      ...h,
+      citation: `${h.file_name} · ${h.anchor}`,
+    })),
+    q,
+  });
 }

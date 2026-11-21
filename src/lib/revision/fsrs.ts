@@ -1,8 +1,16 @@
 /**
- * Minimal FSRS-4.5 scheduler (no external deps).
+ * FSRS scheduling via ts-fsrs (see docs/research/apis.md).
  * Ratings: 1=Again, 2=Hard, 3=Good, 4=Easy
  * States: 0=New, 1=Learning, 2=Review, 3=Relearning
  */
+import {
+  createEmptyCard as tsCreateEmptyCard,
+  fsrs,
+  Rating,
+  State,
+  type Card as TsCard,
+  type Grade,
+} from "ts-fsrs";
 
 export type FsrsRating = 1 | 2 | 3 | 4;
 export type FsrsState = 0 | 1 | 2 | 3;
@@ -19,86 +27,50 @@ export interface FsrsCard {
   last_review: Date | null;
 }
 
-const W = [
-  0.4072, 1.1829, 3.1262, 15.4722, 7.2102, 0.5316, 1.0651, 0.0234, 1.616,
-  0.1544, 1.0824, 1.9813, 0.0953, 0.2975, 2.2042, 0.2407, 2.9466, 0.5034,
-  0.6567,
-] as const;
+const scheduler = fsrs();
 
-const REQUEST_RETENTION = 0.9;
-const MAX_INTERVAL = 365;
+const RATING_MAP: Record<FsrsRating, Grade> = {
+  1: Rating.Again,
+  2: Rating.Hard,
+  3: Rating.Good,
+  4: Rating.Easy,
+};
 
-function clamp(n: number, lo: number, hi: number) {
-  return Math.min(hi, Math.max(lo, n));
+function toTsCard(card: FsrsCard): TsCard {
+  return {
+    due: card.due,
+    stability: card.stability,
+    difficulty: card.difficulty,
+    elapsed_days: card.elapsed_days,
+    scheduled_days: card.scheduled_days,
+    reps: card.reps,
+    lapses: card.lapses,
+    learning_steps: 0,
+    state: card.state as State,
+    last_review: card.last_review ?? undefined,
+  };
 }
 
-function initDifficulty(rating: FsrsRating): number {
-  return clamp(W[4] - Math.exp(W[5] * (rating - 1)) + 1, 1, 10);
-}
-
-function nextDifficulty(d: number, rating: FsrsRating): number {
-  const next = d - W[6] * (rating - 3);
-  return clamp(W[7] * initDifficulty(3) + (1 - W[7]) * next, 1, 10);
-}
-
-function initStability(rating: FsrsRating): number {
-  return Math.max(W[rating - 1], 0.1);
-}
-
-function nextStability(
-  d: number,
-  s: number,
-  r: number,
-  rating: FsrsRating,
-): number {
-  if (rating === 1) {
-    return clamp(
-      W[11] *
-        Math.pow(d, -W[12]) *
-        (Math.pow(s + 1, W[13]) - 1) *
-        Math.exp(W[14] * (1 - r)),
-      0.1,
-      36500,
-    );
-  }
-  const hardPenalty = rating === 2 ? W[15] : 1;
-  const easyBonus = rating === 4 ? W[16] : 1;
-  return clamp(
-    s *
-      (Math.exp(W[8]) *
-        (11 - d) *
-        Math.pow(s, -W[9]) *
-        (Math.exp(W[10] * (1 - r)) - 1) *
-        hardPenalty *
-        easyBonus +
-        1),
-    0.1,
-    36500,
-  );
-}
-
-function retrievability(elapsed: number, stability: number): number {
-  return Math.pow(1 + (elapsed / (9 * stability)), -1);
-}
-
-function nextInterval(stability: number): number {
-  const interval =
-    (stability / 9) * (Math.pow(REQUEST_RETENTION, -1) - 1) * 9;
-  return clamp(Math.round(interval), 1, MAX_INTERVAL);
+function fromTsCard(card: TsCard): FsrsCard {
+  return {
+    due: card.due instanceof Date ? card.due : new Date(card.due),
+    stability: card.stability,
+    difficulty: card.difficulty,
+    elapsed_days: card.elapsed_days,
+    scheduled_days: card.scheduled_days,
+    reps: card.reps,
+    lapses: card.lapses,
+    state: card.state as FsrsState,
+    last_review: card.last_review
+      ? card.last_review instanceof Date
+        ? card.last_review
+        : new Date(card.last_review)
+      : null,
+  };
 }
 
 export function createEmptyCard(now = new Date()): FsrsCard {
-  return {
-    due: now,
-    stability: 0,
-    difficulty: 0,
-    elapsed_days: 0,
-    scheduled_days: 0,
-    reps: 0,
-    lapses: 0,
-    state: 0,
-    last_review: null,
-  };
+  return fromTsCard(tsCreateEmptyCard(now));
 }
 
 export function reviewCard(
@@ -106,62 +78,8 @@ export function reviewCard(
   rating: FsrsRating,
   now = new Date(),
 ): FsrsCard {
-  const last = card.last_review ?? now;
-  const elapsed = Math.max(
-    0,
-    Math.floor((now.getTime() - last.getTime()) / 86_400_000),
-  );
-
-  let { stability, difficulty, state, reps, lapses, scheduled_days } = card;
-
-  if (state === 0) {
-    difficulty = initDifficulty(rating);
-    stability = initStability(rating);
-    state = rating === 1 ? 1 : 2;
-    if (rating === 1) lapses += 1;
-  } else {
-    const r = retrievability(elapsed || 0.001, Math.max(stability, 0.1));
-    difficulty = nextDifficulty(difficulty || initDifficulty(3), rating);
-    stability = nextStability(
-      difficulty,
-      Math.max(stability, 0.1),
-      r,
-      rating,
-    );
-    if (rating === 1) {
-      lapses += 1;
-      state = 3;
-    } else {
-      state = 2;
-    }
-  }
-
-  reps += 1;
-  let intervalDays: number;
-  if (state === 1 || state === 3) {
-    intervalDays = rating === 1 ? 0 : rating === 2 ? 1 : 1;
-  } else {
-    intervalDays = nextInterval(stability);
-    if (rating === 4) intervalDays = Math.min(MAX_INTERVAL, intervalDays + 1);
-  }
-  scheduled_days = intervalDays;
-
-  const due = new Date(now.getTime() + intervalDays * 86_400_000);
-  if (intervalDays === 0) {
-    due.setTime(now.getTime() + 10 * 60_000);
-  }
-
-  return {
-    due,
-    stability,
-    difficulty,
-    elapsed_days: elapsed,
-    scheduled_days,
-    reps,
-    lapses,
-    state,
-    last_review: now,
-  };
+  const next = scheduler.next(toTsCard(card), now, RATING_MAP[rating]);
+  return fromTsCard(next.card);
 }
 
 /** Grade spoken/typed answer quality into FSRS rating. */
@@ -173,4 +91,34 @@ export function answerQualityToRating(
   if (hesitation === "hard") return 2;
   if (hesitation === "easy") return 4;
   return 3;
+}
+
+/** Interval preview labels for the flashcard grade buttons. */
+export function previewIntervals(
+  card: FsrsCard | null,
+  now = new Date(),
+): Record<FsrsRating, string> {
+  const base = card ?? createEmptyCard(now);
+  const format = (days: number, due: Date): string => {
+    if (days < 1) {
+      const mins = Math.max(
+        1,
+        Math.round((due.getTime() - now.getTime()) / 60_000),
+      );
+      if (mins < 60) return `${mins} min`;
+      return `${Math.round(mins / 60)} hr`;
+    }
+    if (days === 1) return "1 day";
+    return `${Math.round(days)} days`;
+  };
+  const out = {} as Record<FsrsRating, string>;
+  for (const rating of [1, 2, 3, 4] as FsrsRating[]) {
+    const next = scheduler.next(toTsCard(base), now, RATING_MAP[rating]);
+    const due =
+      next.card.due instanceof Date
+        ? next.card.due
+        : new Date(next.card.due);
+    out[rating] = format(next.card.scheduled_days, due);
+  }
+  return out;
 }
