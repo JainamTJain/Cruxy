@@ -1,0 +1,16 @@
+---
+description: How Cruxy (the AI) must be built and how it must behave
+globs: src/lib/cruxy/**, src/app/api/cruxy/**, src/components/cruxy/**
+alwaysApply: false
+---
+
+# Cruxy
+
+- Cruxy is eight narrow agents behind one name: Librarian, Researcher, Analyst, Coach, Moderator, Opponent, Judge, Assistant. Each has its own prompt file in `src/lib/cruxy/prompts/` and a zod output schema. The shared prompt and the reasoning standard are in the spec's "Cruxy's agents, models and prompts" section; copy them verbatim.
+- All calls go through `callCruxy({ feature, model, messages, personId })` in `src/lib/cruxy/callCruxy.ts`, which checks caps, logs tokens and cost to `ai_calls`, and validates citations before returning.
+- Models are `creator/model` strings read from a settings table, so they can be swapped without code changes. Cheap model for reading, tagging and flashcards; strong model for judging, opposing and coaching. Never hardcode prices: read them from the AI Gateway.
+- Context packing: never send a whole library. Send the fixed prefix (shared prompt + case card, cached), the relevant claim map nodes and the top 8 to 12 passages from vector search.
+- Character: Cruxy asks before it answers. It asks one question first, gives hints one at a time, and gives the full answer only after the person has tried or asks again. It answers directly for lookups, logistics, admin questions and during timed rounds. It is honest, never flatters, argues every side at full strength, keeps its own politics out, never shames anyone, and never takes sides between the USC teams.
+- Judging: the Cruxy judge fills the same APPE scoring card as humans (`docs/domain/scoring-card.md`) with 1 to 3 quoted transcript lines as evidence per score. Human cards are analysed (position lean, drift, agreement, conflicts) before they tune Cruxy; there are no static judge weights.
+- Ethics Bowl is about ethics, not law or policy: bring legal points back to the moral question.
+- Use the cases in `docs/domain/cases/` as worked examples and as the fixed test set in `tests/cruxy/`. A prompt change ships only if the test set does at least as well.

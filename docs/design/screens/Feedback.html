@@ -1,0 +1,168 @@
+<!-- Crux design reference. Translate to Next.js + Tailwind; ignore the <x-dc>, <helmet> and DCLogic wrappers. Sample data only. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crux: round report</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;family=Source+Serif+4:ital,wght@0,400;1,400&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;font-family:Inter,system-ui,sans-serif;color:#111318}
+a{color:inherit;text-decoration:none}
+.disp{font-family:'Bricolage Grotesque',Inter,sans-serif}
+.lab{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5A606B}
+.nav{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;font-size:15px;font-weight:500;color:#C9CCD3}
+.card{background:#FFFFFF;border-radius:20px;padding:22px;box-sizing:border-box}
+.ts{display:inline-block;font:600 12px 'IBM Plex Mono',monospace;padding:2px 7px;border-radius:6px;background:#111318;color:#FFFFFF}
+.quote{font:italic 400 19px/1.5 'Source Serif 4',Georgia,serif;color:#1C1F26;margin:0}
+.who{height:40px;padding:0 16px;border-radius:999px;border:1px solid #E3E5E9;background:#FFFFFF;font:600 14px Inter,sans-serif;color:#111318;cursor:pointer}
+.blk{display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:16px}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 248px; background: #111318; color: #FFFFFF; padding: 28px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 28px">
+    <span class="disp" style="font-size: 38px; font-weight: 800; letter-spacing: -0.04em; padding: 0 12px">crux</span>
+    <nav aria-label="Main" style="display: flex; flex-direction: column; gap: 2px">
+      <a class="nav" href="Home.html">Program map</a>
+      <a class="nav" href="Roadmap.html">My roadmap</a>
+      <a class="nav" href="CaseBrain.html">Cases</a>
+      <a class="nav" href="Reading.html">Reading room</a>
+      <a class="nav" href="Practice.html">Practice</a>
+      <a class="nav" href="Feedback.html" style="background: #9D2235; color: #FFFFFF">Reports</a>
+      <a class="nav" href="#">Team chat</a>
+    </nav>
+    <button style="margin-top: auto; height: 44px; border-radius: 12px; border: none; background: #F5B700; color: #111318; font: 700 15px Inter, sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px"><img src="/cruxy/cruxy-lamp.png" alt="" style="width: 42px; height: auto">Ask Cruxy</button>
+  </aside>
+
+  <main style="flex: 999 1 640px; min-width: 0; padding: 32px 40px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 20px">
+      <div style="display: flex; flex-direction: column; gap: 8px; max-width: 760px">
+        <span class="lab">Round report · Nov 24 · Case 9 · Team 3 vs Cruxy as the other team · sample data</span>
+        <h1 class="disp" style="margin: 0; font-size: 46px; line-height: 1; font-weight: 800; letter-spacing: -0.02em">Strong principle, slow start. The one fix: answer the question in the first 30 seconds.</h1>
+      </div>
+      <div style="display: flex; gap: 10px">
+        <div style="background: #FFFFFF; border-radius: 16px; padding: 14px 18px; border-top: 5px solid #4F46E5"><div class="disp" style="font-size: 42px; font-weight: 800; line-height: 1">35</div><div style="font-size: 13px; color: #5A606B">of 50 · Lehar</div></div>
+        <div style="background: #FFFFFF; border-radius: 16px; padding: 14px 18px; border-top: 5px solid #F5B700"><div class="disp" style="font-size: 42px; font-weight: 800; line-height: 1">33</div><div style="font-size: 13px; color: #5A606B">of 50 · Cruxy</div></div>
+      </div>
+    </div>
+
+    <section class="card" aria-labelledby="sc" style="display: flex; flex-direction: column; gap: 6px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; padding-bottom: 6px">
+        <h2 id="sc" class="disp" style="margin: 0; font-size: 22px; font-weight: 800">Scorecard <span style="font: 500 13px Inter, sans-serif; color: #5A606B">Commentary is scored when Team 3 comments in the second half</span></h2>
+        <span style="display: flex; gap: 16px; font-size: 13px; color: #5A606B"><span style="display: flex; align-items: center; gap: 6px"><span style="width: 12px; height: 12px; border-radius: 50%; background: #4F46E5"></span>Lehar</span><span style="display: flex; align-items: center; gap: 6px"><span style="width: 12px; height: 12px; border-radius: 3px; background: #F5B700"></span>Cruxy</span></span>
+      </div>
+      <sc-for list="{{items}}" as="it" hint-placeholder-count="6">
+        <div style="display: grid; grid-template-columns: 210px minmax(180px, 1fr) minmax(220px, 1.2fr); gap: 18px; align-items: center; padding: 10px 0; border-top: 1px solid #ECEEF1">
+          <span style="font-size: 14px; font-weight: 600">{{it.name}}</span>
+          <span style="position: relative; height: 24px">
+            <span style="position: absolute; left: 0; right: 0; top: 11px; height: 2px; background: #E3E5E9"></span>
+            <span style="{{it.h}}"></span>
+            <span style="{{it.c}}"></span>
+            <span style="position: absolute; right: 0; top: -4px; font: 600 11px 'IBM Plex Mono', monospace; color: #9AA0AA">10</span>
+          </span>
+          <span style="font-size: 13px; line-height: 1.4; color: #3B404A"><span class="ts">{{it.ts}}</span> {{it.why}}</span>
+        </div>
+      </sc-for>
+    </section>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start">
+      <section aria-labelledby="pf" style="flex: 999 1 620px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px">
+          <h2 id="pf" class="disp" style="margin: 0; font-size: 26px; font-weight: 800">Each person</h2>
+          <div role="tablist" aria-label="Speaker" style="display: flex; gap: 6px; flex-wrap: wrap">
+            <button class="who" role="tab" aria-selected="false">Nick</button>
+            <button class="who" role="tab" aria-selected="true" style="background: #111318; color: #FFFFFF; border-color: #111318">Jainam</button>
+            <button class="who" role="tab" aria-selected="false">Katie</button>
+            <button class="who" role="tab" aria-selected="false">Daniel</button>
+          </div>
+        </div>
+        <span style="font-size: 13px; color: #5A606B; margin-top: -6px">Everyone can read everyone's feedback. Talk time 6:12 · 148 words a minute · 9 filler words · first answer at 0:41</span>
+
+        <div class="card" style="display: flex; flex-direction: column; gap: 14px">
+          <div class="blk" style="background: #E8F5F1">
+            <span style="font-size: 13px; font-weight: 700; color: #0B5E53">WHAT WORKED · <span class="ts">04:10</span></span>
+            <p class="quote">"Whoever benefits from a wrong carries the duty to repair it, even if they didn't commit it."</p>
+            <span style="font-size: 14px; line-height: 1.5">One plain sentence stated the principle and tied it to the British Museum. That is what Presentation B rewards: the moral dimension named, then applied.</span>
+          </div>
+          <div class="blk" style="background: #FDECEC">
+            <span style="font-size: 13px; font-weight: 700; color: #9D2235">THE ONE THING TO FIX · <span class="ts">22:40</span> · cost points on Response to judges</span>
+            <p class="quote">"So, um, the categorical imperative, basically, Kant says..."</p>
+            <span style="font-size: 14px; line-height: 1.55">The judge asked a direct question and heard a philosopher's name before an answer. Judges are told theory only counts when it's explained and deepens the case, so naming Kant first spent 20 seconds without scoring. The answer itself was right; it arrived at 23:05, after the judge had started writing.</span>
+          </div>
+          <div class="blk" style="background: #F7F8FA">
+            <span style="font-size: 13px; font-weight: 700; color: #3B404A">THE BETTER VERSION, IN YOUR WORDS</span>
+            <p class="quote">"No. If every museum kept whatever it could care for better, ownership would just go to the richest museum. That's Kant's test: a rule that can't work for everyone isn't a rule."</p>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; padding: 16px; border-radius: 16px; background: #111318; color: #FFFFFF">
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <span style="font-size: 13px; font-weight: 700; color: #F5B700">REDO NOW · 90 SECONDS</span>
+              <span style="font-size: 15px; line-height: 1.45">Cruxy asks the same question again. Answer first, then name the theory.</span>
+              <span style="font-size: 13px; color: #9AA0AA">Scored 5 then · aim for 7 · comes back in your drills on Thu and Sun</span>
+            </div>
+            <button style="height: 48px; padding: 0 20px; border-radius: 12px; border: none; background: #F5B700; color: #111318; font: 700 15px Inter, sans-serif; cursor: pointer">Record the redo</button>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <span style="font-size: 14px; font-weight: 700">Your skills, last 5 rounds</span>
+            <div style="display: grid; grid-template-columns: 200px 1fr 40px; gap: 8px 12px; align-items: center; font-size: 13px">
+              <span>Answer first</span><span style="height: 8px; border-radius: 999px; background: #ECEEF1"><span style="display: block; width: 48%; height: 8px; border-radius: 999px; background: #C62828"></span></span><span style="font-weight: 700">4.8</span>
+              <span>Explain frameworks</span><span style="height: 8px; border-radius: 999px; background: #ECEEF1"><span style="display: block; width: 62%; height: 8px; border-radius: 999px; background: #111318"></span></span><span style="font-weight: 700">6.2</span>
+              <span>Engage objections</span><span style="height: 8px; border-radius: 999px; background: #ECEEF1"><span style="display: block; width: 74%; height: 8px; border-radius: 999px; background: #111318"></span></span><span style="font-weight: 700">7.4</span>
+              <span>Stay under time</span><span style="height: 8px; border-radius: 999px; background: #ECEEF1"><span style="display: block; width: 81%; height: 8px; border-radius: 999px; background: #0F7B6C"></span></span><span style="font-weight: 700">8.1</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="card" aria-labelledby="tx" style="flex: 1 1 340px; display: flex; flex-direction: column; gap: 12px">
+        <h2 id="tx" class="disp" style="margin: 0; font-size: 22px; font-weight: 800">Transcript</h2>
+        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 14px; line-height: 1.55">
+          <p style="margin: 0"><span class="ts" style="background: #ECEEF1; color: #3B404A">00:12</span> <strong>Nick</strong> Thank you. The question asks whether museums may keep...</p>
+          <p style="margin: 0; padding: 8px; border-radius: 10px; background: #E8F5F1"><span class="ts" style="background: #ECEEF1; color: #3B404A">04:10</span> <strong>Jainam</strong> Whoever benefits from a wrong carries the duty...</p>
+          <p style="margin: 0"><span class="ts" style="background: #ECEEF1; color: #3B404A">08:55</span> <strong>Daniel</strong> Some people say too much time has passed...</p>
+          <p style="margin: 0"><span class="ts" style="background: #ECEEF1; color: #3B404A">22:31</span> <strong>Lehar (judge)</strong> If Egypt never asks, does the museum still owe anything?</p>
+          <p style="margin: 0; padding: 8px; border-radius: 10px; background: #FDECEC"><span class="ts" style="background: #ECEEF1; color: #3B404A">22:40</span> <strong>Jainam</strong> So, um, the categorical imperative, basically...</p>
+        </div>
+      </aside>
+    </div>
+
+    <section aria-labelledby="bank" class="card" style="display: flex; flex-direction: column; gap: 14px; border: 2px solid #111318">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px">
+        <h2 id="bank" class="disp" style="margin: 0; font-size: 22px; font-weight: 800">Send to Things to take care of?</h2>
+        <span style="font-size: 13px; color: #5A606B">Seen in 3 rounds across 2 teams</span>
+      </div>
+      <p class="disp" style="margin: 0; font-size: 24px; font-weight: 600">Answer first, then name the theory.</p>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div class="blk" style="background: #FDECEC"><span style="font-size: 12px; font-weight: 700; color: #9D2235">HOW IT WENT · Jainam, Case 9, 22:40</span><p class="quote" style="font-size: 16px">"So, um, the categorical imperative, basically, Kant says..."</p></div>
+        <div class="blk" style="background: #F7F8FA"><span style="font-size: 12px; font-weight: 700; color: #3B404A">WHY IT COST POINTS</span><span style="font-size: 14px; line-height: 1.5">Response to judges: 20 seconds before an answer. Judges reward theory only once it's explained.</span></div>
+        <div class="blk" style="background: #E8F5F1"><span style="font-size: 12px; font-weight: 700; color: #0B5E53">HOW IT SHOULD SOUND</span><p class="quote" style="font-size: 16px">"No. If every museum kept what it cared for best, the richest museum would own everything."</p></div>
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap">
+        <button style="height: 44px; padding: 0 18px; border-radius: 12px; border: none; background: #111318; color: #FFFFFF; font: 600 14px Inter, sans-serif; cursor: pointer">Add to the bank with its drill</button>
+        <button style="height: 44px; padding: 0 18px; border-radius: 12px; border: 1px solid #E3E5E9; background: #FFFFFF; font: 600 14px Inter, sans-serif; cursor: pointer">Only for this person</button>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const rows = [
+      ['A · Clear and systematic', 6, 5, '01:48', 'Roadmap given; the answer came at 1:48, not in the first 30 seconds.'],
+      ['B · Central moral dimensions', 8, 8, '04:10', 'Corrective justice stated plainly and applied to the museum.'],
+      ['C · Opposing viewpoints', 6, 7, '08:55', 'Waldron named but not answered.'],
+      ['Response to commentary', 8, 8, '22:58', 'Took the Parthenon Marbles point head on.'],
+      ['Response to judges', 7, 5, '22:40', 'Two answers opened with theory before the answer.']
+    ];
+    const pos = (v) => 'calc(' + ((v - 1) / 9 * 100) + '% - 8px)';
+    return { items: rows.map((r) => ({ name: r[0], ts: r[3], why: r[4],
+      h: 'position:absolute;top:4px;left:' + pos(r[1]) + ';width:16px;height:16px;border-radius:50%;background:#4F46E5',
+      c: 'position:absolute;top:4px;left:' + pos(r[2]) + ';width:16px;height:16px;border-radius:4px;background:#F5B700;opacity:.95' })) };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+/* Crux design tokens (approved v2 direction). Copy to app/tokens.css. */
+:root {
+  /* brand */
+  --crux-cardinal: #9D2235;      /* brand, active nav, sign-in panel */
+  --crux-cardinal-soft: #FBE7EA; /* text on cardinal */
+  --crux-gold: #F5B700;          /* anything Cruxy does or says */
+  --crux-gold-soft: #FFF7DB;     /* Cruxy notes, admin-only tags background */
+  --crux-gold-text: #8A6500;     /* gold text on light backgrounds (passes 4.5:1) */
+  --crux-ink: #111318;           /* text, dark panels, primary buttons */
+
+  /* surfaces */
+  --crux-paper: #F3F4F6;         /* app background */
+  --crux-surface: #FFFFFF;       /* cards */
+  --crux-surface-2: #F7F8FA;     /* rows, keys, tiles */
+  --crux-line: #E3E5E9;          /* borders */
+  --crux-muted: #5A606B;         /* secondary text */
+  --crux-stage: #0C0D11;         /* practice stage, drills */
+
+  /* states */
+  --crux-ok: #0B5E53;
+  --crux-ok-soft: #E8F5F1;
+  --crux-bad: #C62828;
+  --crux-bad-soft: #FDECEC;
+  --crux-link: #1E3A9E;
+
+  /* teams */
+  --crux-team-1: #0F7B6C;
+  --crux-team-2: #4F46E5;
+  --crux-team-3: #C2410C;
+
+  /* type */
+  --crux-font-display: "Bricolage Grotesque", Inter, sans-serif; /* 600, 800 */
+  --crux-font-body: Inter, system-ui, sans-serif;                /* 400 to 700 */
+  --crux-font-mono: "IBM Plex Mono", ui-monospace, monospace;    /* numbers, citations, timers */
+
+  /* shape */
+  --crux-radius-card: 20px;
+  --crux-radius-control: 12px;
+  --crux-sidebar-width: 248px;
+  --crux-touch: 44px;
+}

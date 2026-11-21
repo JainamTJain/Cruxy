@@ -1,6 +1,25 @@
-/** Track 3 Revision domain types (sample + SQL). */
+/** Track 3 Revision domain types (sample + SQL).
+ * Shared claim-map / Truth Source shapes come from Track 2 case-brain.
+ */
 
-export type TruthKind = "fact" | "quote" | "example" | "framework";
+import type {
+  CaseRole,
+  Claim,
+  Counterclaim,
+  Support,
+  TruthItem as CaseBrainTruthItem,
+} from "@/lib/case-brain/types";
+
+export type {
+  CaseRoleKind,
+  TruthKind,
+} from "@/lib/case-brain/types";
+
+export type TruthItem = CaseBrainTruthItem;
+export type ClaimRow = Claim;
+export type SupportRow = Support;
+export type CounterclaimRow = Counterclaim;
+export type CaseRoleRow = CaseRole;
 
 export type QuestionOrigin =
   | "dr_b"
@@ -37,67 +56,6 @@ export type OriginTag =
   | "Inspired by Team 3"
   | "APPE"
   | "case set";
-
-export interface TruthItem {
-  id: string;
-  team_id: string;
-  case_id: string;
-  kind: TruthKind;
-  text: string;
-  citation_ids: string[];
-  status: "accepted" | "archived";
-  created_at: string;
-  created_by: string | null;
-  updated_at: string;
-}
-
-export interface ClaimRow {
-  id: string;
-  team_id: string;
-  case_id: string;
-  text: string;
-  logic_line: string | null;
-  ord: number;
-  citation_ids: string[];
-  created_at: string;
-  created_by: string | null;
-}
-
-export interface SupportRow {
-  id: string;
-  claim_id: string;
-  team_id: string;
-  case_id: string;
-  text: string;
-  logic_line: string | null;
-  ord: number;
-  citation_ids: string[];
-  created_at: string;
-  created_by: string | null;
-}
-
-export interface CounterclaimRow {
-  id: string;
-  team_id: string;
-  case_id: string;
-  text: string;
-  concede: string | null;
-  distinguish: string | null;
-  rebut: string | null;
-  citation_ids: string[];
-  created_at: string;
-  created_by: string | null;
-}
-
-export interface CaseRoleRow {
-  id: string;
-  team_id: string;
-  case_id: string;
-  person_id: string;
-  role: "lead_1" | "lead_2" | "counter_arguer" | "supporter";
-  created_at: string;
-  created_by: string | null;
-}
 
 export type VisualKind =
   | "claim_map"

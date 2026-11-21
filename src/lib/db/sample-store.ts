@@ -8,6 +8,20 @@ import {
   TOKENS,
 } from "@/lib/constants";
 import type {
+  Backing,
+  CaseRole,
+  ChangeTheFactsItem,
+  Claim,
+  Counterclaim,
+  Decision,
+  ItemHistoryEntry,
+  OpposingPosition,
+  Proposal,
+  Support,
+  TeamPrinciple,
+  TruthItem,
+} from "@/lib/case-brain/types";
+import type {
   ActivityLogEntry,
   AiCall,
   AuthCode,
@@ -19,9 +33,6 @@ import type {
 import type {
   CardFsrsState,
   CardReview,
-  CaseRoleRow,
-  ClaimRow,
-  CounterclaimRow,
   DeckOptIn,
   Flashcard,
   JudgeAttempt,
@@ -33,8 +44,6 @@ import type {
   ReadingProgress,
   RoadmapStage,
   SocraticSession,
-  SupportRow,
-  TruthItem,
 } from "@/lib/revision/types";
 import { hashPasscode } from "@/lib/crypto/passcodes";
 import { nowIso } from "@/lib/utils";
@@ -50,15 +59,23 @@ export interface SampleStore {
   ai_calls: AiCall[];
   competitions: Competition[];
   cases: CaseRow[];
+  /** Track 2 Case brain */
+  claims: Claim[];
+  supports: Support[];
+  backings: Backing[];
+  counterclaims: Counterclaim[];
+  truth_items: TruthItem[];
+  proposals: Proposal[];
+  decisions: Decision[];
+  case_roles: CaseRole[];
+  opposing_positions: OpposingPosition[];
+  item_history: ItemHistoryEntry[];
+  team_principles: TeamPrinciple[];
+  change_the_facts: ChangeTheFactsItem[];
   seeded_at: string;
   /** tech-admin reauth timestamp for reveal window */
   last_tech_reauth_at: string | null;
-  // Track 3
-  truth_items: TruthItem[];
-  claims: ClaimRow[];
-  supports: SupportRow[];
-  counterclaims: CounterclaimRow[];
-  case_roles: CaseRoleRow[];
+  // Track 3 Revision
   one_pagers: OnePager[];
   flashcards: Flashcard[];
   card_fsrs_states: CardFsrsState[];
@@ -82,6 +99,74 @@ export interface SampleStore {
     created_at: string;
   }[];
   drill_session_seen: Record<string, string[]>;
+}
+
+function emptyCaseBrainFields(): Pick<
+  SampleStore,
+  | "claims"
+  | "supports"
+  | "backings"
+  | "counterclaims"
+  | "truth_items"
+  | "proposals"
+  | "decisions"
+  | "case_roles"
+  | "opposing_positions"
+  | "item_history"
+  | "team_principles"
+  | "change_the_facts"
+> {
+  return {
+    claims: [],
+    supports: [],
+    backings: [],
+    counterclaims: [],
+    truth_items: [],
+    proposals: [],
+    decisions: [],
+    case_roles: [],
+    opposing_positions: [],
+    item_history: [],
+    team_principles: [],
+    change_the_facts: [],
+  };
+}
+
+function emptyTrack3Fields(): Pick<
+  SampleStore,
+  | "one_pagers"
+  | "flashcards"
+  | "card_fsrs_states"
+  | "card_reviews"
+  | "deck_opt_ins"
+  | "questions"
+  | "answers"
+  | "roadmap_stages"
+  | "phrasebook_entries"
+  | "socratic_sessions"
+  | "reading_progress"
+  | "practice_speak_logs"
+  | "judge_attempts"
+  | "map_reviews"
+  | "drill_session_seen"
+> {
+  return {
+    one_pagers: [],
+    flashcards: [],
+    card_fsrs_states: [],
+    card_reviews: [],
+    deck_opt_ins: [],
+    questions: [],
+    answers: [],
+    roadmap_stages: [],
+    phrasebook_entries: [],
+    socratic_sessions: [],
+    reading_progress: [],
+    practice_speak_logs: [],
+    judge_attempts: [],
+    map_reviews: [],
+    drill_session_seen: {},
+  };
 }
 
 async function ensureDir() {
@@ -215,11 +300,12 @@ export async function buildSeedStore(): Promise<SampleStore> {
   const case9 = cases.find((c) => c.number === 9)!;
   const serena = people.find((p) => p.name === "Serena")!;
   const drB = people.find((p) => p.name === "Dr. B")!;
+  const now = nowIso();
 
-  // Minimal Team 1 Case 12 claim map + truth items for revision demos
+  // Shared Team 1 Case 12 claim map (Tracks 2 + 3 demos)
   const claim1Id = randomUUID();
   const claim2Id = randomUUID();
-  const claims: ClaimRow[] = [
+  const claims: Claim[] = [
     {
       id: claim1Id,
       team_id: t1.id,
@@ -229,8 +315,9 @@ export async function buildSeedStore(): Promise<SampleStore> {
         "Because harm is serious but speech still carries moral weight, graduated remedies fit better than blanket bans.",
       ord: 0,
       citation_ids: [],
-      created_at: nowIso(),
+      created_at: now,
       created_by: serena.id,
+      updated_at: now,
     },
     {
       id: claim2Id,
@@ -241,12 +328,13 @@ export async function buildSeedStore(): Promise<SampleStore> {
         "Because clinicians are accountable for diagnoses, platform tools should route users toward care, not replace it.",
       ord: 1,
       citation_ids: [],
-      created_at: nowIso(),
+      created_at: now,
       created_by: serena.id,
+      updated_at: now,
     },
   ];
 
-  const supports: SupportRow[] = [
+  const supports: Support[] = [
     {
       id: randomUUID(),
       claim_id: claim1Id,
@@ -256,8 +344,9 @@ export async function buildSeedStore(): Promise<SampleStore> {
       logic_line: null,
       ord: 0,
       citation_ids: [],
-      created_at: nowIso(),
+      created_at: now,
       created_by: serena.id,
+      updated_at: now,
     },
     {
       id: randomUUID(),
@@ -268,8 +357,9 @@ export async function buildSeedStore(): Promise<SampleStore> {
       logic_line: null,
       ord: 1,
       citation_ids: [],
-      created_at: nowIso(),
+      created_at: now,
       created_by: serena.id,
+      updated_at: now,
     },
     {
       id: randomUUID(),
@@ -280,8 +370,9 @@ export async function buildSeedStore(): Promise<SampleStore> {
       logic_line: null,
       ord: 2,
       citation_ids: [],
-      created_at: nowIso(),
+      created_at: now,
       created_by: serena.id,
+      updated_at: now,
     },
     {
       id: randomUUID(),
@@ -292,8 +383,9 @@ export async function buildSeedStore(): Promise<SampleStore> {
       logic_line: null,
       ord: 0,
       citation_ids: [],
-      created_at: nowIso(),
+      created_at: now,
       created_by: serena.id,
+      updated_at: now,
     },
     {
       id: randomUUID(),
@@ -304,8 +396,9 @@ export async function buildSeedStore(): Promise<SampleStore> {
       logic_line: null,
       ord: 1,
       citation_ids: [],
-      created_at: nowIso(),
+      created_at: now,
       created_by: serena.id,
+      updated_at: now,
     },
     {
       id: randomUUID(),
@@ -316,16 +409,18 @@ export async function buildSeedStore(): Promise<SampleStore> {
       logic_line: null,
       ord: 2,
       citation_ids: [],
-      created_at: nowIso(),
+      created_at: now,
       created_by: serena.id,
+      updated_at: now,
     },
   ];
 
-  const counterclaims: CounterclaimRow[] = [
+  const counterclaims: Counterclaim[] = [
     {
       id: randomUUID(),
       team_id: t1.id,
       case_id: case12.id,
+      claim_id: claim1Id,
       text: "Opponents say delayed removal costs lives when viral falsehoods spread fast.",
       concede: "Speed of harm is a real moral weight.",
       distinguish:
@@ -333,8 +428,25 @@ export async function buildSeedStore(): Promise<SampleStore> {
       rebut:
         "Graduated tools can still act quickly on clear, high-risk falsehoods without a total speech ban.",
       citation_ids: [],
-      created_at: nowIso(),
+      created_at: now,
       created_by: serena.id,
+      updated_at: now,
+    },
+    {
+      id: randomUUID(),
+      team_id: t1.id,
+      case_id: case12.id,
+      claim_id: claim2Id,
+      text: "Opponents say platforms already act as de facto clinicians when they recommend content.",
+      concede: "Recommendation systems shape what people see.",
+      distinguish:
+        "Routing to care is different from issuing a diagnosis or treatment plan.",
+      rebut:
+        "We keep clinicians accountable and use platform tools only to point toward care.",
+      citation_ids: [],
+      created_at: now,
+      created_by: serena.id,
+      updated_at: now,
     },
   ];
 
@@ -347,9 +459,9 @@ export async function buildSeedStore(): Promise<SampleStore> {
       text: "Least restrictive means: pick the mildest tool that still protects the value at stake.",
       citation_ids: [],
       status: "accepted",
-      created_at: nowIso(),
+      created_at: now,
       created_by: serena.id,
-      updated_at: nowIso(),
+      updated_at: now,
     },
     {
       id: randomUUID(),
@@ -359,9 +471,9 @@ export async function buildSeedStore(): Promise<SampleStore> {
       text: "Case set notes platforms can label, demote, or remove posts under different policies.",
       citation_ids: [],
       status: "accepted",
-      created_at: nowIso(),
+      created_at: now,
       created_by: serena.id,
-      updated_at: nowIso(),
+      updated_at: now,
     },
     {
       id: randomUUID(),
@@ -371,9 +483,9 @@ export async function buildSeedStore(): Promise<SampleStore> {
       text: "A parent sees a viral 'home remedy' clip; a label linking to clinic guidance is a milder first step than deletion.",
       citation_ids: [],
       status: "accepted",
-      created_at: nowIso(),
+      created_at: now,
       created_by: serena.id,
-      updated_at: nowIso(),
+      updated_at: now,
     },
     {
       id: randomUUID(),
@@ -383,20 +495,20 @@ export async function buildSeedStore(): Promise<SampleStore> {
       text: "GEM case: resource allocation trade-offs between rare-disease research and common illnesses.",
       citation_ids: [],
       status: "accepted",
-      created_at: nowIso(),
+      created_at: now,
       created_by: serena.id,
-      updated_at: nowIso(),
+      updated_at: now,
     },
   ];
 
-  const case_roles: CaseRoleRow[] = [
+  const case_roles: CaseRole[] = [
     {
       id: randomUUID(),
       team_id: t1.id,
       case_id: case12.id,
       person_id: serena.id,
       role: "lead_1",
-      created_at: nowIso(),
+      created_at: now,
       created_by: serena.id,
     },
   ];
@@ -412,7 +524,7 @@ export async function buildSeedStore(): Promise<SampleStore> {
       origin_label: "Cruxy",
       status: "active",
       asked_at_tag: null,
-      created_at: nowIso(),
+      created_at: now,
       created_by: null,
     },
     {
@@ -425,7 +537,7 @@ export async function buildSeedStore(): Promise<SampleStore> {
       origin_label: "Dr. B",
       status: "active",
       asked_at_tag: null,
-      created_at: nowIso(),
+      created_at: now,
       created_by: drB.id,
     },
   ];
@@ -438,75 +550,59 @@ export async function buildSeedStore(): Promise<SampleStore> {
     ai_calls: [],
     competitions: [competition],
     cases,
-    seeded_at: nowIso(),
-    last_tech_reauth_at: null,
-    truth_items,
+    ...emptyCaseBrainFields(),
     claims,
     supports,
     counterclaims,
+    truth_items,
     case_roles,
-    one_pagers: [],
-    flashcards: [],
-    card_fsrs_states: [],
-    card_reviews: [],
-    deck_opt_ins: [],
+    seeded_at: now,
+    last_tech_reauth_at: null,
+    ...emptyTrack3Fields(),
     questions,
-    answers: [],
-    roadmap_stages: [],
-    phrasebook_entries: [],
-    socratic_sessions: [],
-    reading_progress: [],
-    practice_speak_logs: [],
-    judge_attempts: [],
-    map_reviews: [],
-    drill_session_seen: {},
   };
 }
 
-function emptyTrack3(): Pick<
-  SampleStore,
-  | "truth_items"
-  | "claims"
-  | "supports"
-  | "counterclaims"
-  | "case_roles"
-  | "one_pagers"
-  | "flashcards"
-  | "card_fsrs_states"
-  | "card_reviews"
-  | "deck_opt_ins"
-  | "questions"
-  | "answers"
-  | "roadmap_stages"
-  | "phrasebook_entries"
-  | "socratic_sessions"
-  | "reading_progress"
-  | "practice_speak_logs"
-  | "judge_attempts"
-  | "map_reviews"
-  | "drill_session_seen"
-> {
+function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
+  const brain = emptyCaseBrainFields();
+  const track3 = emptyTrack3Fields();
   return {
-    truth_items: [],
-    claims: [],
-    supports: [],
-    counterclaims: [],
-    case_roles: [],
-    one_pagers: [],
-    flashcards: [],
-    card_fsrs_states: [],
-    card_reviews: [],
-    deck_opt_ins: [],
-    questions: [],
-    answers: [],
-    roadmap_stages: [],
-    phrasebook_entries: [],
-    socratic_sessions: [],
-    reading_progress: [],
-    practice_speak_logs: [],
-    judge_attempts: [],
-    map_reviews: [],
-    drill_session_seen: {},
+    teams: raw.teams ?? [],
+    people: raw.people ?? [],
+    auth_codes: raw.auth_codes ?? [],
+    activity_log: raw.activity_log ?? [],
+    ai_calls: raw.ai_calls ?? [],
+    competitions: raw.competitions ?? [],
+    cases: raw.cases ?? [],
+    claims: raw.claims ?? brain.claims,
+    supports: raw.supports ?? brain.supports,
+    backings: raw.backings ?? brain.backings,
+    counterclaims: raw.counterclaims ?? brain.counterclaims,
+    truth_items: raw.truth_items ?? brain.truth_items,
+    proposals: raw.proposals ?? brain.proposals,
+    decisions: raw.decisions ?? brain.decisions,
+    case_roles: raw.case_roles ?? brain.case_roles,
+    opposing_positions: raw.opposing_positions ?? brain.opposing_positions,
+    item_history: raw.item_history ?? brain.item_history,
+    team_principles: raw.team_principles ?? brain.team_principles,
+    change_the_facts: raw.change_the_facts ?? brain.change_the_facts,
+    seeded_at: raw.seeded_at ?? nowIso(),
+    last_tech_reauth_at: raw.last_tech_reauth_at ?? null,
+    one_pagers: raw.one_pagers ?? track3.one_pagers,
+    flashcards: raw.flashcards ?? track3.flashcards,
+    card_fsrs_states: raw.card_fsrs_states ?? track3.card_fsrs_states,
+    card_reviews: raw.card_reviews ?? track3.card_reviews,
+    deck_opt_ins: raw.deck_opt_ins ?? track3.deck_opt_ins,
+    questions: raw.questions ?? track3.questions,
+    answers: raw.answers ?? track3.answers,
+    roadmap_stages: raw.roadmap_stages ?? track3.roadmap_stages,
+    phrasebook_entries: raw.phrasebook_entries ?? track3.phrasebook_entries,
+    socratic_sessions: raw.socratic_sessions ?? track3.socratic_sessions,
+    reading_progress: raw.reading_progress ?? track3.reading_progress,
+    practice_speak_logs: raw.practice_speak_logs ?? track3.practice_speak_logs,
+    judge_attempts: raw.judge_attempts ?? track3.judge_attempts,
+    map_reviews: raw.map_reviews ?? track3.map_reviews,
+    drill_session_seen: raw.drill_session_seen ?? track3.drill_session_seen,
   };
 }
 
@@ -516,8 +612,7 @@ export async function readStore(): Promise<SampleStore> {
   await ensureDir();
   try {
     const raw = await fs.readFile(STORE_PATH, "utf8");
-    const parsed = JSON.parse(raw) as Partial<SampleStore>;
-    return { ...emptyTrack3(), ...parsed } as SampleStore;
+    return migrateStoreShape(JSON.parse(raw) as Partial<SampleStore>);
   } catch {
     const seeded = await buildSeedStore();
     await fs.writeFile(STORE_PATH, JSON.stringify(seeded, null, 2));

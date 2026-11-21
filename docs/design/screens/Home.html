@@ -1,0 +1,155 @@
+<!-- Crux design reference. Translate to Next.js + Tailwind; ignore the <x-dc>, <helmet> and DCLogic wrappers. Sample data only. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crux: program map</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;font-family:Inter,system-ui,sans-serif;color:#111318}
+a{color:inherit;text-decoration:none}
+.disp{font-family:'Bricolage Grotesque',Inter,sans-serif}
+.lab{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5A606B}
+.nav{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;font-size:15px;font-weight:500;color:#C9CCD3}
+.nav:hover{background:#1E2129;color:#FFFFFF}
+.mono{font-family:'IBM Plex Mono',monospace}
+.big{font:800 44px/1 'Bricolage Grotesque',sans-serif}
+.cell{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-left:1px solid #E3E5E9}
+.track{height:8px;border-radius:999px;background:#ECEEF1;overflow:hidden}
+.ini{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 4px;border-radius:6px;background:#F3F4F6;font-size:11px;font-weight:700;color:#3B404A}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 248px; background: #111318; color: #FFFFFF; padding: 28px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 28px">
+    <span class="disp" style="font-size: 38px; font-weight: 800; letter-spacing: -0.04em; padding: 0 12px; color: #FFFFFF">crux</span>
+    <nav aria-label="Main" style="display: flex; flex-direction: column; gap: 2px">
+      <a class="nav" href="Home.html" style="background: #9D2235; color: #FFFFFF">Program map</a>
+      <a class="nav" href="Roadmap.html">My roadmap</a>
+      <a class="nav" href="CaseBrain.html">Cases</a>
+      <a class="nav" href="Reading.html">Reading room</a>
+      <a class="nav" href="Practice.html">Practice</a>
+      <a class="nav" href="Feedback.html">Reports</a>
+      <a class="nav" href="#">Team chat</a>
+    </nav>
+    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px">
+      <button style="height: 44px; border-radius: 12px; border: none; background: #F5B700; color: #111318; font: 700 15px Inter, sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px"><img src="/cruxy/cruxy-lamp.png" alt="" style="width: 42px; height: auto">Ask Cruxy</button>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 8px 6px">
+        <span style="width: 32px; height: 32px; border-radius: 10px; background: #C2410C; display: flex; align-items: center; justify-content: center; font-weight: 700">J</span>
+        <span style="font-size: 14px; line-height: 1.3"><strong>Jainam</strong><br><span style="color: #9AA0AA">Team 3 · admin</span></span>
+      </div>
+    </div>
+  </aside>
+
+  <main style="flex: 999 1 640px; min-width: 0; padding: 36px 40px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 28px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 20px">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span class="lab">Saturday, Nov 21 · sample data</span>
+        <h1 class="disp" style="margin: 0; font-size: 56px; line-height: .95; font-weight: 800; letter-spacing: -0.03em">Where the program stands</h1>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px; background: #9D2235; color: #FFFFFF; border-radius: 18px; padding: 14px 20px">
+        <span class="big" style="font-size: 52px">14</span>
+        <span style="font-size: 14px; line-height: 1.35">days to UCSB<br><span style="color: #F3D0D6">Regional, Dec 5</span></span>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px">
+      <div style="background: #FFFFFF; border-radius: 16px; padding: 16px"><div class="big">412</div><div style="font-size: 13px; color: #5A606B; margin-top: 6px">Drive files read</div><div style="font-size: 12px; font-weight: 700; color: #0F7B6C; margin-top: 4px">+18 this week</div></div>
+      <div style="background: #FFFFFF; border-radius: 16px; padding: 16px"><div class="big">96</div><div style="font-size: 13px; color: #5A606B; margin-top: 6px">ideas accepted</div><div style="font-size: 12px; font-weight: 700; color: #0F7B6C; margin-top: 4px">+31 this week</div></div>
+      <div style="background: #FFFFFF; border-radius: 16px; padding: 16px"><div class="big">61</div><div style="font-size: 13px; color: #5A606B; margin-top: 6px">sources verified</div><div style="font-size: 12px; font-weight: 700; color: #0F7B6C; margin-top: 4px">+9 overnight</div></div>
+      <div style="background: #FFFFFF; border-radius: 16px; padding: 16px"><div class="big">238</div><div style="font-size: 13px; color: #5A606B; margin-top: 6px">bank questions</div><div style="font-size: 12px; font-weight: 700; color: #0F7B6C; margin-top: 4px">+40 from Dr. B</div></div>
+      <div style="background: #FFFFFF; border-radius: 16px; padding: 16px"><div class="big">27</div><div style="font-size: 13px; color: #5A606B; margin-top: 6px">rounds graded</div><div style="font-size: 12px; font-weight: 700; color: #0F7B6C; margin-top: 4px">avg 41 of 60</div></div>
+      <div style="background: #FFFFFF; border-radius: 16px; padding: 16px"><div class="big">53</div><div style="font-size: 13px; color: #5A606B; margin-top: 6px">redos that improved</div><div style="font-size: 12px; font-weight: 700; color: #0F7B6C; margin-top: 4px">+2.1 points each</div></div>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+      <section aria-labelledby="board" style="flex: 999 1 640px; min-width: 0; background: #FFFFFF; border-radius: 20px; overflow: hidden">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 20px 20px 12px; flex-wrap: wrap; gap: 8px">
+          <h2 id="board" class="disp" style="margin: 0; font-size: 24px; font-weight: 800">Case board</h2>
+          <span style="font-size: 13px; color: #5A606B">Readiness per team · leads · latest</span>
+        </div>
+        <div style="overflow-x: auto">
+          <div style="min-width: 760px">
+            <div style="display: grid; grid-template-columns: 220px repeat(3, minmax(0, 1fr)); border-top: 1px solid #E3E5E9; background: #F7F8FA; font-size: 13px; font-weight: 700">
+              <span style="padding: 10px 20px">Case</span>
+              <span style="padding: 10px 14px; border-left: 1px solid #E3E5E9; color: #0F7B6C">Team 1</span>
+              <span style="padding: 10px 14px; border-left: 1px solid #E3E5E9; color: #4F46E5">Team 2</span>
+              <span style="padding: 10px 14px; border-left: 1px solid #E3E5E9; color: #C2410C">Team 3</span>
+            </div>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="12">
+              <a href="CaseBrain.html" style="display: grid; grid-template-columns: 220px repeat(3, minmax(0, 1fr)); border-top: 1px solid #E3E5E9">
+                <span style="padding: 12px 20px; display: flex; gap: 12px; align-items: center">
+                  <span class="disp" style="font-size: 26px; font-weight: 800; width: 34px; color: #9D2235">{{r.num}}</span>
+                  <span style="font-size: 14px; font-weight: 600; line-height: 1.25">{{r.title}}</span>
+                </span>
+                <span class="cell">
+                  <span style="display: flex; justify-content: space-between; align-items: center"><span class="mono" style="font-size: 13px; font-weight: 600">{{r.a.p}}%</span><span class="ini">{{r.a.l}}</span></span>
+                  <span class="track"><span style="{{r.a.bar}}"></span></span>
+                  <span style="font-size: 12px; color: #5A606B">{{r.a.n}}</span>
+                </span>
+                <span class="cell">
+                  <span style="display: flex; justify-content: space-between; align-items: center"><span class="mono" style="font-size: 13px; font-weight: 600">{{r.b.p}}%</span><span class="ini">{{r.b.l}}</span></span>
+                  <span class="track"><span style="{{r.b.bar}}"></span></span>
+                  <span style="font-size: 12px; color: #5A606B">{{r.b.n}}</span>
+                </span>
+                <span class="cell">
+                  <span style="display: flex; justify-content: space-between; align-items: center"><span class="mono" style="font-size: 13px; font-weight: 600">{{r.c.p}}%</span><span class="ini">{{r.c.l}}</span></span>
+                  <span class="track"><span style="{{r.c.bar}}"></span></span>
+                  <span style="font-size: 12px; color: #5A606B">{{r.c.n}}</span>
+                </span>
+              </a>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+
+      <div style="flex: 1 1 300px; display: flex; flex-direction: column; gap: 20px">
+        <section aria-labelledby="mine" style="background: #111318; color: #FFFFFF; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+          <h2 id="mine" class="disp" style="margin: 0; font-size: 22px; font-weight: 800">Your next three</h2>
+          <a href="Roadmap.html" style="display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 12px; background: #1E2129"><span style="font-size: 12px; color: #F5B700; font-weight: 700">CASE 13 · OVERDUE 1 DAY</span><span style="font-size: 15px; line-height: 1.35">Fill the counterclaim row on the one pager</span></a>
+          <a href="Feedback.html" style="display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 12px; background: #1E2129"><span style="font-size: 12px; color: #F5B700; font-weight: 700">REDO · 90 SECONDS</span><span style="font-size: 15px; line-height: 1.35">Re-take your Kant answer from Thursday's round</span></a>
+          <a href="CaseBrain.html" style="display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 12px; background: #1E2129"><span style="font-size: 12px; color: #F5B700; font-weight: 700">CASE 9 · 4 WAITING</span><span style="font-size: 15px; line-height: 1.35">Decide on 4 ideas inspired by Team 1</span></a>
+        </section>
+        <section aria-labelledby="since" style="background: #FFFFFF; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+          <h2 id="since" class="disp" style="margin: 0; font-size: 22px; font-weight: 800">Since you were here</h2>
+          <div style="display: flex; flex-direction: column; gap: 12px; font-size: 14px; line-height: 1.45">
+            <span><span style="font-weight: 700; color: #0F7B6C">Team 1</span> ✅ "repair, not payout" in Case 7 · <span style="color: #5A606B">Serena: matches DRA's own goal</span></span>
+            <span><span style="font-weight: 700; color: #4F46E5">Team 2</span> scored 44 of 60 on Case 5 with a guest judge</span>
+            <span><span style="font-weight: 700; color: #C2410C">Team 3</span> ❌ the Unit 731 example in Case 3 · <span style="color: #5A606B">Daniel: can't verify in time</span></span>
+            <span><span style="font-weight: 700; color: #8A6500">Cruxy</span> verified 9 sources overnight for Cases 12 and 14</span>
+            <span><span style="font-weight: 700">Dr. B</span> added 40 questions to the bank</span>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const colors = ['#0F7B6C', '#4F46E5', '#C2410C'];
+    const data = [
+      [1, 'CTRL-ALT-DEFENSE', [64, 'S·I', 'Mock round Tue'], [58, 'L·J', ''], [41, 'N·K', 'Claim 2 thin']],
+      [3, 'Sister City No More', [52, 'A·T', ''], [70, 'C·B', 'Judged 43/60'], [47, 'D·J', '']],
+      [4, 'Judging a Book by the Cover', [38, 'St·S', 'No counterclaim yet'], [61, 'Q·L', ''], [33, 'K·N', '']],
+      [5, 'The Gambler', [45, 'I·T', ''], [82, 'L·C', 'Judged 44/60'], [50, 'J·D', '']],
+      [7, 'Equal Access Activism', [77, 'S·A', 'Judged 46/60'], [49, 'B·J', ''], [55, 'N·D', '']],
+      [9, 'GEM in the Rough', [60, 'T·I', ''], [44, 'C·Q', ''], [72, 'J·K', '4 ideas waiting']],
+      [10, 'Right to Be Forgotten', [35, 'A·St', ''], [40, 'J·L', 'Map started'], [29, 'D·N', '']],
+      [11, 'The Cost of a Conscience', [48, 'S·T', ''], [53, 'B·C', ''], [44, 'K·J', '']],
+      [12, 'Medicine and Misinformation', [56, 'I·A', ''], [47, 'Q·J', ''], [81, 'N·J', 'Judged 45/60']],
+      [13, 'Normally Distributed Violence', [42, 'St·I', ''], [38, 'L·B', ''], [69, 'K·D', 'One pager due']],
+      [14, 'The Allure of the Machine', [30, 'T·S', 'Cruxy: 4 new sources'], [36, 'C·L', ''], [25, 'J·N', '']],
+      [15, 'Udderly Conflicted', [51, 'A·I', ''], [57, 'J·Q', ''], [39, 'D·K', '']]
+    ];
+    const cell = (c, i) => ({ p: c[0], l: c[1], n: c[2], bar: 'display:block;height:8px;border-radius:999px;width:' + c[0] + '%;background:' + colors[i] });
+    return { rows: data.map((d) => ({ num: d[0], title: d[1], a: cell(d[2], 0), b: cell(d[3], 1), c: cell(d[4], 2) })) };
+  }
+}
+</script>
+</body>
+</html>
