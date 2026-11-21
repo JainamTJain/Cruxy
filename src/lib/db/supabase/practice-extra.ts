@@ -7,14 +7,26 @@ import { isSampleDataMode } from "@/lib/db/config";
 import { getServiceSupabase } from "@/lib/db/supabase/client";
 import { readStore, updateStore } from "@/lib/db/sample-store";
 import { logActivity } from "@/lib/db/repository";
-import { generateSessionCode, hashSessionCode } from "@/lib/practice/session-codes";
+import {
+  generateSessionCode,
+  hashSessionCode,
+  normalizeCode,
+  verifySessionCode,
+} from "@/lib/practice/session-codes";
+import { gatePortalVerify, type PortalKind } from "@/lib/practice/ops-bridge";
 import type {
   AttendanceStatus,
   BankEntry,
+  PracticeRound,
+  PracticeSession,
   SkillChart,
   TalkAnalytics,
 } from "@/lib/practice/types";
 import { nowIso } from "@/lib/utils";
+import {
+  getSessionById,
+  upsertAttendance,
+} from "@/lib/db/supabase/practice";
 
 function must<T>(
   result: { data: T; error: { message: string } | null },
@@ -22,6 +34,112 @@ function must<T>(
 ): T {
   if (result.error) throw new Error(`${label}: ${result.error.message}`);
   return result.data;
+}
+
+/**
+ * Join a practice session by code, gated by Workstream I portal brute-force.
+ * Prefer this over the older session_code_attempts path in practice.ts.
+ */
+export async function joinWithSessionCodeGuarded(opts: {
+  code: string;
+  personId?: string | null;
+  ipKey?: string;
+  portal?: PortalKind;
+}): Promise<
+  | { ok: true; session: PracticeSession; rounds: PracticeRound[] }
+  | { ok: false; reason: string }
+> {
+  const portal = opts.portal ?? "session_code";
+  const gated = await gatePortalVerify({
+    portal,
+    ipKey: opts.ipKey,
+    personId: opts.personId,
+    targetLabel: normalizeCode(opts.code).slice(0, 2) + "****",
+    verify: async () => {
+      const found = await matchSessionByCode(opts.code);
+      if (!found) return { ok: false };
+      return { ok: true, value: found };
+    },
+  });
+
+  if (!gated.ok) {
+    return { ok: false, reason: gated.reason };
+  }
+
+  const { session, rounds } = gated.value as {
+    session: PracticeSession;
+    rounds: PracticeRound[];
+  };
+  if (opts.personId) {
+    if (isSampleDataMode()) {
+      await updateStore((s) => {
+        const existing = s.attendance.find(
+          (a) =>
+            a.session_id === session.id && a.person_id === opts.personId,
+        );
+        if (existing) {
+          existing.status = "present";
+          existing.source = "join";
+        } else {
+          s.attendance.push({
+            id: crypto.randomUUID(),
+            session_id: session.id,
+            person_id: opts.personId!,
+            status: "present",
+            source: "join",
+            created_at: nowIso(),
+          });
+        }
+      });
+    } else {
+      await upsertAttendance({
+        sessionId: session.id,
+        personId: opts.personId,
+        status: "present",
+        source: "join",
+      });
+    }
+  }
+  return { ok: true, session, rounds };
+}
+
+async function matchSessionByCode(
+  code: string,
+): Promise<{ session: PracticeSession; rounds: PracticeRound[] } | null> {
+  if (isSampleDataMode()) {
+    const store = await readStore();
+    for (const s of store.practice_sessions) {
+      if (!s.code_hash) continue;
+      if (await verifySessionCode(s.code_hash, code)) {
+        const rounds = store.practice_rounds.filter(
+          (r) => r.session_id === s.id,
+        );
+        return { session: s, rounds };
+      }
+    }
+    return null;
+  }
+
+  const sb = getServiceSupabase();
+  const rows =
+    must(
+      await sb
+        .from("sessions")
+        .select("id, code_hash")
+        .not("code_hash", "is", null)
+        .order("created_at", { ascending: false }),
+      "matchSessionByCode",
+    ) ?? [];
+
+  for (const row of rows as { id: string; code_hash: string }[]) {
+    if (await verifySessionCode(row.code_hash, code)) {
+      const full = await getSessionById(row.id);
+      if (!full) return null;
+      const { rounds, ...session } = full;
+      return { session, rounds };
+    }
+  }
+  return null;
 }
 
 export async function revealSessionCode(

@@ -30,8 +30,6 @@ import {
   generateSessionCode,
   hashGuestToken,
   hashSessionCode,
-  normalizeCode,
-  verifySessionCode,
 } from "@/lib/practice/session-codes";
 import { buildCaseGlossary } from "@/lib/practice/glossary";
 import { nowIso, addMinutes } from "@/lib/utils";
@@ -205,69 +203,21 @@ export async function rotateSessionCode(
   return plain;
 }
 
-const MAX_CODE_FAILURES = 5;
-
 export async function joinWithSessionCode(opts: {
   code: string;
   personId?: string | null;
   ipKey?: string;
+  /** Judging portal vs practice-room join (Workstream I portal_attempts). */
+  portal?: "judging" | "session_code";
 }): Promise<
   | { ok: true; session: PracticeSession; rounds: PracticeRound[] }
   | { ok: false; reason: string }
 > {
-  if (!isSampleDataMode()) return sb.joinWithSessionCode(opts);
-  const key = `code:${normalizeCode(opts.code)}:${opts.ipKey ?? "local"}`;
-  const store = await readStore();
-  const attempt = store.session_code_attempts.find((a) => a.key === key);
-  if (attempt?.locked_until && new Date(attempt.locked_until) > new Date()) {
-    return { ok: false, reason: "Too many tries. Wait 10 minutes." };
-  }
-
-  let matched: PracticeSession | null = null;
-  for (const s of store.practice_sessions) {
-    if (!s.code_hash) continue;
-    if (await verifySessionCode(s.code_hash, opts.code)) {
-      matched = s;
-      break;
-    }
-  }
-
-  if (!matched) {
-    await updateStore((s) => {
-      let row = s.session_code_attempts.find((a) => a.key === key);
-      if (!row) {
-        row = { key, failures: 0, locked_until: null };
-        s.session_code_attempts.push(row);
-      }
-      row.failures += 1;
-      if (row.failures >= MAX_CODE_FAILURES) {
-        row.locked_until = addMinutes(new Date(), 10).toISOString();
-      }
-    });
-    await logActivity({
-      person_id: opts.personId ?? null,
-      action: "session_code_failed",
-      target: normalizeCode(opts.code).slice(0, 2) + "****",
-    });
-    return { ok: false, reason: "Invalid session code" };
-  }
-
-  await updateStore((s) => {
-    s.session_code_attempts = s.session_code_attempts.filter((a) => a.key !== key);
-  });
-
-  const rounds = store.practice_rounds.filter((r) => r.session_id === matched!.id);
-
-  if (opts.personId) {
-    await upsertAttendance({
-      sessionId: matched.id,
-      personId: opts.personId,
-      status: "present",
-      source: "join",
-    });
-  }
-
-  return { ok: true, session: matched, rounds };
+  // Workstream I owns brute-force; D routes through practice-extra.
+  const { joinWithSessionCodeGuarded } = await import(
+    "@/lib/db/supabase/practice-extra"
+  );
+  return joinWithSessionCodeGuarded(opts);
 }
 
 export async function upsertAttendance(opts: {
