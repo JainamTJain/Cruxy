@@ -40,7 +40,7 @@ Tracks 0 to 6 are merged as plumbing (code under `src/`). The product does **not
 8. **Progress is measured against the person's own past**, never against fixed score cutoffs or against other people.
 9. **The three USC teams never compete against each other.** Everything is visible to all three teams; each team decides for itself.
 10. **Cruxy asks before it answers.** See the Cruxy section of the spec and `.cursor/rules/30-cruxy-ai.mdc`.
-11. **Writing style in the UI:** plain words, short sentences, no jargon, no em dashes. Users never see the words "AI" or a model's name; they see "Cruxy".
+11. **Writing style in the UI:** plain words, short sentences, no jargon, no em dashes. No middle dots ("·") as separators either; Jainam finds them ugly. Use line breaks, commas, spacing or small labels instead. Users never see the words "AI" or a model's name; they see "Cruxy".
 
 ## How to work
 
