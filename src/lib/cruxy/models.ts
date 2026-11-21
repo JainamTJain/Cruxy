@@ -1,11 +1,13 @@
 /**
  * Model tier settings for Cruxy.
  * Defaults match Jainam's Nov 21, 2026 choices (docs/orchestration/model-routing.md).
- * Until Workstream 0 lands the shared Supabase client, reads come from these
- * constants (plus in-memory overrides from updateModelSettings). After rebase,
- * replace the constant path with a select from model_settings.
+ * Live (Supabase) mode reads and writes the model_settings table (migration 00010)
+ * through the shared server client, cached for 60 s. Sample mode uses these
+ * constants plus in-memory overrides.
  */
 import { logActivity } from "@/lib/db/repository";
+import { isSampleDataMode } from "@/lib/db/config";
+import { getServiceSupabase } from "@/lib/db/supabase/client";
 
 export type ModelTier = "small" | "strong" | "embed";
 
@@ -90,12 +92,26 @@ function mergeRows(): Record<ModelTier, ModelSettingRow> {
   return base;
 }
 
-function readCached(): Record<ModelTier, ModelSettingRow> {
+async function readFromDb(): Promise<Record<ModelTier, ModelSettingRow>> {
+  const base = cloneDefaults();
+  const { data, error } = await getServiceSupabase()
+    .from("model_settings")
+    .select("tier, model, fallbacks, effort_default, updated_at, updated_by");
+  if (error) throw new Error(`model_settings: ${error.message}`);
+  for (const row of (data ?? []) as ModelSettingRow[]) {
+    if (row.tier in base) {
+      base[row.tier] = { ...row, fallbacks: [...(row.fallbacks ?? [])] };
+    }
+  }
+  return base;
+}
+
+async function readCached(): Promise<Record<ModelTier, ModelSettingRow>> {
   const now = Date.now();
   if (cache && now - cache.at < CACHE_TTL_MS) {
     return cache.rows;
   }
-  const rows = mergeRows();
+  const rows = isSampleDataMode() ? mergeRows() : await readFromDb();
   cache = { at: now, rows };
   return rows;
 }
@@ -140,8 +156,7 @@ export type UpdateModelSettingsInput = {
 
 /**
  * Update a tier's primary / fallbacks / effort default.
- * Writes activity_log. Persists in-memory until W0 wires model_settings reads;
- * after rebase, also upsert the row via the shared server client.
+ * Writes activity_log. Persists to model_settings in live mode, in memory in sample mode.
  */
 export async function updateModelSettings(
   input: UpdateModelSettingsInput,
@@ -159,7 +174,19 @@ export async function updateModelSettings(
     updated_by: input.updatedBy ?? current.updated_by,
   };
 
-  overrides[input.tier] = next;
+  if (isSampleDataMode()) {
+    overrides[input.tier] = next;
+  } else {
+    const { error } = await getServiceSupabase().from("model_settings").upsert({
+      tier: next.tier,
+      model: next.model,
+      fallbacks: next.fallbacks,
+      effort_default: next.effort_default,
+      updated_at: next.updated_at,
+      updated_by: next.updated_by,
+    });
+    if (error) throw new Error(`model_settings update: ${error.message}`);
+  }
   clearModelSettingsCache();
 
   await logActivity({
