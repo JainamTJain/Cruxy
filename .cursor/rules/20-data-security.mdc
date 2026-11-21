@@ -1,0 +1,15 @@
+---
+description: Database, auth, passcodes, RLS, recordings and privacy rules for Crux
+globs: supabase/**, lib/server/**, src/lib/auth/**, app/api/**, middleware.ts
+alwaysApply: false
+---
+
+# Data and security
+
+- Schema: the Data model table in `docs/spec.md` is the contract. Every row has `id uuid`, `created_at`, `created_by`, and `team_id` / `case_id` where they apply.
+- Sign in (Track 0): passcode checked server side, then an HS256 JWT cookie `crux_session` signed with `SESSION_SECRET` (`src/lib/auth/session.ts`). There is no Supabase Auth user, so all DB access goes through server routes using `src/lib/db/repository.ts`, and every route checks the session and role first. See "How sign in works" in `docs/research/apis.md`.
+- Passcodes (spec "Sign in" section): first sign in with a starter code, then the person chooses a 6 digit passcode. Store an argon2id hash to check it and an AES-256-GCM copy (key `PASSCODE_VIEW_KEY`) that only the technical admin's Passcodes panel can decrypt. Jainam's own passcode is hash only. 5 wrong tries lock that name for 10 minutes. Every reveal and reset goes to `activity_log`.
+- Visibility rules (enforce in server routes; mirror them in RLS as a backstop): everyone signed in can read everything except `auth_codes`, session code hashes, `ai_calls`, `book_requests` and judge weights. Writes only to your own team's rows, except comments and chat. Admin-only tables check `people.role`.
+- Recording: never start without stored consent. Upload in chunks so a crash loses at most 30 seconds. Delete audio from Storage as soon as the transcript is saved; a nightly job deletes any audio older than 24 hours.
+- Session codes and starter codes are hashed; shown only to admins.
+- `SUPABASE_SERVICE_ROLE_KEY` (holding the `sb_secret_` key), the service account and `PASSCODE_VIEW_KEY` are used only in server code.

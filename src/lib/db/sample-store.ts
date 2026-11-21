@@ -8,6 +8,20 @@ import {
   TOKENS,
 } from "@/lib/constants";
 import type {
+  Backing,
+  CaseRole,
+  ChangeTheFactsItem,
+  Claim,
+  Counterclaim,
+  Decision,
+  ItemHistoryEntry,
+  OpposingPosition,
+  Proposal,
+  Support,
+  TeamPrinciple,
+  TruthItem,
+} from "@/lib/case-brain/types";
+import type {
   ActivityLogEntry,
   AiCall,
   AuthCode,
@@ -48,6 +62,19 @@ export interface SampleStore {
   ai_calls: AiCall[];
   competitions: Competition[];
   cases: CaseRow[];
+  /** Track 2 Case brain */
+  claims: Claim[];
+  supports: Support[];
+  backings: Backing[];
+  counterclaims: Counterclaim[];
+  truth_items: TruthItem[];
+  proposals: Proposal[];
+  decisions: Decision[];
+  case_roles: CaseRole[];
+  opposing_positions: OpposingPosition[];
+  item_history: ItemHistoryEntry[];
+  team_principles: TeamPrinciple[];
+  change_the_facts: ChangeTheFactsItem[];
   seeded_at: string;
   /** tech-admin reauth timestamp for reveal window */
   last_tech_reauth_at: string | null;
@@ -81,6 +108,37 @@ export interface SampleStore {
     failures: number;
     locked_until: string | null;
   }[];
+}
+
+function emptyCaseBrainFields(): Pick<
+  SampleStore,
+  | "claims"
+  | "supports"
+  | "backings"
+  | "counterclaims"
+  | "truth_items"
+  | "proposals"
+  | "decisions"
+  | "case_roles"
+  | "opposing_positions"
+  | "item_history"
+  | "team_principles"
+  | "change_the_facts"
+> {
+  return {
+    claims: [],
+    supports: [],
+    backings: [],
+    counterclaims: [],
+    truth_items: [],
+    proposals: [],
+    decisions: [],
+    case_roles: [],
+    opposing_positions: [],
+    item_history: [],
+    team_principles: [],
+    change_the_facts: [],
+  };
 }
 
 async function ensureDir() {
@@ -218,6 +276,7 @@ export async function buildSeedStore(): Promise<SampleStore> {
     ai_calls: [],
     competitions: [competition],
     cases,
+    ...emptyCaseBrainFields(),
     seeded_at: nowIso(),
     last_tech_reauth_at: null,
     ...emptyPracticeTables(),
@@ -281,12 +340,32 @@ export function ensurePracticeTables(store: SampleStore): SampleStore {
 
 let writeChain: Promise<void> = Promise.resolve();
 
+function migrateStoreShape(raw: SampleStore): SampleStore {
+  const brain = emptyCaseBrainFields();
+  return {
+    ...raw,
+    claims: raw.claims ?? brain.claims,
+    supports: raw.supports ?? brain.supports,
+    backings: raw.backings ?? brain.backings,
+    counterclaims: raw.counterclaims ?? brain.counterclaims,
+    truth_items: raw.truth_items ?? brain.truth_items,
+    proposals: raw.proposals ?? brain.proposals,
+    decisions: raw.decisions ?? brain.decisions,
+    case_roles: raw.case_roles ?? brain.case_roles,
+    opposing_positions: raw.opposing_positions ?? brain.opposing_positions,
+    item_history: raw.item_history ?? brain.item_history,
+    team_principles: raw.team_principles ?? brain.team_principles,
+    change_the_facts: raw.change_the_facts ?? brain.change_the_facts,
+  };
+}
+
 export async function readStore(): Promise<SampleStore> {
   await ensureDir();
   try {
     const raw = await fs.readFile(STORE_PATH, "utf8");
-    const parsed = ensurePracticeTables(JSON.parse(raw) as SampleStore);
-    return parsed;
+    return ensurePracticeTables(
+      migrateStoreShape(JSON.parse(raw) as SampleStore),
+    );
   } catch {
     const seeded = await buildSeedStore();
     await fs.writeFile(STORE_PATH, JSON.stringify(seeded, null, 2));

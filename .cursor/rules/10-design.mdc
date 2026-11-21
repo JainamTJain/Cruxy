@@ -1,0 +1,21 @@
+---
+description: Crux visual design system, screen references and Cruxy character assets. Use for any UI work.
+globs: src/app/**/*.tsx, src/components/**/*.tsx, src/app/**/*.css
+alwaysApply: false
+---
+
+# Crux design
+
+- Before building a screen, open its reference in `docs/design/screens/` (index in `docs/design/README.md`) and match layout, hierarchy, copy and colours. The references are plain HTML with inline styles: translate them to Tailwind and shadcn components; ignore the `<x-dc>`, `<helmet>` and `DCLogic` wrappers.
+- Track 0 put the tokens in `src/app/globals.css`, but its `--crux-paper` is a cream #f7f4ef; the approved reference is #F3F4F6, so fix it. Tokens live in `src/app/globals.css` (keep in sync with `docs/design/tokens.css`). Use the CSS variables, never raw hex in components.
+  - Cardinal `--crux-cardinal` #9D2235 (brand, active nav, primary emphasis)
+  - Cruxy gold `--crux-gold` #F5B700 (anything Cruxy does or says)
+  - Ink `--crux-ink` #111318 (text, dark panels, primary buttons)
+  - Paper `--crux-paper` #F3F4F6, surface #FFFFFF, line #E3E5E9, muted text #5A606B
+  - Team colours: Team 1 #0F7B6C, Team 2 #4F46E5, Team 3 #C2410C
+- Fonts: Bricolage Grotesque (display, 600 and 800), Inter (body), IBM Plex Mono (numbers, citations, timers). Load with `next/font/google`.
+- Layout: dark 248px sidebar with the lowercase "crux" wordmark on desktop; bottom tab bar (Today, Cases, Practice, Team, Cruxy) on phones. Every page works at 390px wide.
+- Touch targets at least 44px. Text contrast at least 4.5:1. Real `<button>`, `<a>`, `<label>`.
+- Cruxy's images are in `public/cruxy/` (transparent PNGs). The lamp (`cruxy-lamp.png`) is Cruxy's only small icon: Ask Cruxy button, drawer header, chat messages, phone tab. Never crop Cruxy to a face-only avatar.
+- The floating Cruxy, the lamp and the moods are specified in the spec's Cruxy section and drawn in `docs/design/screens/Cruxy.html` and `CruxyMoods.html`.
+- Respect `prefers-reduced-motion`.

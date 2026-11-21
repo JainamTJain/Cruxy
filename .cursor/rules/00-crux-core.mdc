@@ -1,0 +1,20 @@
+---
+description: Core facts and non-negotiable rules for every change in the Crux repo
+alwaysApply: true
+---
+
+# Crux: core rules
+
+- Read `AGENTS.md` before your first change in a chat. The full spec is `docs/spec.md`; decisions with reasons are in `docs/decisions.md`.
+- Code lives under `src/` (`src/app`, `src/lib`, `src/components`). Track 0 is merged: build on its files (`src/lib/db/repository.ts`, `src/lib/cruxy/callCruxy.ts`, `src/lib/auth/session.ts`, `src/lib/types.ts`) instead of making new versions.
+- Stack is fixed: Next.js App Router + TypeScript strict + Tailwind + shadcn/ui, Supabase (Postgres, pgvector, Storage, RLS), Vercel, Vercel AI SDK through AI Gateway, Google Drive API via service account, AssemblyAI, Resend. Don't add another database, auth provider, state library or UI kit.
+- Use the current APIs described in `docs/research/apis.md`. Your training data is older than these services' current versions. In particular, Supabase now issues `sb_publishable_` and `sb_secret_` keys; they go in `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY`.
+- Every model call goes through `callCruxy()` in `src/lib/cruxy/callCruxy.ts`. No direct provider SDK calls anywhere else.
+- No citation, no display: AI output is saved with `citation_ids` and is hidden if it has none.
+- Secrets only in environment variables. Never write a key, passcode or service account JSON into code, tests, fixtures, logs or prompts.
+- Server-only modules (anything using `SUPABASE_SERVICE_ROLE_KEY`, `PASSCODE_VIEW_KEY` or `GOOGLE_SERVICE_ACCOUNT_JSON`) start with `import "server-only"`.
+- All database access is server side through `src/lib/db/repository.ts`; every route checks the `crux_session` and the person's role first. Every new table: RLS enabled (deny `anon` by default) in the same migration. Every mutation: `logActivity()`.
+- The repo is public: never commit real names beyond the seed list, keys, passcodes or `.env.local`.
+- Progress compares a person with their own past only. Never add leaderboards or fixed score cutoffs.
+- UI copy: plain, short, no em dashes, no "AI" or model names (say "Cruxy").
+- When unsure what a feature should do, search `docs/` first; if it's not there, ask instead of inventing.

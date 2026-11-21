@@ -1,0 +1,107 @@
+<!-- Crux design reference. Translate to Next.js + Tailwind; ignore the <x-dc>, <helmet> and DCLogic wrappers. Sample data only. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crux: practice room</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0C0D11;font-family:Inter,system-ui,sans-serif;color:#F2F3F5}
+a{color:inherit;text-decoration:none}
+.disp{font-family:'Bricolage Grotesque',Inter,sans-serif}
+.lab{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#8C929D}
+.panel{background:#16181F;border:1px solid #262934;border-radius:20px;padding:20px;box-sizing:border-box}
+.ph{padding:12px 14px;border-radius:14px;background:#16181F;border:1px solid #262934}
+.btn{height:46px;padding:0 18px;border-radius:12px;border:1px solid #3B404A;background:transparent;color:#F2F3F5;font:600 14px Inter,sans-serif;cursor:pointer}
+.mono{font-family:'IBM Plex Mono',monospace}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #0C0D11">
+  <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 32px; background: #C62828; color: #FFFFFF; font-size: 14px; font-weight: 600">
+    <span style="display: flex; align-items: center; gap: 10px"><span style="width: 10px; height: 10px; border-radius: 50%; background: #FFFFFF"></span>Recording · everyone in this room agreed to be recorded</span>
+    <span class="mono">23:41</span>
+  </div>
+
+  <div style="max-width: 1360px; margin: 0 auto; padding: 24px 32px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+      <div style="display: flex; align-items: center; gap: 20px">
+        <a href="Home.html" class="disp" style="font-size: 34px; font-weight: 800; letter-spacing: -0.04em">crux</a>
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <span class="lab">Full round · Case 9 · sample data</span>
+          <span class="disp" style="font-size: 26px; font-weight: 800">Team 3 <span style="color: #8C929D; font-weight: 600">vs</span> Cruxy, playing the other team</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap">
+        <button class="btn">Pause</button>
+        <a href="Feedback.html" class="btn" style="display: flex; align-items: center; background: #F2F3F5; color: #0C0D11; border-color: #F2F3F5">End round and get the report</a>
+      </div>
+    </div>
+
+    <ol aria-label="Round phases" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+      <li class="ph" style="color: #8C929D"><div style="font-size: 13px">1 · Team 3 presents</div><div class="mono" style="font-size: 15px; font-weight: 600">10:00 · done</div></li>
+      <li class="ph" style="color: #8C929D"><div style="font-size: 13px">2 · Cruxy comments</div><div class="mono" style="font-size: 15px; font-weight: 600">6:00 · done</div></li>
+      <li class="ph" style="background: #F5B700; color: #0C0D11; border-color: #F5B700"><div style="font-size: 13px; font-weight: 700">3 · Team 3 responds</div><div class="mono" style="font-size: 15px; font-weight: 600">now</div></li>
+      <li class="ph" style="color: #8C929D; border-style: dashed"><div style="font-size: 13px">4 · Judges' Q&amp;A</div><div class="mono" style="font-size: 15px; font-weight: 600">12:00</div></li>
+    </ol>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch">
+      <section class="panel" style="flex: 999 1 640px; min-width: 0; padding: 32px; display: flex; flex-direction: column; gap: 22px">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px">
+          <span class="lab">Time left to respond</span>
+          <span class="mono" style="font-size: 112px; line-height: .9; font-weight: 600; color: #F5B700">02:14</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px; background: #0C0D11; border-radius: 16px; padding: 20px">
+          <span style="font-size: 13px; font-weight: 700; color: #F5B700">Cruxy's strongest point in its commentary · answer this first</span>
+          <p class="disp" style="margin: 0; font-size: 34px; line-height: 1.15; font-weight: 600">"Your four-part test would also send back the Parthenon Marbles. Are you ready to say that?"</p>
+          <span style="font-size: 13px; color: #8C929D">Built from the strongest opposing points in all three teams' case brains</span>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap">
+          <button class="btn">Read it aloud again</button>
+          <button class="btn">Show Cruxy's full commentary</button>
+          <button class="btn" style="background: #F2F3F5; color: #0C0D11; border-color: #F2F3F5">Next phase</button>
+        </div>
+        <div style="border-top: 1px solid #262934; padding-top: 16px; display: flex; flex-direction: column; gap: 10px">
+          <span class="lab">Live captions · rough, final transcript comes after</span>
+          <p style="margin: 0; font-size: 17px; line-height: 1.6; color: #C9CCD3"><span class="mono" style="font-size: 13px; color: #8C929D">22:58 Katie</span>  We'd apply the test to the Marbles case by case, and yes, we think it likely passes.</p>
+          <p style="margin: 0; font-size: 17px; line-height: 1.6; color: #C9CCD3"><span class="mono" style="font-size: 13px; color: #8C929D">23:27 Jainam</span>  And that's the point of consistency: a principle that only runs against Europe isn't a principle.</p>
+        </div>
+      </section>
+
+      <aside style="flex: 1 1 300px; display: flex; flex-direction: column; gap: 16px">
+        <section class="panel" aria-labelledby="room" style="display: flex; flex-direction: column; gap: 12px">
+          <h2 id="room" style="margin: 0; font-size: 16px; font-weight: 700">In this round</h2>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+            <span style="display: flex; justify-content: space-between"><span>Jainam · Lead 1</span><span style="color: #8C929D">speaking</span></span>
+            <span style="display: flex; justify-content: space-between"><span>Katie · Lead 2</span><span style="color: #8C929D">present</span></span>
+            <span style="display: flex; justify-content: space-between"><span>Daniel · Counter</span><span style="color: #8C929D">present</span></span>
+            <span style="display: flex; justify-content: space-between"><span>Nick · Supporter</span><span style="color: #8C929D">present</span></span>
+          </div>
+          <span style="font-size: 13px; color: #8C929D">Attendance is confirmed by Jainam or Dr. B.</span>
+        </section>
+        <section class="panel" aria-labelledby="judges" style="display: flex; flex-direction: column; gap: 10px">
+          <h2 id="judges" style="margin: 0; font-size: 16px; font-weight: 700">Judging this round</h2>
+          <span style="display: flex; align-items: center; gap: 10px; font-size: 14px"><span style="width: 28px; height: 28px; border-radius: 8px; background: #F5B700; color: #0C0D11; display: flex; align-items: center; justify-content: center; font-weight: 800">C</span>Cruxy judge</span>
+          <span style="display: flex; align-items: center; gap: 10px; font-size: 14px"><span style="width: 28px; height: 28px; border-radius: 8px; background: #4F46E5; display: flex; align-items: center; justify-content: center; font-weight: 800">L</span>Lehar, in person</span>
+        </section>
+        <section class="panel" aria-labelledby="mode" style="display: flex; flex-direction: column; gap: 8px">
+          <h2 id="mode" style="margin: 0; font-size: 16px; font-weight: 700">Recording from</h2>
+          <span style="font-size: 14px; line-height: 1.45; color: #C9CCD3">One laptop in the room. Voices are matched to the four of you after the round.</span>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

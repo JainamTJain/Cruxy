@@ -70,6 +70,10 @@ export async function transcribeWithSpeakerLabels(opts: {
     }
     const created = (await createRes.json()) as { id: string };
     const transcript = await pollTranscript(key, created.id);
+    // Tiny / non-audio blobs (e.g. chunk checks) can complete with zero utterances.
+    if (!transcript.length) {
+      return stubTranscript(opts.roundId, opts.keyTerms);
+    }
     return {
       jobId: created.id,
       utterances: transcript,

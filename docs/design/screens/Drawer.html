@@ -1,0 +1,82 @@
+<!-- Crux design reference. Translate to Next.js + Tailwind; ignore the <x-dc>, <helmet> and DCLogic wrappers. Sample data only. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crux: Cruxy drawer in admin mode</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;font-family:Inter,system-ui,sans-serif;color:#111318}
+a{color:inherit;text-decoration:none}
+.disp{font-family:'Bricolage Grotesque',Inter,sans-serif}
+.lab{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5A606B}
+.chip{height:36px;padding:0 12px;border-radius:999px;border:1px solid #E3E5E9;background:#FFFFFF;font:600 13px Inter,sans-serif;color:#111318;cursor:pointer}
+.ref{font:600 12px 'IBM Plex Mono',monospace;color:#1E3A9E;text-decoration:underline}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #D9DCE2">
+  <div aria-hidden="true" style="flex: 999 1 560px; min-width: 0; padding: 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; opacity: .45">
+    <div style="height: 48px; width: 360px; border-radius: 10px; background: #FFFFFF"></div>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px"><div style="height: 110px; border-radius: 16px; background: #FFFFFF"></div><div style="height: 110px; border-radius: 16px; background: #FFFFFF"></div><div style="height: 110px; border-radius: 16px; background: #FFFFFF"></div><div style="height: 110px; border-radius: 16px; background: #FFFFFF"></div></div>
+    <div style="height: 420px; border-radius: 20px; background: #FFFFFF"></div>
+  </div>
+
+  <aside aria-labelledby="cx" style="flex: 0 1 480px; min-width: 320px; background: #FFFFFF; box-sizing: border-box; display: flex; flex-direction: column; border-left: 1px solid #C9CCD3">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px; border-bottom: 1px solid #ECEEF1">
+      <span style="display: flex; align-items: center; gap: 12px">
+        <img src="/cruxy/cruxy-lamp.png" alt="" style="width: 60px; height: auto">
+        <span><h2 id="cx" class="disp" style="margin: 0; font-size: 22px; font-weight: 800">Cruxy</h2><span style="font-size: 12px; font-weight: 700; color: #8A6500">ADMIN MODE · Dr. B</span></span>
+      </span>
+      <button aria-label="Close Cruxy" style="width: 40px; height: 40px; border-radius: 10px; border: 1px solid #E3E5E9; background: #FFFFFF; cursor: pointer; font-size: 18px">×</button>
+    </div>
+
+    <div style="flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 16px">
+      <div style="align-self: flex-end; max-width: 80%; background: #111318; color: #FFFFFF; border-radius: 16px 16px 4px 16px; padding: 12px 14px; font-size: 15px">Which team needs help on Case 13, and why?</div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; background: #F7F8FA; border-radius: 16px; padding: 16px; font-size: 14px; line-height: 1.5">
+        <p class="disp" style="margin: 0; font-size: 19px; font-weight: 600; line-height: 1.3">Team 2. Their Case 13 counterclaim has no answer yet, and 2 of 5 haven't caught up with their latest version.</p>
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font-size: 13px">
+          <span>Team 2 progress on their own path</span><strong>38% <span style="color: #5A606B; font-weight: 500">(Team 1 42%, Team 3 69%)</span></strong>
+          <span>Counterclaim answered</span><strong style="color: #C62828">No</strong>
+          <span>Confirmed v6</span><strong>3 of 5 · Lehar, Jade not yet</strong>
+          <span>Last practice on Case 13</span><strong>12 days ago</strong>
+        </div>
+        <p style="margin: 0"><strong>Suggested next step:</strong> a 30 minute Team 2 drill on the post hoc objection, with Daniel (Team 3, counter on this case) as a peer judge.</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px"><a class="ref" href="CaseBrain.html">Case 13 · Team 2 brain</a><a class="ref" href="TeamBoard.html">Team 2 board</a><a class="ref" href="Session.html">Create session</a></div>
+        <span style="font-size: 12px; color: #5A606B">From roadmaps, case brains and attendance, updated 4 minutes ago.</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span class="lab">Ask about the program</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px">
+          <button class="chip">Who is ready to lead Case 9?</button>
+          <button class="chip">What happened today?</button>
+          <button class="chip">Where do teams disagree?</button>
+          <button class="chip">Readiness brief for UCSB</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding: 16px 20px; border-top: 1px solid #ECEEF1; display: flex; flex-direction: column; gap: 8px">
+      <label for="ask" style="font-size: 13px; font-weight: 600">Ask Cruxy</label>
+      <div style="display: flex; gap: 8px">
+        <input id="ask" placeholder="Who hasn't practised Case 5?" style="flex: 1; height: 48px; border-radius: 12px; border: 1px solid #E3E5E9; padding: 0 14px; font: 400 15px Inter, sans-serif">
+        <button style="height: 48px; padding: 0 18px; border-radius: 12px; border: none; background: #F5B700; color: #111318; font: 700 15px Inter, sans-serif; cursor: pointer">Ask</button>
+      </div>
+    </div>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

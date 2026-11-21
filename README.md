@@ -1,12 +1,34 @@
 # Crux
 
-Web app for USC’s three Ethics Bowl teams. **Cruxy** is the built-in thinking partner (users never see “AI” or model names).
+Web app for USC’s three Ethics Bowl teams.
 
-## Tracks
+**Building with Cursor:** start every chat by @-mentioning `AGENTS.md` and the track file in `docs/tracks/`. Everything about the product is indexed in `docs/README.md`. **Cruxy** is the built-in thinking partner (users never see “AI” or model names).
 
-**Track 0 Foundation** (merged): Next.js App Router, design tokens, full schema SQL + RLS, name + 6-digit passcode auth, consent, Passcodes panel (tech admin), activity log, admin switch, `callCruxy` with monthly cap, first-run checklist, mobile layouts, and PWA installability.
+## Tracks landed
 
-**Track 5 Practice**: admin/member sessions with hashed join codes, six practice modes + drills, chunked 30s recording, AssemblyAI transcription (speaker labels) then immediate audio delete, judging portal (known + guest/QR), APPE scoring card, Cruxy judge with evidence-linked scores, feedback reports, scored redos, skills, and the Things to take care of bank.
+- **Track 0 Foundation** — auth, schema/RLS, `callCruxy`, design tokens, Passcodes panel, checklist
+- **Track 2 Case brain** — per-team claim maps, Truth Sources queue (propose → human decide with reason), Inspired-by fan-out, Analyst notes, opposing positions, robustness / consistency / change-the-facts, full item history
+- **Track 5 Practice** (this PR) — admin/member sessions with hashed join codes, six practice modes + drills, chunked 30s recording, AssemblyAI transcription then immediate audio delete, judging portal, APPE card, Cruxy judge/feedback, redos, skills, bank
+
+### Track 2 (sample-data path)
+
+Case brains work without Supabase / AI gateway keys: local JSON under `.data/`. Analyst notes and opposing drafts use `callCruxy` stubs when keys are missing.
+
+```bash
+npm run check:track2
+```
+
+Apply `supabase/migrations/00002_track2_case_brain.sql` when Supabase is connected.
+
+### Track 5 (sample-data path)
+
+Practice works on the same `.data/` store. AssemblyAI is used when `ASSEMBLYAI_API_KEY` is set; otherwise transcription stubs. Cruxy judge/feedback stubs via `callCruxy` until the AI gateway key is set.
+
+```bash
+npm run check:track5
+```
+
+Apply `supabase/migrations/00005_track5_practice.sql` when Supabase is connected.
 
 ### Local / sample-data path
 
@@ -28,6 +50,7 @@ Jainam signs in with the admin starter whose hash is `INITIAL_ADMIN_CODE_HASH` (
 
 ```bash
 npm run check:track0
+npm run check:track2
 npm run check:track5
 ```
 
@@ -35,7 +58,7 @@ Track 5 checks: mid-round chunk loss ≤30s; audio gone after transcription; eve
 
 ### Still needed from Jainam for production
 
-1. **Supabase** — `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; apply `supabase/migrations/00001_track0_foundation.sql`, `00005_track5_practice.sql` + `supabase/seed.sql`
+1. **Supabase** — `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; apply `supabase/migrations/00001_track0_foundation.sql`, `00002_track2_case_brain.sql`, `00005_track5_practice.sql` + `supabase/seed.sql`
 2. **AI gateway** — `AI_GATEWAY_API_KEY` or `OPENROUTER_API_KEY` (Cruxy judge/feedback stubs until set; AssemblyAI key may already be present)
 3. **Drive** — share the Ethics Bowl root folder with the service account email (see secrets inventory), then set `DRIVE_ROOT_FOLDER_ID`
 
