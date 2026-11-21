@@ -191,7 +191,8 @@ function parseServiceAccount(): ServiceAccount {
  */
 function tryParseServiceAccount(raw: string): ServiceAccount | null {
   const candidates: string[] = [raw];
-  if (/^['"].*['"]$/s.test(raw)) candidates.push(raw.slice(1, -1));
+  const q = raw[0];
+  if ((q === "'" || q === '"') && raw.endsWith(q)) candidates.push(raw.slice(1, -1));
   if (!raw.trimStart().startsWith("{")) {
     try {
       candidates.push(Buffer.from(raw, "base64").toString("utf8"));
