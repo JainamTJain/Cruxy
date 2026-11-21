@@ -97,8 +97,8 @@ function personName(
   people: PersonLite[],
   id: string | null | undefined,
 ): string {
-  if (!id) return "—";
-  return people.find((p) => p.id === id)?.name ?? "—";
+  if (!id) return "Not set";
+  return people.find((p) => p.id === id)?.name ?? "Not set";
 }
 
 function formatCrux(crux: string | null | undefined): {
@@ -230,7 +230,7 @@ export function CaseBrainClient({
 
   const leadNames = [lead1, lead2]
     .map((r) => personName(data.people, r?.person_id))
-    .filter((n) => n !== "—");
+    .filter((n) => n !== "Not set");
 
   // Design shows "No backing yet" plus waiting count on the first unbacked support only.
   let firstMissingSupportId: string | null = null;
@@ -549,11 +549,11 @@ export function CaseBrainClient({
                     </h2>
                     <p className="m-0 text-[15px] leading-relaxed text-[#D6D9DF]">
                       <strong className="text-white">Concede</strong>{" "}
-                      {allCounterclaims[0].concede || "—"}.{" "}
+                      {allCounterclaims[0].concede || "Not set"}.{" "}
                       <strong className="text-white">Distinguish:</strong>{" "}
-                      {allCounterclaims[0].distinguish || "—"}.{" "}
+                      {allCounterclaims[0].distinguish || "Not set"}.{" "}
                       <strong className="text-white">Rebut:</strong>{" "}
-                      {allCounterclaims[0].rebut || "—"}.
+                      {allCounterclaims[0].rebut || "Not set"}.
                     </p>
                   </section>
                 ) : null}
@@ -611,7 +611,7 @@ export function CaseBrainClient({
                       Flashcards from these readings, {meta.flashcard_count}{" "}
                       cards.
                     </strong>{" "}
-                    Leads {leadNames.join(" and ") || "—"} get them
+                    Leads {leadNames.join(" and ") || "Not set"} get them
                     automatically
                     {meta.also_studying.length
                       ? `. Also studying: ${meta.also_studying.join(", ")} `

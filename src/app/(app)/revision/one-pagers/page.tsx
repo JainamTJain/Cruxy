@@ -85,7 +85,7 @@ function OnePagersInner() {
     const people = brain?.people ?? [];
     const name = (role: string) => {
       const id = brain?.brain.case_roles.find((r) => r.role === role)?.person_id;
-      return people.find((p) => p.id === id)?.name ?? "—";
+      return people.find((p) => p.id === id)?.name ?? "Not set";
     };
     return {
       lead1: name("lead_1"),

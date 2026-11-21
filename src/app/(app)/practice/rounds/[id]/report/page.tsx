@@ -169,7 +169,7 @@ export default function RoundReportPage() {
               : item.label,
       h: h?.score ?? null,
       c: c?.score ?? null,
-      ts: evidence ? fmtMs(evidence.start_ms) : "—",
+      ts: evidence ? fmtMs(evidence.start_ms) : "Not set",
       why: h?.comment ?? c?.comment ?? "",
     };
   }).filter(Boolean) as {
@@ -272,7 +272,7 @@ export default function RoundReportPage() {
                   day: "numeric",
                 })
               : "Nov 24"}
-            , Case {data.round.case_number ?? "—"}, {teamName} vs Cruxy as the
+            , Case {data.round.case_number ?? "Not set"}, {teamName} vs Cruxy as the
             other team
           </span>
           <h1 className="font-display m-0 text-[40px] font-extrabold leading-none tracking-[-0.02em] sm:text-[46px]">
@@ -395,7 +395,7 @@ export default function RoundReportPage() {
                   <span className="rounded-md bg-ink px-1.5 py-0.5 font-mono text-[12px] font-semibold text-white">
                     {worked.quote_line_id
                       ? fmtMs(lineById[worked.quote_line_id]?.start_ms ?? 0)
-                      : "—"}
+                      : "Not set"}
                   </span>
                 </span>
                 <p className="m-0 font-serif text-[19px] italic leading-relaxed text-[#1C1F26]">
@@ -412,7 +412,7 @@ export default function RoundReportPage() {
                   <span className="rounded-md bg-ink px-1.5 py-0.5 font-mono text-[12px] font-semibold text-white">
                     {fix.quote_line_id
                       ? fmtMs(lineById[fix.quote_line_id]?.start_ms ?? 0)
-                      : "—"}
+                      : "Not set"}
                   </span>
                   , cost points on{" "}
                   {APPE_SCORE_ITEMS.find((i) => i.key === fix.scoring_item)
@@ -540,7 +540,7 @@ export default function RoundReportPage() {
                 {data.round.case_number},{" "}
                 {fix?.quote_line_id
                   ? fmtMs(lineById[fix.quote_line_id]?.start_ms ?? 0)
-                  : "—"}
+                  : "Not set"}
               </span>
               <p className="m-0 font-serif text-base italic">
                 &ldquo;{lineById[fix?.quote_line_id ?? ""]?.text ?? ""}&rdquo;
