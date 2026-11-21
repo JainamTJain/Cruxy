@@ -8,6 +8,7 @@ import { CruxyProvider, useCruxy } from "@/components/cruxy/cruxy-context";
 import { CruxyDrawer } from "@/components/cruxy/cruxy-drawer";
 import { CruxyLamp } from "@/components/cruxy/cruxy-lamp";
 import { FloatingCruxy } from "@/components/cruxy/floating-cruxy";
+import { NotificationBell } from "@/components/notification-bell";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/types";
 
@@ -87,6 +88,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
   const [teamLabel, setTeamLabel] = useState<string | null>(null);
+  const [digestPrompt, setDigestPrompt] = useState(false);
   const { wake, setDrawerOpen, awake } = useCruxy();
 
   async function refresh() {
@@ -119,7 +121,22 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ adminView }),
     });
     await refresh();
+    if (adminView && me?.session?.role === "coach_admin") {
+      const d = await fetch("/api/auth/digest-opt-in").then((r) => r.json());
+      setDigestPrompt(Boolean((d as { prompt?: boolean }).prompt));
+    } else {
+      setDigestPrompt(false);
+    }
     router.push(adminView ? "/admin" : "/home");
+  }
+
+  async function answerDigest(optIn: boolean) {
+    await fetch("/api/auth/digest-opt-in", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ digestOptIn: optIn }),
+    });
+    setDigestPrompt(false);
   }
 
   async function signOut() {
@@ -190,6 +207,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           ) : null}
         </nav>
         <div className="mt-auto flex flex-col gap-2.5">
+          <NotificationBell />
           <AskCruxyButton />
           <div className="flex items-center gap-2.5 px-1.5 py-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#C2410C] text-sm font-bold">
@@ -278,6 +296,36 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       </nav>
+
+      {digestPrompt ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/40 p-4">
+          <div className="max-w-md rounded-2xl bg-white p-6 text-ink shadow-xl">
+            <h2 className="font-display text-xl font-extrabold">
+              Weekly summary email?
+            </h2>
+            <p className="mt-2 text-sm text-muted">
+              Dr. B, this is separate from recording consent. Opt in only if you
+              want a weekly email about attendance, scores and cases at risk.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="rounded-xl bg-cardinal px-4 py-2 text-sm font-semibold text-white"
+                onClick={() => void answerDigest(true)}
+              >
+                Yes, send it
+              </button>
+              <button
+                type="button"
+                className="rounded-xl border border-mist px-4 py-2 text-sm"
+                onClick={() => void answerDigest(false)}
+              >
+                Not now
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <FloatingCruxy />
       <CruxyLamp />

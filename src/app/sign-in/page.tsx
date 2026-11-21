@@ -141,7 +141,8 @@ export default function SignInPage() {
               disabled={!selectedId}
               footer={
                 <>
-                  After that, your own passcode. Forgot it? Ask Jainam.
+                  After that, your own passcode. Forgot your passcode? Ask
+                  Jainam.
                   {error ? (
                     <span className="mt-2 block text-cardinal">{error}</span>
                   ) : null}

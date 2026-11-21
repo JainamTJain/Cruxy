@@ -21,13 +21,13 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Who uses it
 
-- [ ] F-014 Technical admin · Jainam · Everything below, plus everyone's passcodes (see and reset), spend caps, API keys, feeding books, the full activity log
-- [ ] F-015 Coach admin · Dr. B · See everything, create and run sessions, take attendance, see session codes, add moderator questions, get the weekly summary if she agrees · Change passcodes or spend caps, feed books
-- [ ] F-016 Member · Team 1: Serena, Ivan, Ashton, Stolei, Tri. Team 2: Lehar, Camerin, Jade, Bethany, Quixote. Team 3: Nick, Daniel, Katie, Jainam · Everything for their own team; read, comment on and borrow from every other team · Edit another team's Truth Sources, see session codes
-- [ ] F-017 Judge · Guests or members, per session · Score the session they were let into · See anything else
-- [ ] F-018 Team membership is set only by admins and can change at any time; history keeps the old team on old records.
-- [ ] F-019 Jainam appears twice (technical admin and Team 3 member). His member view shows only what any member sees; the admin view is a separate switch.
-- [ ] F-020 Leads, counter-arguers and supporters are case roles inside a team, set and changed by the team (see Assignments).
+- [x] F-014 Technical admin · Jainam · Everything below, plus everyone's passcodes (see and reset), spend caps, API keys, feeding books, the full activity log [`src/lib/auth/capabilities.ts`, `src/lib/admin/permissions.ts`, admin routes gated by `adminView`]
+- [x] F-015 Coach admin · Dr. B · See everything, create and run sessions, take attendance, see session codes, add moderator questions, get the weekly summary if she agrees · Change passcodes or spend caps, feed books [`src/lib/auth/capabilities.ts`, `src/lib/admin/permissions.ts`]
+- [x] F-016 Member · Team 1: Serena, Ivan, Ashton, Stolei, Tri. Team 2: Lehar, Camerin, Jade, Bethany, Quixote. Team 3: Nick, Daniel, Katie, Jainam · Everything for their own team; read, comment on and borrow from every other team · Edit another team's Truth Sources, see session codes [`canEditTruthSources`, `canSeeSessionCodes` in `src/lib/auth/capabilities.ts`]
+- [x] F-017 Judge · Guests or members, per session · Score the session they were let into · See anything else [`assertJudgeSessionAccess` in `src/lib/auth/capabilities.ts`; portal UI owned by D]
+- [x] F-018 Team membership is set only by admins and can change at any time; history keeps the old team on old records. [`setTeamMembership` in `src/lib/db/supabase/auth-extra.ts`, migration `00018_workstream_j_auth_attendance.sql`]
+- [x] F-019 Jainam appears twice (technical admin and Team 3 member). His member view shows only what any member sees; the admin view is a separate switch. [`effectiveRole`, Admin switch in `src/components/app-shell.tsx`, `/api/auth/admin-view`]
+- [ ] F-020 Leads, counter-arguers and supporters are case roles inside a team, set and changed by the team (see Assignments). Note: UI and APIs owned by Workstream E (`src/app/api/team/roles`).
 
 ## Cruxy
 
@@ -40,60 +40,60 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Cruxy's character, floating Cruxy and the lamp
 
-- [ ] F-027 **Asks first.** When someone asks for an answer, Cruxy first asks one question that moves their thinking ("What would the other side say?", "Which fact matters most here?", "Does that fit your principle in Case 12?"). It gives its full answer once the person has tried, asks a second time, or is short on time.
-- [ ] F-028 **Answers directly** when asking would only waste time: lookups ("where is this in the Drive?"), schedule and logistics, admin questions, and anything during a timed round.
-- [ ] F-029 **Hints one at a time**, never the whole answer at once.
-- [ ] F-030 **Honest and kind.** Says when an argument is weak, never flatters, never pressures, and says plainly when it doesn't know.
-- [ ] F-031 **Ethically careful.** Argues every side at full strength, keeps its own politics out, never shames a person, and never takes sides between the USC teams.
-- [ ] F-032 **A learner.** Follows the reasoning standard and the improvement loop in Cruxy's agents, models and prompts.
-- [ ] F-033 Cruxy floats above every page, on computers and phones, with a gentle bob (still for people who turn on reduced motion).
-- [ ] F-034 Drag it anywhere with a mouse, a finger or the arrow keys. Its spot is saved per person and device. On phones it snaps to the nearest edge so it never covers a button.
-- [ ] F-035 Tap Cruxy to open the drawer with its current question. A short speech bubble shows one question at a time, with "One hint, please" and "Back to the lamp".
-- [ ] F-036 During recording and timed rounds Cruxy hides automatically and only the lamp stays.
-- [ ] F-037 A setting turns the floating figure off for a person; the lamp always stays.
-- [ ] F-038 The lamp sits at the bottom right of every page and is Cruxy's home.
-- [ ] F-039 Cruxy goes to sleep in it when the person presses "Back to the lamp", drops Cruxy on the lamp, taps the lamp while Cruxy is awake, or does nothing for 5 minutes. It shows the sleepy pose for a moment, then disappears into the lamp, which shows "z z".
-- [ ] F-040 Tap the lamp to call Cruxy. It comes back to its saved spot and opens with a question ("You called. What are you trying to figure out?").
-- [ ] F-041 Asleep means quiet: no bubbles or pop ups. Reminders still go to the bell.
-- [ ] F-042 Curious (default) · cruxy-curious.png · Asking a question
-- [ ] F-043 Listening · cruxy-neutral.png · While the person types, speaks or records
-- [ ] F-044 Hint · cruxy-winking.png · Giving one hint
-- [ ] F-045 Pleased · cruxy-happy.png · The person did better than their own past, or answered well
-- [ ] F-046 Excited · cruxy-excited.png · A personal best, or the team signs off a new version
-- [ ] F-047 Surprised · cruxy-surprised.png · A drift flag, a new source, or an unexpected judge comment
-- [ ] F-048 Sad · cruxy-sad.png · A round went worse than the person's own past; Cruxy then asks what they'd change
-- [ ] F-049 Sleepy · cruxy-sleepy.png · Going back to the lamp
-- [ ] F-050 Fierce · cruxy-angry.png · Only while Cruxy plays the other team in practice; never aimed at a person
+- [x] F-027 **Asks first.** When someone asks for an answer, Cruxy first asks one question that moves their thinking ("What would the other side say?", "Which fact matters most here?", "Does that fit your principle in Case 12?"). It gives its full answer once the person has tried, asks a second time, or is short on time. [`src/lib/cruxy/character.ts`, `src/components/cruxy/cruxy-drawer.tsx`]
+- [x] F-028 **Answers directly** when asking would only waste time: lookups ("where is this in the Drive?"), schedule and logistics, admin questions, and anything during a timed round. [`decideCharacterMode` in `src/lib/cruxy/character.ts`]
+- [x] F-029 **Hints one at a time**, never the whole answer at once. [`hint` mode + bubble "One hint, please" in `floating-cruxy.tsx` / drawer]
+- [ ] F-030 **Honest and kind.** Says when an argument is weak, never flatters, never pressures, and says plainly when it doesn't know. Note: prompt wording owned by Workstream H; J ships the shell that calls H.
+- [ ] F-031 **Ethically careful.** Argues every side at full strength, keeps its own politics out, never shames a person, and never takes sides between the USC teams. Note: Workstream H prompts.
+- [ ] F-032 **A learner.** Follows the reasoning standard and the improvement loop in Cruxy's agents, models and prompts. Note: Workstream H agents.
+- [x] F-033 Cruxy floats above every page, on computers and phones, with a gentle bob (still for people who turn on reduced motion). [`src/components/cruxy/floating-cruxy.tsx`]
+- [x] F-034 Drag it anywhere with a mouse, a finger or the arrow keys. Its spot is saved per person and device. On phones it snaps to the nearest edge so it never covers a button. [`floating-cruxy.tsx` + `/api/prefs/cruxy`]
+- [x] F-035 Tap Cruxy to open the drawer with its current question. A short speech bubble shows one question at a time, with "One hint, please" and "Back to the lamp". [`floating-cruxy.tsx`, `cruxy-drawer.tsx`]
+- [x] F-036 During recording and timed rounds Cruxy hides automatically and only the lamp stays. [`recordingOrTimed` in `cruxy-context.tsx`; D can also call `setRecordingOrTimed`]
+- [x] F-037 A setting turns the floating figure off for a person; the lamp always stays. [`settings` + prefs + `hideFigure`]
+- [x] F-038 The lamp sits at the bottom right of every page and is Cruxy's home. [`src/components/cruxy/cruxy-lamp.tsx`]
+- [x] F-039 Cruxy goes to sleep in it when the person presses "Back to the lamp", drops Cruxy on the lamp, taps the lamp while Cruxy is awake, or does nothing for 5 minutes. It shows the sleepy pose for a moment, then disappears into the lamp, which shows "z z". [`cruxy-context.tsx` sleep paths]
+- [x] F-040 Tap the lamp to call Cruxy. It comes back to its saved spot and opens with a question ("You called. What are you trying to figure out?"). [`wake()` in `cruxy-context.tsx`]
+- [x] F-041 Asleep means quiet: no bubbles or pop ups. Reminders still go to the bell. [`guardedSetBubble` / drawer + `NotificationBell`]
+- [x] F-042 Curious (default) · cruxy-curious.png · Asking a question [`mood-events.ts` `ask.question`]
+- [x] F-043 Listening · cruxy-neutral.png · While the person types, speaks or records [`listen.typing` / `listen.recording`]
+- [x] F-044 Hint · cruxy-winking.png · Giving one hint [`hint.given`]
+- [x] F-045 Pleased · cruxy-happy.png · The person did better than their own past, or answered well [`feedback.improved` / `feedback.answered_well`]
+- [x] F-046 Excited · cruxy-excited.png · A personal best, or the team signs off a new version [`personal_best` / `version.signed_off`]
+- [x] F-047 Surprised · cruxy-surprised.png · A drift flag, a new source, or an unexpected judge comment [`drift.flagged` / `source.new` / `judge.unexpected`]
+- [x] F-048 Sad · cruxy-sad.png · A round went worse than the person's own past; Cruxy then asks what they'd change [`feedback.worse` bubble]
+- [x] F-049 Sleepy · cruxy-sleepy.png · Going back to the lamp [`sleep` event]
+- [x] F-050 Fierce · cruxy-angry.png · Only while Cruxy plays the other team in practice; never aimed at a person [`opponent.active` for D to emit]
 
 ## Sign in, consent and attendance
 
 - [x] F-051 Pick your name from a list grouped by team (admins add names; no self sign up). [`listPeoplePublic` Supabase path]
 - [x] F-052 Enter your own 6 digit passcode on a keypad. The very first time, enter the shared member code (Dr. B: her starter code); after consent Crux asks you to choose your own passcode. An admin's passcode also opens the admin switch. [`passcode-rules` + auth_codes bootstrap]
-- [ ] F-053 Stay signed in for 30 days on that browser; resetting someone's passcode signs that person out everywhere.
+- [x] F-053 Stay signed in for 30 days on that browser; resetting someone's passcode signs that person out everywhere. [`sessionVersion` on JWT + `bumpSessionVersion` in reset; `src/lib/auth/session.ts`]
 - [x] F-054 5 wrong tries on one name locks it for 10 minutes and writes an activity log entry. [`attemptSignIn` + `activity_log`]
 - [x] F-055 Store each personal passcode twice: an argon2 hash used to check sign in, and a copy encrypted (AES-GCM) with a key in the PASSCODE_VIEW_KEY environment variable, which only the technical admin's Passcodes panel can decrypt. Jainam's own admin passcode is set from an environment variable at deploy, is stored as a hash only, and is never shown anywhere. [`replacePersonalCode` Supabase]
 - [x] F-056 Right after consent on the first sign in (Dr. B included), Crux asks the person to choose a 6 digit passcode and type it twice. [`mustChoosePasscode` after starter]
-- [ ] F-057 Refused: the shared member code, one digit repeated (111111), and straight runs (123456, 654321).
-- [ ] F-058 The screen says plainly, before they choose: "Jainam, as technical admin, can see your passcode so he can help if you forget it. Don't reuse a code you use anywhere else."
-- [x] F-059 After that, the shared member code no longer signs that name in. People can change their passcode any time in Settings by entering the current one. [`attemptSignIn` rejects starter after personal]
-- [ ] F-060 Forgot it? The keypad shows "Forgot your passcode? Ask Jainam." He can tell them, or reset it, which gives them a new one-time code and asks them to choose again.
-- [ ] F-061 In the admin console, a Passcodes panel lists everyone by team: passcode hidden as dots, when it was set, and last sign in.
-- [ ] F-062 Show reveals one passcode for 20 seconds. The first reveal in 10 minutes asks Jainam to re-enter his own passcode.
-- [ ] F-063 Reset gives that person a new one-time code and signs them out everywhere. The panel also changes the shared starter code for new members.
-- [ ] F-064 Every reveal and reset goes in the activity log. Dr. B and members can't open the panel, and Jainam's own passcode never appears in it.
-- [ ] F-065 **Consent (first sign in only, re-shown if the wording changes)**
-- [ ] F-066 One screen, plain words: what is recorded, when, why, who sees it, where it goes, how long it stays, and what Cruxy is.
-- [ ] F-067 Two choices: "I agree to be recorded in practice" or "Not now: text only". Agreeing includes a 20 second voice sample, recorded right there, so transcripts can label who spoke.
-- [ ] F-068 Text only members use everything except being recorded; a session that includes them shows a banner so the room knows.
-- [x] F-069 Consent, the date and the wording version are stored; anyone can change it in Settings; withdrawing deletes their voice sample. [`saveConsent` → people row]
-- [ ] F-070 Dr. B's weekly summary email is a separate opt in on her first admin sign in.
-- [ ] F-071 Every session has an attendance list. Either admin can mark present, late or absent; members can tap "I'm here" on the session page.
-- [ ] F-072 During a recorded session Cruxy pre-fills attendance from matched voices and joined devices; an admin confirms with one tap.
-- [ ] F-073 Solo practice logs the person automatically. Attendance feeds the roadmap and the weekly summary.
-- [ ] F-074 In the app by default: a bell, the home screen and the roadmap.
-- [ ] F-075 By email only if a person adds an email address and turns email reminders on. No calendar connection.
-- [ ] F-076 A 10 minute checklist on first sign in: confirm your cases and roles, open one reading, review 5 flashcards, answer one question out loud, and see your roadmap.
-- [ ] F-077 One champion per team, chosen by the team, gets nudges when teammates haven't finished the checklist.
+- [x] F-057 Refused: the shared member code, one digit repeated (111111), and straight runs (123456, 654321). [`src/lib/auth/passcode-shape.ts`, `choose-passcode/page.tsx`]
+- [x] F-058 The screen says plainly, before they choose: "Jainam, as technical admin, can see your passcode so he can help if you forget it. Don't reuse a code you use anywhere else." [`src/app/choose-passcode/page.tsx`]
+- [x] F-059 After that, the shared member code no longer signs that name in. People can change their passcode any time in Settings by entering the current one. [`attemptSignIn` + `changePersonalPasscode` + Settings]
+- [x] F-060 Forgot it? The keypad shows "Forgot your passcode? Ask Jainam." He can tell them, or reset it, which gives them a new one-time code and asks them to choose again. [`src/app/sign-in/page.tsx`; reset via `resetPersonPasscode` + G Passcodes panel]
+- [ ] F-061 In the admin console, a Passcodes panel lists everyone by team: passcode hidden as dots, when it was set, and last sign in. Note: panel UI owned by Workstream G; J owns reveal/reset helpers.
+- [ ] F-062 Show reveals one passcode for 20 seconds. The first reveal in 10 minutes asks Jainam to re-enter his own passcode. Note: Workstream G UI.
+- [x] F-063 Reset gives that person a new one-time code and signs them out everywhere. The panel also changes the shared starter code for new members. [`resetPersonPasscode` + `bumpSessionVersion`; starter rotate helper `updateSharedStarterHash` for G to wire]
+- [ ] F-064 Every reveal and reset goes in the activity log. Dr. B and members can't open the panel, and Jainam's own passcode never appears in it. Note: Workstream G UI; tech-only gate in `requireTechAdmin`.
+- [x] F-065 **Consent (first sign in only, re-shown if the wording changes)** [`CONSENT_VERSION` gate on sign-in]
+- [x] F-066 One screen, plain words: what is recorded, when, why, who sees it, where it goes, how long it stays, and what Cruxy is. [`src/app/consent/page.tsx`]
+- [x] F-067 Two choices: "I agree to be recorded in practice" or "Not now: text only". Agreeing includes a 20 second voice sample, recorded right there, so transcripts can label who spoke. [`consent/page.tsx` + `uploadVoiceSample`]
+- [x] F-068 Text only members use everything except being recorded; a session that includes them shows a banner so the room knows. [`sessionHasTextOnlyMembers` in `src/lib/attendance`; D Session screen consumes `/api/attendance`]
+- [x] F-069 Consent, the date and the wording version are stored; anyone can change it in Settings; withdrawing deletes their voice sample. [`saveConsent` + `updateConsentChoice` + Settings + `deleteVoiceSample`]
+- [x] F-070 Dr. B's weekly summary email is a separate opt in on her first admin sign in. [`/api/auth/digest-opt-in` + prompt in `app-shell.tsx`]
+- [x] F-071 Every session has an attendance list. Either admin can mark present, late or absent; members can tap "I'm here" on the session page. [`src/lib/attendance` + `/api/attendance`; Session UI owned by D]
+- [x] F-072 During a recorded session Cruxy pre-fills attendance from matched voices and joined devices; an admin confirms with one tap. [`prefillFromJoins` / `prefillFromVoiceMatches` / `confirmAttendanceSuggestions`]
+- [x] F-073 Solo practice logs the person automatically. Attendance feeds the roadmap and the weekly summary. [`logSoloAttendance` + `attendanceForWeeklySummary`]
+- [x] F-074 In the app by default: a bell, the home screen and the roadmap. [`NotificationBell` in app shell; home/roadmap already exist]
+- [x] F-075 By email only if a person adds an email address and turns email reminders on. No calendar connection. [`Settings` reminders + `/api/settings/reminders`]
+- [x] F-076 A 10 minute checklist on first sign in: confirm your cases and roles, open one reading, review 5 flashcards, answer one question out loud, and see your roadmap. [`/checklist` + `src/lib/auth/first-run.ts`; choose-passcode routes there]
+- [x] F-077 One champion per team, chosen by the team, gets nudges when teammates haven't finished the checklist. [`/api/auth/champion` + notifications]
 
 ## Library and Drive sync
 

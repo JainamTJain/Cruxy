@@ -25,6 +25,8 @@ export function CruxyDrawer() {
     sleep,
     setMood,
     setBubble,
+    recordingOrTimed,
+    emitCruxyEvent,
   } = useCruxy();
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
@@ -34,6 +36,7 @@ export function CruxyDrawer() {
   const [adminMode, setAdminMode] = useState(false);
   const [adminName, setAdminName] = useState("Admin");
   const [adminExtra, setAdminExtra] = useState<AdminAnswer | null>(null);
+  const [hintOnly, setHintOnly] = useState(false);
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -53,10 +56,10 @@ export function CruxyDrawer() {
 
   if (!drawerOpen) return null;
 
-  async function ask() {
+  async function ask(opts?: { forceAnswer?: boolean; wantHint?: boolean }) {
     if (!question.trim()) return;
     setBusy(true);
-    setMood("neutral");
+    emitCruxyEvent("listen.typing");
     setAdminExtra(null);
     try {
       if (adminMode) {
@@ -71,14 +74,40 @@ export function CruxyDrawer() {
         };
         if (!res.ok) {
           setAnswer(data.error ?? "Could not answer in admin mode.");
-          setMood("surprised");
+          emitCruxyEvent("judge.unexpected");
         } else {
           setAnswer(data.text ?? "");
           setCitations(data.citations ?? []);
           setAdminExtra(data);
-          setMood("winking");
+          setMood("curious");
           setBubble(null);
         }
+        return;
+      }
+
+      const { decideCharacterMode } = await import("@/lib/cruxy/character");
+      const decision = decideCharacterMode({
+        question,
+        adminMode: false,
+        timedRound: recordingOrTimed,
+        alreadyAsked: Boolean(prompt) || Boolean(opts?.forceAnswer),
+        triedAnswer: Boolean(opts?.forceAnswer),
+        wantsHint: Boolean(opts?.wantHint || hintOnly),
+      });
+
+      if (decision.mode === "ask" && decision.question) {
+        setPrompt(decision.question);
+        setBubble(decision.question);
+        emitCruxyEvent("ask.question");
+        return;
+      }
+
+      if (decision.mode === "hint") {
+        const { HINT_FALLBACK } = await import("@/lib/cruxy/character");
+        setAnswer(HINT_FALLBACK);
+        setCitations([]);
+        emitCruxyEvent("hint.given");
+        setHintOnly(false);
         return;
       }
 
@@ -90,6 +119,7 @@ export function CruxyDrawer() {
           page,
           highlight,
           caseId,
+          skipAskFirst: true,
         }),
       });
       const data = (await res.json()) as {
@@ -98,16 +128,12 @@ export function CruxyDrawer() {
         refusedWithoutSources: boolean;
         questionFirst: string | null;
       };
-      if (data.questionFirst && !prompt) {
-        setPrompt(data.questionFirst);
-        setBubble(data.questionFirst);
-        setMood("curious");
-      } else {
-        setAnswer(data.text);
-        setCitations(data.citations ?? []);
-        setMood(data.refusedWithoutSources ? "surprised" : "winking");
-        setBubble(null);
-      }
+      setAnswer(data.text);
+      setCitations(data.citations ?? []);
+      if (data.refusedWithoutSources) emitCruxyEvent("source.new");
+      else setMood("curious");
+      setBubble(null);
+      setPrompt(null);
     } finally {
       setBusy(false);
     }
@@ -183,7 +209,10 @@ export function CruxyDrawer() {
               key={c}
               type="button"
               className="rounded-full border border-mist bg-white px-3 py-1 text-xs"
-              onClick={() => setQuestion(c)}
+              onClick={() => {
+                setQuestion(c);
+                if (c === "One hint, please") setHintOnly(true);
+              }}
             >
               {c}
             </button>
@@ -198,8 +227,7 @@ export function CruxyDrawer() {
               className="mt-3"
               variant="secondary"
               onClick={() => {
-                setPrompt(null);
-                void ask();
+                void ask({ forceAnswer: true });
               }}
             >
               I tried. Give me the answer
@@ -235,15 +263,19 @@ export function CruxyDrawer() {
             adminMode ? "Who hasn't practised Case 5?" : "Ask Cruxy…"
           }
           value={question}
-          onChange={(e) => setQuestion(e.target.value)}
+          onChange={(e) => {
+            setQuestion(e.target.value);
+            emitCruxyEvent("listen.typing");
+          }}
         />
         <div className="flex gap-2">
           <Button
             className="flex-1"
             disabled={busy}
             onClick={() => {
-              setPrompt(null);
-              void ask();
+              void ask({
+                wantHint: hintOnly || question === "One hint, please",
+              });
             }}
           >
             {busy ? "Thinking…" : "Ask"}

@@ -36,7 +36,7 @@ export function CruxyLamp() {
           unoptimized
         />
         <span className="mt-1 text-[11px] font-medium text-muted">
-          {awake ? "Cruxy's lamp" : "Tap to call"}
+          {awake ? "Cruxy's lamp" : "Cruxy is resting. Tap to call."}
         </span>
       </button>
     </div>

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCruxy, type CruxyMood } from "@/components/cruxy/cruxy-context";
+import { HINT_FALLBACK } from "@/lib/cruxy/character";
 import { cn } from "@/lib/utils";
 
 const MOOD_SRC: Record<CruxyMood, string> = {
@@ -17,12 +18,22 @@ const MOOD_SRC: Record<CruxyMood, string> = {
   angry: "/cruxy/cruxy-angry.png",
 };
 
+const MOOD_LABEL: Record<CruxyMood, string> = {
+  curious: "curious",
+  neutral: "listening",
+  winking: "hint",
+  happy: "pleased",
+  excited: "excited",
+  surprised: "surprised",
+  sad: "sad",
+  sleepy: "sleepy",
+  angry: "fierce",
+};
+
 const POS_KEY = "cruxy-float-pos";
-const FIGURE = 150; // width, as in Cruxy.html
+const FIGURE = 150;
 const FIGURE_PHONE = 96;
-/** Genie images are about twice as tall as wide. */
 const ASPECT = 2;
-/** Height kept clear for the phone tab bar. */
 const TAB_BAR = 88;
 
 function figureFor(w: number): number {
@@ -61,7 +72,6 @@ function snapToEdge(x: number, y: number, w: number, h: number): Pos {
   return { x: nx, y: Math.min(Math.max(12, y), h - size * ASPECT - TAB_BAR) };
 }
 
-/** Keep the figure fully on screen (and above the phone tab bar). */
 function clampToViewport(p: Pos, w: number, h: number): Pos {
   const size = figureFor(w);
   const bottom = w < 640 ? TAB_BAR : 24;
@@ -81,10 +91,13 @@ export function FloatingCruxy() {
     setDrawerOpen,
     sleep,
     setBubble,
+    emitCruxyEvent,
   } = useCruxy();
   const [pos, setPos] = useState<Pos>({ x: 24, y: 120 });
   const [dragging, setDragging] = useState(false);
+  const [moved, setMoved] = useState(false);
   const [vw, setVw] = useState(1440);
+  const [draft, setDraft] = useState("");
   const dragRef = useRef<{ ox: number; oy: number } | null>(null);
   const reduced =
     typeof window !== "undefined" &&
@@ -104,23 +117,37 @@ export function FloatingCruxy() {
       setVw(window.innerWidth);
       setPos((p) => clampToViewport(p, window.innerWidth, window.innerHeight));
     };
+    const onPrefsPos = (e: Event) => {
+      const detail = (e as CustomEvent<Pos>).detail;
+      if (typeof detail?.x === "number" && typeof detail?.y === "number") {
+        setPos(clampToViewport(detail, window.innerWidth, window.innerHeight));
+        localStorage.setItem(POS_KEY, JSON.stringify(detail));
+      }
+    };
     onResize();
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    window.addEventListener("cruxy-prefs-pos", onPrefsPos);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("cruxy-prefs-pos", onPrefsPos);
+    };
   }, []);
 
   const onPointerDown = (e: React.PointerEvent) => {
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     dragRef.current = { ox: e.clientX - pos.x, oy: e.clientY - pos.y };
     setDragging(true);
+    setMoved(false);
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
     if (!dragRef.current) return;
-    setPos({
+    const next = {
       x: e.clientX - dragRef.current.ox,
       y: e.clientY - dragRef.current.oy,
-    });
+    };
+    if (Math.abs(next.x - pos.x) + Math.abs(next.y - pos.y) > 4) setMoved(true);
+    setPos(next);
   };
 
   const onPointerUp = () => {
@@ -170,7 +197,6 @@ export function FloatingCruxy() {
 
   const phone = vw < 640;
   const size = figureFor(vw);
-  // Flip bubble to the left when near the right edge (Cruxy.html flip)
   const flipLeft = !phone && pos.x + size / 2 > vw * 0.55;
 
   return (
@@ -194,23 +220,46 @@ export function FloatingCruxy() {
           style={
             phone
               ? {
-                  // Pin to the viewport's 16px gutters, not the figure
                   left: 16 - pos.x,
                   width: "calc(100vw - 32px)",
                 }
               : undefined
           }
+          onPointerDown={(e) => e.stopPropagation()}
         >
-          {bubble}
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
+            {MOOD_LABEL[mood]}
+          </p>
+          <p className="text-[13px] leading-snug text-ink">{bubble}</p>
+          <label className="mt-3 block">
+            <span className="sr-only">Your answer</span>
+            <input
+              className="w-full rounded-lg border border-ink/15 bg-paper px-2 py-1.5 text-[12px]"
+              placeholder="Type a short try…"
+              value={draft}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                emitCruxyEvent("listen.typing");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && draft.trim()) {
+                  e.preventDefault();
+                  setBubble(null);
+                  setDrawerOpen(true);
+                  setDraft("");
+                  emitCruxyEvent("feedback.answered_well");
+                }
+              }}
+            />
+          </label>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
               className="rounded-lg bg-gold/30 px-2 py-1 text-[11px] font-medium"
               onClick={(e) => {
                 e.stopPropagation();
-                setBubble(
-                  "Here's one hint: try restating the claim in one sentence.",
-                );
+                emitCruxyEvent("hint.given");
+                setBubble(HINT_FALLBACK);
               }}
             >
               One hint, please
@@ -237,7 +286,7 @@ export function FloatingCruxy() {
         )}
         style={{ width: size }}
         onClick={() => {
-          if (!dragging) setDrawerOpen(true);
+          if (!dragging && !moved) setDrawerOpen(true);
         }}
         onKeyDown={onKeyDown}
       >
