@@ -8,7 +8,10 @@ import { join } from "node:path";
 const BASE = process.env.SHOTS_BASE ?? "http://localhost:3000";
 const OUT = ".shots";
 const STARTER = "482913"; // sample-data starter only
-// Case 9 (GEM in the Rough) — CaseBrain.html / OnePager.html reference
+const ADMIN_STARTER = process.env.SHOTS_ADMIN_CODE ?? "135790"; // sample INITIAL_ADMIN_CODE
+const MEMBER_PASS = "159753";
+// Case 1 stable sample-data id (Workstream B seed)
+// Case 9 (GEM in the Rough): CaseBrain.html / OnePager.html reference
 const CASE9 = "c0000000-0000-4000-8000-000000000009";
 const TEAM3 = "33333333-3333-3333-3333-333333333333";
 const CASE1 = "c0000000-0000-4000-8000-000000000001";
@@ -31,16 +34,56 @@ const PAIRS = [
 mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch();
 
-async function signIn(ctx) {
+async function finishOnboarding(ctx, headers) {
+  const me = await (await ctx.request.get(`${BASE}/api/auth/me`)).json();
+  if (!me.authenticated) return;
+  if (me.session?.mustConsent || !me.person?.consent_version) {
+    await ctx.request.post(`${BASE}/api/auth/consent`, {
+      data: { recordingOk: true },
+      headers,
+    });
+  }
+  // Choose passcode when still required (starter / admin first time)
+  const again = await (await ctx.request.get(`${BASE}/api/auth/me`)).json();
+  if (again.session?.mustChoosePasscode) {
+    await ctx.request.post(`${BASE}/api/auth/choose-passcode`, {
+      data: { code: MEMBER_PASS, confirm: MEMBER_PASS },
+      headers,
+    });
+  }
+}
+
+async function signIn(ctx, { asAdmin = false } = {}) {
   const people = (await (await ctx.request.get(`${BASE}/api/auth/people`)).json()).people;
-  const katie = people.find((p) => p.name.startsWith("Katie"));
   const j = { "content-type": "application/json" };
+  if (asAdmin) {
+    const jainam = people.find((p) => p.name === "Jainam");
+    if (!jainam) throw new Error("Jainam not in people list");
+    let r = await ctx.request.post(`${BASE}/api/auth/sign-in`, {
+      data: { personId: jainam.id, code: ADMIN_STARTER },
+      headers: j,
+    });
+    if (!r.ok()) {
+      r = await ctx.request.post(`${BASE}/api/auth/sign-in`, {
+        data: { personId: jainam.id, code: MEMBER_PASS },
+        headers: j,
+      });
+    }
+    if (!r.ok()) throw new Error(`Jainam sign-in failed: ${r.status()}`);
+    await finishOnboarding(ctx, j);
+    await ctx.request.post(`${BASE}/api/auth/admin-view`, {
+      data: { adminView: true },
+      headers: j,
+    });
+    return;
+  }
+  const katie = people.find((p) => p.name.startsWith("Katie"));
   const r = await ctx.request.post(`${BASE}/api/auth/sign-in`, { data: { personId: katie.id, code: STARTER }, headers: j });
   if (r.ok()) {
-    await ctx.request.post(`${BASE}/api/auth/consent`, { data: { recordingOk: false }, headers: j });
-    await ctx.request.post(`${BASE}/api/auth/choose-passcode`, { data: { code: "159753", confirm: "159753" }, headers: j });
+    await finishOnboarding(ctx, j);
   } else {
-    await ctx.request.post(`${BASE}/api/auth/sign-in`, { data: { personId: katie.id, code: "159753" }, headers: j });
+    await ctx.request.post(`${BASE}/api/auth/sign-in`, { data: { personId: katie.id, code: MEMBER_PASS }, headers: j });
+    await finishOnboarding(ctx, j);
   }
 }
 
@@ -64,7 +107,13 @@ for (const [w, h, tag] of [[1440, 1000, "desktop"], [390, 844, "phone"]]) {
     return existsSync(f) ? route.fulfill({ path: f }) : route.continue();
   });
   for (const [route0, ref, needsAuth] of PAIRS) {
-    if (needsAuth && !(await ctx.cookies()).length) await signIn(ctx);
+    if (route0 === "/admin") {
+      // Fresh context identity for tech admin + Admin switch
+      await ctx.clearCookies();
+      await signIn(ctx, { asAdmin: true });
+    } else if (needsAuth && !(await ctx.cookies()).length) {
+      await signIn(ctx);
+    }
     let route = route0;
     if (route0 === "/library") {
       route = await readingRoomRoute(ctx);
@@ -75,6 +124,10 @@ for (const [w, h, tag] of [[1440, 1000, "desktop"], [390, 844, "phone"]]) {
         : route.replace(/\//g, "_").replace(/^_/, "").replace(/[?&=]/g, "_") || "root";
     try {
       await page.goto(BASE + route, { waitUntil: "networkidle" });
+      if (route === "/admin") {
+        await page.waitForSelector("text=Running the program", { timeout: 15000 });
+        await page.waitForTimeout(800);
+      }
       // One pagers default to Team 1; seeded content is Team 3.
       if (route.includes("one-pagers")) {
         const teamSelect = page.locator("select").first();

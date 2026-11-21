@@ -12,9 +12,15 @@ import {
   listTeams,
   spendByFeature,
   sumMonthlySpendUsd,
-  teamReadinessAverages,
   buildWeeklyEmailPreview,
 } from "@/lib/db/repository";
+import {
+  adminAttendancePct,
+  adminStarterStatus,
+  adminTeamReadiness,
+  groupSpendFeatures,
+} from "@/lib/db/supabase/admin-extra";
+import { getModelSettings } from "@/lib/cruxy/models";
 
 export const runtime = "nodejs";
 
@@ -40,10 +46,12 @@ export async function GET() {
     calibration,
     activity,
     weekly,
+    attendancePct,
+    starters,
   ] = await Promise.all([
     listTeams(),
     listPeopleFull(),
-    teamReadinessAverages(),
+    adminTeamReadiness(),
     sumMonthlySpendUsd(),
     getSpendCaps(),
     spendByFeature(),
@@ -52,10 +60,18 @@ export async function GET() {
     listCalibration(),
     listActivityLog(40),
     buildWeeklyEmailPreview(),
+    adminAttendancePct(),
+    adminStarterStatus(),
   ]);
 
   const names = new Map(people.map((p) => [p.id, p.name]));
   const techOnly = person.role === "tech_admin";
+  const groupedSpend = groupSpendFeatures(byFeature);
+
+  let models = null;
+  if (techOnly) {
+    models = await getModelSettings();
+  }
 
   return NextResponse.json({
     role: person.role,
@@ -69,7 +85,8 @@ export async function GET() {
         members: people.filter((p) => p.team_id === t.id),
       };
     }),
-    attendancePct: 86,
+    coaches: people.filter((p) => p.role === "coach_admin"),
+    attendancePct,
     consent: people.map((p) => ({
       id: p.id,
       name: p.name,
@@ -84,7 +101,8 @@ export async function GET() {
       ? {
           spent,
           caps,
-          byFeature,
+          byFeature: groupedSpend,
+          rawByFeature: byFeature,
           alert80: spent / caps.monthly_usd >= 0.8,
           atCap: spent >= caps.monthly_usd,
         }
@@ -92,6 +110,8 @@ export async function GET() {
     books: techOnly ? books : null,
     driveSortQueue: techOnly ? sortQueue : null,
     calibration: techOnly ? calibration : null,
+    models: techOnly ? models : null,
+    starters: techOnly ? starters : null,
     activity: {
       readOnly: person.role === "coach_admin",
       entries: activity.map((e) => ({
