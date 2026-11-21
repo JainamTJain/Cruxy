@@ -41,6 +41,15 @@ import {
   updateStore,
   type SampleStore,
 } from "@/lib/db/sample-store";
+import {
+  afterBackingEdited,
+  afterClaimEdited,
+  afterClaimMapTouch,
+  afterCounterclaimEdited,
+  afterProposalCreated,
+  afterSupportEdited,
+  afterTruthAccepted,
+} from "@/lib/graph/after-writes";
 import { nowIso } from "@/lib/utils";
 
 function pushHistory(
@@ -174,7 +183,15 @@ export async function ensureClaimMapShell(input: {
   caseId: string;
   personId: string | null;
 }): Promise<ClaimMapNode[]> {
-  if (!isSampleDataMode()) return sb.ensureClaimMapShell(input);
+  if (!isSampleDataMode()) {
+    const nodes = await sb.ensureClaimMapShell(input);
+    await afterClaimMapTouch({
+      teamId: input.teamId,
+      caseId: input.caseId,
+      personId: input.personId,
+    });
+    return nodes;
+  }
   const store = await readStore();
   const existing = claimNodesFor(store, input.teamId, input.caseId);
   if (existing.length >= 2) return existing;
@@ -255,6 +272,12 @@ export async function ensureClaimMapShell(input: {
     }
   });
 
+  await afterClaimMapTouch({
+    teamId: input.teamId,
+    caseId: input.caseId,
+    personId: input.personId,
+  });
+
   return claimNodesFor(await readStore(), input.teamId, input.caseId);
 }
 
@@ -266,7 +289,17 @@ export async function updateClaim(input: {
   logic_line?: string | null;
   reason: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (!isSampleDataMode()) return sb.updateClaim(input);
+  if (!isSampleDataMode()) {
+    const result = await sb.updateClaim(input);
+    if (result.ok) {
+      await afterClaimEdited({
+        claimId: input.claimId,
+        teamId: input.teamId,
+        personId: input.personId,
+      });
+    }
+    return result;
+  }
   const reason = input.reason.trim();
   if (!reason) return { ok: false, error: "A one-line reason is required." };
 
@@ -311,6 +344,12 @@ export async function updateClaim(input: {
     meta: { reason },
   });
 
+  await afterClaimEdited({
+    claimId: claim.id,
+    teamId: input.teamId,
+    personId: input.personId,
+  });
+
   return { ok: true };
 }
 
@@ -321,7 +360,17 @@ export async function updateSupport(input: {
   text?: string;
   reason: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (!isSampleDataMode()) return sb.updateSupport(input);
+  if (!isSampleDataMode()) {
+    const result = await sb.updateSupport(input);
+    if (result.ok) {
+      await afterSupportEdited({
+        supportId: input.supportId,
+        teamId: input.teamId,
+        personId: input.personId,
+      });
+    }
+    return result;
+  }
   const reason = input.reason.trim();
   if (!reason) return { ok: false, error: "A one-line reason is required." };
 
@@ -358,6 +407,12 @@ export async function updateSupport(input: {
     originRef: support.id,
   });
 
+  await afterSupportEdited({
+    supportId: support.id,
+    teamId: input.teamId,
+    personId: input.personId,
+  });
+
   return { ok: true };
 }
 
@@ -371,7 +426,17 @@ export async function updateCounterclaim(input: {
   rebut?: string | null;
   reason: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (!isSampleDataMode()) return sb.updateCounterclaim(input);
+  if (!isSampleDataMode()) {
+    const result = await sb.updateCounterclaim(input);
+    if (result.ok) {
+      await afterCounterclaimEdited({
+        counterclaimId: input.counterclaimId,
+        teamId: input.teamId,
+        personId: input.personId,
+      });
+    }
+    return result;
+  }
   const reason = input.reason.trim();
   if (!reason) return { ok: false, error: "A one-line reason is required." };
 
@@ -411,6 +476,13 @@ export async function updateCounterclaim(input: {
   if (!cc || cc.team_id !== input.teamId) {
     return { ok: false, error: "Counterclaim not found for your team." };
   }
+
+  await afterCounterclaimEdited({
+    counterclaimId: cc.id,
+    teamId: input.teamId,
+    personId: input.personId,
+  });
+
   return { ok: true };
 }
 
@@ -422,7 +494,17 @@ export async function updateBacking(input: {
   kind?: Backing["kind"];
   reason: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (!isSampleDataMode()) return sb.updateBacking(input);
+  if (!isSampleDataMode()) {
+    const result = await sb.updateBacking(input);
+    if (result.ok) {
+      await afterBackingEdited({
+        backingId: input.backingId,
+        teamId: input.teamId,
+        personId: input.personId,
+      });
+    }
+    return result;
+  }
   const reason = input.reason.trim();
   if (!reason) return { ok: false, error: "A one-line reason is required." };
 
@@ -450,6 +532,13 @@ export async function updateBacking(input: {
   if (!backing || backing.team_id !== input.teamId) {
     return { ok: false, error: "Backing not found for your team." };
   }
+
+  await afterBackingEdited({
+    backingId: backing.id,
+    teamId: input.teamId,
+    personId: input.personId,
+  });
+
   return { ok: true };
 }
 
@@ -465,7 +554,18 @@ export async function createProposal(input: {
   citationIds?: string[];
   ideaKey?: string;
 }): Promise<Proposal> {
-  if (!isSampleDataMode()) return sb.createProposal(input);
+  if (!isSampleDataMode()) {
+    const proposal = await sb.createProposal(input);
+    await afterProposalCreated({
+      proposalId: proposal.id,
+      teamId: proposal.team_id,
+      caseId: proposal.case_id,
+      personId: input.personId,
+      inspiredFromTeamId: proposal.inspired_from_team_id,
+      citationIds: proposal.citation_ids,
+    });
+    return proposal;
+  }
   const store = await readStore();
   const teamTruth = store.truth_items.filter(
     (t) => t.team_id === input.teamId && t.case_id === input.caseId,
@@ -535,6 +635,15 @@ export async function createProposal(input: {
     action: "proposal_created",
     target: proposal.id,
     meta: { origin: proposal.origin, team_id: proposal.team_id },
+  });
+
+  await afterProposalCreated({
+    proposalId: proposal.id,
+    teamId: proposal.team_id,
+    caseId: proposal.case_id,
+    personId: input.personId,
+    inspiredFromTeamId: proposal.inspired_from_team_id,
+    citationIds: proposal.citation_ids,
   });
 
   return proposal;
@@ -617,7 +726,42 @@ export async function decideProposal(input: {
   reason: string;
   editedText?: string | null;
 }): Promise<{ ok: true; decision: Decision } | { ok: false; error: string }> {
-  if (!isSampleDataMode()) return sb.decideProposal(input);
+  if (!isSampleDataMode()) {
+    const result = await sb.decideProposal(input);
+    if (result.ok && (input.verdict === "accept" || input.verdict === "edit")) {
+      const prop = await sb.getProposalById(input.proposalId);
+      if (prop) {
+        const { getServiceSupabase } = await import(
+          "@/lib/db/supabase/client"
+        );
+        const db = getServiceSupabase();
+        const acceptedText =
+          input.verdict === "edit"
+            ? (input.editedText ?? "").trim() || prop.text
+            : prop.text;
+        const { data: truth } = await db
+          .from("truth_items")
+          .select("id,team_id,case_id,citation_ids")
+          .eq("team_id", input.teamId)
+          .eq("case_id", prop.case_id)
+          .eq("text", acceptedText)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (truth) {
+          await afterTruthAccepted({
+            truthItemId: truth.id,
+            proposalId: prop.id,
+            teamId: truth.team_id,
+            caseId: truth.case_id,
+            personId: input.personId,
+            citationIds: truth.citation_ids,
+          });
+        }
+      }
+    }
+    return result;
+  }
   const reason = input.reason.trim();
   if (!reason) {
     return { ok: false, error: "A decision without a reason cannot be saved." };
@@ -735,6 +879,23 @@ export async function decideProposal(input: {
       originRef: proposal.id,
       ideaKey: proposal.idea_key,
     });
+    const storeAfter = await readStore();
+    const truth = storeAfter.truth_items.find(
+      (t) =>
+        t.team_id === input.teamId &&
+        t.case_id === proposal.case_id &&
+        t.text === acceptedText,
+    );
+    if (truth) {
+      await afterTruthAccepted({
+        truthItemId: truth.id,
+        proposalId: proposal.id,
+        teamId: truth.team_id,
+        caseId: truth.case_id,
+        personId: input.personId,
+        citationIds: truth.citation_ids,
+      });
+    }
   }
 
   await logActivity({

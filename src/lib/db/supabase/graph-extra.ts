@@ -239,3 +239,77 @@ export async function isGraphSpineReady(): Promise<boolean> {
   assertOk(error, "isGraphSpineReady");
   return Boolean(data);
 }
+
+export type GraphSpineStats = {
+  ready: boolean;
+  edge_count: number;
+  by_type: Record<string, number>;
+  claims_missing_embedding: number;
+  supports_missing_embedding: number;
+  counterclaims_missing_embedding: number;
+};
+
+/** Admin / flywheel: edge totals and embedding gaps (real counts only). */
+export async function getGraphSpineStats(): Promise<GraphSpineStats> {
+  const ready = await isGraphSpineReady();
+
+  if (isSampleDataMode()) {
+    const store = (await readStore()) as unknown as {
+      arg_edges?: { type: string }[];
+      claims: unknown[];
+      supports: unknown[];
+      counterclaims: unknown[];
+    };
+    const edges = store.arg_edges ?? [];
+    const by_type: Record<string, number> = {};
+    for (const e of edges) {
+      by_type[e.type] = (by_type[e.type] ?? 0) + 1;
+    }
+    return {
+      ready,
+      edge_count: edges.length,
+      by_type,
+      // Sample store has no vectors; report row counts as still missing.
+      claims_missing_embedding: store.claims.length,
+      supports_missing_embedding: store.supports.length,
+      counterclaims_missing_embedding: store.counterclaims.length,
+    };
+  }
+
+  const sb = getServiceSupabase();
+  const edgeCount = await countArgEdges();
+  const { data: typeRows, error: typeErr } = await sb
+    .from("arg_edges")
+    .select("type");
+  assertOk(typeErr, "getGraphSpineStats.types");
+  const by_type: Record<string, number> = {};
+  for (const r of typeRows ?? []) {
+    const t = String(r.type);
+    by_type[t] = (by_type[t] ?? 0) + 1;
+  }
+
+  async function missingEmbed(table: string): Promise<number> {
+    const { count, error } = await sb
+      .from(table)
+      .select("*", { count: "exact", head: true })
+      .is("embedding", null);
+    assertOk(error, `getGraphSpineStats.missing.${table}`);
+    return count ?? 0;
+  }
+
+  const [claims_missing_embedding, supports_missing_embedding, counterclaims_missing_embedding] =
+    await Promise.all([
+      missingEmbed("claims"),
+      missingEmbed("supports"),
+      missingEmbed("counterclaims"),
+    ]);
+
+  return {
+    ready,
+    edge_count: edgeCount,
+    by_type,
+    claims_missing_embedding,
+    supports_missing_embedding,
+    counterclaims_missing_embedding,
+  };
+}

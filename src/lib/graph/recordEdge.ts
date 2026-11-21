@@ -5,9 +5,11 @@
  */
 export {
   countArgEdges,
+  getGraphSpineStats,
   isGraphSpineReady,
   listEdgesForNode,
   recordEdge,
+  type GraphSpineStats,
 } from "@/lib/db/supabase/graph-extra";
 
 export {
