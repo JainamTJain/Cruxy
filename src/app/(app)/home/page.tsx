@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type Team = { id: string; name: string; colour: string };
@@ -73,7 +74,10 @@ export default function HomePage() {
             Where the program stands
           </h1>
           <p className="mt-1 text-sm text-muted">
-            12 cases × 3 teams · readiness, leads, and what changed
+            12 cases × 3 teams · readiness, leads, and what changed ·{" "}
+            <Link href="/case-brain" className="underline">
+              Case brain
+            </Link>
           </p>
         </div>
         {data.daysToCompetition != null && data.competition ? (
@@ -105,10 +109,15 @@ export default function HomePage() {
               key={t.id}
               className="rounded-2xl border border-ink/10 bg-white/60 px-4 py-3"
             >
-              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: t.colour }}>
+              <p
+                className="text-xs font-semibold uppercase tracking-wide"
+                style={{ color: t.colour }}
+              >
                 {t.name} ready
               </p>
-              <p className="font-display text-3xl font-semibold">{a?.avg ?? 0}%</p>
+              <p className="font-display text-3xl font-semibold">
+                {a?.avg ?? 0}%
+              </p>
               <p className="text-xs text-muted">+{a?.delta_week ?? 0} this week</p>
             </div>
           );
@@ -118,7 +127,7 @@ export default function HomePage() {
       <section>
         <h2 className="font-display text-xl font-semibold">Case board</h2>
         <p className="mt-1 text-sm text-muted">
-          Each cell: readiness, leads, latest event.
+          Each cell: readiness, leads, latest event. Case titles open Case brain.
         </p>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
@@ -126,7 +135,11 @@ export default function HomePage() {
               <tr className="border-b border-ink/10 text-xs uppercase tracking-wide text-muted">
                 <th className="py-2 pr-3">Case</th>
                 {data.teams.map((t) => (
-                  <th key={t.id} className="py-2 pr-3" style={{ color: t.colour }}>
+                  <th
+                    key={t.id}
+                    className="py-2 pr-3"
+                    style={{ color: t.colour }}
+                  >
                     {t.name}
                   </th>
                 ))}
@@ -136,10 +149,15 @@ export default function HomePage() {
               {data.cases.map((c) => (
                 <tr key={c.id} className="border-b border-ink/5 align-top">
                   <td className="py-3 pr-3 font-medium">
-                    <span className="font-mono text-xs text-muted">
-                      {String(c.number).padStart(2, "0")}
-                    </span>{" "}
-                    {c.title}
+                    <Link
+                      href={`/case-brain/${c.id}`}
+                      className="hover:text-cardinal"
+                    >
+                      <span className="font-mono text-xs text-muted">
+                        {String(c.number).padStart(2, "0")}
+                      </span>{" "}
+                      {c.title}
+                    </Link>
                   </td>
                   {data.teams.map((t) => {
                     const cell = cellFor(t.id, c.id);
@@ -158,9 +176,22 @@ export default function HomePage() {
                                 {cell.latest_event}
                               </p>
                             ) : null}
+                            <Link
+                              href={`/case-brain/${c.id}?team=${t.id}`}
+                              className="mt-1 inline-block text-[11px] underline-offset-2 hover:underline"
+                              style={{ color: t.colour }}
+                            >
+                              Open brain
+                            </Link>
                           </div>
                         ) : (
-                          <span className="text-muted">—</span>
+                          <Link
+                            href={`/case-brain/${c.id}?team=${t.id}`}
+                            className="text-xs underline-offset-2 hover:underline"
+                            style={{ color: t.colour }}
+                          >
+                            Open
+                          </Link>
                         )}
                       </td>
                     );
@@ -197,7 +228,14 @@ export default function HomePage() {
         <div className="rounded-2xl border border-ink/10 bg-white/60 p-4">
           <h2 className="font-display text-lg font-semibold">Your next three</h2>
           <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm">
-            {data.nextActions.map((a) => (
+            <li>
+              Open{" "}
+              <Link href="/case-brain" className="underline">
+                Case brain
+              </Link>{" "}
+              and edit your claim map
+            </li>
+            {data.nextActions.slice(0, 2).map((a) => (
               <li key={a}>{a}</li>
             ))}
           </ol>

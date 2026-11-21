@@ -1,0 +1,53 @@
+<!-- Crux design reference. Translate to Next.js + Tailwind; ignore the <x-dc>, <helmet> and DCLogic wrappers. Sample data only. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crux: thesis in 30 seconds drill on a phone</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,system-ui,sans-serif;color:#F2F3F5}
+.disp{font-family:'Bricolage Grotesque',Inter,sans-serif}
+.mono{font-family:'IBM Plex Mono',monospace}
+.bar{width:100%;border-radius:4px 4px 0 0;background:#3B404A}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0C0D11; display: flex; flex-direction: column; padding: 18px; gap: 16px; overflow: hidden">
+  <div style="display: flex; justify-content: space-between; align-items: center">
+    <span class="disp" style="font-size: 26px; font-weight: 800; letter-spacing: -0.03em">crux</span>
+    <span style="font-size: 12px; font-weight: 700; color: #C62828; display: flex; align-items: center; gap: 6px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #C62828"></span>REC</span>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 4px">
+    <span style="font-size: 12px; font-weight: 700; letter-spacing: .1em; color: #F5B700">THESIS IN 30 SECONDS · CASE 5 · SAMPLE</span>
+    <span style="font-size: 13px; color: #8C929D">A wording you haven't seen. One sentence.</span>
+  </div>
+  <p class="disp" style="margin: 0; font-size: 28px; line-height: 1.15; font-weight: 600">"Is it ever ethical to profit from predicting a war?"</p>
+
+  <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px">
+    <span class="mono" style="font-size: 88px; line-height: 1; font-weight: 600; color: #F5B700">0:18</span>
+    <button aria-label="Stop recording" style="width: 96px; height: 96px; border-radius: 50%; border: 6px solid #3B404A; background: #C62828; cursor: pointer; display: flex; align-items: center; justify-content: center"><span style="width: 30px; height: 30px; border-radius: 6px; background: #FFFFFF"></span></button>
+    <p style="margin: 0; text-align: center; font-size: 15px; line-height: 1.5; color: #C9CCD3">"No, not when the bet is on war or a leader's removal, because insiders..."</p>
+  </div>
+
+  <div style="background: #16181F; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; justify-content: space-between; font-size: 13px"><strong>Your time to a thesis</strong><span style="color: #8C929D">best 0:22 · last 0:31</span></div>
+    <div style="display: flex; align-items: flex-end; gap: 6px; height: 56px">
+      <div class="bar" style="height: 100%"></div><div class="bar" style="height: 86%"></div><div class="bar" style="height: 90%"></div><div class="bar" style="height: 71%"></div><div class="bar" style="height: 64%"></div><div class="bar" style="height: 58%"></div><div class="bar" style="height: 49%; background: #F5B700"></div>
+    </div>
+    <span style="font-size: 12px; color: #8C929D">Measured against your own past answers only.</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!-- Crux design reference. Translate to Next.js + Tailwind; ignore the <x-dc>, <helmet> and DCLogic wrappers. Sample data only. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crux: reading room</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;family=Source+Serif+4:ital,wght@0,400;0,600;1,400&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;font-family:Inter,system-ui,sans-serif;color:#111318}
+a{color:inherit;text-decoration:none}
+.disp{font-family:'Bricolage Grotesque',Inter,sans-serif}
+.lab{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5A606B}
+.nav{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;font-size:15px;font-weight:500;color:#C9CCD3}
+.nav:hover{background:#1E2129;color:#FFFFFF}
+.doc{font-family:'Source Serif 4',Georgia,serif;font-size:19px;line-height:1.7;color:#1C1F26}
+.ftab{padding:9px 14px;border-radius:10px;font-size:14px;font-weight:600;color:#3B404A;background:#FFFFFF;border:1px solid #E3E5E9}
+.act{height:38px;padding:0 12px;border-radius:10px;border:1px solid #E3E5E9;background:#FFFFFF;font:600 13px Inter,sans-serif;color:#111318;cursor:pointer;text-align:left}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 248px; background: #111318; color: #FFFFFF; padding: 28px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 28px">
+    <span class="disp" style="font-size: 38px; font-weight: 800; letter-spacing: -0.04em; padding: 0 12px">crux</span>
+    <nav aria-label="Main" style="display: flex; flex-direction: column; gap: 2px">
+      <a class="nav" href="Home.html">Program map</a>
+      <a class="nav" href="Roadmap.html">My roadmap</a>
+      <a class="nav" href="CaseBrain.html">Cases</a>
+      <a class="nav" href="Reading.html" style="background: #9D2235; color: #FFFFFF">Reading room</a>
+      <a class="nav" href="Practice.html">Practice</a>
+      <a class="nav" href="Feedback.html">Reports</a>
+      <a class="nav" href="#">Team chat</a>
+    </nav>
+    <button style="margin-top: auto; height: 44px; border-radius: 12px; border: none; background: #F5B700; color: #111318; font: 700 15px Inter, sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px"><img src="/cruxy/cruxy-lamp.png" alt="" style="width: 42px; height: auto">Ask Cruxy</button>
+  </aside>
+
+  <main style="flex: 999 1 640px; min-width: 0; padding: 28px 40px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <span class="lab">Reading room · Case 9 · sample text</span>
+        <h1 class="disp" style="margin: 0; font-size: 34px; font-weight: 800; letter-spacing: -0.02em">GEM in the Rough</h1>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap">
+        <a class="ftab" href="#" style="background: #111318; color: #FFFFFF; border-color: #111318">Case set, p. [n]</a>
+        <a class="ftab" href="#">1801 Capitulation notes · Drive</a>
+        <a class="ftab" href="#">Team 3 practice, Nov 12</a>
+        <a class="ftab" href="#">+ 9 more</a>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+      <article style="flex: 999 1 560px; min-width: 0; background: #FFFFFF; border-radius: 20px; padding: 44px 56px; box-sizing: border-box">
+        <div class="doc" style="max-width: 680px; display: flex; flex-direction: column; gap: 18px">
+          <p style="margin: 0">The Grand Egyptian Museum opened near the pyramids in November 2025, holding tens of thousands of objects from five millennia. Its opening renewed a familiar question about objects held abroad.</p>
+          <p style="margin: 0">The Rosetta Stone was found by French forces in the late 1790s and passed to Britain soon after, <mark style="background: #FFE58A; padding: 1px 2px; border-radius: 3px">where it has been on display ever since</mark>. The British Museum says it has received no formal request from Egypt's government, and that <span style="background: #D8EEEB; border-bottom: 2px solid #0F7B6C">a 1963 law strictly limits what it may give away</span>.</p>
+          <p style="margin: 0">Supporters of return point to the circumstances of the taking and to Egypt's new capacity to care for the object. Defenders of the current arrangement point to <span style="background: #E4E3FB; border-bottom: 2px solid #4F46E5">global access, the cost of deaccessioning, and public trust</span>.</p>
+          <p style="margin: 0; color: #5A606B; font-size: 15px; font-family: Inter, sans-serif">Placeholder paraphrase for the mockup. The real reader shows the case set page and Drive files exactly.</p>
+        </div>
+      </article>
+
+      <aside style="flex: 1 1 340px; display: flex; flex-direction: column; gap: 16px">
+        <section aria-labelledby="sel" style="background: #111318; color: #FFFFFF; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+          <span class="lab" style="color: #9AA0AA">Your highlight</span>
+          <p id="sel" style="margin: 0; font: italic 400 18px/1.45 'Source Serif 4', serif; color: #FFE58A">"where it has been on display ever since"</p>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+            <button class="act" style="background: #F5B700; border-color: #F5B700">Cruxy: is this accurate?</button>
+            <button class="act">Find a counterexample</button>
+            <button class="act">Make a flashcard</button>
+            <button class="act">Propose to Truth Sources</button>
+          </div>
+          <div style="background: #1E2129; border-radius: 12px; padding: 12px; font-size: 14px; line-height: 1.5; color: #D6D9DF"><strong style="color: #F5B700">Cruxy:</strong> Mostly. It left the museum for wartime storage and for about a month in Paris in 1972. <span style="text-decoration: underline">2 sources</span></div>
+        </section>
+
+        <section aria-labelledby="notes" style="background: #FFFFFF; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+          <h2 id="notes" class="disp" style="margin: 0; font-size: 20px; font-weight: 800">Comments on this page · all teams</h2>
+          <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 12px; background: #F7F8FA">
+            <span style="font-size: 13px"><strong style="color: #0F7B6C">Ivan · Team 1</strong> on "a 1963 law"</span>
+            <span style="font-size: 14px; line-height: 1.45">The Act already has exceptions for human remains. Consistency point?</span>
+            <span style="font-size: 13px; color: #5A606B">Reply · 2 replies</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 12px; background: #F7F8FA">
+            <span style="font-size: 13px"><strong style="color: #4F46E5">Bethany · Team 2</strong> on "global access"</span>
+            <span style="font-size: 14px; line-height: 1.45">Free entry in London vs paid entry in Cairo. Weigh access by connection, not headcount?</span>
+            <span style="font-size: 13px; color: #5A606B">Reply</span>
+          </div>
+          <label for="nc" style="font-size: 13px; font-weight: 600">Add a comment on your highlight</label>
+          <input id="nc" placeholder="Visible to all three teams" style="height: 44px; border-radius: 12px; border: 1px solid #E3E5E9; padding: 0 12px; font: 400 14px Inter, sans-serif">
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

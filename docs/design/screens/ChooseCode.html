@@ -1,0 +1,157 @@
+<!-- Crux design reference. Translate to Next.js + Tailwind; ignore the <x-dc>, <helmet> and DCLogic wrappers. Sample data only. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crux: choose your passcode</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;font-family:Inter,system-ui,sans-serif;color:#111318}
+a{color:#9D2235}a:hover{color:#111318}
+.disp{font-family:'Bricolage Grotesque',Inter,sans-serif}
+.lab{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5A606B}
+.key{height:60px;border-radius:14px;border:1px solid #E3E5E9;background:#F7F8FA;font:600 22px Inter,sans-serif;color:#111318;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap">
+  <section style="flex: 1 1 480px; background: #9D2235; color: #FFFFFF; padding: 48px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; gap: 32px">
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; letter-spacing: .08em">
+      <span>USC ETHICS BOWL</span><span>FIRST SIGN IN · JAINAM · SAMPLE</span>
+    </div>
+    <div style="display: flex; align-items: flex-end; gap: 20px">
+      <img src="/cruxy/cruxy-curious.png" alt="Cruxy, thinking" style="width: 170px; flex: none">
+      <div style="background: #FFFFFF; color: #111318; border-radius: 20px 20px 20px 4px; padding: 18px 20px; max-width: 360px; margin-bottom: 120px">
+        <span class="disp" style="font-size: 17px; font-weight: 800">Cruxy</span>
+        <p style="margin: 6px 0 0; font-size: 17px; line-height: 1.45">What six digits will you still remember the morning of the regional, that nobody could guess?</p>
+      </div>
+    </div>
+    <h1 class="disp" style="margin: 0; font-size: 120px; line-height: .82; font-weight: 800; letter-spacing: -0.05em">crux</h1>
+  </section>
+
+  <section aria-labelledby="choose" style="flex: 1 1 520px; background: #FFFFFF; padding: 48px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span class="lab">Step 3 of 3 · first time only</span>
+      <h2 id="choose" class="disp" style="margin: 0; font-size: 44px; line-height: 1; font-weight: 800; letter-spacing: -0.02em">Choose your passcode</h2>
+      <p style="margin: 4px 0 0; font-size: 15px; line-height: 1.5; color: #3B404A; max-width: 520px">From now on you'll sign in with your name and this passcode. The member code stops working for you.</p>
+    </div>
+
+    <div style="display: flex; gap: 12px; align-items: flex-start; background: #FFF7DB; border-radius: 14px; padding: 14px 16px; max-width: 520px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8A6500" stroke-width="2" aria-hidden="true" style="flex: none; margin-top: 2px"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+      <p style="margin: 0; font-size: 14px; line-height: 1.5">Jainam, as technical admin, can see your passcode so he can help if you forget it. Don't reuse a code you use anywhere else.</p>
+    </div>
+
+    <sc-if value="{{notDone}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 14px; max-width: 420px">
+        <div style="display: flex; justify-content: space-between; align-items: center">
+          <span style="font-size: 16px; font-weight: 700">{{prompt}}</span>
+          <span aria-label="{{count}} of 6 digits entered" style="display: flex; gap: 10px">
+            <sc-for list="{{dots}}" as="d" hint-placeholder-count="6"><span style="{{d.style}}"></span></sc-for>
+          </span>
+        </div>
+        <span role="alert" style="min-height: 20px; font-size: 14px; font-weight: 600; color: #C62828">{{err}}</span>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+          <sc-for list="{{keys}}" as="k" hint-placeholder-count="12"><button class="key" onClick="{{k.press}}" aria-label="{{k.aria}}" style="{{k.style}}">{{k.label}}</button></sc-for>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; padding-top: 4px">
+          <sc-for list="{{rules}}" as="r" hint-placeholder-count="3">
+            <span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: {{r.color}}"><span aria-hidden="true" style="width: 18px; font-weight: 700">{{r.mark}}</span>{{r.text}}</span>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 16px; max-width: 420px; background: #E8F5F1; border-radius: 18px; padding: 24px">
+        <span class="disp" style="font-size: 28px; font-weight: 800; color: #0B5E53">Passcode saved</span>
+        <p style="margin: 0; font-size: 15px; line-height: 1.5">Change it any time in Settings. Forgot it? Ask Jainam.</p>
+        <a href="Home.html" style="height: 56px; border-radius: 14px; background: #111318; color: #FFFFFF; font: 600 16px Inter, sans-serif; display: flex; align-items: center; justify-content: center; text-decoration: none">Enter Crux</a>
+        <button onClick="{{restart}}" style="align-self: flex-start; min-height: 32px; border: none; background: none; padding: 0; font: 600 13px Inter, sans-serif; color: #5A606B; text-decoration: underline; cursor: pointer">Try the flow again</button>
+      </div>
+    </sc-if>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+const MEMBER_CODE = '135790';
+function problems(c) {
+  return {
+    shared: c === MEMBER_CODE,
+    repeat: /^(\d)\1{5}$/.test(c),
+    run: '0123456789'.indexOf(c) >= 0 || '9876543210'.indexOf(c) >= 0
+  };
+}
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { stage: 'first', a: '', b: '', err: '' };
+  }
+  press(d) {
+    const st = this.state;
+    if (st.stage === 'done') return;
+    const field = st.stage === 'first' ? 'a' : 'b';
+    let v = st[field];
+    if (d === 'clear') v = '';
+    else if (d === 'back') v = v.slice(0, -1);
+    else if (v.length < 6) v = v + d;
+    const next = { err: '' };
+    next[field] = v;
+    if (v.length === 6 && field === 'a') {
+      const p = problems(v);
+      if (p.shared) { next.err = "That's the member code. Choose your own."; next.a = ''; }
+      else if (p.repeat) { next.err = 'One digit repeated is too easy to guess.'; next.a = ''; }
+      else if (p.run) { next.err = 'A straight run is too easy to guess.'; next.a = ''; }
+      else { next.stage = 'confirm'; next.b = ''; }
+    }
+    if (v.length === 6 && field === 'b') {
+      if (v === st.a) next.stage = 'done';
+      else { next.err = "Those didn't match. Type it again."; next.b = ''; }
+    }
+    this.setState(next);
+  }
+  renderVals() {
+    const st = this.state;
+    const cur = st.stage === 'first' ? st.a : st.b;
+    const on = 'width: 14px; height: 14px; border-radius: 50%; background: #111318';
+    const off = 'width: 14px; height: 14px; border-radius: 50%; border: 2px solid #9AA0AA; box-sizing: border-box';
+    const labels = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'Clear', '0', 'Delete'];
+    const keys = labels.map((l) => {
+      const val = l === 'Clear' ? 'clear' : l === 'Delete' ? 'back' : l;
+      const small = l.length > 1;
+      return {
+        label: l,
+        aria: small ? l : 'Digit ' + l,
+        style: small ? 'font-size: 15px' : '',
+        press: () => this.press(val)
+      };
+    });
+    const checked = st.stage !== 'first' || st.a.length === 6;
+    const p = checked ? problems(st.a) : null;
+    const rule = (bad, text) => ({
+      text: text,
+      mark: !p ? '·' : bad ? '✕' : '✓',
+      color: !p ? '#5A606B' : bad ? '#C62828' : '#0B5E53'
+    });
+    return {
+      done: st.stage === 'done',
+      notDone: st.stage !== 'done',
+      prompt: st.stage === 'first' ? 'Type 6 digits' : 'Type it again',
+      count: cur.length,
+      err: st.err,
+      dots: [0, 1, 2, 3, 4, 5].map((i) => ({ style: i < cur.length ? on : off })),
+      keys: keys,
+      rules: [
+        rule(p && p.shared, 'Not the member code'),
+        rule(p && p.repeat, 'Not one digit repeated, like 111111'),
+        rule(p && p.run, 'Not a straight run, like 123456 or 654321')
+      ],
+      restart: () => this.setState({ stage: 'first', a: '', b: '', err: '' })
+    };
+  }
+}
+</script>
+</body>
+</html>

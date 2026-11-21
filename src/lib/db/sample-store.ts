@@ -12,6 +12,20 @@ import {
   TOKENS,
 } from "@/lib/constants";
 import type {
+  Backing,
+  CaseRole,
+  ChangeTheFactsItem,
+  Claim,
+  Counterclaim,
+  Decision,
+  ItemHistoryEntry,
+  OpposingPosition,
+  Proposal,
+  Support,
+  TeamPrinciple,
+  TruthItem,
+} from "@/lib/case-brain/types";
+import type {
   ActivityLogEntry,
   AiCall,
   AuthCode,
@@ -41,6 +55,7 @@ export interface SampleStore {
   ai_calls: AiCall[];
   competitions: Competition[];
   cases: CaseRow[];
+  /** Track 6 Admin */
   readiness: ReadinessCell[];
   program_totals: ProgramTotals;
   spend_caps: SpendCaps;
@@ -50,9 +65,53 @@ export interface SampleStore {
   competition_logs: CompetitionLogEntry[];
   feature_useful: { feature: string; person_id: string; at: string }[];
   last_visits: Record<string, string>;
+  /** Track 2 Case brain */
+  claims: Claim[];
+  supports: Support[];
+  backings: Backing[];
+  counterclaims: Counterclaim[];
+  truth_items: TruthItem[];
+  proposals: Proposal[];
+  decisions: Decision[];
+  case_roles: CaseRole[];
+  opposing_positions: OpposingPosition[];
+  item_history: ItemHistoryEntry[];
+  team_principles: TeamPrinciple[];
+  change_the_facts: ChangeTheFactsItem[];
   seeded_at: string;
   /** tech-admin reauth timestamp for reveal window */
   last_tech_reauth_at: string | null;
+}
+
+function emptyCaseBrainFields(): Pick<
+  SampleStore,
+  | "claims"
+  | "supports"
+  | "backings"
+  | "counterclaims"
+  | "truth_items"
+  | "proposals"
+  | "decisions"
+  | "case_roles"
+  | "opposing_positions"
+  | "item_history"
+  | "team_principles"
+  | "change_the_facts"
+> {
+  return {
+    claims: [],
+    supports: [],
+    backings: [],
+    counterclaims: [],
+    truth_items: [],
+    proposals: [],
+    decisions: [],
+    case_roles: [],
+    opposing_positions: [],
+    item_history: [],
+    team_principles: [],
+    change_the_facts: [],
+  };
 }
 
 async function ensureDir() {
@@ -429,6 +488,7 @@ export async function buildSeedStore(): Promise<SampleStore> {
     competition_logs: [],
     feature_useful: [],
     last_visits: {},
+    ...emptyCaseBrainFields(),
     seeded_at: nowIso(),
     last_tech_reauth_at: null,
   };
@@ -437,7 +497,7 @@ export async function buildSeedStore(): Promise<SampleStore> {
 let writeChain: Promise<void> = Promise.resolve();
 
 function migrateStore(raw: SampleStore): SampleStore {
-  // Older Track 0 stores may lack Track 6 fields — fill defaults without wiping.
+  // Older stores may lack Track 2 / Track 6 fields — fill defaults without wiping.
   if (!raw.program_totals) {
     raw.program_totals = {
       drive_files: 0,
@@ -467,6 +527,20 @@ function migrateStore(raw: SampleStore): SampleStore {
   if (!raw.competition_logs) raw.competition_logs = [];
   if (!raw.feature_useful) raw.feature_useful = [];
   if (!raw.last_visits) raw.last_visits = {};
+
+  const brain = emptyCaseBrainFields();
+  raw.claims = raw.claims ?? brain.claims;
+  raw.supports = raw.supports ?? brain.supports;
+  raw.backings = raw.backings ?? brain.backings;
+  raw.counterclaims = raw.counterclaims ?? brain.counterclaims;
+  raw.truth_items = raw.truth_items ?? brain.truth_items;
+  raw.proposals = raw.proposals ?? brain.proposals;
+  raw.decisions = raw.decisions ?? brain.decisions;
+  raw.case_roles = raw.case_roles ?? brain.case_roles;
+  raw.opposing_positions = raw.opposing_positions ?? brain.opposing_positions;
+  raw.item_history = raw.item_history ?? brain.item_history;
+  raw.team_principles = raw.team_principles ?? brain.team_principles;
+  raw.change_the_facts = raw.change_the_facts ?? brain.change_the_facts;
   return raw;
 }
 

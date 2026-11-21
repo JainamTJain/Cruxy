@@ -1,11 +1,24 @@
 # Crux
 
-Web app for USC’s three Ethics Bowl teams. **Cruxy** is the built-in thinking partner (users never see “AI” or model names).
+Web app for USC’s three Ethics Bowl teams.
 
-## Tracks
+**Building with Cursor:** start every chat by @-mentioning `AGENTS.md` and the track file in `docs/tracks/`. Everything about the product is indexed in `docs/README.md`. **Cruxy** is the built-in thinking partner (users never see “AI” or model names).
 
-- **Track 0 Foundation** (merged): schema, auth, consent, Passcodes, `callCruxy`, activity log, design tokens.
-- **Track 6 Admin** (this branch): program map, admin console, spend dashboard, consent/activity, calibration, weekly summary email, Cruxy admin mode, competition log, Is Crux working?
+## Tracks landed
+
+- **Track 0 Foundation** — auth, schema/RLS, `callCruxy`, design tokens, Passcodes panel, checklist
+- **Track 2 Case brain** — per-team claim maps, Truth Sources queue (propose → human decide with reason), Inspired-by fan-out, Analyst notes, opposing positions, robustness / consistency / change-the-facts, full item history
+- **Track 6 Admin** (this branch) — program map, admin console, spend dashboard, consent/activity, calibration, weekly summary email, Cruxy admin mode, competition log, Is Crux working?
+
+### Track 2 (sample-data path)
+
+Case brains work without Supabase / AI gateway keys: local JSON under `.data/`. Analyst notes and opposing drafts use `callCruxy` stubs when keys are missing.
+
+```bash
+npm run check:track2
+```
+
+Apply `supabase/migrations/00002_track2_case_brain.sql` when Supabase is connected.
 
 ### Local / sample-data path
 
@@ -27,6 +40,7 @@ Jainam signs in with the admin starter whose hash is `INITIAL_ADMIN_CODE_HASH` (
 
 ```bash
 npx tsx scripts/track0-checks.ts
+npx tsx scripts/track2-checks.ts
 npx tsx scripts/track6-checks.ts
 ```
 
@@ -38,7 +52,7 @@ Track 6 checks: Dr. B cannot change codes/caps; weekly email only to opted-in ad
 
 ### Still needed from Jainam for production
 
-1. **Supabase** — `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; apply `supabase/migrations/00001_track0_foundation.sql`, `00002_track6_admin.sql` + `supabase/seed.sql`
+1. **Supabase** — `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; apply `supabase/migrations/00001_track0_foundation.sql`, `00002_track2_case_brain.sql`, `00003_track6_admin.sql` + `supabase/seed.sql`
 2. **AI gateway** — `AI_GATEWAY_API_KEY` or `OPENROUTER_API_KEY`
 3. **Drive** — share the Ethics Bowl root folder with the service account email (see secrets inventory), then set `DRIVE_ROOT_FOLDER_ID`
 4. **Email** — `EMAIL_API_KEY` (Resend) for live weekly summary
