@@ -11,7 +11,17 @@ Web app for USC’s three Ethics Bowl teams.
 | **0 Foundation** | Auth, schema/RLS, `callCruxy`, activity log, design tokens |
 | **1 Library** | Drive sync + digest, reading room, search, nightly research, book requests |
 | **2 Case brain** | Claim maps, Truth Sources queue, Inspired-by, Analyst, opposing positions, robustness |
-| **4 Team space** | Assignments/roles, team board + chat, floating Cruxy/lamp + drawer, versioned claim maps + drift |
+| **5 Practice** (this PR) | Sessions, join codes, chunked recording → AssemblyAI → delete audio, judging portal, APPE card, Cruxy judge/feedback |
+
+### Track 5 (sample-data path)
+
+Practice works on the same `.data/` store. AssemblyAI is used when `ASSEMBLYAI_API_KEY` is set; otherwise transcription stubs. Cruxy judge/feedback stubs via `callCruxy` until the AI gateway key is set.
+
+```bash
+npm run check:track5
+```
+
+Apply `supabase/migrations/00005_track5_practice.sql` when Supabase is connected.
 
 ### Local / sample-data path
 
@@ -33,12 +43,12 @@ Use it once per person, then choose your own 6-digit passcode.
 npm run check:track0
 npm run check:track1
 npm run check:track2
-npm run check:track4
+npm run check:track5
 ```
 
 Track 1 checks: unchanged re-sync → 0 AI calls; every passage has Drive id + anchor; sorting queue lists confidence &lt; 0.7.
 
-Track 4 checks: lead change updates board/roadmap/chat; claim change needs confirmation; assistant refuses without Truth Sources.
+Track 5 checks: mid-round chunk loss ≤30s; audio gone after transcription; every feedback point cites a transcript line; rounds with no human judge get Cruxy scores for every team.
 
 ### Library (Track 1)
 
@@ -50,16 +60,10 @@ Track 4 checks: lead change updates board/roadmap/chat; claim change needs confi
 - Nightly research cron `30 7 * * *` → `/api/cron/research`; book requests at `/admin/books` (tech admin only)
 - Research / reading / transcript ideas post into the shared Track 2 proposals queue
 
-### Team space (Track 4)
-
-- Team board `/team`, chat `/team/chat`, claim-map versions `/team/cases/[caseId]`
-- Floating Cruxy + lamp on every app page; cite-or-quiet assistant drawer
-- Versioned claim maps, “I've got vN”, two-person claim approval, drift flags
-
 ### Still needed from Jainam for production
 
-1. **Supabase** — `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; apply `00001_track0_foundation.sql`, `00002_track2_case_brain.sql`, `00003_track1_library.sql`, `00004_track4_team_space.sql`, and `supabase/seed.sql`
-2. **AI gateway** — `AI_GATEWAY_API_KEY` or `OPENROUTER_API_KEY` (Librarian/Researcher stub until set)
+1. **Supabase** — `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; apply `00001_track0_foundation.sql`, `00002_track2_case_brain.sql`, `00003_track1_library.sql`, `00005_track5_practice.sql`, and `supabase/seed.sql`
+2. **AI gateway** — `AI_GATEWAY_API_KEY` or `OPENROUTER_API_KEY` (Librarian/Researcher/Cruxy judge stub until set; AssemblyAI key may already be present)
 3. **Drive** — share the Ethics Bowl root folder with `crux-drive-reader@crux-ethics-bowl-jainam-jain.iam.gserviceaccount.com`, then set `DRIVE_ROOT_FOLDER_ID` (service account JSON via `GOOGLE_SERVICE_ACCOUNT_JSON`)
 4. Optional: `CRON_SECRET` for cron routes
 
@@ -82,3 +86,4 @@ Track 4 checks: lead change updates board/roadmap/chat; claim change needs confi
 - `npm run check:track2`
 - `npm run check:track3`
 - `npm run check:track4`
+- `npm run check:track5`

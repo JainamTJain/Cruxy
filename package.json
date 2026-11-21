@@ -9,6 +9,7 @@
     "check:track2": "tsx scripts/track2-checks.ts",
     "check:track3": "tsx scripts/track3-checks.ts",
     "check:track4": "tsx scripts/track4-checks.ts",
+    "check:track5": "tsx scripts/track5-checks.ts",
     "dev": "next dev",
     "lint": "eslint",
     "start": "next start",
