@@ -67,6 +67,7 @@ function mapPerson(r: Row): Person {
     consent_at: isoOrNull(r.consent_at),
     recording_ok: Boolean(r.recording_ok),
     voice_sample_path: r.voice_sample_path ?? null,
+    pronunciation_note: (r.pronunciation_note as string | null) ?? null,
     first_run_checklist: r.first_run_checklist ?? {},
     failed_attempts: r.failed_attempts ?? 0,
     locked_until: isoOrNull(r.locked_until),

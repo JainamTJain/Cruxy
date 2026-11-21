@@ -1866,6 +1866,7 @@ export async function listCasesAndTeams(): Promise<{
         consent_at: null,
         recording_ok: false,
         voice_sample_path: null,
+        pronunciation_note: null,
         first_run_checklist: {},
         failed_attempts: 0,
         locked_until: null,

@@ -447,6 +447,7 @@ function emptyPerson(
     consent_at: null,
     recording_ok: false,
     voice_sample_path: null,
+    pronunciation_note: null,
     first_run_checklist: {
       confirm_cases: false,
       open_reading: false,

@@ -23,6 +23,11 @@ alter table glossary_terms
 alter table glossary_terms
   add column if not exists updated_at timestamptz not null default now();
 
+-- F-230: pronunciation note set by the person, tech admin, or transcription vendor
+-- after a voice sample. Never invent pronunciations for real people.
+alter table people
+  add column if not exists pronunciation_note text;
+
 -- Per-round glossary accuracy for Jainam (F-231).
 create table if not exists glossary_round_checks (
   id uuid primary key default gen_random_uuid(),

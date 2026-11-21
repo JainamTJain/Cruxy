@@ -87,23 +87,52 @@ function levenshtein(a: string, b: string): number {
   return dp[m][n];
 }
 
-/** Rough pronunciation guide for unusual names (F-230). */
-export function pronunciationHint(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return parts
-    .map((p) => {
-      const lower = p.toLowerCase();
-      if (lower === "jainam") return "JAI-nahm";
-      if (lower === "serena") return "suh-REE-nuh";
-      if (lower === "stolei") return "STOH-lay";
-      if (lower === "quixote") return "kee-HO-tay";
-      if (lower === "camerin") return "KAM-er-in";
-      if (lower === "bethany") return "BETH-uh-nee";
-      if (lower === "lehar") return "LAY-har";
-      // Fallback: split on vowel runs for a short speakable form.
-      return p.replace(/([aeiouy]+)/gi, "-$1-").replace(/^-|-$/g, "");
-    })
-    .join(" ");
+/**
+ * F-230: copy a stored pronunciation note onto the glossary term.
+ * Notes come only from people.pronunciation_note (set by the person, tech
+ * admin, or transcription vendor after a voice sample). Never invent one.
+ */
+export function storedPronunciationNote(
+  note: string | null | undefined,
+): string | null {
+  const trimmed = note?.trim() ?? "";
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+/**
+ * Persist a pronunciation note for a person (self or tech admin).
+ * Empty string clears the note.
+ */
+export async function setPronunciationNote(opts: {
+  personId: string;
+  note: string | null;
+  actorId: string;
+}): Promise<void> {
+  const value = storedPronunciationNote(opts.note);
+  if (isSampleDataMode()) {
+    await updateStore((s) => {
+      const i = s.people.findIndex((p) => p.id === opts.personId);
+      if (i < 0) throw new Error("Person not found");
+      s.people[i] = { ...s.people[i], pronunciation_note: value };
+    });
+  } else {
+    const sb = getServiceSupabase();
+    assertOk(
+      (
+        await sb
+          .from("people")
+          .update({ pronunciation_note: value })
+          .eq("id", opts.personId)
+      ).error,
+      "setPronunciationNote",
+    );
+  }
+  await logActivity({
+    person_id: opts.actorId,
+    action: "pronunciation_note_set",
+    target: opts.personId,
+    meta: { hasNote: Boolean(value) },
+  });
 }
 
 /**
@@ -161,16 +190,15 @@ export async function refreshCaseGlossary(opts: {
     }
   }
 
-  // F-230: pronunciation notes for people with a voice sample on file.
+  // F-230: only attach a pronunciation when one is stored for that person.
   const nameToPerson = new Map(
     people.map((p) => [p.name.toLowerCase(), p] as const),
   );
   for (const g of merged) {
     const person = nameToPerson.get(g.term.toLowerCase());
     if (!person) continue;
-    if (person.voice_sample_path && !g.pronunciation) {
-      g.pronunciation = pronunciationHint(person.name);
-    }
+    const note = storedPronunciationNote(person.pronunciation_note);
+    g.pronunciation = note;
   }
 
   // Keep team colour names stable.
