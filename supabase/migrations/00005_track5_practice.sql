@@ -122,6 +122,8 @@ create policy guest_tokens_tech on guest_judge_tokens
   with check (public.is_admin());
 
 -- Hide judges.weight from members via existing judges_public view
-create or replace view judges_public as
+-- (drop first: Postgres can't add a column in the middle of an existing view)
+drop view if exists judges_public;
+create view judges_public as
   select id, name, background, person_id, created_at, created_by
   from judges;
