@@ -1,0 +1,221 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import type { PracticeMode } from "@/lib/practice/types";
+
+type CaseRow = { id: string; number: number; title: string; active: boolean };
+type Team = { id: string; name: string; colour: string };
+type SessionRow = {
+  id: string;
+  title: string;
+  kind: string;
+  date: string;
+  status: string;
+  mode: string | null;
+  rounds: { id: string; mode: string; case_number: number | null }[];
+};
+
+const MODES: { id: PracticeMode; label: string; blurb: string }[] = [
+  { id: "full_round", label: "Full round", blurb: "Presentation → commentary → Q&A" },
+  { id: "moderator_drill", label: "Moderator drill", blurb: "Bank questions out loud" },
+  { id: "commentary_drill", label: "Commentary drill", blurb: "Cruxy presents; you comment" },
+  { id: "judges_qa_drill", label: "Judges' Q&A", blurb: "Rapid follow-ups from Cruxy" },
+  { id: "solo_speech", label: "Solo speech", blurb: "One part, scored" },
+  { id: "free_record", label: "Free record", blurb: "Discussion → Truth Source ideas" },
+  { id: "conferral_drill", label: "Conferral", blurb: "60s confer, then answer" },
+  { id: "thesis_30", label: "Thesis in 30s", blurb: "One sentence under the clock" },
+  { id: "qa_routing", label: "Q&A routing", blurb: "Right person takes the question" },
+];
+
+export default function PracticePage() {
+  const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [cases, setCases] = useState<CaseRow[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [mode, setMode] = useState<PracticeMode>("solo_speech");
+  const [caseId, setCaseId] = useState<string>("");
+  const [code, setCode] = useState("");
+  const [joinMsg, setJoinMsg] = useState<string | null>(null);
+  const [createdCode, setCreatedCode] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function refresh() {
+    const res = await fetch("/api/practice/sessions");
+    const data = await res.json();
+    setSessions(data.sessions ?? []);
+    setCases((data.cases ?? []).filter((c: CaseRow) => c.active));
+    setTeams(data.teams ?? []);
+    if (!caseId && data.cases?.[0]) setCaseId(data.cases.find((c: CaseRow) => c.active)?.id ?? "");
+  }
+
+  useEffect(() => {
+    void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function startPractice() {
+    setBusy(true);
+    setCreatedCode(null);
+    const caseRow = cases.find((c) => c.id === caseId);
+    const myTeam = teams[0]?.id ?? null;
+    const res = await fetch("/api/practice/sessions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        kind: "member_practice",
+        title: `${MODES.find((m) => m.id === mode)?.label ?? "Practice"}`,
+        mode,
+        rounds: [
+          {
+            caseId: caseId || null,
+            caseNumber: caseRow?.number ?? null,
+            teamIds: myTeam ? [myTeam] : [],
+            sides: { presenting: myTeam, commenting: null },
+            moderator: "cruxy",
+            judges: { humans: [], cruxy: true },
+            mode,
+          },
+        ],
+      }),
+    });
+    const data = await res.json();
+    setBusy(false);
+    if (data.session?.code) setCreatedCode(data.session.code);
+    if (data.session?.id) {
+      await refresh();
+      window.location.href = `/practice/sessions/${data.session.id}`;
+    }
+  }
+
+  async function join() {
+    setJoinMsg(null);
+    const res = await fetch("/api/practice/join", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setJoinMsg(data.error ?? "Join failed");
+      return;
+    }
+    window.location.href = `/practice/sessions/${data.session.id}?screen=${data.screen}`;
+  }
+
+  return (
+    <main className="animate-fade-up space-y-8">
+      <div>
+        <h1 className="font-display text-3xl font-semibold">Practice</h1>
+        <p className="mt-1 text-sm text-muted">
+          Start alone or with a team — no admin needed. Admins also set up group days.
+        </p>
+      </div>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-ink/10 bg-white/70 p-4">
+          <h2 className="font-display text-xl font-semibold">Start a practice</h2>
+          <div className="mt-4 space-y-3">
+            <label className="block text-sm">
+              Mode
+              <select
+                className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-3 py-2"
+                value={mode}
+                onChange={(e) => setMode(e.target.value as PracticeMode)}
+              >
+                {MODES.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label} — {m.blurb}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              Case
+              <select
+                className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-3 py-2"
+                value={caseId}
+                onChange={(e) => setCaseId(e.target.value)}
+              >
+                {cases.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {String(c.number).padStart(2, "0")} · {c.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Button type="button" disabled={busy} onClick={() => void startPractice()}>
+              {busy ? "Starting…" : "Start"}
+            </Button>
+            {createdCode ? (
+              <p className="font-mono text-sm">Join code: {createdCode}</p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-ink/10 bg-white/70 p-4">
+          <h2 className="font-display text-xl font-semibold">Join with a code</h2>
+          <p className="mt-1 text-sm text-muted">
+            Members tap Join from home; judges use the{" "}
+            <Link href="/judging" className="underline">
+              Judging portal
+            </Link>
+            .
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <input
+              className="rounded-xl border border-ink/15 bg-white px-3 py-2 font-mono uppercase tracking-widest"
+              placeholder="CODE"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              maxLength={8}
+            />
+            <Button type="button" variant="secondary" onClick={() => void join()}>
+              Join
+            </Button>
+          </div>
+          {joinMsg ? <p className="mt-2 text-sm text-cardinal">{joinMsg}</p> : null}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="font-display text-xl font-semibold">Your sessions</h2>
+        <ul className="mt-3 space-y-2">
+          {sessions.length === 0 ? (
+            <li className="text-sm text-muted">No sessions yet.</li>
+          ) : (
+            sessions.map((s) => (
+              <li key={s.id}>
+                <Link
+                  href={`/practice/sessions/${s.id}`}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-ink/10 bg-white/60 px-4 py-3 hover:bg-white"
+                >
+                  <span>
+                    <span className="font-medium">{s.title}</span>
+                    <span className="ml-2 text-xs text-muted">
+                      {s.kind} · {s.date} · {s.status}
+                    </span>
+                  </span>
+                  <span className="font-mono text-xs text-muted">
+                    {s.rounds[0]?.mode ?? s.mode ?? "—"}
+                  </span>
+                </Link>
+              </li>
+            ))
+          )}
+        </ul>
+      </section>
+
+      <section className="rounded-2xl border border-ink/10 bg-white/60 p-4">
+        <h2 className="font-display text-lg font-semibold">Admin setup</h2>
+        <p className="mt-1 text-sm text-muted">
+          Jainam or Dr. B: switch to admin view, then create a group session with rounds,
+          timings, moderator and judges. The session code stays admin-only.
+        </p>
+        <Link href="/practice/admin" className="mt-3 inline-block text-sm text-cardinal underline">
+          Open admin session builder
+        </Link>
+      </section>
+    </main>
+  );
+}

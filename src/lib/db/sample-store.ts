@@ -3,6 +3,10 @@ import path from "path";
 import { randomUUID } from "crypto";
 import {
   CASE_TITLES,
+  MONTHLY_CAP_USD_DEFAULT,
+  PER_PERSON_ASSISTANT_DAY_CAP_USD,
+  PER_RESEARCH_NIGHT_CAP_USD,
+  PER_ROUND_CAP_USD,
   ROSTER,
   SAMPLE_MEMBER_STARTER,
   TOKENS,
@@ -25,9 +29,15 @@ import type {
   ActivityLogEntry,
   AiCall,
   AuthCode,
+  CalibrationRow,
   CaseRow,
   Competition,
+  CompetitionLogEntry,
+  DriveSortItem,
   Person,
+  ProgramTotals,
+  ReadinessCell,
+  SpendCaps,
   Team,
 } from "@/lib/types";
 import type {
@@ -54,6 +64,35 @@ import type {
   RoadmapStage,
   SocraticSession,
 } from "@/lib/revision/types";
+import type {
+  AlignmentQuestionSet,
+  Assignment,
+  ChatChannel,
+  ChatMessage,
+  ClaimChangeProposal,
+  ClaimMapConfirmation,
+  ClaimMapVersion,
+  DriftFlag,
+  PersonPrefs,
+} from "@/lib/team/types";
+import type {
+  AttendanceRow,
+  BankEntry,
+  CardScore,
+  FeedbackItem,
+  GlossaryTerm,
+  JudgeCard,
+  JudgeRow,
+  PracticeRound,
+  PracticeSession,
+  RecordingRow,
+  RedoRow,
+  RoundReport,
+  SkillChart,
+  SpeakerLabelConfirm,
+  TalkAnalytics,
+  TranscriptLine,
+} from "@/lib/practice/types";
 import { hashPasscode } from "@/lib/crypto/passcodes";
 import { nowIso } from "@/lib/utils";
 
@@ -100,7 +139,13 @@ export interface SampleStore {
   deck_opt_ins: DeckOptIn[];
   questions: ModeratorQuestion[];
   answers: QuestionAnswer[];
-  roadmap_stages: RoadmapStage[];
+  /** Shared by Track 3 (stage ids) and Track 4 (role:… stages). */
+  roadmap_stages: Array<
+    Omit<RoadmapStage, "stage" | "created_by"> & {
+      stage: string;
+      created_by?: string | null;
+    }
+  >;
   phrasebook_entries: PhrasebookEntry[];
   socratic_sessions: SocraticSession[];
   reading_progress: ReadingProgress[];
@@ -116,6 +161,53 @@ export interface SampleStore {
     created_at: string;
   }[];
   drill_session_seen: Record<string, string[]>;
+  /** Track 4 Team space */
+  assignments: Assignment[];
+  chats: ChatChannel[];
+  messages: ChatMessage[];
+  claim_map_versions: ClaimMapVersion[];
+  claim_map_confirmations: ClaimMapConfirmation[];
+  claim_change_proposals: ClaimChangeProposal[];
+  alignment_questions: AlignmentQuestionSet[];
+  drift_flags: DriftFlag[];
+  person_prefs: PersonPrefs[];
+  /** Track 5 Practice */
+  practice_sessions: PracticeSession[];
+  practice_rounds: PracticeRound[];
+  attendance: AttendanceRow[];
+  recordings: RecordingRow[];
+  transcript_lines: TranscriptLine[];
+  glossary: GlossaryTerm[];
+  judges: JudgeRow[];
+  judge_cards: JudgeCard[];
+  card_scores: CardScore[];
+  feedback_items: FeedbackItem[];
+  redos: RedoRow[];
+  bank_entries: BankEntry[];
+  round_reports: RoundReport[];
+  skill_charts: SkillChart[];
+  speaker_confirms: SpeakerLabelConfirm[];
+  talk_analytics: TalkAnalytics[];
+  guest_judge_tokens: {
+    token_hash: string;
+    judge_id: string;
+    round_id: string;
+    expires_at: string;
+  }[];
+  session_code_attempts: {
+    key: string;
+    failures: number;
+    locked_until: string | null;
+  }[];
+  /** Track 6 Admin */
+  readiness: ReadinessCell[];
+  program_totals: ProgramTotals;
+  spend_caps: SpendCaps;
+  drive_sort_queue: DriveSortItem[];
+  calibration: CalibrationRow[];
+  competition_logs: CompetitionLogEntry[];
+  feature_useful: { feature: string; person_id: string; at: string }[];
+  last_visits: Record<string, string>;
 }
 
 function emptyCaseBrainFields(): Pick<
@@ -204,6 +296,113 @@ function emptyTrack3Fields(): Pick<
     judge_attempts: [],
     map_reviews: [],
     drill_session_seen: {},
+  };
+}
+
+function emptyTeamSpaceFields(): Pick<
+  SampleStore,
+  | "assignments"
+  | "chats"
+  | "messages"
+  | "claim_map_versions"
+  | "claim_map_confirmations"
+  | "claim_change_proposals"
+  | "alignment_questions"
+  | "drift_flags"
+  | "person_prefs"
+> {
+  return {
+    assignments: [],
+    chats: [],
+    messages: [],
+    claim_map_versions: [],
+    claim_map_confirmations: [],
+    claim_change_proposals: [],
+    alignment_questions: [],
+    drift_flags: [],
+    person_prefs: [],
+  };
+}
+
+function emptyPracticeTables(): Pick<
+  SampleStore,
+  | "practice_sessions"
+  | "practice_rounds"
+  | "attendance"
+  | "recordings"
+  | "transcript_lines"
+  | "glossary"
+  | "judges"
+  | "judge_cards"
+  | "card_scores"
+  | "feedback_items"
+  | "redos"
+  | "bank_entries"
+  | "round_reports"
+  | "skill_charts"
+  | "speaker_confirms"
+  | "talk_analytics"
+  | "guest_judge_tokens"
+  | "session_code_attempts"
+> {
+  return {
+    practice_sessions: [],
+    practice_rounds: [],
+    attendance: [],
+    recordings: [],
+    transcript_lines: [],
+    glossary: [],
+    judges: [],
+    judge_cards: [],
+    card_scores: [],
+    feedback_items: [],
+    redos: [],
+    bank_entries: [],
+    round_reports: [],
+    skill_charts: [],
+    speaker_confirms: [],
+    talk_analytics: [],
+    guest_judge_tokens: [],
+    session_code_attempts: [],
+  };
+}
+
+function emptyAdminFields(): Pick<
+  SampleStore,
+  | "readiness"
+  | "program_totals"
+  | "spend_caps"
+  | "drive_sort_queue"
+  | "calibration"
+  | "competition_logs"
+  | "feature_useful"
+  | "last_visits"
+> {
+  return {
+    readiness: [],
+    program_totals: {
+      drive_files: 0,
+      passages_cited: 0,
+      ideas_accepted: 0,
+      sources_verified: 0,
+      bank_questions: 0,
+      rounds_graded: 0,
+      redo_improvements: 0,
+    },
+    spend_caps: {
+      monthly_usd: MONTHLY_CAP_USD_DEFAULT,
+      per_round_usd: PER_ROUND_CAP_USD,
+      per_research_night_usd: PER_RESEARCH_NIGHT_CAP_USD,
+      per_person_assistant_day_usd: PER_PERSON_ASSISTANT_DAY_CAP_USD,
+      research_paused: false,
+      updated_at: nowIso(),
+      updated_by: null,
+    },
+    drive_sort_queue: [],
+    calibration: [],
+    competition_logs: [],
+    feature_useful: [],
+    last_visits: {},
   };
 }
 
@@ -597,6 +796,9 @@ export async function buildSeedStore(): Promise<SampleStore> {
     seeded_at: now,
     last_tech_reauth_at: null,
     ...emptyTrack3Fields(),
+    ...emptyTeamSpaceFields(),
+    ...emptyPracticeTables(),
+    ...emptyAdminFields(),
     questions,
   };
 }
@@ -605,6 +807,9 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
   const brain = emptyCaseBrainFields();
   const library = emptyLibraryFields();
   const track3 = emptyTrack3Fields();
+  const team = emptyTeamSpaceFields();
+  const practice = emptyPracticeTables();
+  const admin = emptyAdminFields();
   return {
     teams: raw.teams ?? [],
     people: raw.people ?? [],
@@ -649,6 +854,44 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     judge_attempts: raw.judge_attempts ?? track3.judge_attempts,
     map_reviews: raw.map_reviews ?? track3.map_reviews,
     drill_session_seen: raw.drill_session_seen ?? track3.drill_session_seen,
+    assignments: raw.assignments ?? team.assignments,
+    chats: raw.chats ?? team.chats,
+    messages: raw.messages ?? team.messages,
+    claim_map_versions: raw.claim_map_versions ?? team.claim_map_versions,
+    claim_map_confirmations:
+      raw.claim_map_confirmations ?? team.claim_map_confirmations,
+    claim_change_proposals:
+      raw.claim_change_proposals ?? team.claim_change_proposals,
+    alignment_questions: raw.alignment_questions ?? team.alignment_questions,
+    drift_flags: raw.drift_flags ?? team.drift_flags,
+    person_prefs: raw.person_prefs ?? team.person_prefs,
+    practice_sessions: raw.practice_sessions ?? practice.practice_sessions,
+    practice_rounds: raw.practice_rounds ?? practice.practice_rounds,
+    attendance: raw.attendance ?? practice.attendance,
+    recordings: raw.recordings ?? practice.recordings,
+    transcript_lines: raw.transcript_lines ?? practice.transcript_lines,
+    glossary: raw.glossary ?? practice.glossary,
+    judges: raw.judges ?? practice.judges,
+    judge_cards: raw.judge_cards ?? practice.judge_cards,
+    card_scores: raw.card_scores ?? practice.card_scores,
+    feedback_items: raw.feedback_items ?? practice.feedback_items,
+    redos: raw.redos ?? practice.redos,
+    bank_entries: raw.bank_entries ?? practice.bank_entries,
+    round_reports: raw.round_reports ?? practice.round_reports,
+    skill_charts: raw.skill_charts ?? practice.skill_charts,
+    speaker_confirms: raw.speaker_confirms ?? practice.speaker_confirms,
+    talk_analytics: raw.talk_analytics ?? practice.talk_analytics,
+    guest_judge_tokens: raw.guest_judge_tokens ?? practice.guest_judge_tokens,
+    session_code_attempts:
+      raw.session_code_attempts ?? practice.session_code_attempts,
+    readiness: raw.readiness ?? admin.readiness,
+    program_totals: raw.program_totals ?? admin.program_totals,
+    spend_caps: raw.spend_caps ?? admin.spend_caps,
+    drive_sort_queue: raw.drive_sort_queue ?? admin.drive_sort_queue,
+    calibration: raw.calibration ?? admin.calibration,
+    competition_logs: raw.competition_logs ?? admin.competition_logs,
+    feature_useful: raw.feature_useful ?? admin.feature_useful,
+    last_visits: raw.last_visits ?? admin.last_visits,
   };
 }
 

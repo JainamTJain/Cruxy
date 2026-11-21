@@ -3,15 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "typecheck": "tsc --noEmit",
     "check:track0": "tsx scripts/track0-checks.ts",
     "check:track1": "tsx scripts/track1-checks.ts",
     "check:track2": "tsx scripts/track2-checks.ts",
-    "check:track3": "tsx scripts/track3-checks.ts"
+    "check:track3": "tsx scripts/track3-checks.ts",
+    "check:track4": "tsx scripts/track4-checks.ts",
+    "check:track5": "tsx scripts/track5-checks.ts",
+    "check:track6": "tsx scripts/track6-checks.ts",
+    "dev": "next dev",
+    "lint": "eslint",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.122",

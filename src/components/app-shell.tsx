@@ -25,6 +25,9 @@ const NAV = [
   { href: "/revision/roadmap", label: "Roadmap" },
   { href: "/checklist", label: "First run" },
   { href: "/settings", label: "Settings" },
+  { href: "/team", label: "Team" },
+  { href: "/team/chat", label: "Chat" },
+  { href: "/practice", label: "Practice" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -136,8 +139,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 Admin console
               </Link>
+              <Link
+                href="/admin/competition"
+                className={cn(
+                  "rounded-xl px-3 py-2 text-sm",
+                  pathname.startsWith("/admin/competition")
+                    ? "bg-ink text-white"
+                    : "text-ink/80 hover:bg-white/70",
+                )}
+              >
+                Competition log
+              </Link>
               {me.session.role === "tech_admin" ? (
                 <>
+                  <Link
+                    href="/admin/spend"
+                    className={cn(
+                      "rounded-xl px-3 py-2 text-sm",
+                      pathname.startsWith("/admin/spend")
+                        ? "bg-ink text-white"
+                        : "text-ink/80 hover:bg-white/70",
+                    )}
+                  >
+                    Spend
+                  </Link>
                   <Link
                     href="/admin/passcodes"
                     className={cn(
@@ -159,6 +184,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     )}
                   >
                     Book requests
+                  </Link>
+                  <Link
+                    href="/admin/working"
+                    className={cn(
+                      "rounded-xl px-3 py-2 text-sm",
+                      pathname.startsWith("/admin/working")
+                        ? "bg-ink text-white"
+                        : "text-ink/80 hover:bg-white/70",
+                    )}
+                  >
+                    Is Crux working?
                   </Link>
                 </>
               ) : null}

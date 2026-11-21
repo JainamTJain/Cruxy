@@ -97,6 +97,94 @@ export interface CaseRow {
   created_at: string;
 }
 
+/** Per team × case readiness cell on the program map. */
+export interface ReadinessCell {
+  id: string;
+  team_id: string;
+  case_id: string;
+  readiness_pct: number;
+  lead_names: string[];
+  latest_event: string | null;
+  updated_at: string;
+}
+
+export interface ProgramTotals {
+  drive_files: number;
+  passages_cited: number;
+  ideas_accepted: number;
+  sources_verified: number;
+  bank_questions: number;
+  rounds_graded: number;
+  redo_improvements: number;
+}
+
+export interface SpendCaps {
+  monthly_usd: number;
+  per_round_usd: number;
+  per_research_night_usd: number;
+  per_person_assistant_day_usd: number;
+  research_paused: boolean;
+  updated_at: string;
+  updated_by: string | null;
+}
+
+/** Book requests live in `@/lib/library/types` (Track 1). */
+
+export interface DriveSortItem {
+  id: string;
+  filename: string;
+  hint: string;
+  confidence: number;
+  status: "pending" | "sorted";
+  created_at: string;
+}
+
+export interface CalibrationRow {
+  id: string;
+  label: string;
+  gap: number;
+  judge_name: string | null;
+  weight: number | null;
+  human_cards: number;
+  created_at: string;
+}
+
+export interface CompetitionLogEntry {
+  id: string;
+  competition_id: string;
+  case_id: string | null;
+  case_number: number | null;
+  opponent: string;
+  moderator_question: string | null;
+  judges_questions: string | null;
+  judge_comments: string | null;
+  score_us: number | null;
+  score_them: number | null;
+  result: "win" | "loss" | "tie" | "pending" | null;
+  team_id: string | null;
+  created_at: string;
+  created_by: string | null;
+}
+
+export interface FeatureUsageStat {
+  feature: string;
+  uses: number;
+  unique_people: number;
+  useful_marks: number;
+}
+
+export interface WeeklyEmailPreview {
+  attendance: { name: string; sessions: number; present: number }[];
+  scoresByTeam: { team: string; rounds: number; avg: number }[];
+  biggestImprovements: string[];
+  casesAtRisk: string[];
+  openDisagreements: string[];
+  thingsToCare: string[];
+  spendLine: string | null;
+  errors: string[];
+  recipients: { name: string; email: string; includeSpend: boolean }[];
+}
+
 export const CONSENT_VERSION = "2026-11-21-v1";
 
 export const CRUXY_PLAIN_WORDS = `Cruxy is Crux's built-in thinking partner. It would rather ask you a good question than hand you an answer. It reads our Drive and cases, finds new sources, asks practice questions, plays the other team or the judge when we need one, and gives feedback that quotes what you said. It can be wrong, so every answer shows its source and every new idea needs a person to accept it. It doesn't train on your recordings.`;

@@ -5,7 +5,12 @@ import {
   PER_RESEARCH_NIGHT_CAP_USD,
   PER_ROUND_CAP_USD,
 } from "@/lib/constants";
-import { insertAiCall, logActivity, sumMonthlySpendUsd } from "@/lib/db/repository";
+import {
+  getSpendCaps,
+  insertAiCall,
+  logActivity,
+  sumMonthlySpendUsd,
+} from "@/lib/db/repository";
 
 export type CruxyMessage = {
   role: "system" | "user" | "assistant";
@@ -39,7 +44,15 @@ export type CallCruxyResult =
       monthlyCap: number;
     };
 
-function monthlyCap(): number {
+async function monthlyCap(): Promise<number> {
+  try {
+    const caps = await getSpendCaps();
+    if (caps?.monthly_usd && Number.isFinite(caps.monthly_usd)) {
+      return caps.monthly_usd;
+    }
+  } catch {
+    /* fall through */
+  }
   const n = Number(process.env.MONTHLY_CAP_USD ?? MONTHLY_CAP_USD_DEFAULT);
   return Number.isFinite(n) ? n : MONTHLY_CAP_USD_DEFAULT;
 }
@@ -81,7 +94,8 @@ function featureCap(feature: string): number | null {
 export async function callCruxy(
   input: CallCruxyInput,
 ): Promise<CallCruxyResult> {
-  const cap = monthlyCap();
+  const caps = await getSpendCaps().catch(() => null);
+  const cap = await monthlyCap();
   const spent = await sumMonthlySpendUsd();
   const estimated =
     input.estimatedCostUsd ??
@@ -91,6 +105,29 @@ export async function callCruxy(
     input.feature === "reading" ||
     input.feature === "flashcard_review" ||
     input.feature.startsWith("exempt:");
+
+  if (
+    caps?.research_paused &&
+    input.feature.toLowerCase().includes("research")
+  ) {
+    await insertAiCall({
+      feature: input.feature,
+      model: input.model,
+      tokens_in: 0,
+      tokens_out: 0,
+      cost_usd: 0,
+      person_id: input.personId ?? null,
+      refused: true,
+      refuse_reason: "research_paused",
+    });
+    return {
+      ok: false,
+      refused: true,
+      reason: "Research is paused by the technical admin.",
+      monthlySpend: spent,
+      monthlyCap: cap,
+    };
+  }
 
   if (!exempt && spent + estimated > cap) {
     await insertAiCall({
