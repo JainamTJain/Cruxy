@@ -5,6 +5,7 @@ import {
   updateStore,
   type SampleStore,
 } from "@/lib/db/sample-store";
+import * as sbAuth from "@/lib/db/supabase/foundation";
 import type {
   ActivityLogEntry,
   AiCall,
@@ -39,10 +40,7 @@ export type PublicPerson = Pick<
 >;
 
 export async function listTeams(): Promise<Team[]> {
-  if (!isSampleDataMode()) {
-    // TODO(supabase): select from teams
-    throw new Error("Supabase path not wired yet — set USE_SAMPLE_DATA=1");
-  }
+  if (!isSampleDataMode()) return sbAuth.listTeams();
   const store = await readStore();
   return store.teams;
 }
@@ -51,9 +49,7 @@ export async function listPeoplePublic(): Promise<{
   teams: Team[];
   people: PublicPerson[];
 }> {
-  if (!isSampleDataMode()) {
-    throw new Error("Supabase path not wired yet — set USE_SAMPLE_DATA=1");
-  }
+  if (!isSampleDataMode()) return sbAuth.listPeoplePublic();
   const store = await readStore();
   return {
     teams: store.teams,
@@ -68,6 +64,7 @@ export async function listPeoplePublic(): Promise<{
 }
 
 export async function getPersonById(id: string): Promise<Person | null> {
+  if (!isSampleDataMode()) return sbAuth.getPersonById(id);
   const store = await readStore();
   return store.people.find((p) => p.id === id) ?? null;
 }
@@ -75,20 +72,36 @@ export async function getPersonById(id: string): Promise<Person | null> {
 export async function getAuthCodesForPerson(
   personId: string,
 ): Promise<AuthCode[]> {
+  if (!isSampleDataMode()) return sbAuth.getAuthCodesForPerson(personId);
   const store = await readStore();
   return store.auth_codes.filter((c) => c.person_id === personId);
 }
 
 export async function getSharedStarter(): Promise<AuthCode | null> {
+  if (!isSampleDataMode()) return sbAuth.getSharedStarter();
   const store = await readStore();
   return (
     store.auth_codes.find((c) => c.kind === "starter" && !c.person_id) ?? null
   );
 }
 
+/** Starter row scoped to one person (Dr. B). Never use as the shared member code. */
+export async function getPersonStarter(
+  personId: string,
+): Promise<AuthCode | null> {
+  if (!isSampleDataMode()) return sbAuth.getPersonStarter(personId);
+  const store = await readStore();
+  return (
+    store.auth_codes.find(
+      (c) => c.kind === "starter" && c.person_id === personId,
+    ) ?? null
+  );
+}
+
 export async function getAdminCode(
   personId: string,
 ): Promise<AuthCode | null> {
+  if (!isSampleDataMode()) return sbAuth.getAdminCode(personId);
   const store = await readStore();
   return (
     store.auth_codes.find(
@@ -100,6 +113,7 @@ export async function getAdminCode(
 export async function getPersonalCode(
   personId: string,
 ): Promise<AuthCode | null> {
+  if (!isSampleDataMode()) return sbAuth.getPersonalCode(personId);
   const store = await readStore();
   return (
     store.auth_codes.find(
@@ -109,6 +123,7 @@ export async function getPersonalCode(
 }
 
 export async function savePerson(person: Person): Promise<void> {
+  if (!isSampleDataMode()) return sbAuth.savePerson(person);
   await updateStore((s) => {
     const i = s.people.findIndex((p) => p.id === person.id);
     if (i >= 0) s.people[i] = person;
@@ -117,6 +132,7 @@ export async function savePerson(person: Person): Promise<void> {
 }
 
 export async function upsertAuthCode(code: AuthCode): Promise<void> {
+  if (!isSampleDataMode()) return sbAuth.upsertAuthCode(code);
   await updateStore((s) => {
     const i = s.auth_codes.findIndex((c) => c.id === code.id);
     if (i >= 0) s.auth_codes[i] = code;
@@ -128,6 +144,7 @@ export async function replacePersonalCode(
   personId: string,
   next: Omit<AuthCode, "id" | "created_at"> & { id?: string },
 ): Promise<AuthCode> {
+  if (!isSampleDataMode()) return sbAuth.replacePersonalCode(personId, next);
   let created!: AuthCode;
   await updateStore((s) => {
     s.auth_codes = s.auth_codes.filter(
@@ -156,6 +173,7 @@ export async function logActivity(entry: {
   meta?: Record<string, unknown> | null;
   ip_hash?: string | null;
 }): Promise<ActivityLogEntry> {
+  if (!isSampleDataMode()) return sbAuth.logActivity(entry);
   const row: ActivityLogEntry = {
     id: randomUUID(),
     person_id: entry.person_id,
@@ -172,6 +190,7 @@ export async function logActivity(entry: {
 }
 
 export async function listActivityLog(limit = 100): Promise<ActivityLogEntry[]> {
+  if (!isSampleDataMode()) return sbAuth.listActivityLog(limit);
   const store = await readStore();
   return store.activity_log.slice(0, limit);
 }
@@ -206,6 +225,7 @@ export async function listPasscodeRows(): Promise<
     code: AuthCode | null;
   }[]
 > {
+  if (!isSampleDataMode()) return sbAuth.listPasscodeRows();
   const store = await readStore();
   // Spec: Jainam's own passcode never appears in the panel
   return store.people
@@ -220,17 +240,20 @@ export async function listPasscodeRows(): Promise<
 }
 
 export async function setTechReauth(at: string | null) {
+  if (!isSampleDataMode()) return sbAuth.setTechReauth(at);
   await updateStore((s) => {
     s.last_tech_reauth_at = at;
   });
 }
 
 export async function getTechReauth(): Promise<string | null> {
+  if (!isSampleDataMode()) return sbAuth.getTechReauth();
   const store = await readStore();
   return store.last_tech_reauth_at;
 }
 
 export async function updateSharedStarterHash(hash: string) {
+  if (!isSampleDataMode()) return sbAuth.updateSharedStarterHash(hash);
   await updateStore((s) => {
     const starter = s.auth_codes.find(
       (c) => c.kind === "starter" && !c.person_id,
@@ -242,10 +265,10 @@ export async function updateSharedStarterHash(hash: string) {
   });
 }
 
-export async function invalidateSessionsForPerson(_personId: string) {
+export async function invalidateSessionsForPerson(personId: string) {
+  if (!isSampleDataMode()) return sbAuth.invalidateSessionsForPerson(personId);
   // Sample path: sessions are JWTs; reset is enforced by must_choose + code change.
-  // Production: store session version on person and bump it.
-  void _personId;
+  void personId;
 }
 
 export function effectiveRole(
@@ -287,6 +310,7 @@ export async function getProgramTotals(): Promise<ProgramTotals> {
 }
 
 export async function listPeopleFull(): Promise<Person[]> {
+  if (!isSampleDataMode()) return sbAuth.listPeopleFull();
   const store = await readStore();
   return store.people;
 }
