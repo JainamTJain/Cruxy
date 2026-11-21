@@ -695,8 +695,20 @@ export async function buildContentSeed(
     });
   }
 
-  // Flashcards from truth items
+  // Flashcards from truth items (linked to a claim on the same team/case when possible)
   for (const item of truth_items) {
+    const claim =
+      claims.find(
+        (c) =>
+          c.team_id === item.team_id &&
+          c.case_id === item.case_id &&
+          (item.text.includes(c.text.slice(0, 40)) ||
+            c.text.includes(item.text.slice(0, 40))),
+      ) ??
+      claims.find(
+        (c) => c.team_id === item.team_id && c.case_id === item.case_id,
+      ) ??
+      null;
     flashcards.push({
       id: seedUuid(`card:${item.id}`),
       team_id: item.team_id,
@@ -706,6 +718,7 @@ export async function buildContentSeed(
       back: item.text,
       citation_ids: item.citation_ids.length ? item.citation_ids : [item.id],
       truth_item_id: item.id,
+      claim_id: claim?.id ?? null,
       source_kind: "truth",
       created_at: NOW,
       created_by: item.created_by,

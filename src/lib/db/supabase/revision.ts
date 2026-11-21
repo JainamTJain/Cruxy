@@ -41,6 +41,7 @@ import type {
   CounterclaimRow,
   Flashcard,
   ModeratorQuestion,
+  NodeMastery,
   OnePager,
   OnePagerBody,
   PhrasebookEntry,
@@ -93,6 +94,7 @@ function mapFlashcard(r: Row): Flashcard {
     back: r.back,
     citation_ids: r.citation_ids ?? [],
     truth_item_id: r.truth_item_id ?? null,
+    claim_id: r.claim_id ?? null,
     source_kind: r.source_kind ?? "manual",
     created_at: iso(r.created_at),
     created_by: r.created_by ?? null,
@@ -110,6 +112,7 @@ function flashcardToRow(c: Flashcard): Row {
     back: c.back,
     citation_ids: c.citation_ids,
     truth_item_id: c.truth_item_id,
+    claim_id: c.claim_id,
     source_kind: c.source_kind,
     created_at: c.created_at,
     created_by: c.created_by,
@@ -516,7 +519,7 @@ export async function reviewFlashcard(args: {
   cardId: string;
   grade: FsrsRating;
   mode?: "typed" | "spoken";
-}): Promise<CardFsrsState> {
+}): Promise<{ state: CardFsrsState; mastery: NodeMastery | null }> {
   const sb = getServiceSupabase();
   const prior = await getOrCreateFsrsState(args.personId, args.cardId);
   const next = reviewCard(
@@ -573,8 +576,18 @@ export async function reviewFlashcard(args: {
     "reviewFlashcard.review",
   );
 
+  const { updateNodeMasteryAfterReview } = await import(
+    "@/lib/db/supabase/graph-flashcards"
+  );
+  const mastery = await updateNodeMasteryAfterReview({
+    personId: args.personId,
+    cardId: args.cardId,
+    grade: args.grade,
+  });
+
   await recomputeRoadmapStages(args.personId);
-  return getOrCreateFsrsState(args.personId, args.cardId);
+  const state = await getOrCreateFsrsState(args.personId, args.cardId);
+  return { state, mastery };
 }
 
 export async function dueFlashcardsForPerson(

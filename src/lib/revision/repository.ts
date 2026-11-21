@@ -36,6 +36,7 @@ import type {
   CaseRoleRow,
   Flashcard,
   ModeratorQuestion,
+  NodeMastery,
   OnePager,
   OnePagerBody,
   PhrasebookEntry,
@@ -241,7 +242,7 @@ export async function reviewFlashcard(args: {
   cardId: string;
   grade: FsrsRating;
   mode?: "typed" | "spoken";
-}) {
+}): Promise<{ state: CardFsrsState; mastery: NodeMastery | null }> {
   if (!isSampleDataMode()) return sb.reviewFlashcard(args);
   const prior = await getOrCreateFsrsState(args.personId, args.cardId);
   const next = reviewCard(
@@ -290,8 +291,18 @@ export async function reviewFlashcard(args: {
     });
   });
 
+  const { updateNodeMasteryAfterReview } = await import(
+    "@/lib/db/supabase/graph-flashcards"
+  );
+  const mastery = await updateNodeMasteryAfterReview({
+    personId: args.personId,
+    cardId: args.cardId,
+    grade: args.grade,
+  });
+
   await recomputeRoadmapStages(args.personId);
-  return getOrCreateFsrsState(args.personId, args.cardId);
+  const state = await getOrCreateFsrsState(args.personId, args.cardId);
+  return { state, mastery };
 }
 
 export async function setFlashcardPinned(args: {
@@ -316,64 +327,10 @@ export async function setFlashcardPinned(args: {
 }
 
 export async function dueDeckForPerson(personId: string) {
-  if (!isSampleDataMode()) {
-    const { dueDeckForPerson: sbDeck } = await import(
-      "@/lib/db/supabase/revision-extra"
-    );
-    return sbDeck(personId);
-  }
-  const {
-    applyDailyCap,
-    dailyFlashcardTarget,
-    daysUntil,
-    isCramMode,
-    orderDeckForPerson,
-  } = await import("@/lib/revision/deck");
-  const { listCompetitions } = await import("@/lib/db/repository");
-  const store = await readStore();
-  const optIns = store.deck_opt_ins.filter((d) => d.person_id === personId);
-  const caseIds = new Set(optIns.map((d) => d.case_id));
-  const leadCaseIds = new Set<string>();
-  for (const role of store.case_roles.filter(
-    (r) =>
-      r.person_id === personId &&
-      (r.role === "lead_1" || r.role === "lead_2"),
-  )) {
-    caseIds.add(role.case_id);
-    leadCaseIds.add(role.case_id);
-  }
-  const competitions = await listCompetitions();
-  const daysToCompetition = daysUntil(competitions[0]?.date);
-  const cramMode = isCramMode(daysToCompetition);
-  const dailyTarget = dailyFlashcardTarget({
-    daysToCompetition,
-    leadCaseCount: leadCaseIds.size,
-    cramMode,
-  });
-  const cards = store.flashcards.filter(
-    (c) => c.case_id != null && caseIds.has(c.case_id),
+  const { dueGraphDeckForPerson } = await import(
+    "@/lib/db/supabase/graph-flashcards"
   );
-  const statesByCardId = new Map<string, CardFsrsState>();
-  for (const s of store.card_fsrs_states) {
-    if (s.person_id === personId) {
-      statesByCardId.set(s.card_id, { ...s, pinned: s.pinned ?? false });
-    }
-  }
-  const ordered = orderDeckForPerson({
-    cards,
-    statesByCardId,
-    leadCaseIds,
-    cramMode,
-  });
-  const capped = applyDailyCap(ordered, dailyTarget);
-  return {
-    cards: capped,
-    dailyTarget,
-    cramMode,
-    daysToCompetition,
-    leadCaseCount: leadCaseIds.size,
-    totalInRotation: ordered.length,
-  };
+  return dueGraphDeckForPerson(personId);
 }
 
 export async function dueFlashcardsForPerson(personId: string) {

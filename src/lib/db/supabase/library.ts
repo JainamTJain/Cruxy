@@ -567,6 +567,7 @@ export async function saveFlashcard(card: Flashcard): Promise<void> {
         back: card.back,
         citation_ids: card.citation_ids,
         truth_item_id: card.truth_item_id,
+        claim_id: card.claim_id,
         source_kind: card.source_kind,
         created_at: card.created_at,
         created_by: card.created_by,

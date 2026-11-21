@@ -68,6 +68,7 @@ import type {
   DeckOptIn,
   JudgeAttempt,
   ModeratorQuestion,
+  NodeMastery,
   OnePager,
   PhrasebookEntry,
   PracticeSpeakLog,
@@ -234,6 +235,10 @@ export interface SampleStore {
     updated_at: string;
     updated_by: string | null;
   }[];
+  /** Workstream F Wave 6: per-person claim-node mastery from card reviews */
+  node_mastery: NodeMastery[];
+  /** Workstream K Wave 6: argument graph (recordEdge). Optional until seeded/backfilled. */
+  arg_edges?: import("@/lib/graph/types").ArgEdge[];
 }
 
 function emptyCaseBrainFields(): Pick<
@@ -627,6 +632,7 @@ export async function buildSeedStore(): Promise<SampleStore> {
     last_tech_reauth_at: null,
     ...emptyTrack3Fields(),
     flashcards: content.flashcards,
+    node_mastery: [],
     one_pagers: content.one_pagers,
     questions: content.questions,
     deck_opt_ins: content.deck_opt_ins,
@@ -678,7 +684,10 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     passages: raw.passages ?? library.passages,
     highlights: raw.highlights ?? library.highlights,
     comments: raw.comments ?? library.comments,
-    flashcards: raw.flashcards ?? library.flashcards,
+    flashcards: (raw.flashcards ?? library.flashcards).map((c) => ({
+      ...c,
+      claim_id: c.claim_id ?? null,
+    })),
     research_runs: raw.research_runs ?? library.research_runs,
     book_requests: raw.book_requests ?? library.book_requests,
     sync_runs: raw.sync_runs ?? library.sync_runs,
@@ -754,6 +763,8 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     scoring_card_items: raw.scoring_card_items ?? [],
     roadmap_deadline_overrides:
       raw.roadmap_deadline_overrides ?? admin.roadmap_deadline_overrides ?? [],
+    node_mastery: raw.node_mastery ?? [],
+    arg_edges: raw.arg_edges,
   };
 }
 

@@ -27,6 +27,7 @@ export function cardFromTruthItem(
       citation_ids: item.citation_ids.length
         ? item.citation_ids
         : [item.id],
+      claim_id: existing.claim_id ?? null,
       updated_at: now,
     };
   }
@@ -40,6 +41,7 @@ export function cardFromTruthItem(
     back,
     citation_ids: item.citation_ids.length ? item.citation_ids : [item.id],
     truth_item_id: item.id,
+    claim_id: null,
     source_kind: "truth",
     created_at: now,
     created_by: item.created_by,
