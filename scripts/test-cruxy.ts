@@ -20,6 +20,7 @@ import { runCoachSocratic } from "../src/lib/cruxy/agents/coach";
 import { runAnalystNote, detectProposalProblems } from "../src/lib/cruxy/agents/analyst";
 import { runJudgeAgent } from "../src/lib/cruxy/agents/judge";
 import { SHARED_SYSTEM_PROMPT, REASONING_STANDARD } from "../src/lib/cruxy/prompts/shared";
+import { parseDriveFileId } from "../src/lib/cruxy/team-doc-import";
 import {
   loadBaseline,
   loadCaseFixtures,
@@ -104,6 +105,20 @@ async function runCitationUnitTests(): Promise<number> {
     REASONING_STANDARD.includes("acceptable, relevant, sufficient"),
     "reasoning standard present",
   );
+  passed += 1;
+
+  assert(
+    parseDriveFileId(
+      "https://docs.google.com/document/d/abcDEF1234567890xyz_/edit",
+    ) === "abcDEF1234567890xyz_",
+    "parse Drive doc URL",
+  );
+  assert(
+    parseDriveFileId("https://drive.google.com/file/d/fileIdWithTwentyChars1/view") ===
+      "fileIdWithTwentyChars1",
+    "parse Drive file URL",
+  );
+  assert(parseDriveFileId("not-a-link") === null, "reject short non-ids");
   passed += 1;
 
   return passed;

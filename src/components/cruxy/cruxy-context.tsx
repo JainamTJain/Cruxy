@@ -19,12 +19,18 @@ import { CALL_QUESTION } from "@/lib/cruxy/character";
 
 export type { CruxyMood };
 
+export type LampMotion = "swirl" | "pop" | null;
+
 type CruxyContextValue = {
   awake: boolean;
   drawerOpen: boolean;
   mood: CruxyMood;
   hideFigure: boolean;
   recordingOrTimed: boolean;
+  /** Swirl into the lamp, or playful pop when called. */
+  lampMotion: LampMotion;
+  /** Floating figure is entering (pop) or exiting (swirl). */
+  floatMotion: "enter" | "exit" | null;
   page: string;
   highlight: string | null;
   caseId: string | null;
@@ -57,8 +63,11 @@ export function CruxyProvider({ children }: { children: React.ReactNode }) {
   const [highlight, setHighlight] = useState<string | null>(null);
   const [caseId, setCaseId] = useState<string | null>(null);
   const [bubble, setBubble] = useState<string | null>(CALL_QUESTION);
+  const [lampMotion, setLampMotion] = useState<LampMotion>(null);
+  const [floatMotion, setFloatMotion] = useState<"enter" | "exit" | null>(null);
   const moodTimer = useRef<number | null>(null);
   const opponentActive = useRef(false);
+  const motionTimer = useRef<number | null>(null);
 
   useEffect(() => {
     try {
@@ -147,16 +156,25 @@ export function CruxyProvider({ children }: { children: React.ReactNode }) {
     emitCruxyEvent("sleep");
     setBubble(null);
     setDrawerOpen(false);
+    setFloatMotion("exit");
+    setLampMotion("swirl");
     try {
       localStorage.setItem(ASLEEP_KEY, "1");
     } catch {
       // ignore
     }
-    window.setTimeout(() => setAwake(false), 600);
+    if (motionTimer.current) window.clearTimeout(motionTimer.current);
+    motionTimer.current = window.setTimeout(() => {
+      setAwake(false);
+      setFloatMotion(null);
+      setLampMotion(null);
+    }, 600);
   }, [emitCruxyEvent]);
 
   const wake = useCallback(() => {
     setAwake(true);
+    setFloatMotion("enter");
+    setLampMotion("pop");
     try {
       localStorage.setItem(ASLEEP_KEY, "0");
     } catch {
@@ -164,6 +182,11 @@ export function CruxyProvider({ children }: { children: React.ReactNode }) {
     }
     emitCruxyEvent("call.wake");
     setDrawerOpen(true);
+    if (motionTimer.current) window.clearTimeout(motionTimer.current);
+    motionTimer.current = window.setTimeout(() => {
+      setFloatMotion(null);
+      setLampMotion(null);
+    }, 720);
   }, [emitCruxyEvent]);
 
   // Asleep means quiet: ignore bubble/drawer opens unless wake()
@@ -207,6 +230,8 @@ export function CruxyProvider({ children }: { children: React.ReactNode }) {
       mood,
       hideFigure,
       recordingOrTimed,
+      lampMotion,
+      floatMotion,
       page: pathname,
       highlight,
       caseId,
@@ -229,6 +254,8 @@ export function CruxyProvider({ children }: { children: React.ReactNode }) {
       mood,
       hideFigure,
       recordingOrTimed,
+      lampMotion,
+      floatMotion,
       pathname,
       highlight,
       caseId,

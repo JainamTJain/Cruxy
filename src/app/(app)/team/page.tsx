@@ -503,7 +503,7 @@ export default function TeamBoardPage() {
                               }
                               aria-label={`Set ${CASE_ROLE_LABELS[slot]} for Case ${c.number}`}
                             >
-                              {person?.name ?? (gap ? "No lead" : "—")}
+                              {person?.name ?? (gap ? "No lead" : "Not set")}
                             </button>
                           </td>
                         );
