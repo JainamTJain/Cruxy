@@ -26,7 +26,7 @@ function pickMimeType(): string | undefined {
 }
 
 /**
- * Browser MediaRecorder uploading 10s chunks (Safari mp4 / Chrome webm).
+ * Browser recorder: saves short parts as you speak.
  * A crash loses at most the current unfinished chunk.
  */
 export function ChunkedRecorder({
@@ -180,7 +180,7 @@ export function ChunkedRecorder({
           </button>
         )}
         <span className="font-mono text-xs text-[#8C929D]">
-          {chunks} chunks · {mime || "…"} · 10s
+          {chunks} parts saved
         </span>
       </div>
     );
@@ -192,7 +192,7 @@ export function ChunkedRecorder({
         <div>
           <p className="font-display text-lg font-semibold">Recording</p>
           <p className="text-xs text-muted">
-            10s chunks · Safari mp4 / Chrome webm · next #{nextIndex}
+            Saves as you speak. Next part #{nextIndex}
           </p>
         </div>
         {recording ? (

@@ -127,7 +127,7 @@ export function AppeScoringCard({
       <div>
         <h2 className="font-display text-xl font-semibold">APPE scoring card</h2>
         <p className="text-xs text-muted">
-          From the Fillable Scoring Sheet · 1–10 per item
+          From the Fillable Scoring Sheet, 1 to 10 per item
         </p>
       </div>
       <table className="w-full min-w-[560px] text-left text-sm">

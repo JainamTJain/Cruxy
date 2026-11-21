@@ -158,14 +158,14 @@ export default function RoundReportPage() {
     const evidence = lineById[h?.evidence_line_ids[0] ?? c?.evidence_line_ids[0] ?? ""];
     return {
       key: item.key,
-      name: item.label.replace("Presentation ", "") + (item.key.startsWith("presentation_") ? ` · ${item.label.split(" ").slice(1).join(" ") || item.label}` : ""),
+      name: item.label.replace("Presentation ", "") + (item.key.startsWith("presentation_") ? `, ${item.label.split(" ").slice(1).join(" ") || item.label}` : ""),
       label:
         item.key === "presentation_a"
-          ? "A · Clear and systematic"
+          ? "A. Clear and systematic"
           : item.key === "presentation_b"
-            ? "B · Central moral dimensions"
+            ? "B. Central moral dimensions"
             : item.key === "presentation_c"
-              ? "C · Opposing viewpoints"
+              ? "C. Opposing viewpoints"
               : item.label,
       h: h?.score ?? null,
       c: c?.score ?? null,
@@ -250,7 +250,7 @@ export default function RoundReportPage() {
     data.teams.find((t) => t.id === data.round.sides.presenting)?.name ??
     "Team 3";
   const talkLine = talk
-    ? `Talk time ${fmtMs(talk.talk_ms)} · ${Math.round((talk.words / Math.max(talk.talk_ms / 60000, 0.1)))} words a minute · ${talk.filler_count} filler words · first answer at ${fmtMs(talk.time_to_first_answer_ms ?? 0)}`
+    ? `Talk time ${fmtMs(talk.talk_ms)}, ${Math.round((talk.words / Math.max(talk.talk_ms / 60000, 0.1)))} words a minute, ${talk.filler_count} filler words, first answer at ${fmtMs(talk.time_to_first_answer_ms ?? 0)}`
     : "Everyone can read everyone's feedback.";
 
   const skillEntries = [
@@ -265,14 +265,14 @@ export default function RoundReportPage() {
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="flex max-w-[760px] flex-col gap-2">
           <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
-            Round report ·{" "}
+            Round report,{" "}
             {data.round.ended_at
               ? new Date(data.round.ended_at).toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
                 })
-              : "Nov 24"}{" "}
-            · Case {data.round.case_number ?? "—"} · {teamName} vs Cruxy as the
+              : "Nov 24"}
+            , Case {data.round.case_number ?? "—"}, {teamName} vs Cruxy as the
             other team
           </span>
           <h1 className="font-display m-0 text-[40px] font-extrabold leading-none tracking-[-0.02em] sm:text-[46px]">
@@ -286,7 +286,7 @@ export default function RoundReportPage() {
                 {humanTotal}
               </div>
               <div className="text-[13px] text-muted">
-                of 50 · {humanJudgeName}
+                of 50, {humanJudgeName}
               </div>
             </div>
           ) : null}
@@ -295,7 +295,7 @@ export default function RoundReportPage() {
               <div className="font-display text-[42px] font-extrabold leading-none">
                 {cruxyTotal}
               </div>
-              <div className="text-[13px] text-muted">of 50 · Cruxy</div>
+              <div className="text-[13px] text-muted">of 50, Cruxy</div>
             </div>
           ) : null}
         </div>
@@ -391,7 +391,7 @@ export default function RoundReportPage() {
             {worked ? (
               <div className="flex flex-col gap-2 rounded-2xl bg-[#E8F5F1] p-4">
                 <span className="text-[13px] font-bold text-[#0B5E53]">
-                  WHAT WORKED ·{" "}
+                  WHAT WORKED,{" "}
                   <span className="rounded-md bg-ink px-1.5 py-0.5 font-mono text-[12px] font-semibold text-white">
                     {worked.quote_line_id
                       ? fmtMs(lineById[worked.quote_line_id]?.start_ms ?? 0)
@@ -408,13 +408,13 @@ export default function RoundReportPage() {
             {fix ? (
               <div className="flex flex-col gap-2 rounded-2xl bg-[#FDECEC] p-4">
                 <span className="text-[13px] font-bold text-cardinal">
-                  THE ONE THING TO FIX ·{" "}
+                  THE ONE THING TO FIX,{" "}
                   <span className="rounded-md bg-ink px-1.5 py-0.5 font-mono text-[12px] font-semibold text-white">
                     {fix.quote_line_id
                       ? fmtMs(lineById[fix.quote_line_id]?.start_ms ?? 0)
                       : "—"}
-                  </span>{" "}
-                  · cost points on{" "}
+                  </span>
+                  , cost points on{" "}
                   {APPE_SCORE_ITEMS.find((i) => i.key === fix.scoring_item)
                     ?.label ?? "Response to judges"}
                 </span>
@@ -440,14 +440,14 @@ export default function RoundReportPage() {
               <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-ink p-4 text-white">
                 <div className="flex flex-col gap-1">
                   <span className="text-[13px] font-bold text-gold">
-                    REDO NOW · 90 SECONDS
+                    REDO NOW, 90 SECONDS
                   </span>
                   <span className="text-[15px] leading-snug">
                     Cruxy asks the same question again. Answer first, then name
                     the theory.
                   </span>
                   <span className="text-[13px] text-[#9AA0AA]">
-                    Scored {redo.score_before ?? 5} then · aim for 7 · comes back
+                    Scored {redo.score_before ?? 5} then, aim for 7, comes back
                     in your drills on Thu and Sun
                   </span>
                 </div>
@@ -536,7 +536,7 @@ export default function RoundReportPage() {
           <div className="grid gap-3 md:grid-cols-3">
             <div className="flex flex-col gap-2 rounded-2xl bg-[#FDECEC] p-4">
               <span className="text-xs font-bold text-cardinal">
-                HOW IT WENT · {peopleById[active ?? ""]?.name ?? "Speaker"}, Case{" "}
+                HOW IT WENT, {peopleById[active ?? ""]?.name ?? "Speaker"}, Case{" "}
                 {data.round.case_number},{" "}
                 {fix?.quote_line_id
                   ? fmtMs(lineById[fix.quote_line_id]?.start_ms ?? 0)

@@ -15,8 +15,8 @@ import {
 import { nowIso } from "@/lib/utils";
 
 /**
- * Chunked resumable upload. Client sends 10s webm/mp4 blobs.
- * Killing the browser loses at most one unfinished chunk (~10s).
+ * Chunked resumable upload. Client sends short audio parts.
+ * Killing the browser loses at most one unfinished part (~10s).
  */
 export async function POST(
   req: Request,
@@ -88,23 +88,37 @@ export async function POST(
   }
 
   const buf = Buffer.from(await file.arrayBuffer());
-  const saved = await saveChunk({ roundId, index, bytes: buf });
+  const mime = file.type || "audio/webm";
+  const ext = mime.includes("mp4") ? "mp4" : "webm";
+  const saved = await saveChunk({
+    roundId,
+    index,
+    bytes: buf,
+    contentType: mime,
+    ext,
+  });
   recording = {
     ...recording,
     status: "recording",
-    chunk_paths: [...recording.chunk_paths.filter((_, i) => {
-      const meta = recording!.chunk_meta[i];
-      return !meta || meta.index !== index;
-    }), saved.path],
+    chunk_paths: [
+      ...recording.chunk_paths.filter((_, i) => {
+        const meta = recording!.chunk_meta[i];
+        return !meta || meta.index !== index;
+      }),
+      saved.path,
+    ],
     chunk_meta: [
       ...recording.chunk_meta.filter((c) => c.index !== index),
       { index, bytes: saved.bytes, uploaded_at: nowIso() },
     ].sort((a, b) => a.index - b.index),
   };
-  // Rebuild paths in index order
-  recording.chunk_paths = recording.chunk_meta.map((c) =>
-    chunkPath(roundId, c.index),
-  );
+  // Keep object paths aligned with meta order (storage keys, not local FS).
+  recording.chunk_paths = recording.chunk_meta.map((c) => {
+    const existing = recording!.chunk_paths.find((p) =>
+      p.includes(`chunk-${String(c.index).padStart(4, "0")}`),
+    );
+    return existing ?? chunkPath(roundId, c.index);
+  });
 
   await saveRecording(recording);
 
