@@ -234,8 +234,8 @@ export interface SampleStore {
     updated_at: string;
     updated_by: string | null;
   }[];
-  /** Wave 6 E/F: per-person node mastery (migration 00033). */
-  node_mastery: {
+  /** Wave 6 E: mastery map grid cache (migration 00033). */
+  mastery_map_cells: {
     id: string;
     person_id: string;
     team_id: string | null;
@@ -245,6 +245,20 @@ export interface SampleStore {
     mastery: number;
     evidence: Record<string, number>;
     updated_at: string;
+  }[];
+  /**
+   * Wave 6 F: card-review mastery per claim (migration 00032).
+   * Soft-owned here until F's sample-store merge; shape matches live node_mastery.
+   */
+  node_mastery?: {
+    id: string;
+    person_id: string;
+    claim_id: string;
+    mastery: number;
+    review_count: number;
+    last_grade: number | null;
+    updated_at: string;
+    created_at: string;
   }[];
   /** Wave 6 K: argument graph edges (migration 00028). */
   arg_edges?: import("@/lib/graph/types").ArgEdge[];
@@ -420,7 +434,7 @@ function emptyAdminFields(): Pick<
   | "feature_useful"
   | "last_visits"
   | "roadmap_deadline_overrides"
-  | "node_mastery"
+  | "mastery_map_cells"
 > {
   return {
     readiness: [],
@@ -443,7 +457,7 @@ function emptyAdminFields(): Pick<
       updated_by: null,
     },
     roadmap_deadline_overrides: [],
-    node_mastery: [],
+    mastery_map_cells: [],
     drive_sort_queue: [],
     calibration: [],
     competition_logs: [],
@@ -770,7 +784,9 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     scoring_card_items: raw.scoring_card_items ?? [],
     roadmap_deadline_overrides:
       raw.roadmap_deadline_overrides ?? admin.roadmap_deadline_overrides ?? [],
-    node_mastery: raw.node_mastery ?? admin.node_mastery ?? [],
+    mastery_map_cells:
+      raw.mastery_map_cells ?? admin.mastery_map_cells ?? [],
+    node_mastery: raw.node_mastery ?? [],
     arg_edges: raw.arg_edges ?? [],
   };
 }

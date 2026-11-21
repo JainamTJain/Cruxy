@@ -1,7 +1,8 @@
 /**
  * Mastery map data access (Workstream E Wave 6).
- * Reads F's node_mastery when present; otherwise computes from real activity
- * and persists into node_mastery (00033). Soft-reads K's arg_edges when present.
+ * Persists grid cells in mastery_map_cells (00033).
+ * Reads F's node_mastery (claim_id) as card-review evidence.
+ * Soft-reads K's arg_edges when present.
  */
 import "server-only";
 import { randomUUID } from "crypto";
@@ -15,9 +16,10 @@ import {
 import {
   masteryBand,
   type ClaimNodeRef,
+  type FNodeMastery,
   type MasteryCell,
+  type MasteryMapCellRow,
   type MasteryMapView,
-  type NodeMasteryRow,
 } from "@/lib/mastery/types";
 import { nowIso } from "@/lib/utils";
 
@@ -44,15 +46,42 @@ async function loadArgEdges(caseId?: string): Promise<ArgEdge[] | null> {
   }
 }
 
+async function loadFNodeMastery(opts: {
+  personIds: string[];
+  claimIds: string[];
+}): Promise<FNodeMastery[]> {
+  if (!opts.personIds.length || !opts.claimIds.length) return [];
+  if (isSampleDataMode()) {
+    const store = await readStore();
+    const rows = (store.node_mastery ?? []) as FNodeMastery[];
+    return rows.filter(
+      (r) =>
+        opts.personIds.includes(r.person_id) &&
+        opts.claimIds.includes(r.claim_id),
+    );
+  }
+  try {
+    const { getServiceSupabase } = await import("@/lib/db/supabase/client");
+    const { data, error } = await getServiceSupabase()
+      .from("node_mastery")
+      .select("id,person_id,claim_id,mastery,review_count,last_grade,updated_at,created_at")
+      .in("person_id", opts.personIds)
+      .in("claim_id", opts.claimIds);
+    if (error) return [];
+    return (data as FNodeMastery[]) ?? [];
+  } catch {
+    return [];
+  }
+}
+
 async function readStoredMastery(filter: {
   caseId: string;
   teamId?: string | null;
   personIds?: string[];
-}): Promise<NodeMasteryRow[]> {
+}): Promise<MasteryMapCellRow[]> {
   if (isSampleDataMode()) {
     const store = await readStore();
-    const rows = ((store as { node_mastery?: NodeMasteryRow[] }).node_mastery ??
-      []) as NodeMasteryRow[];
+    const rows = (store.mastery_map_cells ?? []) as MasteryMapCellRow[];
     return rows.filter((r) => {
       if (r.case_id !== filter.caseId) return false;
       if (filter.teamId && r.team_id && r.team_id !== filter.teamId) return false;
@@ -64,22 +93,21 @@ async function readStoredMastery(filter: {
   }
   const { getServiceSupabase } = await import("@/lib/db/supabase/client");
   let q = getServiceSupabase()
-    .from("node_mastery")
+    .from("mastery_map_cells")
     .select("*")
     .eq("case_id", filter.caseId);
   if (filter.teamId) q = q.eq("team_id", filter.teamId);
   if (filter.personIds?.length) q = q.in("person_id", filter.personIds);
   const { data, error } = await q;
   if (error) return [];
-  return (data as NodeMasteryRow[]) ?? [];
+  return (data as MasteryMapCellRow[]) ?? [];
 }
 
-async function upsertMasteryRows(rows: NodeMasteryRow[]): Promise<void> {
+async function upsertMasteryRows(rows: MasteryMapCellRow[]): Promise<void> {
   if (!rows.length) return;
   if (isSampleDataMode()) {
     await updateStore((s) => {
-      const bag = ((s as { node_mastery?: NodeMasteryRow[] }).node_mastery ??=
-        []);
+      const bag = (s.mastery_map_cells ??= []);
       for (const row of rows) {
         const i = bag.findIndex(
           (r) =>
@@ -96,7 +124,7 @@ async function upsertMasteryRows(rows: NodeMasteryRow[]): Promise<void> {
   const { getServiceSupabase } = await import("@/lib/db/supabase/client");
   const sb = getServiceSupabase();
   for (const row of rows) {
-    await sb.from("node_mastery").upsert(
+    await sb.from("mastery_map_cells").upsert(
       {
         person_id: row.person_id,
         team_id: row.team_id,
@@ -117,7 +145,7 @@ export async function recomputeMasteryForCase(input: {
   caseId: string;
   teamId: string | null;
   personIds: string[];
-}): Promise<NodeMasteryRow[]> {
+}): Promise<MasteryMapCellRow[]> {
   const edges = await loadArgEdges(input.caseId);
   const store = isSampleDataMode()
     ? await readStore()
@@ -128,8 +156,15 @@ export async function recomputeMasteryForCase(input: {
     input.teamId,
     edges,
   );
+  const claimIds = nodes
+    .filter((n) => n.node_kind === "claim")
+    .map((n) => n.node_id);
+  const fRows = await loadFNodeMastery({
+    personIds: input.personIds,
+    claimIds,
+  });
   const stamp = nowIso();
-  const out: NodeMasteryRow[] = [];
+  const out: MasteryMapCellRow[] = [];
   for (const personId of input.personIds) {
     const built = buildMasteryRows({
       store,
@@ -139,6 +174,7 @@ export async function recomputeMasteryForCase(input: {
       nodes,
       nowIso: stamp,
       edges,
+      fNodeMastery: fRows.filter((r) => r.person_id === personId),
     });
     for (const row of built) {
       // Skip pure-empty rows (no evidence); keep grid empty
