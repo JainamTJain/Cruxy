@@ -38,7 +38,8 @@ export async function listAttendanceDetailed(
   for (const row of rows) {
     const person = await getPersonById(row.person_id);
     const pub = byId.get(row.person_id);
-    const recordingOk = person?.recording_ok ?? true;
+    // Missing person or unset consent: treat as text only (never assume recordable).
+    const recordingOk = Boolean(person?.recording_ok);
     out.push({
       ...row,
       name: person?.name ?? pub?.name ?? row.person_id,

@@ -70,6 +70,13 @@ export async function joinWithSessionCodeGuarded(opts: {
     session: PracticeSession;
     rounds: PracticeRound[];
   };
+  if (session.status === "ended") {
+    return {
+      ok: false,
+      reason:
+        "This session has ended. The join code and guest links no longer work.",
+    };
+  }
   if (opts.personId) {
     if (isSampleDataMode()) {
       await updateStore((s) => {

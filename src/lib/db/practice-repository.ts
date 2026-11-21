@@ -283,10 +283,42 @@ export async function advanceRoundPhase(
     const r = s.practice_rounds.find((x) => x.id === roundId);
     if (!r) return;
     r.phase = phase;
-    if (phase === "done") r.ended_at = nowIso();
+    if (phase === "done") {
+      r.ended_at = nowIso();
+      const siblings = s.practice_rounds.filter(
+        (x) => x.session_id === r.session_id,
+      );
+      if (siblings.every((x) => x.phase === "done" || x.id === r.id)) {
+        const session = s.practice_sessions.find((x) => x.id === r.session_id);
+        if (session) session.status = "ended";
+      }
+    }
     round = { ...r };
   });
   return round;
+}
+
+/** Mark a practice session ended so guest links and codes stop working (F-392). */
+export async function endPracticeSession(
+  sessionId: string,
+  actorId: string | null,
+): Promise<PracticeSession | null> {
+  if (!isSampleDataMode()) return sb.endPracticeSession(sessionId, actorId);
+  let session: PracticeSession | null = null;
+  await updateStore((s) => {
+    const row = s.practice_sessions.find((x) => x.id === sessionId);
+    if (!row) return;
+    row.status = "ended";
+    session = { ...row };
+  });
+  if (session) {
+    await logActivity({
+      person_id: actorId,
+      action: "session_ended",
+      target: sessionId,
+    });
+  }
+  return session;
 }
 
 export async function saveRecording(row: RecordingRow) {
@@ -428,6 +460,10 @@ export async function createGuestJudgeAccess(opts: {
   roundId: string;
 }): Promise<{ judge: JudgeRow; token: string }> {
   if (!isSampleDataMode()) return sb.createGuestJudgeAccess(opts);
+  const open = await import("@/lib/ops/consent-recording").then((m) =>
+    m.assertGuestRoundStillOpen(opts.roundId),
+  );
+  if (!open.ok) throw new Error(open.reason);
   const token = generateGuestToken();
   const tokenHash = hashGuestToken(token);
   const judge: JudgeRow = {
@@ -439,13 +475,14 @@ export async function createGuestJudgeAccess(opts: {
     guest_token_hash: tokenHash,
     created_at: nowIso(),
   };
+  // Soft clock backup; primary expiry is session.status === "ended".
   await updateStore((s) => {
     s.judges.push(judge);
     s.guest_judge_tokens.push({
       token_hash: tokenHash,
       judge_id: judge.id,
       round_id: opts.roundId,
-      expires_at: addMinutes(new Date(), 8 * 60).toISOString(),
+      expires_at: addMinutes(new Date(), 12 * 60).toISOString(),
     });
   });
   return { judge, token };
@@ -460,6 +497,10 @@ export async function resolveGuestToken(
   const entry = store.guest_judge_tokens.find((t) => t.token_hash === hash);
   if (!entry) return null;
   if (new Date(entry.expires_at) < new Date()) return null;
+  const open = await import("@/lib/ops/consent-recording").then((m) =>
+    m.assertGuestRoundStillOpen(entry.round_id),
+  );
+  if (!open.ok) return null;
   const judge = store.judges.find((j) => j.id === entry.judge_id);
   if (!judge) return null;
   return { judge, roundId: entry.round_id };

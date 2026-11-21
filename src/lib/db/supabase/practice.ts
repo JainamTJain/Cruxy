@@ -782,7 +782,55 @@ export async function advanceRoundPhase(
       .maybeSingle(),
     "advanceRoundPhase",
   );
-  return row ? mapRound(row) : null;
+  if (!row) return null;
+  if (phase === "done") {
+    const siblings =
+      must(
+        await sb
+          .from("rounds")
+          .select("id, phase")
+          .eq("session_id", row.session_id),
+        "advanceRoundPhase.siblings",
+      ) ?? [];
+    const allDone = (siblings as { id: string; phase: string }[]).every(
+      (r) => r.phase === "done",
+    );
+    if (allDone) {
+      assertOk(
+        (
+          await sb
+            .from("sessions")
+            .update({ status: "ended" })
+            .eq("id", row.session_id)
+        ).error,
+        "advanceRoundPhase.endSession",
+      );
+    }
+  }
+  return mapRound(row);
+}
+
+export async function endPracticeSession(
+  sessionId: string,
+  actorId: string | null,
+): Promise<PracticeSession | null> {
+  const sb = getServiceSupabase();
+  const row = must(
+    await sb
+      .from("sessions")
+      .update({ status: "ended" })
+      .eq("id", sessionId)
+      .select("*")
+      .maybeSingle(),
+    "endPracticeSession",
+  );
+  if (!row) return null;
+  await logActivity({
+    person_id: actorId,
+    action: "session_ended",
+    target: sessionId,
+  });
+  return mapSession(row);
 }
 
 // ---------- recordings / transcripts ----------
@@ -1038,6 +1086,12 @@ export async function createGuestJudgeAccess(opts: {
   background: string | null;
   roundId: string;
 }): Promise<{ judge: JudgeRow; token: string }> {
+  const { assertGuestRoundStillOpen } = await import(
+    "@/lib/ops/consent-recording"
+  );
+  const open = await assertGuestRoundStillOpen(opts.roundId);
+  if (!open.ok) throw new Error(open.reason);
+
   const sb = getServiceSupabase();
   const token = generateGuestToken();
   const tokenHash = hashGuestToken(token);
@@ -1058,13 +1112,14 @@ export async function createGuestJudgeAccess(opts: {
     "createGuestJudgeAccess.judge",
   );
   const judge = mapJudge(inserted);
+  // Soft clock backup; primary expiry is sessions.status === "ended" (F-392).
   assertOk(
     (
       await sb.from("guest_judge_tokens").insert({
         token_hash: tokenHash,
         judge_id: judge.id,
         round_id: opts.roundId,
-        expires_at: addMinutes(new Date(), 8 * 60).toISOString(),
+        expires_at: addMinutes(new Date(), 12 * 60).toISOString(),
       })
     ).error,
     "createGuestJudgeAccess.token",
@@ -1087,12 +1142,17 @@ export async function resolveGuestToken(
   );
   if (!entry) return null;
   if (new Date(entry.expires_at) < new Date()) return null;
+  const { assertGuestRoundStillOpen } = await import(
+    "@/lib/ops/consent-recording"
+  );
+  const open = await assertGuestRoundStillOpen(entry.round_id as string);
+  if (!open.ok) return null;
   const judge = must(
     await sb.from("judges").select("*").eq("id", entry.judge_id).maybeSingle(),
     "resolveGuestToken.judge",
   );
   if (!judge) return null;
-  return { judge: mapJudge(judge), roundId: entry.round_id };
+  return { judge: mapJudge(judge), roundId: entry.round_id as string };
 }
 
 // ---------- judging ----------

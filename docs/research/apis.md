@@ -30,14 +30,16 @@ Rules that follow from that:
 ## Vercel AI SDK and AI Gateway
 
 - Pass a `creator/model` string (the exact strings are chosen by Jainam in the admin settings, never hardcoded by an agent) to `generateText`, `streamText` or `generateObject`; the SDK routes it through AI Gateway automatically.
-- Auth: `AI_GATEWAY_API_KEY` locally; on Vercel deployments OIDC works without a key. The key belongs to whichever Vercel team created it.
+- Auth: `AI_GATEWAY_API_KEY` locally; on Vercel deployments OIDC works without a key. The key belongs to whichever Vercel team created it. Do not use OpenRouter or other provider keys.
+- **Zero data retention (F-389):** every `callCruxy` / `embedCruxy` call sets `providerOptions.gateway.zeroDataRetention: true`. After a successful reply, `callCruxy` checks `enabledZeroDataRetention` in the Gateway metadata and refuses (logs `no_zdr_providers`) if ZDR was not actually applied. Never silently fall back to a non-ZDR provider.
 - Don't hardcode model prices; the Gateway reports cost per generation. `callCruxy()` records what the Gateway reports.
 - Check the model list in the Vercel dashboard (AI Gateway, Model List) before choosing model strings; names change often.
-- Docs: [AI Gateway provider](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway), [Models and providers](https://vercel.com/docs/ai-gateway/models-and-providers).
+- Docs: [AI Gateway provider](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway), [Models and providers](https://vercel.com/docs/ai-gateway/models-and-providers), [Zero Data Retention](https://vercel.com/docs/ai-gateway/zero-data-retention).
 
 ## AssemblyAI (practice transcripts)
 
 - Recommended pre-recorded model: `universal-3-5-pro` (set `speech_models: ["universal-3-5-pro", "universal-2"]` for an explicit fallback). Old ids `best` and `nano` are deprecated.
+- **No training (F-389):** use only those paid Universal tiers. Commercial AssemblyAI pre-recorded tiers do not train on customer audio. Never send practice audio to a free or training-enabled path. The code asserts this list in `ASSEMBLYAI_NO_TRAIN_SPEECH_MODELS` (`src/lib/practice/transcription.ts`).
 - Speaker labels: `speaker_labels: true`. Use `speakers_expected` when the round's seat count is known.
 - Vocabulary: `keyterms_prompt: [...]` with case names, philosophers, team members' names and terms from the glossary (spec, "Transcription vocabulary"). On async Universal-3.5 Pro, `prompt` and `keyterms_prompt` can't be used in the same request; use `keyterms_prompt`.
 - Don't put the word "speaker" in a prompt; it can inject speaker names into the text. Use `speaker_labels` instead.

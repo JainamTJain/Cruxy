@@ -7,6 +7,7 @@ import { ChunkedRecorder } from "@/components/practice/chunked-recorder";
 import { CruxyJudgeQa } from "@/components/practice/cruxy-judge-qa";
 import { LiveCaptions } from "@/components/practice/live-captions";
 import { RecordingLayoutPicker } from "@/components/practice/recording-layout-picker";
+import { TextOnlyBanner } from "@/components/practice/text-only-banner";
 import type { RecordingLayout } from "@/lib/practice/types";
 
 type Round = {
@@ -72,6 +73,7 @@ export default function RoundPage() {
     { id: string; name: string; person_id: string | null }[]
   >([]);
   const [recordingOk, setRecordingOk] = useState(false);
+  const [textOnlyNames, setTextOnlyNames] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [micOn, setMicOn] = useState(false);
   const [elapsed, setElapsed] = useState(0);
@@ -92,6 +94,11 @@ export default function RoundPage() {
     setTeams(data.teams ?? []);
     setJudgesMeta(data.judges ?? []);
     setRecordingOk(Boolean(data.recordingOk));
+    setTextOnlyNames(
+      Array.isArray(data.textOnlyBanner?.names)
+        ? (data.textOnlyBanner.names as string[])
+        : [],
+    );
   }
 
   useEffect(() => {
@@ -196,6 +203,10 @@ export default function RoundPage() {
       ) : null}
 
       <div className="mx-auto flex max-w-[1360px] flex-col gap-5 px-8 py-6">
+        <TextOnlyBanner
+          names={textOnlyNames}
+          selfTextOnly={!recordingOk}
+        />
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex items-center gap-5">
             <Link
