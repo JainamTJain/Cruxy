@@ -84,7 +84,7 @@ function originLabel(
     return proposal.origin_ref?.startsWith("From practice")
       ? proposal.origin_ref
       : proposal.origin_ref
-        ? `From practice · ${proposal.origin_ref}`
+        ? `From practice, ${proposal.origin_ref}`
         : "From practice";
   }
   if (proposal.origin === "reading") return "Reading room";
@@ -230,7 +230,7 @@ export function CaseBrainClient({
     .map((r) => personName(data.people, r?.person_id))
     .filter((n) => n !== "—");
 
-  // Design shows "No backing yet · N waiting" on the first unbacked support only.
+  // Design shows "No backing yet" plus waiting count on the first unbacked support only.
   let firstMissingSupportId: string | null = null;
   for (const node of brain.claims) {
     for (const s of node.supports) {
@@ -250,9 +250,16 @@ export function CaseBrainClient({
             {caseNum}
           </span>
           <div className="flex max-w-[620px] flex-col gap-1.5">
-            <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-muted">
-              Case brain · {viewingTeam?.name ?? "Team"}
-              {meta.map_version ? ` · v${meta.map_version.version}` : ""}
+            <span className="flex flex-wrap items-center gap-2 text-[12px] font-bold uppercase tracking-[0.12em] text-muted">
+              <span>Case brain</span>
+              <span className="rounded-md bg-mist px-2 py-0.5 font-semibold normal-case tracking-normal text-[#3B404A]">
+                {viewingTeam?.name ?? "Team"}
+              </span>
+              {meta.map_version ? (
+                <span className="rounded-md bg-ink px-2 py-0.5 font-semibold normal-case tracking-normal text-white">
+                  v{meta.map_version.version}
+                </span>
+              ) : null}
             </span>
             <h1 className="font-display m-0 text-[44px] font-extrabold leading-none tracking-[-0.02em]">
               {caseRow?.title ?? "Case"}
@@ -362,29 +369,38 @@ export function CaseBrainClient({
       >
         {(
           [
-            ["map", "Claim map"],
-            ["truth", `Truth Sources · ${meta.truth_count}`],
-            [
-              "readings",
-              `Readings · ${meta.reading_count || "—"}`,
-            ],
-            ["flashcards", `Flashcards · ${meta.flashcard_count}`],
-            ["questions", `Questions · ${meta.question_count}`],
-            ["research", "Research"],
+            ["map", "Claim map", null],
+            ["truth", "Truth Sources", meta.truth_count],
+            ["readings", "Readings", meta.reading_count || null],
+            ["flashcards", "Flashcards", meta.flashcard_count],
+            ["questions", "Questions", meta.question_count],
+            ["research", "Research", null],
           ] as const
-        ).map(([id, label]) => (
+        ).map(([id, label, count]) => (
           <button
             key={id}
             type="button"
             onClick={() => setTab(id)}
             className={cn(
-              "border-b-[3px] px-3.5 py-2.5 text-sm font-semibold",
+              "inline-flex items-center gap-1.5 border-b-[3px] px-3.5 py-2.5 text-sm font-semibold",
               tab === id
                 ? "border-cardinal text-ink"
                 : "border-transparent text-muted",
             )}
           >
             {label}
+            {count != null ? (
+              <span
+                className={cn(
+                  "rounded-md px-1.5 py-0.5 text-[11px] font-bold",
+                  tab === id
+                    ? "bg-cardinal/10 text-cardinal"
+                    : "bg-mist text-[#3B404A]",
+                )}
+              >
+                {count}
+              </span>
+            ) : null}
           </button>
         ))}
         <Link
@@ -419,7 +435,7 @@ export function CaseBrainClient({
                             C{idx + 1}
                           </span>
                           <span className="text-[13px] text-muted">
-                            {personName(data.people, ownerId)} · {backed} of{" "}
+                            {personName(data.people, ownerId)}, {backed} of{" "}
                             {node.supports.length || 3} supports backed
                           </span>
                         </span>
@@ -447,8 +463,11 @@ export function CaseBrainClient({
                                 key={`empty-${j}`}
                                 className="flex flex-col gap-2 rounded-[14px] border-2 border-dashed border-[#C62828] bg-white p-3.5"
                               >
-                                <strong className="text-sm">
-                                  S{j + 1} · Waiting
+                                <strong className="flex items-center gap-2 text-sm">
+                                  <span className="rounded-md bg-ink px-1.5 py-0.5 font-mono text-[11px] font-bold text-white">
+                                    S{j + 1}
+                                  </span>
+                                  Waiting
                                 </strong>
                                 <span className="text-[13px] font-semibold text-[#C62828]">
                                   No backing yet
@@ -468,8 +487,11 @@ export function CaseBrainClient({
                                   : "bg-[#F7F8FA]",
                               )}
                             >
-                              <strong className="text-sm">
-                                S{j + 1} · {title}
+                              <strong className="flex items-center gap-2 text-sm">
+                                <span className="rounded-md bg-ink/90 px-1.5 py-0.5 font-mono text-[11px] font-bold text-white">
+                                  S{j + 1}
+                                </span>
+                                {title}
                               </strong>
                               {body ? (
                                 <span className="text-sm leading-snug text-[#3B404A]">
@@ -481,7 +503,7 @@ export function CaseBrainClient({
                                   No backing yet
                                   {s.support.id === firstMissingSupportId &&
                                   pending.length
-                                    ? ` · ${pending.length} waiting in the queue`
+                                    ? `, ${pending.length} waiting in the queue`
                                     : ""}
                                 </span>
                               ) : (
@@ -511,7 +533,10 @@ export function CaseBrainClient({
                         vs
                       </span>
                       <span className="text-[13px] text-[#9AA0AA]">
-                        Counterclaim · {allCounterclaims[0].owner}
+                        Counterclaim
+                        <span className="ml-2 rounded-md bg-white/10 px-2 py-0.5 font-semibold text-white">
+                          {allCounterclaims[0].owner}
+                        </span>
                       </span>
                     </span>
                     <h2 className="font-display m-0 text-2xl font-semibold leading-tight">
@@ -581,7 +606,7 @@ export function CaseBrainClient({
                 <section className="flex flex-wrap items-center justify-between gap-4 rounded-[20px] bg-white px-[22px] py-[18px]">
                   <span className="text-sm leading-snug">
                     <strong>
-                      Flashcards from these readings · {meta.flashcard_count}{" "}
+                      Flashcards from these readings, {meta.flashcard_count}{" "}
                       cards.
                     </strong>{" "}
                     Leads {leadNames.join(" and ") || "—"} get them
@@ -611,10 +636,17 @@ export function CaseBrainClient({
                   <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
                     Truth Sources
                   </div>
-                  <p className="mt-1 text-base leading-snug">
-                    {meta.truth_accepted} accepted · {meta.truth_rejected}{" "}
-                    rejected · {meta.truth_waiting} waiting for{" "}
-                    {viewingTeam?.name ?? "this team"}
+                  <p className="mt-1 flex flex-wrap gap-2 text-base leading-snug">
+                    <span className="rounded-md bg-[#E8F5E9] px-2 py-0.5 text-sm font-semibold text-[#1B5E20]">
+                      {meta.truth_accepted} accepted
+                    </span>
+                    <span className="rounded-md bg-[#FFEBEE] px-2 py-0.5 text-sm font-semibold text-[#C62828]">
+                      {meta.truth_rejected} rejected
+                    </span>
+                    <span className="rounded-md bg-[#FFF8E1] px-2 py-0.5 text-sm font-semibold text-[#8A6500]">
+                      {meta.truth_waiting} waiting for{" "}
+                      {viewingTeam?.name ?? "this team"}
+                    </span>
                   </p>
                 </div>
                 {brain.truth_items.length === 0 ? (
@@ -634,7 +666,7 @@ export function CaseBrainClient({
                       <p className="mt-2 text-sm leading-snug">{t.text}</p>
                       <p className="mt-1 font-mono text-[11px] text-muted">
                         {t.citation_ids.length
-                          ? t.citation_ids.join(" · ")
+                          ? t.citation_ids.join(", ")
                           : "needs check"}
                       </p>
                     </article>
@@ -785,7 +817,10 @@ export function CaseBrainClient({
                           className="rounded-xl bg-[#F7F8FA] px-3 py-2 text-xs"
                         >
                           <p className="font-mono text-muted">
-                            {new Date(h.at).toLocaleString()} · {h.action}
+                            {new Date(h.at).toLocaleString()}
+                            <span className="ml-2 rounded bg-white px-1.5 py-0.5 font-sans text-[10px] font-bold uppercase tracking-wide text-[#3B404A]">
+                              {h.action}
+                            </span>
                           </p>
                           {h.reason ? (
                             <p className="mt-1">Reason: {h.reason}</p>
@@ -817,12 +852,16 @@ export function CaseBrainClient({
               </div>
 
               {pending.length === 0 ? (
-                <p className="text-sm text-muted">Queue is clear.</p>
+                <p className="text-sm leading-snug text-muted">
+                  Nothing waiting. Ideas from practice, research, the reading
+                  room and Inspired-by edits will show up here for a tick or
+                  cross.
+                </p>
               ) : (
                 pending.map((p, i) => {
                   const peers = brain.peer_decisions_by_idea[p.idea_key] ?? [];
                   const sources = (p.origin_ref ?? "")
-                    .split(/[·,]/)
+                    .split(/[,;]/)
                     .map((s) => s.trim())
                     .filter(Boolean);
                   return (
@@ -976,7 +1015,9 @@ export function CaseBrainClient({
                                   : "✎";
                             return (
                               <span key={d.id}>
-                                {di > 0 ? " · " : null}
+                                {di > 0 ? (
+                                  <span className="mx-1 text-muted">,</span>
+                                ) : null}
                                 <span
                                   className="font-bold"
                                   style={{ color: colour }}
@@ -990,7 +1031,7 @@ export function CaseBrainClient({
                           })}
                           {!peers.some((d) => d.team_name === "Team 2") ? (
                             <>
-                              {" · "}
+                              <span className="mx-1 text-muted">,</span>
                               <span
                                 className="font-bold"
                                 style={{ color: "var(--crux-team-2)" }}
