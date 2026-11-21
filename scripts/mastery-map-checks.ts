@@ -69,6 +69,39 @@ async function main() {
   });
   assert(adminAccess.scope === "admin", "jainam admin sees all");
 
+  // Non-lead member: self scope, own row only
+  const store2 = await readStore();
+  const daniel = store2.people.find((p) => p.name === "Daniel")!;
+  assert(daniel?.team_id, "daniel on a team");
+  // Ensure Daniel is not a lead on any case
+  await updateStore((s) => {
+    s.case_roles = s.case_roles.filter(
+      (r) =>
+        !(
+          r.person_id === daniel.id &&
+          (r.role === "lead_1" || r.role === "lead_2")
+        ),
+    );
+  });
+  const selfAccess = await resolveMasteryAccess({
+    personId: daniel.id,
+    role: "member",
+    adminView: false,
+    teamId: daniel.team_id,
+  });
+  assert(selfAccess.scope === "self", "daniel is self scope");
+  const selfMap = await getMasteryMap({
+    caseId: case9.id,
+    teamId: daniel.team_id,
+    access: selfAccess,
+  });
+  assert(selfMap.people.length === 1, "self map has one person");
+  assert(selfMap.people[0]?.id === daniel.id, "self map person is daniel");
+  assert(
+    selfMap.cells.every((c) => c.person_id === daniel.id),
+    "self cells are only daniel",
+  );
+
   // Strip seeded feedback so the grid starts empty (real activity only)
   await updateStore((s) => {
     s.feedback_items = [];
@@ -111,6 +144,7 @@ async function main() {
       back: "Return with partnership",
       citation_ids: [] as string[],
       truth_item_id: null as string | null,
+      claim_id: nodes[0]!.node_id,
       source_kind: "manual" as const,
       created_at: nowIso(),
       created_by: katie.id,

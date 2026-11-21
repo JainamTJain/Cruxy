@@ -58,7 +58,7 @@ export type MasteryMapView = {
   caseTitle: string;
   teamId: string | null;
   teamName: string | null;
-  scope: "lead" | "admin" | "none";
+  scope: "lead" | "admin" | "self" | "none";
   nodes: ClaimNodeRef[];
   people: { id: string; name: string; team_id: string | null; team_name: string | null }[];
   cells: MasteryCell[];

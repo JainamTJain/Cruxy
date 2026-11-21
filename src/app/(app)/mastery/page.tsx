@@ -14,7 +14,9 @@ const BAND_STYLE: Record<MasteryBand, { bg: string; label: string }> = {
 };
 
 export default function MasteryMapPage() {
-  const [access, setAccess] = useState<"admin" | "lead" | "none" | null>(null);
+  const [access, setAccess] = useState<
+    "admin" | "lead" | "self" | "none" | null
+  >(null);
   const [cases, setCases] = useState<CaseOpt[]>([]);
   const [teams, setTeams] = useState<TeamOpt[]>([]);
   const [caseId, setCaseId] = useState<string>("");
@@ -29,7 +31,7 @@ export default function MasteryMapPage() {
       return;
     }
     const data = (await res.json()) as {
-      access: "admin" | "lead" | "none";
+      access: "admin" | "lead" | "self" | "none";
       cases: CaseOpt[];
       teams?: TeamOpt[];
     };
@@ -84,9 +86,9 @@ export default function MasteryMapPage() {
           Mastery map
         </h1>
         <p className="text-sm text-muted">
-          Leads see the grid for their own cases. Dr. B and Jainam see all three
-          teams. Ask a lead to open this case, or switch to admin view if you
-          have it.
+          Your own mastery row is on this page when you are signed in with a
+          team. Leads see their case grid. Dr. B and Jainam see all three teams
+          in admin view.
         </p>
       </div>
     );
@@ -97,7 +99,11 @@ export default function MasteryMapPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
-            {access === "admin" ? "All teams" : map?.teamName ?? "Your team"}
+            {access === "admin"
+              ? "All teams"
+              : access === "self"
+                ? "Your row"
+                : map?.teamName ?? "Your team"}
           </span>
           <h1 className="font-display m-0 text-[40px] font-extrabold leading-none tracking-[-0.02em] max-md:text-[32px]">
             Mastery map

@@ -648,7 +648,6 @@ export async function buildSeedStore(): Promise<SampleStore> {
     last_tech_reauth_at: null,
     ...emptyTrack3Fields(),
     flashcards: content.flashcards,
-    node_mastery: [],
     one_pagers: content.one_pagers,
     questions: content.questions,
     deck_opt_ins: content.deck_opt_ins,

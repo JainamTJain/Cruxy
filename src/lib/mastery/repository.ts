@@ -236,6 +236,7 @@ async function loadLiveSlice(caseId: string) {
 export type MasteryAccess =
   | { scope: "admin" }
   | { scope: "lead"; teamId: string; caseIds: string[] }
+  | { scope: "self"; teamId: string; personId: string }
   | { scope: "none" };
 
 export async function resolveMasteryAccess(input: {
@@ -262,8 +263,19 @@ export async function resolveMasteryAccess(input: {
           (r.role === "lead_1" || r.role === "lead_2"),
       )
       .map((r) => r.case_id);
-    if (!leadCases.length) return { scope: "none" };
-    return { scope: "lead", teamId: input.teamId, caseIds: [...new Set(leadCases)] };
+    if (leadCases.length) {
+      return {
+        scope: "lead",
+        teamId: input.teamId,
+        caseIds: [...new Set(leadCases)],
+      };
+    }
+    // Ordinary members: own row only (privacy-scope: personal mastery)
+    return {
+      scope: "self",
+      teamId: input.teamId,
+      personId: input.personId,
+    };
   }
 
   const { getServiceSupabase } = await import("@/lib/db/supabase/client");
@@ -275,8 +287,18 @@ export async function resolveMasteryAccess(input: {
   const leadCases = (data ?? [])
     .filter((r) => r.role === "lead_1" || r.role === "lead_2")
     .map((r) => r.case_id as string);
-  if (!leadCases.length) return { scope: "none" };
-  return { scope: "lead", teamId: input.teamId, caseIds: [...new Set(leadCases)] };
+  if (leadCases.length) {
+    return {
+      scope: "lead",
+      teamId: input.teamId,
+      caseIds: [...new Set(leadCases)],
+    };
+  }
+  return {
+    scope: "self",
+    teamId: input.teamId,
+    personId: input.personId,
+  };
 }
 
 export async function getMasteryMap(input: {
@@ -357,7 +379,48 @@ export async function getMasteryMap(input: {
           team_name: tmap.get(p.team_id as string) ?? null,
         }));
     }
+  } else if (input.access.scope === "self") {
+    const teamId = input.access.teamId;
+    const selfId = input.access.personId;
+    if (full) {
+      const me = full.people.find((p) => p.id === selfId);
+      people = me
+        ? [
+            {
+              id: me.id,
+              name: me.name,
+              team_id: me.team_id,
+              team_name: teams.find((t) => t.id === teamId)?.name ?? null,
+            },
+          ]
+        : [];
+    } else {
+      const { getServiceSupabase } = await import("@/lib/db/supabase/client");
+      const [{ data: me }, { data: tm }] = await Promise.all([
+        getServiceSupabase()
+          .from("people")
+          .select("id,name,team_id")
+          .eq("id", selfId)
+          .maybeSingle(),
+        getServiceSupabase()
+          .from("teams")
+          .select("id,name")
+          .eq("id", teamId)
+          .maybeSingle(),
+      ]);
+      people = me
+        ? [
+            {
+              id: me.id as string,
+              name: me.name as string,
+              team_id: (me.team_id as string) ?? teamId,
+              team_name: (tm?.name as string) ?? null,
+            },
+          ]
+        : [];
+    }
   } else {
+    // lead: whole team for their case; never another team's people
     const teamId = input.access.teamId;
     if (full) {
       people = full.people
@@ -390,7 +453,9 @@ export async function getMasteryMap(input: {
 
   // Nodes: for admin all-teams view, union nodes per team or use unscoped claims
   const teamIdForNodes =
-    input.access.scope === "lead" ? input.access.teamId : input.teamId;
+    input.access.scope === "lead" || input.access.scope === "self"
+      ? input.access.teamId
+      : input.teamId;
   const nodes: ClaimNodeRef[] = listClaimNodesForCase(
     store,
     input.caseId,
