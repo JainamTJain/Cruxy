@@ -4,9 +4,20 @@ Web app for USC’s three Ethics Bowl teams.
 
 **Building with Cursor:** start every chat by @-mentioning `AGENTS.md` and the track file in `docs/tracks/`. Everything about the product is indexed in `docs/README.md`. **Cruxy** is the built-in thinking partner (users never see “AI” or model names).
 
-## Track 0 Foundation
+## Tracks landed
 
-This branch ships Track 0: Next.js App Router, design tokens, full schema SQL + RLS, name + 6-digit passcode auth, consent, Passcodes panel (tech admin), activity log, admin switch, `callCruxy` with monthly cap, first-run checklist, mobile layouts, and PWA installability.
+- **Track 0 Foundation** — auth, schema/RLS, `callCruxy`, design tokens, Passcodes panel, checklist
+- **Track 2 Case brain** — per-team claim maps, Truth Sources queue (propose → human decide with reason), Inspired-by fan-out, Analyst notes, opposing positions, robustness / consistency / change-the-facts, full item history
+
+### Track 2 (sample-data path)
+
+Case brains work without Supabase / AI gateway keys: local JSON under `.data/`. Analyst notes and opposing drafts use `callCruxy` stubs when keys are missing.
+
+```bash
+npm run check:track2
+```
+
+Apply `supabase/migrations/00002_track2_case_brain.sql` when Supabase is connected.
 
 ### Local / sample-data path
 
