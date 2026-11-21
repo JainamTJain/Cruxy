@@ -1,6 +1,7 @@
 /**
  * Team space seed (Workstream E): claim maps, chats, confirmations, gaps.
- * Used by the sample store and mirrored in supabase/migrations/00015_*.sql.
+ * Sample-data mode only (USE_SAMPLE_DATA=1). Never applied to live Supabase:
+ * invented chat, confirmations and role tweaks must not be attributed to real people.
  */
 import {
   caseId,

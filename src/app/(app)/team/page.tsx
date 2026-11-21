@@ -371,7 +371,9 @@ export default function TeamBoardPage() {
                             </span>
                           </>
                         ) : (
-                          <span className="text-[13px] text-muted">—</span>
+                          <span className="text-[13px] text-muted">
+                            No version yet
+                          </span>
                         )}
                       </td>
                     </tr>
@@ -409,7 +411,9 @@ export default function TeamBoardPage() {
               />
             ))}
             {!data.chat?.messages?.length ? (
-              <p className="text-sm text-muted">No messages yet.</p>
+              <p className="text-sm text-muted">
+                No messages yet. Start the thread for Case 9.
+              </p>
             ) : null}
           </div>
 
