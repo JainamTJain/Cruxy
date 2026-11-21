@@ -314,7 +314,7 @@ export async function changePersonalPasscode(
   return { ok: true };
 }
 
-/** Withdraw or change consent; withdrawing clears the voice sample path. */
+/** Withdraw or change consent; withdrawing clears the voice sample via I. */
 export async function updateConsentChoice(opts: {
   personId: string;
   recordingOk: boolean;
@@ -325,23 +325,25 @@ export async function updateConsentChoice(opts: {
   if (!person) throw new Error("Person not found");
 
   if (opts.deleteVoice || !opts.recordingOk) {
-    if (person.voice_sample_path) {
-      try {
-        const { deleteVoiceSample } = await import("@/lib/auth/voice-sample");
-        await deleteVoiceSample(person.voice_sample_path);
-      } catch {
-        // Best effort: still clear the path.
-      }
+    const { deleteVoiceSample } = await import("@/lib/auth/voice-sample");
+    await deleteVoiceSample(person.voice_sample_path, person.id);
+    const after = await getPersonById(opts.personId);
+    if (after) {
+      after.consent_version = CONSENT_VERSION;
+      after.consent_at = nowIso();
+      after.recording_ok = false;
+      await savePerson(after);
     }
-    person.voice_sample_path = null;
-  } else if (opts.voiceSamplePath !== undefined) {
-    person.voice_sample_path = opts.voiceSamplePath;
+  } else {
+    person.recording_ok = true;
+    person.consent_version = CONSENT_VERSION;
+    person.consent_at = nowIso();
+    if (opts.voiceSamplePath !== undefined) {
+      person.voice_sample_path = opts.voiceSamplePath;
+    }
+    await savePerson(person);
   }
 
-  person.recording_ok = opts.recordingOk;
-  person.consent_version = CONSENT_VERSION;
-  person.consent_at = nowIso();
-  await savePerson(person);
   await logActivity({
     person_id: person.id,
     action: opts.recordingOk ? "consent_updated" : "consent_withdrawn",

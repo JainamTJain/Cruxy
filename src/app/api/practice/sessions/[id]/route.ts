@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import {
-  getSessionById,
-  listAttendance,
-} from "@/lib/db/practice-repository";
+import { getSessionById } from "@/lib/db/practice-repository";
 import {
   listSessionRoster,
   revealSessionCode,
   setRoundJudgeMode,
 } from "@/lib/db/supabase/practice-extra";
+import {
+  listAttendanceDetailed,
+  sessionHasTextOnlyMembers,
+} from "@/lib/attendance";
 
 export async function GET(
   _req: Request,
@@ -26,7 +27,10 @@ export async function GET(
   const admin =
     session.adminView &&
     (session.role === "tech_admin" || session.role === "coach_admin");
-  const attendance = await listAttendance(id);
+  const [attendance, textOnlyBanner] = await Promise.all([
+    listAttendanceDetailed(id),
+    sessionHasTextOnlyMembers(id),
+  ]);
   const roster = await listSessionRoster(id);
   const creator = roster.people.find((p) => p.id === row.created_by);
 
@@ -36,6 +40,7 @@ export async function GET(
       code_hash: admin ? row.code_hash : undefined,
     },
     attendance,
+    textOnlyBanner,
     admin,
     people: roster.people,
     joinedJudgeIds: roster.joinedJudgeIds,

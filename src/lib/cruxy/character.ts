@@ -2,8 +2,9 @@
  * Cruxy character policy (F-027 to F-032): asks first, answers directly when
  * asking would waste time, hints one at a time.
  *
- * Prompt quality belongs to Workstream H. This module only decides *when* to
- * ask, hint, or answer, and supplies fallback questions until H's agents land.
+ * Prompt quality lives in Workstream H (`src/lib/cruxy/prompts/shared.ts` and
+ * the Assistant agent). This module decides *when* to ask, hint, or answer;
+ * the drawer and `/api/cruxy/assistant` call H's `runAssistant` for the words.
  */
 
 export type CharacterMode = "ask" | "direct" | "hint";
