@@ -1,14 +1,16 @@
 /**
- * Case brain domain service (sample-data path).
+ * Case brain domain service. Sample-data path here; Supabase path in
+ * `@/lib/db/supabase/case-brain` when `!isSampleDataMode()`.
  * Decisions require a reason; accept/edit fans out Inspired-by proposals.
  */
-import { createHash, randomUUID } from "crypto";
+import { randomUUID } from "crypto";
 import {
   analystNoteForProposal,
   draftChangeTheFacts,
   draftOpposingPositions,
   socraticQuestionForInspiredBy,
 } from "@/lib/case-brain/analyst";
+import { ideaKeyFromText } from "@/lib/case-brain/idea-key";
 import { findConsistencyFlags } from "@/lib/case-brain/consistency";
 import { computeRobustness } from "@/lib/case-brain/robustness";
 import type {
@@ -31,20 +33,15 @@ import type {
   TruthItem,
   TruthKind,
 } from "@/lib/case-brain/types";
+import { isSampleDataMode } from "@/lib/db/config";
 import { logActivity } from "@/lib/db/repository";
+import * as sb from "@/lib/db/supabase/case-brain";
 import {
   readStore,
   updateStore,
   type SampleStore,
 } from "@/lib/db/sample-store";
 import { nowIso } from "@/lib/utils";
-
-function ideaKeyFromText(text: string): string {
-  return createHash("sha256")
-    .update(text.trim().toLowerCase().replace(/\s+/g, " "))
-    .digest("hex")
-    .slice(0, 24);
-}
 
 function pushHistory(
   store: SampleStore,
@@ -92,6 +89,7 @@ function claimNodesFor(
 }
 
 export async function listCasesForBrain() {
+  if (!isSampleDataMode()) return sb.listCasesForBrain();
   const store = await readStore();
   return store.cases.filter((c) => c.active).sort((a, b) => a.number - b.number);
 }
@@ -100,6 +98,7 @@ export async function getCaseBrain(
   teamId: string,
   caseId: string,
 ): Promise<CaseBrainSnapshot> {
+  if (!isSampleDataMode()) return sb.getCaseBrain(teamId, caseId);
   const store = await readStore();
   const nodes = claimNodesFor(store, teamId, caseId);
   const truth_items = store.truth_items.filter(
@@ -175,6 +174,7 @@ export async function ensureClaimMapShell(input: {
   caseId: string;
   personId: string | null;
 }): Promise<ClaimMapNode[]> {
+  if (!isSampleDataMode()) return sb.ensureClaimMapShell(input);
   const store = await readStore();
   const existing = claimNodesFor(store, input.teamId, input.caseId);
   if (existing.length >= 2) return existing;
@@ -266,6 +266,7 @@ export async function updateClaim(input: {
   logic_line?: string | null;
   reason: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isSampleDataMode()) return sb.updateClaim(input);
   const reason = input.reason.trim();
   if (!reason) return { ok: false, error: "A one-line reason is required." };
 
@@ -320,6 +321,7 @@ export async function updateSupport(input: {
   text?: string;
   reason: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isSampleDataMode()) return sb.updateSupport(input);
   const reason = input.reason.trim();
   if (!reason) return { ok: false, error: "A one-line reason is required." };
 
@@ -369,6 +371,7 @@ export async function updateCounterclaim(input: {
   rebut?: string | null;
   reason: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isSampleDataMode()) return sb.updateCounterclaim(input);
   const reason = input.reason.trim();
   if (!reason) return { ok: false, error: "A one-line reason is required." };
 
@@ -419,6 +422,7 @@ export async function updateBacking(input: {
   kind?: Backing["kind"];
   reason: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isSampleDataMode()) return sb.updateBacking(input);
   const reason = input.reason.trim();
   if (!reason) return { ok: false, error: "A one-line reason is required." };
 
@@ -461,6 +465,7 @@ export async function createProposal(input: {
   citationIds?: string[];
   ideaKey?: string;
 }): Promise<Proposal> {
+  if (!isSampleDataMode()) return sb.createProposal(input);
   const store = await readStore();
   const teamTruth = store.truth_items.filter(
     (t) => t.team_id === input.teamId && t.case_id === input.caseId,
@@ -579,6 +584,7 @@ export async function markSocraticAnswered(input: {
   teamId: string;
   personId: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isSampleDataMode()) return sb.markSocraticAnswered(input);
   let found = false;
   await updateStore((s) => {
     const p = s.proposals.find((x) => x.id === input.proposalId);
@@ -610,6 +616,7 @@ export async function decideProposal(input: {
   reason: string;
   editedText?: string | null;
 }): Promise<{ ok: true; decision: Decision } | { ok: false; error: string }> {
+  if (!isSampleDataMode()) return sb.decideProposal(input);
   const reason = input.reason.trim();
   if (!reason) {
     return { ok: false, error: "A decision without a reason cannot be saved." };
@@ -746,6 +753,7 @@ export async function setCaseRole(input: {
   role: CaseRoleKind;
   actorId: string;
 }): Promise<CaseRole> {
+  if (!isSampleDataMode()) return sb.setCaseRole(input);
   let role!: CaseRole;
   await updateStore((s) => {
     s.case_roles = s.case_roles.filter(
@@ -794,6 +802,7 @@ export async function upsertPrinciple(input: {
   claimId?: string | null;
   personId: string;
 }): Promise<TeamPrinciple> {
+  if (!isSampleDataMode()) return sb.upsertPrinciple(input);
   let row!: TeamPrinciple;
   await updateStore((s) => {
     const existing = s.team_principles.find(
@@ -827,6 +836,7 @@ export async function ensureOpposingPositions(input: {
   caseId: string;
   personId?: string | null;
 }): Promise<OpposingPosition[]> {
+  if (!isSampleDataMode()) return sb.ensureOpposingPositions(input);
   const store = await readStore();
   const existing = store.opposing_positions.filter(
     (o) => o.case_id === input.caseId,
@@ -890,6 +900,7 @@ export async function addOpposingPosition(input: {
   weak_point: string;
   commentary_angles: [string, string];
 }): Promise<OpposingPosition> {
+  if (!isSampleDataMode()) return sb.addOpposingPosition(input);
   const row: OpposingPosition = {
     id: randomUUID(),
     case_id: input.caseId,
@@ -925,6 +936,7 @@ export async function ensureChangeTheFacts(input: {
   claimId: string;
   personId?: string | null;
 }): Promise<ChangeTheFactsItem[]> {
+  if (!isSampleDataMode()) return sb.ensureChangeTheFacts(input);
   const store = await readStore();
   const existing = store.change_the_facts.filter(
     (c) =>
@@ -977,8 +989,25 @@ export async function ensureChangeTheFacts(input: {
 }
 
 export async function getHistoryForTarget(targetId: string) {
+  if (!isSampleDataMode()) return sb.getHistoryForTarget(targetId);
   const store = await readStore();
   return store.item_history.filter((h) => h.target_id === targetId);
+}
+
+export async function getProposalById(
+  proposalId: string,
+): Promise<Proposal | null> {
+  if (!isSampleDataMode()) return sb.getProposalById(proposalId);
+  const store = await readStore();
+  return store.proposals.find((p) => p.id === proposalId) ?? null;
+}
+
+export async function listDecisionsForProposal(
+  proposalId: string,
+): Promise<Decision[]> {
+  if (!isSampleDataMode()) return sb.listDecisionsForProposal(proposalId);
+  const store = await readStore();
+  return store.decisions.filter((d) => d.proposal_id === proposalId);
 }
 
 export function originLabel(
