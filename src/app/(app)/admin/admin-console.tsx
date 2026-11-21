@@ -640,6 +640,23 @@ export function AdminConsole() {
         </div>
       </div>
 
+      <section className="flex flex-col gap-2 rounded-[20px] bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <strong className="font-display text-lg">Reasoning flywheel</strong>
+          <p className="mt-1 max-w-xl text-sm text-muted">
+            Edges per day, open attacks, judge kappa, Brier, and mastery
+            coverage. Tiles fill as Wave 6 sources land. Every number links to
+            its rows.
+          </p>
+        </div>
+        <Link
+          href="/admin/flywheel"
+          className="inline-flex h-[38px] shrink-0 items-center rounded-[10px] bg-ink px-4 text-[13px] font-semibold text-white"
+        >
+          Open flywheel
+        </Link>
+      </section>
+
       <div className="grid gap-3 lg:grid-cols-3">
         {data.teams.map((t) => (
           <section
@@ -1473,6 +1490,9 @@ export function AdminConsole() {
         </Link>
         <Link href="/admin/competition" className="text-muted underline">
           Competition log
+        </Link>
+        <Link href="/admin/flywheel" className="text-muted underline">
+          Flywheel
         </Link>
         {tech ? (
           <>

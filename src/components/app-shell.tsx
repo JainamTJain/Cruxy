@@ -47,7 +47,7 @@ const SIDE_NAV: { href: string; label: string; match?: string }[] = [
 const ADMIN_SIDE_NAV: { href: string; label: string; match?: string }[] = [
   { href: "/practice/admin", label: "Sessions" },
   { href: "/admin", label: "People and teams" },
-  { href: "/admin", label: "Program analytics", match: "analytics" },
+  { href: "/admin/flywheel", label: "Program analytics", match: "analytics" },
   { href: "/revision/questions", label: "Question bank" },
   { href: "/home", label: "Back to member view" },
 ];
@@ -195,7 +195,8 @@ function ShellInner({ children }: { children: React.ReactNode }) {
               ? item.label === "People and teams"
                 ? pathname === "/admin" || pathname === "/admin/"
                 : item.label === "Program analytics"
-                  ? pathname.startsWith("/admin/spend") ||
+                  ? pathname.startsWith("/admin/flywheel") ||
+                    pathname.startsWith("/admin/spend") ||
                     pathname.startsWith("/admin/working")
                   : navActive(pathname, item.href, item.match)
               : navActive(pathname, item.href, item.match);
