@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { canSetCaseRole } from "@/lib/auth/capabilities";
 import { getSession } from "@/lib/auth/session";
+import { getPersonById } from "@/lib/db/repository";
 import { listCaseRoles, setCaseRole } from "@/lib/team/repository";
 import type { CaseRoleSlot } from "@/lib/team/types";
 import { CASE_ROLE_SLOTS } from "@/lib/team/types";
@@ -21,6 +23,10 @@ export async function POST(req: Request) {
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const person = await getPersonById(session.personId);
+  if (!person) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const body = (await req.json()) as {
     teamId?: string;
     caseId?: string;
@@ -33,10 +39,7 @@ export async function POST(req: Request) {
   if (!CASE_ROLE_SLOTS.includes(body.role as CaseRoleSlot)) {
     return NextResponse.json({ error: "Invalid role" }, { status: 400 });
   }
-  // Any team member (or admin) can change roles
-  const isAdmin =
-    session.role === "tech_admin" || session.role === "coach_admin";
-  if (!isAdmin && session.teamId !== body.teamId) {
+  if (!canSetCaseRole(person, session, body.teamId)) {
     return NextResponse.json({ error: "Not on this team" }, { status: 403 });
   }
   try {

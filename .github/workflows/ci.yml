@@ -21,5 +21,6 @@ jobs:
       - run: npm run check:supabase-wired
       - run: npm run test:cruxy --if-present
       - run: npm run smoke:practice
+      - run: npm run smoke:case-roles
       # Google Fonts downloads sometimes fail in CI (next/font); retry before failing.
       - run: npm run build || (sleep 20 && npm run build) || (sleep 40 && npm run build)

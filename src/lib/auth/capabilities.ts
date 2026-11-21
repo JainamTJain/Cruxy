@@ -49,6 +49,22 @@ export function canEditTruthSources(
   return Boolean(person.team_id && person.team_id === truthTeamId);
 }
 
+/**
+ * Case roles (lead 1/2, counter-arguer, supporter): any member of that team,
+ * or an admin in admin view. Admin member-view is limited to the active team.
+ */
+export function canSetCaseRole(
+  person: Person,
+  session: SessionPayload,
+  teamId: string,
+): boolean {
+  if (isAdminRole(person.role) && session.adminView) return true;
+  if (viewingAsMember(session)) {
+    return Boolean(session.teamId && session.teamId === teamId);
+  }
+  return Boolean(session.teamId && session.teamId === teamId);
+}
+
 export function canBorrowFromOtherTeams(
   person: Person,
   session: SessionPayload,
@@ -122,6 +138,7 @@ export const ROLE_SUMMARY = {
   member: {
     can: [
       "Everything for their own team",
+      "Set and change case roles (leads, counter-arguer, supporter)",
       "Read, comment on and borrow from every other team",
     ],
     cannot: ["Edit another team's Truth Sources", "See session codes"],
