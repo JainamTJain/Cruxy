@@ -11,6 +11,7 @@ export async function POST(req: Request) {
   }
   const body = (await req.json()) as {
     feature?: string;
+    tier?: "small" | "strong";
     model?: string;
     messages?: { role: "system" | "user" | "assistant"; content: string }[];
   };
@@ -19,7 +20,8 @@ export async function POST(req: Request) {
   }
   const result = await callCruxy({
     feature: body.feature,
-    model: body.model ?? "cruxy-default",
+    tier: body.tier,
+    model: body.model,
     messages: body.messages,
     personId: session.personId,
   });
