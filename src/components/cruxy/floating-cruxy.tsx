@@ -18,7 +18,16 @@ const MOOD_SRC: Record<CruxyMood, string> = {
 };
 
 const POS_KEY = "cruxy-float-pos";
-const FIGURE = 120;
+const FIGURE = 150; // width, as in Cruxy.html
+const FIGURE_PHONE = 96;
+/** Genie images are about twice as tall as wide. */
+const ASPECT = 2;
+/** Height kept clear for the phone tab bar. */
+const TAB_BAR = 88;
+
+function figureFor(w: number): number {
+  return w < 640 ? FIGURE_PHONE : FIGURE;
+}
 
 type Pos = { x: number; y: number };
 
@@ -46,9 +55,20 @@ function savePos(pos: Pos) {
 }
 
 function snapToEdge(x: number, y: number, w: number, h: number): Pos {
+  const size = figureFor(w);
   const midX = w / 2;
-  const nx = x < midX ? 12 : w - FIGURE - 12;
-  return { x: nx, y: Math.min(Math.max(12, y), h - FIGURE - 24) };
+  const nx = x < midX ? 12 : w - size - 12;
+  return { x: nx, y: Math.min(Math.max(12, y), h - size * ASPECT - TAB_BAR) };
+}
+
+/** Keep the figure fully on screen (and above the phone tab bar). */
+function clampToViewport(p: Pos, w: number, h: number): Pos {
+  const size = figureFor(w);
+  const bottom = w < 640 ? TAB_BAR : 24;
+  return {
+    x: Math.min(Math.max(8, p.x), w - size - 8),
+    y: Math.min(Math.max(8, p.y), h - size * ASPECT - bottom),
+  };
 }
 
 export function FloatingCruxy() {
@@ -71,15 +91,19 @@ export function FloatingCruxy() {
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   useEffect(() => {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
     const saved = loadPos();
-    if (saved) setPos(saved);
-    else if (typeof window !== "undefined") {
-      setPos({
-        x: window.innerWidth - FIGURE - 24,
-        y: window.innerHeight - 220,
-      });
-    }
-    const onResize = () => setVw(window.innerWidth);
+    const size = figureFor(w);
+    const start = saved ?? {
+      x: w - size - (w < 640 ? 12 : 24),
+      y: h - size * ASPECT - (w < 640 ? TAB_BAR + 12 : 110),
+    };
+    setPos(clampToViewport(start, w, h));
+    const onResize = () => {
+      setVw(window.innerWidth);
+      setPos((p) => clampToViewport(p, window.innerWidth, window.innerHeight));
+    };
     onResize();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
@@ -107,8 +131,9 @@ export function FloatingCruxy() {
     const lamp = document.getElementById("cruxy-lamp");
     if (lamp) {
       const r = lamp.getBoundingClientRect();
-      const cx = pos.x + FIGURE / 2;
-      const cy = pos.y + FIGURE / 2;
+      const fw = figureFor(window.innerWidth);
+      const cx = pos.x + fw / 2;
+      const cy = pos.y + fw * ASPECT * 0.75;
       if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) {
         sleep();
         return;
@@ -144,13 +169,14 @@ export function FloatingCruxy() {
   if (!awake || hideFigure || recordingOrTimed) return null;
 
   const phone = vw < 640;
+  const size = figureFor(vw);
   // Flip bubble to the left when near the right edge (Cruxy.html flip)
-  const flipLeft = !phone && pos.x + FIGURE / 2 > vw * 0.55;
+  const flipLeft = !phone && pos.x + size / 2 > vw * 0.55;
 
   return (
     <div
       className="fixed z-40 touch-none"
-      style={{ left: pos.x, top: pos.y, width: FIGURE }}
+      style={{ left: pos.x, top: pos.y, width: size }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -160,7 +186,7 @@ export function FloatingCruxy() {
           className={cn(
             "absolute z-10 rounded-[18px] border-2 border-ink bg-white p-4 text-xs shadow-[0_10px_30px_rgba(17,19,24,0.14)]",
             phone
-              ? "bottom-full left-1/2 mb-2 w-[calc(100vw-32px)] max-w-none -translate-x-1/2"
+              ? "bottom-full mb-2 max-w-none"
               : flipLeft
                 ? "left-auto right-full top-2 mr-3 w-[340px]"
                 : "left-full top-2 ml-3 w-[340px]",
@@ -168,9 +194,8 @@ export function FloatingCruxy() {
           style={
             phone
               ? {
-                  // Center relative to viewport, not the figure
-                  left: `calc(50vw - ${pos.x}px)`,
-                  transform: "translateX(-50%)",
+                  // Pin to the viewport's 16px gutters, not the figure
+                  left: 16 - pos.x,
                   width: "calc(100vw - 32px)",
                 }
               : undefined
@@ -184,7 +209,7 @@ export function FloatingCruxy() {
               onClick={(e) => {
                 e.stopPropagation();
                 setBubble(
-                  "Here's one hint — try restating the claim in one sentence.",
+                  "Here's one hint: try restating the claim in one sentence.",
                 );
               }}
             >
@@ -207,9 +232,10 @@ export function FloatingCruxy() {
         type="button"
         aria-label="Cruxy"
         className={cn(
-          "flex h-[120px] w-[120px] items-center justify-center bg-transparent p-0",
+          "flex items-center justify-center bg-transparent p-0",
           !dragging && !reduced && "animate-bob",
         )}
+        style={{ width: size }}
         onClick={() => {
           if (!dragging) setDrawerOpen(true);
         }}
@@ -218,8 +244,9 @@ export function FloatingCruxy() {
         <Image
           src={MOOD_SRC[mood]}
           alt=""
-          width={120}
-          height={120}
+          width={size}
+          height={size * ASPECT}
+          className="pointer-events-none block h-auto w-full drop-shadow-[0_12px_18px_rgba(17,19,24,0.22)]"
           draggable={false}
           unoptimized
         />

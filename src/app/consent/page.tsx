@@ -72,7 +72,7 @@ export default function ConsentPage() {
       rec.stop();
       return await stopped;
     } catch {
-      setStatus("Microphone unavailable — saving consent without a sample.");
+      setStatus("Microphone unavailable. Saving consent without a sample.");
       return null;
     }
   }

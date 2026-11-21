@@ -14,14 +14,15 @@ import {
   saveLibraryFile,
   saveSyncRun,
 } from "@/lib/db/library-repository";
-import { readStore } from "@/lib/db/sample-store";
-import { logActivity } from "@/lib/db/repository";
+import { listPeopleFull, logActivity } from "@/lib/db/repository";
 import type { SyncRun } from "@/lib/library/types";
 import { nowIso } from "@/lib/utils";
 
 export type SyncOptions = {
   mode: "manual" | "cron" | "sample";
   personId?: string | null;
+  /** Time budget in ms before stopping safely (default 240 s). */
+  budgetMs?: number;
   /** For tests: force skip AI even on new files (heuristic only). */
   forceHeuristic?: boolean;
 };
@@ -35,16 +36,12 @@ export type SyncResult = {
 
 async function resolveActorId(personId?: string | null): Promise<string> {
   if (personId) return personId;
-  try {
-    const store = await readStore();
-    return (
-      store.people.find((p) => p.role === "tech_admin")?.id ??
-      store.people[0]?.id ??
-      "system"
-    );
-  } catch {
-    return "system";
-  }
+  const people = await listPeopleFull();
+  return (
+    people.find((p) => p.role === "tech_admin")?.id ??
+    people[0]?.id ??
+    "system"
+  );
 }
 
 /**
@@ -104,7 +101,16 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
   const teams = await listTeams();
   const actorId = await resolveActorId(opts.personId);
 
+  // Stop safely before Vercel's 300 s limit; unchanged-file skipping makes the next run resume.
+  const budgetMs = opts.budgetMs ?? 240_000;
+  const startedMs = Date.now();
+  let stoppedEarly = false;
+
   for (const file of listed.files) {
+    if (Date.now() - startedMs > budgetMs) {
+      stoppedEarly = true;
+      break;
+    }
     const existing = await getLibraryFileByDriveId(file.drive_id);
     const unchanged =
       existing &&
@@ -157,6 +163,12 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
         }
       }
     }
+  }
+
+  if (stoppedEarly) {
+    notes = [notes, `Stopped early to stay inside the time limit after ${filesProcessed} files; the next run continues from here.`]
+      .filter(Boolean)
+      .join(" ");
   }
 
   const run: SyncRun = {

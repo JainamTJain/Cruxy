@@ -68,12 +68,12 @@ export default function SignInPage() {
   }
 
   const built = [
-    [totals?.drive_files ?? "—", "Drive files read and cited"],
-    [totals?.ideas_accepted ?? "—", "ideas accepted into Truth Sources"],
-    [totals?.bank_questions ?? "—", "moderator questions in the bank"],
-    [totals?.rounds_graded ?? "—", "practice rounds graded"],
-    [totals?.sources_verified ?? "—", "new sources verified"],
-    [days ?? "—", "days to the regional"],
+    [totals?.drive_files ?? "…", "Drive files read and cited"],
+    [totals?.ideas_accepted ?? "…", "ideas accepted into Truth Sources"],
+    [totals?.bank_questions ?? "…", "moderator questions in the bank"],
+    [totals?.rounds_graded ?? "…", "practice rounds graded"],
+    [totals?.sources_verified ?? "…", "new sources verified"],
+    [days ?? "…", "days to the regional"],
   ] as const;
 
   return (

@@ -524,3 +524,11 @@ export async function listPeopleFull(): Promise<Person[]> {
   assertOk(error, "listPeopleFull");
   return ((data ?? []) as PersonRow[]).map(mapPerson);
 }
+
+/** All auth_codes rows for the tech-admin codes panel (hashes stay server-side). */
+export async function listAllAuthCodes(): Promise<AuthCode[]> {
+  const sb = getServiceSupabase();
+  const { data, error } = await sb.from("auth_codes").select("*");
+  assertOk(error, "listAllAuthCodes");
+  return ((data ?? []) as AuthCodeRow[]).map(mapAuthCode);
+}

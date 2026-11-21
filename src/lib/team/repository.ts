@@ -817,6 +817,34 @@ export async function homeDiffsForPerson(
   return diffs;
 }
 
+export async function listPendingAlignmentForPerson(
+  personId: string,
+): Promise<AlignmentQuestionSet[]> {
+  if (!isSampleDataMode()) {
+    return (await sb()).listPendingAlignmentForPerson(personId);
+  }
+  const store = await readStore();
+  return store.alignment_questions.filter(
+    (q) => q.person_id === personId && !q.answered_at,
+  );
+}
+
+export async function listPendingClaimChangeProposals(filter: {
+  teamId: string;
+  caseId: string;
+}): Promise<ClaimChangeProposal[]> {
+  if (!isSampleDataMode()) {
+    return (await sb()).listPendingClaimChangeProposals(filter);
+  }
+  const store = await readStore();
+  return store.claim_change_proposals.filter(
+    (p) =>
+      p.team_id === filter.teamId &&
+      p.case_id === filter.caseId &&
+      p.status === "pending",
+  );
+}
+
 export async function teamBoardSnapshot(
   teamId: string,
 ): Promise<TeamBoardSnapshot> {
