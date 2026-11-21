@@ -11,6 +11,7 @@ import { FloatingCruxy } from "@/components/cruxy/floating-cruxy";
 import { NotificationBell } from "@/components/notification-bell";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/types";
+import { PRACTICE_FIXTURE_IDS } from "@/lib/practice/fixture-ids";
 
 type Me = {
   authenticated: boolean;
@@ -34,8 +35,21 @@ const SIDE_NAV: { href: string; label: string; match?: string }[] = [
   { href: "/case-brain", label: "Cases" },
   { href: "/library", label: "Reading room" },
   { href: "/practice", label: "Practice" },
-  { href: "/practice", label: "Reports", match: "/report" },
+  {
+    href: `/practice/rounds/${PRACTICE_FIXTURE_IDS.roundReport}/report`,
+    label: "Reports",
+    match: "/report",
+  },
   { href: "/team/chat", label: "Team chat" },
+];
+
+/** Admin.html sidebar when Admin switch is on and route is under /admin. */
+const ADMIN_SIDE_NAV: { href: string; label: string; match?: string }[] = [
+  { href: "/practice/admin", label: "Sessions" },
+  { href: "/admin", label: "People and teams" },
+  { href: "/admin", label: "Program analytics", match: "analytics" },
+  { href: "/revision/questions", label: "Question bank" },
+  { href: "/home", label: "Back to member view" },
 ];
 
 const PHONE_TABS = [
@@ -148,6 +162,18 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     me?.session?.role === "tech_admin" || me?.session?.role === "coach_admin";
   const displayName = me?.session?.name ?? me?.person?.name ?? "";
   const initial = displayName.slice(0, 1).toUpperCase() || "·";
+  const onAdminScreen =
+    Boolean(me?.session?.adminView) && pathname.startsWith("/admin");
+  const sideItems = onAdminScreen ? ADMIN_SIDE_NAV : SIDE_NAV;
+
+  // Workstream D: live practice room and thesis drill are full-bleed (no shell chrome).
+  const immersive =
+    pathname.includes("/practice/rounds/") ||
+    pathname.includes("/practice/drills/");
+
+  if (immersive) {
+    return <div className="min-h-dvh bg-[#0C0D11]">{children}</div>;
+  }
 
   return (
     <div className="flex min-h-dvh bg-paper text-ink">
@@ -158,9 +184,21 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         >
           crux
         </Link>
-        <nav aria-label="Main" className="flex flex-col gap-0.5">
-          {SIDE_NAV.map((item) => {
-            const active = navActive(pathname, item.href, item.match);
+        {onAdminScreen ? (
+          <span className="ml-3 self-start rounded-md bg-gold px-2 py-1 text-xs font-bold tracking-[0.1em] text-ink">
+            ADMIN
+          </span>
+        ) : null}
+        <nav aria-label={onAdminScreen ? "Admin" : "Main"} className="flex flex-col gap-0.5">
+          {sideItems.map((item) => {
+            const active = onAdminScreen
+              ? item.label === "People and teams"
+                ? pathname === "/admin" || pathname === "/admin/"
+                : item.label === "Program analytics"
+                  ? pathname.startsWith("/admin/spend") ||
+                    pathname.startsWith("/admin/working")
+                  : navActive(pathname, item.href, item.match)
+              : navActive(pathname, item.href, item.match);
             return (
               <Link
                 key={`${item.label}-${item.href}`}
@@ -169,40 +207,27 @@ function ShellInner({ children }: { children: React.ReactNode }) {
                   "rounded-xl px-3 py-2.5 text-[15px] font-medium",
                   active
                     ? "bg-cardinal text-white"
-                    : "text-white/80 hover:bg-white/10",
+                    : "text-[#C9CCD3] hover:bg-white/10",
                 )}
               >
                 {item.label}
               </Link>
             );
           })}
-          {me?.session?.adminView ? (
+          {!onAdminScreen && me?.session?.adminView ? (
             <>
               <div className="my-2 h-px bg-white/10" />
               <Link
                 href="/admin"
                 className={cn(
                   "rounded-xl px-3 py-2.5 text-[15px] font-medium",
-                  pathname === "/admin"
+                  pathname.startsWith("/admin")
                     ? "bg-cardinal text-white"
                     : "text-white/80 hover:bg-white/10",
                 )}
               >
                 Admin console
               </Link>
-              {me.session.role === "tech_admin" ? (
-                <Link
-                  href="/admin/passcodes"
-                  className={cn(
-                    "rounded-xl px-3 py-2.5 text-[15px] font-medium",
-                    pathname.startsWith("/admin/passcodes")
-                      ? "bg-cardinal text-white"
-                      : "text-white/80 hover:bg-white/10",
-                  )}
-                >
-                  Passcodes
-                </Link>
-              ) : null}
             </>
           ) : null}
         </nav>

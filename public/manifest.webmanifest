@@ -4,18 +4,26 @@
   "description": "USC Ethics Bowl case work, practice, and Cruxy.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F7F4EF",
+  "background_color": "#F3F4F6",
   "theme_color": "#9D2235",
   "icons": [
     {
+      "src": "/cruxy/cruxy-lamp.png",
+      "sizes": "327x235",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

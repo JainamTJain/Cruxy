@@ -37,6 +37,7 @@ export async function POST(req: Request) {
       code: body.code,
       personId: session?.personId ?? null,
       ipKey: req.headers.get("x-forwarded-for") ?? "judge",
+      portal: "judging",
     });
     if (!joined.ok) {
       return NextResponse.json({ error: joined.reason }, { status: 400 });

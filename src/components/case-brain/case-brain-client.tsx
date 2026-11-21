@@ -1,8 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ClaimRobustness } from "@/components/case-brain/claim-robustness";
 import { OriginTag } from "@/components/case-brain/origin-tag";
-import { RobustnessBar } from "@/components/case-brain/robustness-bar";
+import {
+  backingChip,
+  supportLabel,
+} from "@/components/case-brain/support-label";
+import { VersionConfirm } from "@/components/case-brain/version-confirm";
 import type {
   CaseBrainSnapshot,
   CaseRoleKind,
@@ -13,6 +19,16 @@ import { cn } from "@/lib/utils";
 
 type PersonLite = { id: string; name: string; team_id: string | null };
 
+type MapVersionMeta = {
+  id: string;
+  version: number;
+  change_summary: string;
+  confirmed_by: string[];
+  confirmed_count: number;
+  team_size: number;
+  viewer_confirmed: boolean;
+};
+
 type Payload = {
   case: CaseRow | null;
   teams: Team[];
@@ -20,13 +36,33 @@ type Payload = {
   brain: CaseBrainSnapshot;
   canEdit: boolean;
   viewer: { personId: string; teamId: string; name: string };
+  meta: {
+    truth_count: number;
+    flashcard_count: number;
+    question_count: number;
+    reading_count: number;
+    map_version: MapVersionMeta | null;
+  };
 };
+
+const ROLE_KEYS: CaseRoleKind[] = [
+  "lead_1",
+  "lead_2",
+  "counter_arguer",
+  "supporter",
+];
 
 const ROLE_LABELS: Record<CaseRoleKind, string> = {
   lead_1: "Lead 1",
   lead_2: "Lead 2",
   counter_arguer: "Counter-arguer",
   supporter: "Supporter",
+};
+
+const TEAM_COLOUR: Record<string, string> = {
+  "Team 1": "var(--crux-team-1)",
+  "Team 2": "var(--crux-team-2)",
+  "Team 3": "var(--crux-team-3)",
 };
 
 function originLabel(
@@ -38,9 +74,38 @@ function originLabel(
     return t ? `Inspired by ${t.name}` : "Inspired by Team";
   }
   if (proposal.origin === "research") return "Cruxy research";
-  if (proposal.origin === "transcript") return "Practice transcript";
+  if (proposal.origin === "transcript") {
+    return proposal.origin_ref?.startsWith("From practice")
+      ? proposal.origin_ref
+      : proposal.origin_ref
+        ? `From practice · ${proposal.origin_ref}`
+        : "From practice";
+  }
   if (proposal.origin === "reading") return "Reading room";
   return "Team member";
+}
+
+function personName(
+  people: PersonLite[],
+  id: string | null | undefined,
+): string {
+  if (!id) return "—";
+  return people.find((p) => p.id === id)?.name ?? "—";
+}
+
+function formatCrux(crux: string | null | undefined): {
+  left: string;
+  right: string;
+} {
+  if (!crux) return { left: "", right: "" };
+  const parts = crux.split(/\s*\*?versus\*?\s*/i);
+  if (parts.length >= 2) {
+    return {
+      left: parts[0]!.replace(/\*/g, "").trim(),
+      right: parts.slice(1).join(" versus ").replace(/\*/g, "").trim(),
+    };
+  }
+  return { left: crux.replace(/\*/g, "").trim(), right: "" };
 }
 
 export function CaseBrainClient({
@@ -56,31 +121,27 @@ export function CaseBrainClient({
   const [busy, setBusy] = useState(false);
   const [reasonDrafts, setReasonDrafts] = useState<Record<string, string>>({});
   const [editDrafts, setEditDrafts] = useState<Record<string, string>>({});
-  const [claimDrafts, setClaimDrafts] = useState<Record<string, string>>({});
-  const [newProposal, setNewProposal] = useState("");
-  const [principle, setPrinciple] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [tab, setTab] = useState<
-    "map" | "truth" | "queue" | "oppose" | "checks" | "history"
+    "map" | "truth" | "readings" | "flashcards" | "questions" | "research"
   >("map");
+  const [compare, setCompare] = useState(false);
 
-  const load = useCallback(async (tid?: string) => {
-    setError(null);
-    const q = tid ? `?teamId=${encodeURIComponent(tid)}` : "";
-    const res = await fetch(`/api/case-brain/${caseId}${q}`);
-    const json = (await res.json()) as Payload & { error?: string };
-    if (!res.ok) {
-      setError(json.error ?? "Failed to load case brain");
-      return;
-    }
-    setData(json);
-    setTeamId(json.brain.team_id);
-    setPrinciple(json.brain.principles[0]?.principle ?? "");
-    const drafts: Record<string, string> = {};
-    for (const node of json.brain.claims) {
-      drafts[node.claim.id] = node.claim.text;
-    }
-    setClaimDrafts(drafts);
-  }, [caseId]);
+  const load = useCallback(
+    async (tid?: string) => {
+      setError(null);
+      const q = tid ? `?teamId=${encodeURIComponent(tid)}` : "";
+      const res = await fetch(`/api/case-brain/${caseId}${q}`);
+      const json = (await res.json()) as Payload & { error?: string };
+      if (!res.ok) {
+        setError(json.error ?? "Failed to load case brain");
+        return;
+      }
+      setData(json);
+      setTeamId(json.brain.team_id);
+    },
+    [caseId],
+  );
 
   useEffect(() => {
     void load(initialTeamId);
@@ -117,23 +178,12 @@ export function CaseBrainClient({
     }
   }
 
-  async function saveClaim(claimId: string) {
-    const reason = reasonDrafts[`claim:${claimId}`]?.trim() ?? "";
-    await api("/api/case-brain/claims", {
-      method: "PATCH",
-      body: JSON.stringify({
-        claimId,
-        text: claimDrafts[claimId],
-        reason,
-      }),
-    });
-  }
-
-  async function decide(
-    proposalId: string,
-    verdict: DecisionVerdict,
-  ) {
+  async function decide(proposalId: string, verdict: DecisionVerdict) {
     const reason = reasonDrafts[`prop:${proposalId}`]?.trim() ?? "";
+    if (!reason) {
+      setError("A reason is required for every accept, reject or edit.");
+      return;
+    }
     await api("/api/case-brain/decisions", {
       method: "POST",
       body: JSON.stringify({
@@ -147,54 +197,104 @@ export function CaseBrainClient({
 
   if (!data) {
     return (
-      <p className="text-sm text-muted">
-        {error ?? "Loading case brain…"}
-      </p>
+      <p className="text-sm text-muted">{error ?? "Loading case brain…"}</p>
     );
   }
 
-  const { brain, case: caseRow, teams, canEdit } = data;
-  const pending = brain.proposals.filter((p) => p.status === "pending");
+  const { brain, case: caseRow, teams, canEdit, meta, viewer } = data;
+  const originRank = (o: string) =>
+    o === "inspired_by_team" ? 0 : o === "transcript" ? 1 : o === "research" ? 2 : 3;
+  const pending = brain.proposals
+    .filter((p) => p.status === "pending")
+    .sort((a, b) => originRank(a.origin) - originRank(b.origin));
+  const viewingTeam = teams.find((t) => t.id === brain.team_id);
+  const crux = formatCrux(caseRow?.crux);
+  const caseNum = String(caseRow?.number ?? "").padStart(2, "0");
+  const lead1 = brain.case_roles.find((r) => r.role === "lead_1");
+  const lead2 = brain.case_roles.find((r) => r.role === "lead_2");
+  const counter = brain.case_roles.find((r) => r.role === "counter_arguer");
+  const allCounterclaims = brain.claims.flatMap((n) =>
+    n.counterclaims.map((cc) => ({
+      ...cc,
+      owner: personName(data.people, counter?.person_id),
+    })),
+  );
+
+  const leadNames = [lead1, lead2]
+    .map((r) => personName(data.people, r?.person_id))
+    .filter((n) => n !== "—");
 
   return (
-    <div className="animate-fade-up space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="font-mono text-xs uppercase tracking-wide text-muted">
-            Case brain
-          </p>
-          <h1 className="font-display text-3xl font-semibold text-ink">
-            <span className="font-mono text-base text-muted">
-              {String(caseRow?.number ?? "").padStart(2, "0")}
-            </span>{" "}
-            {caseRow?.title ?? "Case"}
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            {canEdit
-              ? "Editing your team's map. Accept / reject / edit needs a reason."
-              : "Read-only view of another team's brain."}
-          </p>
+    <div className="flex flex-col gap-5 animate-fade-up">
+      <div className="flex flex-wrap items-end justify-between gap-5">
+        <div className="flex items-end gap-5">
+          <span className="font-display text-[120px] font-extrabold leading-[0.8] tracking-[-0.05em] text-cardinal">
+            {caseNum}
+          </span>
+          <div className="flex max-w-[620px] flex-col gap-1.5">
+            <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-muted">
+              Case brain · {viewingTeam?.name ?? "Team"}
+              {meta.map_version ? ` · v${meta.map_version.version}` : ""}
+            </span>
+            <h1 className="font-display m-0 text-[44px] font-extrabold leading-none tracking-[-0.02em]">
+              {caseRow?.title ?? "Case"}
+            </h1>
+            {crux.left ? (
+              <p className="m-0 text-base text-[#3B404A]">
+                Crux: {crux.left}
+                {crux.right ? (
+                  <>
+                    {" "}
+                    <em>versus</em> {crux.right}
+                  </>
+                ) : null}
+              </p>
+            ) : null}
+          </div>
         </div>
-        <label className="text-xs text-muted">
-          Team
-          <select
-            className="ml-2 rounded-xl border border-ink/15 bg-white/80 px-3 py-2 text-sm text-ink"
-            value={teamId}
-            onChange={(e) => {
-              const next = e.target.value;
-              setTeamId(next);
-              void load(next);
-            }}
-          >
-            {teams.map((t) => (
-              <option key={t.id} value={t.id}>
+
+        <div
+          role="tablist"
+          aria-label="Whose case brain"
+          className="flex gap-1 rounded-xl bg-mist p-1"
+        >
+          {teams.map((t) => {
+            const selected = !compare && t.id === brain.team_id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                className={cn(
+                  "rounded-[10px] px-3.5 py-2 text-[13px] font-semibold",
+                  selected ? "bg-white" : "bg-transparent text-[#3B404A]",
+                )}
+                style={selected ? { color: TEAM_COLOUR[t.name] ?? "#111318" } : undefined}
+                onClick={() => {
+                  setCompare(false);
+                  setTeamId(t.id);
+                  void load(t.id);
+                }}
+              >
                 {t.name}
-                {t.id === data.viewer.teamId ? " (yours)" : ""}
-              </option>
-            ))}
-          </select>
-        </label>
-      </header>
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={compare}
+            className={cn(
+              "rounded-[10px] px-3.5 py-2 text-[13px] font-semibold",
+              compare ? "bg-white text-ink" : "bg-transparent text-[#3B404A]",
+            )}
+            onClick={() => setCompare(true)}
+          >
+            Compare
+          </button>
+        </div>
+      </div>
 
       {error ? (
         <p className="rounded-xl border border-cardinal/30 bg-cardinal/5 px-3 py-2 text-sm text-cardinal">
@@ -202,55 +302,57 @@ export function CaseBrainClient({
         </p>
       ) : null}
 
-      <RobustnessBar scores={brain.robustness} />
-
-      <section className="rounded-2xl border border-ink/10 bg-white/60 p-4">
-        <h2 className="font-display text-lg font-semibold">Case roles</h2>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {(Object.keys(ROLE_LABELS) as CaseRoleKind[]).map((role) => {
-            const current = brain.case_roles.find((r) => r.role === role);
-            return (
-              <label key={role} className="text-xs text-muted">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {ROLE_KEYS.map((role) => {
+          const current = brain.case_roles.find((r) => r.role === role);
+          return (
+            <label
+              key={role}
+              className="flex flex-col gap-1.5 rounded-[14px] bg-white px-3.5 py-3"
+            >
+              <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-muted">
                 {ROLE_LABELS[role]}
-                <select
-                  disabled={!canEdit || busy}
-                  className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-2 py-2 text-sm text-ink disabled:opacity-60"
-                  value={current?.person_id ?? ""}
-                  onChange={(e) => {
-                    const personId = e.target.value;
-                    if (!personId) return;
-                    void api("/api/case-brain/roles", {
-                      method: "POST",
-                      body: JSON.stringify({
-                        caseId,
-                        personId,
-                        role,
-                      }),
-                    });
-                  }}
-                >
-                  <option value="">Unassigned</option>
-                  {teamPeople.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            );
-          })}
-        </div>
-      </section>
+              </span>
+              <select
+                disabled={!canEdit || busy}
+                className="h-9 rounded-[10px] border border-mist bg-[#F7F8FA] px-2 text-sm font-semibold text-ink disabled:opacity-60"
+                value={current?.person_id ?? ""}
+                onChange={(e) => {
+                  const personId = e.target.value;
+                  if (!personId) return;
+                  void api("/api/case-brain/roles", {
+                    method: "POST",
+                    body: JSON.stringify({ caseId, personId, role }),
+                  });
+                }}
+              >
+                <option value="">Unassigned</option>
+                {teamPeople.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          );
+        })}
+      </div>
 
-      <nav className="flex flex-wrap gap-2">
+      <nav
+        aria-label="Case sections"
+        className="flex flex-wrap gap-1 border-b border-mist"
+      >
         {(
           [
             ["map", "Claim map"],
-            ["truth", "Truth Sources"],
-            ["queue", `Queue (${pending.length})`],
-            ["oppose", "Opposing"],
-            ["checks", "Checks"],
-            ["history", "History"],
+            ["truth", `Truth Sources · ${meta.truth_count}`],
+            [
+              "readings",
+              `Readings · ${meta.reading_count || "—"}`,
+            ],
+            ["flashcards", `Flashcards · ${meta.flashcard_count}`],
+            ["questions", `Questions · ${meta.question_count}`],
+            ["research", "Research"],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -258,426 +360,739 @@ export function CaseBrainClient({
             type="button"
             onClick={() => setTab(id)}
             className={cn(
-              "rounded-xl px-3 py-2 text-sm",
-              tab === id ? "bg-ink text-white" : "bg-white/70 text-ink/80",
+              "border-b-[3px] px-3.5 py-2.5 text-sm font-semibold",
+              tab === id
+                ? "border-cardinal text-ink"
+                : "border-transparent text-muted",
             )}
           >
             {label}
           </button>
         ))}
+        <Link
+          href={`/revision/one-pagers?caseId=${caseId}&teamId=${brain.team_id}`}
+          className="ml-auto border-b-[3px] border-transparent px-3.5 py-2.5 text-sm font-semibold text-muted hover:text-ink"
+        >
+          One pager
+        </Link>
       </nav>
 
-      {tab === "map" ? (
-        <section className="space-y-4">
-          {brain.claims.map((node, idx) => (
-            <article
-              key={node.claim.id}
-              className="rounded-2xl border border-ink/10 bg-white/70 p-4"
-            >
-              <h3 className="font-display text-xl font-semibold">
-                Claim {idx + 1}
-              </h3>
-              <textarea
-                disabled={!canEdit || busy}
-                className="mt-2 w-full rounded-xl border border-ink/15 bg-paper/50 p-3 text-sm"
-                rows={2}
-                value={claimDrafts[node.claim.id] ?? node.claim.text}
-                onChange={(e) =>
-                  setClaimDrafts((d) => ({
-                    ...d,
-                    [node.claim.id]: e.target.value,
-                  }))
-                }
-              />
-              <p className="mt-2 text-xs text-muted">
-                Logic: {node.claim.logic_line}
-              </p>
-              {canEdit ? (
-                <div className="mt-2 flex flex-wrap items-end gap-2">
-                  <input
-                    className="min-w-[200px] flex-1 rounded-xl border border-ink/15 px-3 py-2 text-sm"
-                    placeholder="Why this change? (required)"
-                    value={reasonDrafts[`claim:${node.claim.id}`] ?? ""}
-                    onChange={(e) =>
-                      setReasonDrafts((d) => ({
-                        ...d,
-                        [`claim:${node.claim.id}`]: e.target.value,
-                      }))
-                    }
-                  />
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void saveClaim(node.claim.id)}
-                    className="rounded-xl bg-cardinal px-3 py-2 text-sm font-medium text-white"
-                  >
-                    Save claim
-                  </button>
-                </div>
-              ) : null}
+      {compare ? (
+        <ComparePanel caseId={caseId} teams={teams} />
+      ) : (
+        <div className="flex flex-wrap items-start gap-6">
+          <div className="flex min-w-0 flex-[999_1_620px] flex-col gap-4">
+            {tab === "map" ? (
+              <>
+                {brain.claims.map((node, idx) => {
+                  const backed = node.supports.filter(
+                    (s) => s.backings.length > 0,
+                  ).length;
+                  const ownerId =
+                    idx === 0 ? lead1?.person_id : lead2?.person_id;
+                  return (
+                    <section
+                      key={node.claim.id}
+                      className="flex flex-col gap-3.5 rounded-[20px] bg-white p-[22px]"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <span className="flex items-center gap-2.5">
+                          <span className="font-display rounded-lg bg-ink px-2.5 py-1 text-[15px] font-extrabold text-white">
+                            C{idx + 1}
+                          </span>
+                          <span className="text-[13px] text-muted">
+                            {personName(data.people, ownerId)} · {backed} of{" "}
+                            {node.supports.length || 3} supports backed
+                          </span>
+                        </span>
+                        <ClaimRobustness
+                          backed={backed}
+                          total={node.supports.length || 3}
+                        />
+                      </div>
+                      <h2 className="font-display m-0 text-[26px] font-semibold leading-[1.15]">
+                        {node.claim.text}
+                      </h2>
+                      {node.claim.logic_line ? (
+                        <p className="m-0 font-mono text-sm font-medium text-[#3B404A]">
+                          {node.claim.logic_line.startsWith("Because")
+                            ? node.claim.logic_line
+                            : `Because ${node.claim.logic_line}`}
+                        </p>
+                      ) : null}
+                      <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">
+                        {[0, 1, 2].map((j) => {
+                          const s = node.supports[j];
+                          if (!s) {
+                            return (
+                              <div
+                                key={`empty-${j}`}
+                                className="flex flex-col gap-2 rounded-[14px] border-2 border-dashed border-[#C62828] bg-white p-3.5"
+                              >
+                                <strong className="text-sm">
+                                  S{j + 1} · Waiting
+                                </strong>
+                                <span className="text-[13px] font-semibold text-[#C62828]">
+                                  No backing yet
+                                </span>
+                              </div>
+                            );
+                          }
+                          const { title, body } = supportLabel(s.support.text);
+                          const missing = s.backings.length === 0;
+                          return (
+                            <div
+                              key={s.support.id}
+                              className={cn(
+                                "flex flex-col gap-2 rounded-[14px] p-3.5",
+                                missing
+                                  ? "border-2 border-dashed border-[#C62828] bg-white"
+                                  : "bg-[#F7F8FA]",
+                              )}
+                            >
+                              <strong className="text-sm">
+                                S{j + 1} · {title}
+                              </strong>
+                              {body ? (
+                                <span className="text-sm leading-snug text-[#3B404A]">
+                                  {body}
+                                </span>
+                              ) : null}
+                              {missing ? (
+                                <span className="text-[13px] font-semibold text-[#C62828]">
+                                  No backing yet
+                                  {pending.length
+                                    ? ` · ${Math.min(pending.length, 1)} waiting in the queue`
+                                    : ""}
+                                </span>
+                              ) : (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {s.backings.map((b) => (
+                                    <span
+                                      key={b.id}
+                                      className="inline-flex items-center rounded-md bg-paper px-2 py-0.5 font-mono text-[12px] font-medium text-[#3B404A]"
+                                    >
+                                      {backingChip(b.text)}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  );
+                })}
 
-              <div className="mt-4 space-y-3">
-                {node.supports.map((s, j) => (
-                  <div
-                    key={s.support.id}
-                    className="rounded-xl border border-ink/5 bg-paper/40 p-3"
-                  >
-                    <p className="text-xs font-medium text-muted">
-                      Support {j + 1}
+                {allCounterclaims[0] ? (
+                  <section className="flex flex-col gap-2.5 rounded-[20px] bg-ink p-[22px] text-white">
+                    <span className="flex items-center gap-2.5">
+                      <span className="font-display rounded-lg bg-white px-2.5 py-1 text-[15px] font-extrabold text-ink">
+                        vs
+                      </span>
+                      <span className="text-[13px] text-[#9AA0AA]">
+                        Counterclaim · {allCounterclaims[0].owner}
+                      </span>
+                    </span>
+                    <h2 className="font-display m-0 text-2xl font-semibold leading-tight">
+                      {allCounterclaims[0].text.startsWith('"') ||
+                      allCounterclaims[0].text.startsWith("\u201C")
+                        ? allCounterclaims[0].text
+                        : `\u201C${allCounterclaims[0].text}\u201D`}
+                    </h2>
+                    <p className="m-0 text-[15px] leading-relaxed text-[#D6D9DF]">
+                      <strong className="text-white">Concede</strong>{" "}
+                      {allCounterclaims[0].concede || "—"}.{" "}
+                      <strong className="text-white">Distinguish:</strong>{" "}
+                      {allCounterclaims[0].distinguish || "—"}.{" "}
+                      <strong className="text-white">Rebut:</strong>{" "}
+                      {allCounterclaims[0].rebut || "—"}.
                     </p>
-                    <p className="text-sm">{s.support.text}</p>
-                    <ul className="mt-2 space-y-1 text-xs text-muted">
-                      {s.backings.map((b) => (
-                        <li key={b.id}>
-                          <span className="font-mono uppercase">{b.kind}</span>
-                          : {b.text}
+                  </section>
+                ) : null}
+
+                <VersionConfirm
+                  version={meta.map_version?.version ?? null}
+                  confirmedCount={meta.map_version?.confirmed_count ?? 0}
+                  teamSize={meta.map_version?.team_size ?? teamPeople.length}
+                  canConfirm={
+                    Boolean(canEdit && meta.map_version && !meta.map_version.viewer_confirmed)
+                  }
+                  busy={busy}
+                  onConfirm={() => {
+                    if (!meta.map_version) return;
+                    void api(`/api/case-brain/${caseId}`, {
+                      method: "POST",
+                      body: JSON.stringify({
+                        action: "confirm_version",
+                        versionId: meta.map_version.id,
+                      }),
+                    });
+                  }}
+                  onPublish={
+                    canEdit
+                      ? () => {
+                          void api(`/api/case-brain/${caseId}`, {
+                            method: "POST",
+                            body: JSON.stringify({ action: "ensure_version" }),
+                          });
+                        }
+                      : undefined
+                  }
+                />
+
+                <section className="flex flex-wrap items-center justify-between gap-4 rounded-[20px] bg-white px-[22px] py-[18px]">
+                  <span className="text-sm leading-snug">
+                    <strong>
+                      Flashcards from these readings · {meta.flashcard_count}{" "}
+                      cards.
+                    </strong>{" "}
+                    Leads {leadNames.join(" and ") || "—"} get them
+                    automatically.
+                  </span>
+                  <Link
+                    href={`/revision/flashcards?caseId=${caseId}`}
+                    className="rounded-xl bg-ink px-[18px] py-3 text-sm font-semibold text-white"
+                  >
+                    Study the deck
+                  </Link>
+                </section>
+              </>
+            ) : null}
+
+            {tab === "truth" ? (
+              <section className="space-y-3">
+                {brain.truth_items.length === 0 ? (
+                  <p className="text-sm text-muted">No Truth Sources yet.</p>
+                ) : (
+                  brain.truth_items.map((t) => (
+                    <article
+                      key={t.id}
+                      className="rounded-[20px] bg-white p-5"
+                    >
+                      <OriginTag label={t.kind} />
+                      <p className="mt-2 text-sm leading-snug">{t.text}</p>
+                      <p className="mt-1 font-mono text-[11px] text-muted">
+                        {t.citation_ids.length
+                          ? `${t.citation_ids.length} citation(s)`
+                          : "needs check"}
+                      </p>
+                    </article>
+                  ))
+                )}
+              </section>
+            ) : null}
+
+            {tab === "flashcards" ? (
+              <section className="rounded-[20px] bg-white p-5">
+                <p className="text-sm">
+                  {meta.flashcard_count} cards for this case. Leads get the deck
+                  automatically.
+                </p>
+                <Link
+                  href={`/revision/flashcards?caseId=${caseId}`}
+                  className="mt-3 inline-flex rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-white"
+                >
+                  Study the deck
+                </Link>
+              </section>
+            ) : null}
+
+            {tab === "questions" ? (
+              <section className="rounded-[20px] bg-white p-5">
+                <p className="text-sm">
+                  {meta.question_count} questions in the bank for this case.
+                </p>
+                <Link
+                  href={`/revision/questions?caseId=${caseId}`}
+                  className="mt-3 inline-flex rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-white"
+                >
+                  Open the bank
+                </Link>
+              </section>
+            ) : null}
+
+            {tab === "readings" ? (
+              <section className="rounded-[20px] bg-white p-5">
+                <p className="text-sm">
+                  Readings live in the reading room. Open files tagged for this
+                  case.
+                </p>
+                <Link
+                  href="/library"
+                  className="mt-3 inline-flex rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-white"
+                >
+                  Reading room
+                </Link>
+              </section>
+            ) : null}
+
+            {tab === "research" ? (
+              <div className="space-y-4">
+                <ResearchCoverage brain={brain} />
+                <section className="rounded-[20px] bg-white p-5">
+                  <h3 className="font-display text-xl font-extrabold">
+                    Likely opposing positions
+                  </h3>
+                  <p className="mt-1 text-sm text-muted">
+                    What other universities are most likely to bring — commenter
+                    prep.
+                  </p>
+                  <div className="mt-3 space-y-3">
+                    {brain.opposing_positions.length === 0 ? (
+                      <p className="text-sm text-muted">None yet.</p>
+                    ) : (
+                      brain.opposing_positions.map((o) => (
+                        <article
+                          key={o.id}
+                          className="rounded-[14px] bg-[#F7F8FA] p-3.5"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h4 className="font-display text-base font-extrabold">
+                              {o.title}
+                            </h4>
+                            <OriginTag label={o.origin} />
+                          </div>
+                          <p className="mt-2 text-sm">
+                            <span className="text-muted">Strongest: </span>
+                            {o.strongest_support}
+                          </p>
+                          <p className="mt-1 text-sm">
+                            <span className="text-muted">Weak point: </span>
+                            {o.weak_point}
+                          </p>
+                          <ul className="mt-2 list-disc pl-5 text-xs text-muted">
+                            {o.commentary_angles.map((a) => (
+                              <li key={a}>{a}</li>
+                            ))}
+                          </ul>
+                        </article>
+                      ))
+                    )}
+                  </div>
+                </section>
+
+                <section className="rounded-[20px] bg-white p-5">
+                  <h3 className="font-display text-xl font-extrabold">
+                    Consistency and change the facts
+                  </h3>
+                  {brain.consistency_flags.length === 0 ? (
+                    <p className="mt-2 text-sm text-muted">
+                      No cross-case clashes flagged for this case yet.
+                    </p>
+                  ) : (
+                    <ul className="mt-2 space-y-2">
+                      {brain.consistency_flags.map((f) => (
+                        <li
+                          key={f.id}
+                          className="rounded-xl border border-cardinal/20 bg-cardinal/5 p-3 text-sm"
+                        >
+                          {f.note}
                         </li>
                       ))}
                     </ul>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 space-y-2">
-                {node.counterclaims.map((cc) => (
-                  <div
-                    key={cc.id}
-                    className="rounded-xl border border-ink/5 bg-mist/40 p-3 text-sm"
-                  >
-                    <p className="font-medium">Counterclaim</p>
-                    <p>{cc.text}</p>
-                    <p className="mt-1 text-xs text-muted">Concede: {cc.concede}</p>
-                    <p className="text-xs text-muted">
-                      Distinguish: {cc.distinguish}
-                    </p>
-                    <p className="text-xs text-muted">Rebut: {cc.rebut}</p>
-                  </div>
-                ))}
-              </div>
-
-              {brain.change_the_facts.filter((c) => c.claim_id === node.claim.id)
-                .length > 0 ? (
-                <div className="mt-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                    Change the facts
-                  </p>
-                  <ul className="mt-2 space-y-2 text-sm">
-                    {brain.change_the_facts
-                      .filter((c) => c.claim_id === node.claim.id)
-                      .map((c) => (
-                        <li key={c.id} className="rounded-xl bg-gold/10 px-3 py-2">
-                          <p>{c.fact}</p>
+                  )}
+                  {brain.change_the_facts.length ? (
+                    <ul className="mt-3 space-y-2">
+                      {brain.change_the_facts.map((c) => (
+                        <li
+                          key={c.id}
+                          className="rounded-xl bg-gold/10 px-3 py-2 text-sm"
+                        >
+                          <p className="font-medium">{c.fact}</p>
                           <p className="text-xs text-muted">{c.why_flips}</p>
                         </li>
                       ))}
-                  </ul>
-                </div>
-              ) : null}
-            </article>
-          ))}
-        </section>
-      ) : null}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-sm text-muted">
+                      No change-the-facts flips listed yet.
+                    </p>
+                  )}
+                </section>
 
-      {tab === "truth" ? (
-        <section className="space-y-3">
-          <p className="text-sm text-muted">
-            Accepted facts, quotes, examples and frameworks. Cruxy proposes;
-            people decide.
-          </p>
-          {brain.truth_items.length === 0 ? (
-            <p className="text-sm text-muted">No Truth Sources yet.</p>
-          ) : (
-            brain.truth_items.map((t) => (
-              <article
-                key={t.id}
-                className="rounded-2xl border border-ink/10 bg-white/70 p-4"
-              >
-                <OriginTag label={t.kind} />
-                <p className="mt-2 text-sm">{t.text}</p>
-                <p className="mt-1 font-mono text-[10px] text-muted">
-                  {t.citation_ids.length
-                    ? `${t.citation_ids.length} citation(s)`
-                    : "needs check"}
-                </p>
-              </article>
-            ))
-          )}
-        </section>
-      ) : null}
-
-      {tab === "queue" ? (
-        <section className="space-y-4">
-          {canEdit ? (
-            <div className="rounded-2xl border border-ink/10 bg-white/70 p-4">
-              <h3 className="font-display text-lg font-semibold">
-                Propose a Truth Source
-              </h3>
-              <textarea
-                className="mt-2 w-full rounded-xl border border-ink/15 p-3 text-sm"
-                rows={3}
-                value={newProposal}
-                onChange={(e) => setNewProposal(e.target.value)}
-                placeholder="Idea for the team to accept, reject or edit…"
-              />
-              <button
-                type="button"
-                disabled={busy || !newProposal.trim()}
-                className="mt-2 rounded-xl bg-ink px-3 py-2 text-sm text-white disabled:opacity-50"
-                onClick={() =>
-                  void api("/api/case-brain/proposals", {
-                    method: "POST",
-                    body: JSON.stringify({
-                      caseId,
-                      text: newProposal,
-                      kind: "fact",
-                      origin: "member",
-                    }),
-                  }).then((r) => {
-                    if (r.ok) setNewProposal("");
-                  })
-                }
-              >
-                Add to queue
-              </button>
-            </div>
-          ) : null}
-
-          {pending.length === 0 ? (
-            <p className="text-sm text-muted">Queue is clear.</p>
-          ) : (
-            pending.map((p) => {
-              const peers = brain.peer_decisions_by_idea[p.idea_key] ?? [];
-              return (
-                <article
-                  key={p.id}
-                  className="rounded-2xl border border-ink/10 bg-white/70 p-4"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <OriginTag label={originLabel(p, teams)} />
-                    {p.cruxy_note ? (
-                      <span className="rounded-md bg-gold/20 px-2 py-0.5 text-[11px] text-ink">
-                        Analyst: {p.cruxy_note}
-                      </span>
-                    ) : (
-                      <span className="text-[11px] text-muted">
-                        Passed acceptable / relevant / sufficient
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-3 text-sm">{p.text}</p>
-
-                  {p.origin === "inspired_by_team" && !p.socratic_answered ? (
-                    <div className="mt-3 rounded-xl border border-gold/40 bg-gold/10 p-3">
-                      <p className="text-xs font-medium uppercase tracking-wide">
-                        Cruxy asks first
-                      </p>
-                      <p className="mt-1 text-sm">{p.socratic_question}</p>
-                      {canEdit ? (
-                        <button
-                          type="button"
-                          disabled={busy}
-                          className="mt-2 rounded-xl bg-ink px-3 py-2 text-xs text-white"
-                          onClick={() =>
-                            void api("/api/case-brain/proposals", {
-                              method: "PATCH",
-                              body: JSON.stringify({
-                                proposalId: p.id,
-                                action: "socratic_answered",
-                              }),
-                            })
-                          }
+                <section className="rounded-[20px] bg-white p-5">
+                  <h3 className="font-display text-xl font-extrabold">
+                    History
+                  </h3>
+                  {brain.history.length === 0 ? (
+                    <p className="mt-2 text-sm text-muted">No history yet.</p>
+                  ) : (
+                    <ul className="mt-2 max-h-80 space-y-2 overflow-y-auto">
+                      {brain.history.slice(0, 40).map((h) => (
+                        <li
+                          key={h.id}
+                          className="rounded-xl bg-[#F7F8FA] px-3 py-2 text-xs"
                         >
-                          I&apos;ve thought it through
-                        </button>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  {peers.length > 0 ? (
-                    <div className="mt-3 rounded-xl bg-mist/50 p-3 text-xs">
-                      <p className="font-medium">Other teams on this idea</p>
-                      <ul className="mt-1 space-y-1">
-                        {peers.map((d) => (
-                          <li key={d.id}>
-                            {d.team_name}: {d.verdict} — {d.reason}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-
-                  {canEdit ? (
-                    <div className="mt-3 space-y-2">
-                      <input
-                        className="w-full rounded-xl border border-ink/15 px-3 py-2 text-sm"
-                        placeholder="Reason (required)"
-                        value={reasonDrafts[`prop:${p.id}`] ?? ""}
-                        onChange={(e) =>
-                          setReasonDrafts((d) => ({
-                            ...d,
-                            [`prop:${p.id}`]: e.target.value,
-                          }))
-                        }
-                      />
-                      <input
-                        className="w-full rounded-xl border border-ink/15 px-3 py-2 text-sm"
-                        placeholder="Edited text (for edit)"
-                        value={editDrafts[p.id] ?? ""}
-                        onChange={(e) =>
-                          setEditDrafts((d) => ({
-                            ...d,
-                            [p.id]: e.target.value,
-                          }))
-                        }
-                      />
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          disabled={busy}
-                          className="rounded-xl bg-team3 px-3 py-2 text-sm text-white"
-                          style={{ background: "var(--crux-team-3)" }}
-                          onClick={() => void decide(p.id, "accept")}
-                          title="Accept"
-                        >
-                          ✓ Accept
-                        </button>
-                        <button
-                          type="button"
-                          disabled={busy}
-                          className="rounded-xl bg-cardinal px-3 py-2 text-sm text-white"
-                          onClick={() => void decide(p.id, "reject")}
-                          title="Reject"
-                        >
-                          ✕ Reject
-                        </button>
-                        <button
-                          type="button"
-                          disabled={busy}
-                          className="rounded-xl border border-ink/20 bg-white px-3 py-2 text-sm"
-                          onClick={() => void decide(p.id, "edit")}
-                        >
-                          Edit
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-                </article>
-              );
-            })
-          )}
-        </section>
-      ) : null}
-
-      {tab === "oppose" ? (
-        <section className="space-y-3">
-          <p className="text-sm text-muted">
-            Likely positions other universities will bring — commenter prep.
-          </p>
-          {brain.opposing_positions.map((o) => (
-            <article
-              key={o.id}
-              className="rounded-2xl border border-ink/10 bg-white/70 p-4"
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-display text-lg font-semibold">{o.title}</h3>
-                <OriginTag label={o.origin} />
+                          <p className="font-mono text-muted">
+                            {new Date(h.at).toLocaleString()} · {h.action}
+                          </p>
+                          {h.reason ? (
+                            <p className="mt-1">Reason: {h.reason}</p>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
               </div>
-              <p className="mt-2 text-sm">
-                <span className="text-muted">Strongest: </span>
-                {o.strongest_support}
-              </p>
-              <p className="mt-1 text-sm">
-                <span className="text-muted">Weak point: </span>
-                {o.weak_point}
-              </p>
-              <ul className="mt-2 list-disc pl-5 text-xs text-muted">
-                {o.commentary_angles.map((a) => (
-                  <li key={a}>{a}</li>
-                ))}
-              </ul>
-            </article>
-          ))}
-        </section>
-      ) : null}
-
-      {tab === "checks" ? (
-        <section className="space-y-4">
-          <div className="rounded-2xl border border-ink/10 bg-white/70 p-4">
-            <h3 className="font-display text-lg font-semibold">
-              Cross-case principle
-            </h3>
-            <p className="mt-1 text-sm text-muted">
-              Used for consistency checks across your cases.
-            </p>
-            <textarea
-              disabled={!canEdit || busy}
-              className="mt-2 w-full rounded-xl border border-ink/15 p-3 text-sm"
-              rows={2}
-              value={principle}
-              onChange={(e) => setPrinciple(e.target.value)}
-              placeholder="e.g. Prefer the least restrictive tool that prevents serious harm"
-            />
-            {canEdit ? (
-              <button
-                type="button"
-                disabled={busy || !principle.trim()}
-                className="mt-2 rounded-xl bg-ink px-3 py-2 text-sm text-white disabled:opacity-50"
-                onClick={() =>
-                  void api("/api/case-brain/principles", {
-                    method: "POST",
-                    body: JSON.stringify({ caseId, principle }),
-                  })
-                }
-              >
-                Save principle
-              </button>
             ) : null}
           </div>
 
-          {brain.consistency_flags.length === 0 ? (
-            <p className="text-sm text-muted">
-              No cross-case clashes flagged for this case yet.
-            </p>
-          ) : (
-            brain.consistency_flags.map((f) => (
-              <article
-                key={f.id}
-                className="rounded-2xl border border-cardinal/20 bg-cardinal/5 p-4 text-sm"
-              >
-                <p className="font-medium">Consistency flag</p>
-                <p className="mt-1">{f.note}</p>
-                <p className="mt-2 text-xs text-muted">A: {f.principle_a}</p>
-                <p className="text-xs text-muted">B: {f.principle_b}</p>
-              </article>
-            ))
-          )}
-        </section>
-      ) : null}
+          <aside className="flex flex-[1_1_340px] flex-col gap-4">
+            <section
+              aria-labelledby="queue-heading"
+              className="flex flex-col gap-3.5 rounded-[20px] bg-white p-5"
+            >
+              <div className="flex items-baseline justify-between">
+                <h2
+                  id="queue-heading"
+                  className="font-display m-0 text-[22px] font-extrabold"
+                >
+                  Waiting for {viewingTeam?.name ?? "team"}
+                </h2>
+                <span className="font-display text-[22px] font-extrabold text-cardinal">
+                  {pending.length}
+                </span>
+              </div>
 
-      {tab === "history" ? (
-        <section className="space-y-2">
-          {brain.history.length === 0 ? (
-            <p className="text-sm text-muted">No history yet.</p>
-          ) : (
-            brain.history.slice(0, 40).map((h) => (
-              <article
-                key={h.id}
-                className="rounded-xl border border-ink/5 bg-white/60 px-3 py-2 text-xs"
-              >
-                <p className="font-mono text-muted">
-                  {new Date(h.at).toLocaleString()} · {h.action}
-                </p>
-                {h.reason ? <p className="mt-1">Reason: {h.reason}</p> : null}
-                {h.after ? (
-                  <p className="mt-1 text-muted">
-                    {JSON.stringify(h.after).slice(0, 160)}
-                  </p>
-                ) : null}
-              </article>
-            ))
-          )}
-        </section>
+              {pending.length === 0 ? (
+                <p className="text-sm text-muted">Queue is clear.</p>
+              ) : (
+                pending.map((p, i) => {
+                  const peers = brain.peer_decisions_by_idea[p.idea_key] ?? [];
+                  const sources = (p.origin_ref ?? "")
+                    .split(/[·,]/)
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+                  return (
+                    <article
+                      key={p.id}
+                      className={cn(
+                        "flex flex-col gap-2.5",
+                        i < pending.length - 1
+                          ? "border-b border-[#ECEEF1] pb-3.5"
+                          : "",
+                      )}
+                    >
+                      <OriginTag label={originLabel(p, teams)} />
+                      <p className="m-0 text-[15px] font-medium leading-snug">
+                        {p.text}
+                      </p>
+                      {sources.length && p.origin !== "transcript" ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {sources.map((s) => (
+                            <span
+                              key={s}
+                              className="inline-flex rounded-md bg-paper px-2 py-0.5 font-mono text-[12px] font-medium text-[#3B404A]"
+                            >
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                      {p.cruxy_note ? (
+                        <span className="text-[13px] font-semibold text-[#C62828]">
+                          {p.cruxy_note}
+                        </span>
+                      ) : null}
+
+                      {p.origin === "inspired_by_team" &&
+                      !p.socratic_answered ? (
+                        <div className="rounded-xl border border-gold/50 bg-gold/10 p-3">
+                          <p className="text-[12px] font-bold uppercase tracking-wide text-ink">
+                            Cruxy asks first
+                          </p>
+                          <p className="mt-1 text-sm leading-snug">
+                            {p.socratic_question}
+                          </p>
+                          {canEdit ? (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              className="mt-2 rounded-xl bg-ink px-3 py-2 text-xs font-semibold text-white"
+                              onClick={() =>
+                                void api("/api/case-brain/proposals", {
+                                  method: "PATCH",
+                                  body: JSON.stringify({
+                                    proposalId: p.id,
+                                    action: "socratic_answered",
+                                  }),
+                                })
+                              }
+                            >
+                              I&apos;ve thought it through
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
+
+                      {canEdit &&
+                      (p.origin !== "inspired_by_team" ||
+                        p.socratic_answered) ? (
+                        <>
+                          <label
+                            htmlFor={`reason-${p.id}`}
+                            className="text-[13px] font-semibold"
+                          >
+                            Your reason
+                          </label>
+                          <input
+                            id={`reason-${p.id}`}
+                            placeholder="One line on why"
+                            className="h-[42px] rounded-[10px] border border-mist px-3 text-sm"
+                            value={reasonDrafts[`prop:${p.id}`] ?? ""}
+                            onChange={(e) =>
+                              setReasonDrafts((d) => ({
+                                ...d,
+                                [`prop:${p.id}`]: e.target.value,
+                              }))
+                            }
+                          />
+                          {editingId === p.id ? (
+                            <input
+                              placeholder="Revised text"
+                              className="h-[42px] rounded-[10px] border border-mist px-3 text-sm"
+                              value={editDrafts[p.id] ?? p.text}
+                              onChange={(e) =>
+                                setEditDrafts((d) => ({
+                                  ...d,
+                                  [p.id]: e.target.value,
+                                }))
+                              }
+                            />
+                          ) : null}
+                          <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                            <button
+                              type="button"
+                              disabled={busy}
+                              aria-label="Accept"
+                              className="flex h-[42px] items-center justify-center gap-1.5 rounded-xl border border-mist bg-white text-sm font-semibold"
+                              onClick={() => void decide(p.id, "accept")}
+                            >
+                              ✅ Accept
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              aria-label="Reject"
+                              className="flex h-[42px] items-center justify-center gap-1.5 rounded-xl border border-mist bg-white text-sm font-semibold"
+                              onClick={() => void decide(p.id, "reject")}
+                            >
+                              ❌ Reject
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              className="flex h-[42px] items-center justify-center rounded-xl border border-mist bg-white px-3.5 text-sm font-semibold"
+                              onClick={() => {
+                                if (editingId !== p.id) {
+                                  setEditingId(p.id);
+                                  setEditDrafts((d) => ({
+                                    ...d,
+                                    [p.id]: d[p.id] ?? p.text,
+                                  }));
+                                  return;
+                                }
+                                void decide(p.id, "edit");
+                              }}
+                            >
+                              {editingId === p.id ? "Save edit" : "Edit"}
+                            </button>
+                          </div>
+                        </>
+                      ) : null}
+
+                      {peers.length > 0 ? (
+                        <span className="text-[13px] text-muted">
+                          {peers.map((d, di) => {
+                            const colour =
+                              TEAM_COLOUR[d.team_name] ?? "#5A606B";
+                            const mark =
+                              d.verdict === "accept"
+                                ? "✅"
+                                : d.verdict === "reject"
+                                  ? "❌"
+                                  : "✎";
+                            return (
+                              <span key={d.id}>
+                                {di > 0 ? " · " : null}
+                                <span
+                                  className="font-bold"
+                                  style={{ color: colour }}
+                                >
+                                  {d.team_name} {mark}
+                                </span>{" "}
+                                {personName(data.people, d.person_id)}:{" "}
+                                {d.reason}
+                              </span>
+                            );
+                          })}
+                          {!peers.some((d) => d.team_name === "Team 2") ? (
+                            <>
+                              {" · "}
+                              <span
+                                className="font-bold"
+                                style={{ color: "var(--crux-team-2)" }}
+                              >
+                                Team 2
+                              </span>{" "}
+                              hasn&apos;t decided
+                            </>
+                          ) : null}
+                        </span>
+                      ) : null}
+                    </article>
+                  );
+                })
+              )}
+            </section>
+
+            <ResearchCoverage brain={brain} />
+          </aside>
+        </div>
+      )}
+
+      {viewer.teamId !== brain.team_id && !compare ? (
+        <p className="text-xs text-muted">
+          Read-only view of another team&apos;s brain. Switch to{" "}
+          {teams.find((t) => t.id === viewer.teamId)?.name ?? "your team"} to
+          decide.
+        </p>
       ) : null}
+    </div>
+  );
+}
+
+function ResearchCoverage({ brain }: { brain: CaseBrainSnapshot }) {
+  const rows = brain.claims.slice(0, 2).map((node, i) => {
+    const cells = [0, 1, 2].map((j) => {
+      const s = node.supports[j];
+      if (!s) return "empty" as const;
+      if (s.backings.length === 0) return "gap" as const;
+      return "full" as const;
+    });
+    const vs =
+      node.counterclaims.length > 0 &&
+      node.counterclaims.every((c) => c.concede && c.distinguish && c.rebut)
+        ? ("full" as const)
+        : node.counterclaims.length > 0
+          ? ("half" as const)
+          : ("gap" as const);
+    return { label: `C${i + 1}`, cells: [...cells, vs] };
+  });
+
+  const closed = Math.min(
+    rows.flatMap((r) => r.cells).filter((c) => c === "full" || c === "half")
+      .length,
+    Math.max(rows.length * 4, 1),
+  );
+  const total = Math.max(rows.length * 4, 1);
+
+  return (
+    <section
+      aria-labelledby="cov"
+      className="flex flex-col gap-3 rounded-[20px] bg-white p-5"
+    >
+      <h2 id="cov" className="font-display m-0 text-xl font-extrabold">
+        Research coverage
+      </h2>
+      <div className="grid grid-cols-[56px_repeat(4,minmax(0,1fr))] items-center gap-2 text-[12px] font-semibold text-muted">
+        <span />
+        <span>S1</span>
+        <span>S2</span>
+        <span>S3</span>
+        <span>vs</span>
+        {rows.map((r) => (
+          <CoverageRow key={r.label} label={r.label} cells={r.cells} />
+        ))}
+      </div>
+      <span className="text-[13px] leading-snug text-[#3B404A]">
+        {closed} of {total} gaps closed with verified sources.
+      </span>
+    </section>
+  );
+}
+
+function CoverageRow({
+  label,
+  cells,
+}: {
+  label: string;
+  cells: Array<"full" | "half" | "gap" | "empty">;
+}) {
+  return (
+    <>
+      <span>{label}</span>
+      {cells.map((c, i) => (
+        <span
+          key={`${label}-${i}`}
+          className={cn(
+            "h-4 w-4 rounded-full",
+            c === "full" && "bg-ink",
+            c === "half" &&
+              "bg-[linear-gradient(90deg,#111318_50%,#E3E5E9_50%)]",
+            c === "gap" && "box-border border-2 border-[#C62828] bg-transparent",
+            c === "empty" && "bg-mist",
+          )}
+        />
+      ))}
+    </>
+  );
+}
+
+function ComparePanel({
+  caseId,
+  teams,
+}: {
+  caseId: string;
+  teams: Team[];
+}) {
+  const [snaps, setSnaps] = useState<
+    { team: Team; claims: string[] }[] | null
+  >(null);
+
+  useEffect(() => {
+    void (async () => {
+      const rows = await Promise.all(
+        teams.map(async (t) => {
+          const res = await fetch(
+            `/api/case-brain/${caseId}?teamId=${encodeURIComponent(t.id)}`,
+          );
+          const json = (await res.json()) as Payload;
+          return {
+            team: t,
+            claims: (json.brain?.claims ?? []).map((n) => n.claim.text),
+          };
+        }),
+      );
+      setSnaps(rows);
+    })();
+  }, [caseId, teams]);
+
+  if (!snaps) {
+    return <p className="text-sm text-muted">Loading compare…</p>;
+  }
+
+  return (
+    <div className="grid gap-4 md:grid-cols-3">
+      {snaps.map((s) => (
+        <section
+          key={s.team.id}
+          className="rounded-[20px] bg-white p-5"
+          style={{ borderTop: `4px solid ${TEAM_COLOUR[s.team.name] ?? "#111"}` }}
+        >
+          <h3 className="font-display text-lg font-extrabold">{s.team.name}</h3>
+          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm">
+            {s.claims.length ? (
+              s.claims.map((c) => <li key={c.slice(0, 24)}>{c}</li>)
+            ) : (
+              <li className="text-muted">No claims yet</li>
+            )}
+          </ol>
+        </section>
+      ))}
     </div>
   );
 }

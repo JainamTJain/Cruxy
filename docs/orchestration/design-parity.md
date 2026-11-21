@@ -5,115 +5,115 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## Admin.html
 
-- [ ] D-0001 Crux: admin console
-- [ ] D-0002 crux
-- [ ] D-0003 ADMIN
-- [ ] D-0004 Sessions
-- [ ] D-0005 People and teams
-- [ ] D-0006 Program analytics
-- [ ] D-0007 Question bank
-- [ ] D-0008 Back to member view
+- [x] D-0001 Crux: admin console [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0002 crux [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0003 ADMIN [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0004 Sessions [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0005 People and teams [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0006 Program analytics [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0007 Question bank [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0008 Back to member view [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0009 Admin console · sample data
-- [ ] D-0010 Running the program
-- [ ] D-0011 Dr. B sees everything here except the panels marked
-- [ ] D-0012 ONLY JAINAM
-- [ ] D-0013 Team 1 ready
-- [ ] D-0014 51%
-- [ ] D-0015 +9 this week
-- [ ] D-0016 Team 2 ready
-- [ ] D-0017 54%
-- [ ] D-0018 +6 this week
-- [ ] D-0019 Team 3 ready
-- [ ] D-0020 52%
-- [ ] D-0021 +11 this week
-- [ ] D-0022 Attendance
-- [ ] D-0023 86%
-- [ ] D-0024 last 3 sessions
-- [ ] D-0025 Team 1
-- [ ] D-0026 5
-- [ ] D-0027 Serena
-- [ ] D-0028 recorded ✓ voice ✓
-- [ ] D-0029 Ivan
-- [ ] D-0030 Ashton
-- [ ] D-0031 Stolei
-- [ ] D-0032 hasn't signed in
-- [ ] D-0033 Tri
-- [ ] D-0034 Team 2
-- [ ] D-0035 Lehar
-- [ ] D-0036 Camerin
-- [ ] D-0037 Jade
-- [ ] D-0038 text only
-- [ ] D-0039 Bethany
-- [ ] D-0040 Quixote
-- [ ] D-0041 Team 3
-- [ ] D-0042 4
-- [ ] D-0043 Nick
-- [ ] D-0044 Daniel
-- [ ] D-0045 Katie
-- [ ] D-0046 Jainam
-- [ ] D-0047 Add or move a person
-- [ ] D-0048 Spend this month
-- [ ] D-0049 $11.40 / $30
-- [ ] D-0050 Transcription
-- [ ] D-0051 $0.00 · free credit
-- [ ] D-0052 Judging and reports
-- [ ] D-0053 $6.80
-- [ ] D-0054 Research
-- [ ] D-0055 $2.90
-- [ ] D-0056 Assistant and drills
-- [ ] D-0057 $1.70
-- [ ] D-0058 Caps
-- [ ] D-0059 Pause research
-- [ ] D-0060 Books Cruxy asked for
+- [x] D-0010 Running the program [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0011 Dr. B sees everything here except the panels marked [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0012 ONLY JAINAM [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0013 Team 1 ready [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0014 51% [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0015 +9 this week [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0016 Team 2 ready [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0017 54% [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0018 +6 this week [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0019 Team 3 ready [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0020 52% [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0021 +11 this week [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0022 Attendance [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0023 86% [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0024 last 3 sessions [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0025 Team 1 [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0026 5 [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0027 Serena [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0028 recorded ✓ voice ✓ [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0029 Ivan [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0030 Ashton [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0031 Stolei [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0032 hasn't signed in [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0033 Tri [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0034 Team 2 [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0035 Lehar [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0036 Camerin [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0037 Jade [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0038 text only [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0039 Bethany [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0040 Quixote [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0041 Team 3 [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0042 4 [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0043 Nick [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0044 Daniel [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0045 Katie [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0046 Jainam [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0047 Add or move a person [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0048 Spend this month [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0049 $11.40 / $30 [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0050 Transcription [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0051 $0.00 · free credit [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0052 Judging and reports [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0053 $6.80 [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0054 Research [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0055 $2.90 [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0056 Assistant and drills [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0057 $1.70 [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0058 Caps [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0059 Pause research [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0060 Books Cruxy asked for [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0061 Who Owns Antiquity?
 - [ ] D-0062 · Case 9 · ch. 3
 - [ ] D-0063 Upload
 - [ ] D-0064 The Harm in Hate Speech
 - [ ] D-0065 · Case 13
-- [ ] D-0066 Drive sorting queue
+- [x] D-0066 Drive sorting queue [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0067 "notes final v2.docx" · Case 10 or 11?
 - [ ] D-0068 Sort
-- [ ] D-0069 Calibration
-- [ ] D-0070 Human cards so far
-- [ ] D-0071 9
+- [x] D-0069 Calibration [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0070 Human cards so far [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0071 9 [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0072 Cruxy vs judges, Presentation A
 - [ ] D-0073 −0.6
 - [ ] D-0074 Cruxy vs judges, Response to judges
 - [ ] D-0075 −1.1
 - [ ] D-0076 Most weighted judge
 - [ ] D-0077 Prof. [name]
-- [ ] D-0078 Members never see weights or gaps.
-- [ ] D-0079 Passcodes
-- [ ] D-0080 Starter code for new members: set
-- [ ] D-0081 Change starter code
-- [ ] D-0082 Person
-- [ ] D-0083 Team
-- [ ] D-0084 Passcode
-- [ ] D-0085 Chosen
-- [ ] D-0086 Last sign in
-- [ ] D-0087 Actions
-- [ ] D-0088 ••••••
+- [x] D-0078 Members never see weights or gaps. [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0079 Passcodes [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0080 Starter code for new members: set [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0081 Change starter code [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0082 Person [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0083 Team [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0084 Passcode [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0085 Chosen [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0086 Last sign in [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0087 Actions [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0088 •••••• [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0089 Nov 18
 - [ ] D-0090 today 09:40
-- [ ] D-0091 Show
-- [ ] D-0092 Reset
+- [x] D-0091 Show [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0092 Reset [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0093 48 17 05
 - [ ] D-0094 sample · hides in 18s
 - [ ] D-0095 Nov 19
 - [ ] D-0096 yesterday
-- [ ] D-0097 Hide
-- [ ] D-0098 Hasn't chosen one yet
-- [ ] D-0099 never
-- [ ] D-0100 Send starter code
+- [x] D-0097 Hide [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0098 Hasn't chosen one yet [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0099 never [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0100 Send starter code [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0101 Nov 17
 - [ ] D-0102 today 09:12
-- [ ] D-0103 Dr. B
-- [ ] D-0104 Admin
+- [x] D-0103 Dr. B [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0104 Admin [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0105 Nov 16
 - [ ] D-0106 today 08:30
 - [ ] D-0107 Showing 5 of 14 · sample. The first Show in 10 minutes asks for your own passcode. Every Show and Reset goes in the activity log. Your own passcode is never listed. Everyone was told you can see theirs when they chose it.
-- [ ] D-0108 Activity log
-- [ ] D-0109 Dr. B: read only
+- [x] D-0108 Activity log [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0109 Dr. B: read only [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0110 09:44
 - [ ] D-0111 Showed Lehar's passcode (she forgot it)
 - [ ] D-0112 09:41
@@ -125,13 +125,13 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0118 08:02
 - [ ] D-0119 unknown
 - [ ] D-0120 5 wrong codes on "Tri" · locked 10 min
-- [ ] D-0121 Weekly summary
+- [x] D-0121 Weekly summary [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0122 Dr. B opted in. Next email Sunday 6 pm: attendance, scores by team, biggest improvements, cases at risk, open disagreements.
-- [ ] D-0123 Preview this week's email
+- [x] D-0123 Preview this week's email [`src/app/(app)/admin/admin-console.tsx`]
 
 ## CaseBrain.html
 
-- [ ] D-0124 Crux: case brain
+- [x] D-0124 Crux: case brain [src/components/case-brain/case-brain-client.tsx]
 - [ ] D-0125 crux
 - [ ] D-0126 Program map
 - [ ] D-0127 My roadmap
@@ -142,96 +142,96 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0132 Team chat
 - [ ] D-0133 [image] /cruxy/cruxy-lamp.png
 - [ ] D-0134 Ask Cruxy
-- [ ] D-0135 09
-- [ ] D-0136 Case brain · Team 3 · sample data
-- [ ] D-0137 GEM in the Rough
-- [ ] D-0138 Crux: righting a wartime taking
-- [ ] D-0139 versus
-- [ ] D-0140 preservation, global access and the law.
-- [ ] D-0141 Team 1
-- [ ] D-0142 Team 2
-- [ ] D-0143 Team 3
-- [ ] D-0144 Compare
-- [ ] D-0145 Lead 1
-- [ ] D-0146 Jainam
-- [ ] D-0147 Nick
-- [ ] D-0148 Daniel
-- [ ] D-0149 Katie
-- [ ] D-0150 Lead 2
-- [ ] D-0151 Counter-arguer
-- [ ] D-0152 Supporter
-- [ ] D-0153 Claim map
-- [ ] D-0154 Truth Sources · 38
+- [x] D-0135 09 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0136 Case brain · Team 3 · sample data [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0137 GEM in the Rough [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0138 Crux: righting a wartime taking [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0139 versus [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0140 preservation, global access and the law. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0141 Team 1 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0142 Team 2 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0143 Team 3 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0144 Compare [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0145 Lead 1 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0146 Jainam [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0147 Nick [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0148 Daniel [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0149 Katie [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0150 Lead 2 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0151 Counter-arguer [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0152 Supporter [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0153 Claim map [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0154 Truth Sources · 38 [src/components/case-brain/case-brain-client.tsx]
 - [ ] D-0155 Readings · 12
-- [ ] D-0156 Flashcards · 64
-- [ ] D-0157 Questions · 24
-- [ ] D-0158 Research
-- [ ] D-0159 C1
-- [ ] D-0160 Jainam · 3 of 3 supports backed
-- [ ] D-0161 92% robust
-- [ ] D-0162 The British Museum's title is defective, and the duty to repair falls on the institution that still benefits.
-- [ ] D-0163 Because S1, S2 and S3 → Claim 1
-- [ ] D-0164 S1 · A broken first link
-- [ ] D-0165 A spoil of war passed between empires is not a just transfer.
-- [ ] D-0166 Nozick 1974
+- [x] D-0156 Flashcards · 64 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0157 Questions · 24 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0158 Research [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0159 C1 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0160 Jainam · 3 of 3 supports backed [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0161 92% robust [src/components/case-brain/claim-robustness.tsx]
+- [x] D-0162 The British Museum's title is defective, and the duty to repair falls on the institution that still benefits. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0163 Because S1, S2 and S3 → Claim 1 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0164 S1 · A broken first link [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0165 A spoil of war passed between empires is not a just transfer. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0166 Nozick 1974 [src/components/case-brain/case-brain-client.tsx]
 - [ ] D-0167 Case set p. [n]
-- [ ] D-0168 S2 · Caretaker rule fails
-- [ ] D-0169 "Keep it if you care for it better" can't be universalised.
-- [ ] D-0170 Kant
+- [x] D-0168 S2 · Caretaker rule fails [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0169 "Keep it if you care for it better" can't be universalised. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0170 Kant [src/components/case-brain/case-brain-client.tsx]
 - [ ] D-0171 Practice Nov 12 · 14:32
-- [ ] D-0172 S3 · Responsibility, not blame
-- [ ] D-0173 Power and benefit put the duty on today's holder.
-- [ ] D-0174 Young 2011
-- [ ] D-0175 Ross
-- [ ] D-0176 C2
-- [ ] D-0177 Katie · 2 of 3 supports backed
-- [ ] D-0178 61% robust
-- [ ] D-0179 The classic reasons for keeping the Stone no longer hold; return it with a partnership, now.
-- [ ] D-0180 S1 · Care is now a tie
+- [x] D-0172 S3 · Responsibility, not blame [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0173 Power and benefit put the duty on today's holder. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0174 Young 2011 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0175 Ross [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0176 C2 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0177 Katie · 2 of 3 supports backed [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0178 61% robust [src/components/case-brain/claim-robustness.tsx]
+- [x] D-0179 The classic reasons for keeping the Stone no longer hold; return it with a partnership, now. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0180 S1 · Care is now a tie [src/components/case-brain/case-brain-client.tsx]
 - [ ] D-0181 GEM, case set
 - [ ] D-0182 S2 · The law already bends
 - [ ] D-0183 Human Tissue Act s.47
 - [ ] D-0184 S3 · Return well, and early
 - [ ] D-0185 No backing yet · 1 waiting in the queue
-- [ ] D-0186 vs
-- [ ] D-0187 Counterclaim · Daniel
-- [ ] D-0188 "After 225 years, the claim is superseded." (Waldron 1992)
-- [ ] D-0189 Concede
-- [ ] D-0190 it for land.
-- [ ] D-0191 Distinguish:
-- [ ] D-0192 one object displaces no one.
-- [ ] D-0193 Rebut:
-- [ ] D-0194 the claim rests on responsibility, not blame.
-- [ ] D-0195 Flashcards from these readings · 64 cards.
-- [ ] D-0196 Leads Jainam and Katie get them automatically. Also studying: Daniel
+- [x] D-0186 vs [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0187 Counterclaim · Daniel [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0188 "After 225 years, the claim is superseded." (Waldron 1992) [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0189 Concede [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0190 it for land. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0191 Distinguish: [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0192 one object displaces no one. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0193 Rebut: [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0194 the claim rests on responsibility, not blame. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0195 Flashcards from these readings · 64 cards. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0196 Leads Jainam and Katie get them automatically. Also studying: Daniel [src/components/case-brain/case-brain-client.tsx]
 - [ ] D-0197 (not assigned)
-- [ ] D-0198 Study the deck
-- [ ] D-0199 Waiting for Team 3
-- [ ] D-0200 4
-- [ ] D-0201 Inspired by Team 1
-- [ ] D-0202 Egypt's 2009 Louvre stand-off shows an early, voluntary return buys goodwill. Use it to back C2 S3.
-- [ ] D-0203 France 24, 2009
-- [ ] D-0204 Team 1 edit by Ivan
-- [ ] D-0205 Your reason
-- [ ] D-0206 [input] One line on why
-- [ ] D-0207 ✅ Accept
-- [ ] D-0208 ❌ Reject
-- [ ] D-0209 Edit
-- [ ] D-0210 Team 1 ✅
-- [ ] D-0211 Ivan: use it in Q&A only ·
-- [ ] D-0212 hasn't decided
-- [ ] D-0213 From practice · Nov 12 · 41:10 · Nick
-- [ ] D-0214 "The Stone toured Chicago in the 1980s."
-- [ ] D-0215 Cruxy found no source: it left London only for wartime storage and one month in Paris (1972).
-- [ ] D-0216 Cruxy research
-- [ ] D-0217 UK Charities Act 2022 moral-obligation power took effect Nov 2025 but excludes the British Museum.
-- [ ] D-0218 Museums Association
-- [ ] D-0219 The Art Newspaper
-- [ ] D-0220 Research coverage
-- [ ] D-0221 S1
-- [ ] D-0222 S2
-- [ ] D-0223 S3
-- [ ] D-0224 14 of 16 gaps closed with two verified sources. Cruxy is searching C2 S3 tonight.
+- [x] D-0198 Study the deck [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0199 Waiting for Team 3 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0200 4 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0201 Inspired by Team 1 [src/components/case-brain/origin-tag.tsx]
+- [x] D-0202 Egypt's 2009 Louvre stand-off shows an early, voluntary return buys goodwill. Use it to back C2 S3. [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0203 France 24, 2009 [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0204 Team 1 edit by Ivan [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0205 Your reason [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0206 [input] One line on why [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0207 ✅ Accept [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0208 ❌ Reject [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0209 Edit [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0210 Team 1 ✅ [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0211 Ivan: use it in Q&A only · [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0212 hasn't decided [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0213 From practice · Nov 12 · 41:10 · Nick [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0214 "The Stone toured Chicago in the 1980s." [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0215 Cruxy found no source: it left London only for wartime storage and one month in Paris (1972). [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0216 Cruxy research [src/components/case-brain/origin-tag.tsx]
+- [x] D-0217 UK Charities Act 2022 moral-obligation power took effect Nov 2025 but excludes the British Museum. [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0218 Museums Association [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0219 The Art Newspaper [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0220 Research coverage [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0221 S1 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0222 S2 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0223 S3 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0224 14 of 16 gaps closed with two verified sources. Cruxy is searching C2 S3 tonight. [src/components/case-brain/case-brain-client.tsx]
 
 ## ChooseCode.html
 
@@ -365,21 +365,21 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## DrillPhone.html
 
-- [ ] D-0343 Crux: thesis in 30 seconds drill on a phone
-- [ ] D-0344 crux
-- [ ] D-0345 REC
-- [ ] D-0346 THESIS IN 30 SECONDS · CASE 5 · SAMPLE
-- [ ] D-0347 A wording you haven't seen. One sentence.
-- [ ] D-0348 "Is it ever ethical to profit from predicting a war?"
-- [ ] D-0349 0:18
-- [ ] D-0350 "No, not when the bet is on war or a leader's removal, because insiders..."
-- [ ] D-0351 Your time to a thesis
-- [ ] D-0352 best 0:22 · last 0:31
-- [ ] D-0353 Measured against your own past answers only.
+- [x] D-0343 Crux: thesis in 30 seconds drill on a phone [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0344 crux [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0345 REC [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0346 THESIS IN 30 SECONDS · CASE 5 · SAMPLE [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0347 A wording you haven't seen. One sentence. [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0348 "Is it ever ethical to profit from predicting a war?" [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0349 0:18 [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0350 "No, not when the bet is on war or a leader's removal, because insiders..." [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0351 Your time to a thesis [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0352 best 0:22 · last 0:31 [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0353 Measured against your own past answers only. [src/app/(app)/practice/drills/thesis/page.tsx]
 
 ## Feedback.html
 
-- [ ] D-0354 Crux: round report
+- [x] D-0354 Crux: round report [src/app/(app)/practice/rounds/[id]/report/page.tsx]
 - [ ] D-0355 crux
 - [ ] D-0356 Program map
 - [ ] D-0357 My roadmap
@@ -390,67 +390,67 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0362 Team chat
 - [ ] D-0363 [image] /cruxy/cruxy-lamp.png
 - [ ] D-0364 Ask Cruxy
-- [ ] D-0365 Round report · Nov 24 · Case 9 · Team 3 vs Cruxy as the other team · sample data
-- [ ] D-0366 Strong principle, slow start. The one fix: answer the question in the first 30 seconds.
-- [ ] D-0367 35
-- [ ] D-0368 of 50 · Lehar
-- [ ] D-0369 33
-- [ ] D-0370 of 50 · Cruxy
-- [ ] D-0371 Scorecard
-- [ ] D-0372 Commentary is scored when Team 3 comments in the second half
-- [ ] D-0373 Lehar
-- [ ] D-0374 Cruxy
-- [ ] D-0375 10
-- [ ] D-0376 Each person
-- [ ] D-0377 Nick
-- [ ] D-0378 Jainam
-- [ ] D-0379 Katie
-- [ ] D-0380 Daniel
-- [ ] D-0381 Everyone can read everyone's feedback. Talk time 6:12 · 148 words a minute · 9 filler words · first answer at 0:41
-- [ ] D-0382 WHAT WORKED ·
-- [ ] D-0383 04:10
-- [ ] D-0384 "Whoever benefits from a wrong carries the duty to repair it, even if they didn't commit it."
-- [ ] D-0385 One plain sentence stated the principle and tied it to the British Museum. That is what Presentation B rewards: the moral dimension named, then applied.
-- [ ] D-0386 THE ONE THING TO FIX ·
-- [ ] D-0387 22:40
-- [ ] D-0388 · cost points on Response to judges
-- [ ] D-0389 "So, um, the categorical imperative, basically, Kant says..."
-- [ ] D-0390 The judge asked a direct question and heard a philosopher's name before an answer. Judges are told theory only counts when it's explained and deepens the case, so naming Kant first spent 20 seconds without scoring. The answer itself was right; it arrived at 23:05, after the judge had started writing.
-- [ ] D-0391 THE BETTER VERSION, IN YOUR WORDS
-- [ ] D-0392 "No. If every museum kept whatever it could care for better, ownership would just go to the richest museum. That's Kant's test: a rule that can't work for everyone isn't a rule."
-- [ ] D-0393 REDO NOW · 90 SECONDS
-- [ ] D-0394 Cruxy asks the same question again. Answer first, then name the theory.
-- [ ] D-0395 Scored 5 then · aim for 7 · comes back in your drills on Thu and Sun
-- [ ] D-0396 Record the redo
-- [ ] D-0397 Your skills, last 5 rounds
-- [ ] D-0398 Answer first
-- [ ] D-0399 4.8
-- [ ] D-0400 Explain frameworks
-- [ ] D-0401 6.2
-- [ ] D-0402 Engage objections
-- [ ] D-0403 7.4
-- [ ] D-0404 Stay under time
-- [ ] D-0405 8.1
-- [ ] D-0406 Transcript
-- [ ] D-0407 00:12
-- [ ] D-0408 Thank you. The question asks whether museums may keep...
-- [ ] D-0409 Whoever benefits from a wrong carries the duty...
-- [ ] D-0410 08:55
-- [ ] D-0411 Some people say too much time has passed...
-- [ ] D-0412 22:31
-- [ ] D-0413 Lehar (judge)
-- [ ] D-0414 If Egypt never asks, does the museum still owe anything?
-- [ ] D-0415 So, um, the categorical imperative, basically...
-- [ ] D-0416 Send to Things to take care of?
-- [ ] D-0417 Seen in 3 rounds across 2 teams
-- [ ] D-0418 Answer first, then name the theory.
-- [ ] D-0419 HOW IT WENT · Jainam, Case 9, 22:40
-- [ ] D-0420 WHY IT COST POINTS
-- [ ] D-0421 Response to judges: 20 seconds before an answer. Judges reward theory only once it's explained.
-- [ ] D-0422 HOW IT SHOULD SOUND
-- [ ] D-0423 "No. If every museum kept what it cared for best, the richest museum would own everything."
-- [ ] D-0424 Add to the bank with its drill
-- [ ] D-0425 Only for this person
+- [x] D-0365 Round report · Nov 24 · Case 9 · Team 3 vs Cruxy as the other team · sample data [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0366 Strong principle, slow start. The one fix: answer the question in the first 30 seconds. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0367 35 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0368 of 50 · Lehar [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0369 33 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0370 of 50 · Cruxy [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0371 Scorecard [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0372 Commentary is scored when Team 3 comments in the second half [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0373 Lehar [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0374 Cruxy [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0375 10 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0376 Each person [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0377 Nick [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0378 Jainam [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0379 Katie [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0380 Daniel [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0381 Everyone can read everyone's feedback. Talk time 6:12 · 148 words a minute · 9 filler words · first answer at 0:41 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0382 WHAT WORKED · [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0383 04:10 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0384 "Whoever benefits from a wrong carries the duty to repair it, even if they didn't commit it." [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0385 One plain sentence stated the principle and tied it to the British Museum. That is what Presentation B rewards: the moral dimension named, then applied. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0386 THE ONE THING TO FIX · [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0387 22:40 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0388 · cost points on Response to judges [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0389 "So, um, the categorical imperative, basically, Kant says..." [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0390 The judge asked a direct question and heard a philosopher's name before an answer. Judges are told theory only counts when it's explained and deepens the case, so naming Kant first spent 20 seconds without scoring. The answer itself was right; it arrived at 23:05, after the judge had started writing. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0391 THE BETTER VERSION, IN YOUR WORDS [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0392 "No. If every museum kept whatever it could care for better, ownership would just go to the richest museum. That's Kant's test: a rule that can't work for everyone isn't a rule." [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0393 REDO NOW · 90 SECONDS [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0394 Cruxy asks the same question again. Answer first, then name the theory. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0395 Scored 5 then · aim for 7 · comes back in your drills on Thu and Sun [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0396 Record the redo [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0397 Your skills, last 5 rounds [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0398 Answer first [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0399 4.8 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0400 Explain frameworks [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0401 6.2 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0402 Engage objections [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0403 7.4 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0404 Stay under time [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0405 8.1 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0406 Transcript [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0407 00:12 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0408 Thank you. The question asks whether museums may keep... [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0409 Whoever benefits from a wrong carries the duty... [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0410 08:55 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0411 Some people say too much time has passed... [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0412 22:31 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0413 Lehar (judge) [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0414 If Egypt never asks, does the museum still owe anything? [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0415 So, um, the categorical imperative, basically... [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0416 Send to Things to take care of? [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0417 Seen in 3 rounds across 2 teams [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0418 Answer first, then name the theory. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0419 HOW IT WENT · Jainam, Case 9, 22:40 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0420 WHY IT COST POINTS [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0421 Response to judges: 20 seconds before an answer. Judges reward theory only once it's explained. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0422 HOW IT SHOULD SOUND [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0423 "No. If every museum kept what it cared for best, the richest museum would own everything." [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0424 Add to the bank with its drill [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0425 Only for this person [src/app/(app)/practice/rounds/[id]/report/page.tsx]
 
 ## FlashPhone.html
 
@@ -545,34 +545,34 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## JudgePhone.html
 
-- [ ] D-0511 Crux: judge's scoring card on a phone
-- [ ] D-0512 JUDGING · ROUND 1 · CASE 9 · SAMPLE
-- [ ] D-0513 Prof. [name]
-- [ ] D-0514 APPE scoring sheet, as in the team's Drive
-- [ ] D-0515 Team 3 · presenting
-- [ ] D-0516 Team 1 · commenting
-- [ ] D-0517 Presentation A
-- [ ] D-0518 Was the presentation clear and systematic?
-- [ ] D-0519 1
-- [ ] D-0520 2
-- [ ] D-0521 3
-- [ ] D-0522 4
-- [ ] D-0523 5
-- [ ] D-0524 6
-- [ ] D-0525 7
-- [ ] D-0526 8
-- [ ] D-0527 9
-- [ ] D-0528 10
-- [ ] D-0529 Presentation B
-- [ ] D-0530 Did the presentation clearly identify and thoroughly discuss the central moral dimensions of the case?
-- [ ] D-0531 Presentation C
-- [ ] D-0532 Did the presentation show awareness of and thoughtful consideration for different viewpoints, especially those that would weigh heavily for those who disagree?
-- [ ] D-0533 Comment on C
-- [ ] D-0534 [input] What would raise this score?
-- [ ] D-0535 Scroll for commentary, responses and spirit points
-- [ ] D-0536 Mark this moment
+- [x] D-0511 Crux: judge's scoring card on a phone [src/components/practice/judge-phone-card.tsx]
+- [x] D-0512 JUDGING · ROUND 1 · CASE 9 · SAMPLE [src/components/practice/judge-phone-card.tsx]
+- [x] D-0513 Prof. [name]
+- [x] D-0514 APPE scoring sheet, as in the team's Drive [src/components/practice/judge-phone-card.tsx]
+- [x] D-0515 Team 3 · presenting [src/components/practice/judge-phone-card.tsx]
+- [x] D-0516 Team 1 · commenting [src/components/practice/judge-phone-card.tsx]
+- [x] D-0517 Presentation A [src/components/practice/judge-phone-card.tsx]
+- [x] D-0518 Was the presentation clear and systematic? [src/components/practice/judge-phone-card.tsx]
+- [x] D-0519 1 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0520 2 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0521 3 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0522 4 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0523 5 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0524 6 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0525 7 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0526 8 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0527 9 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0528 10 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0529 Presentation B [src/components/practice/judge-phone-card.tsx]
+- [x] D-0530 Did the presentation clearly identify and thoroughly discuss the central moral dimensions of the case? [src/components/practice/judge-phone-card.tsx]
+- [x] D-0531 Presentation C [src/components/practice/judge-phone-card.tsx]
+- [x] D-0532 Did the presentation show awareness of and thoughtful consideration for different viewpoints, especially those that would weigh heavily for those who disagree? [src/components/practice/judge-phone-card.tsx]
+- [x] D-0533 Comment on C [src/components/practice/judge-phone-card.tsx]
+- [x] D-0534 [input] What would raise this score? [src/components/practice/judge-phone-card.tsx]
+- [x] D-0535 Scroll for commentary, responses and spirit points [src/components/practice/judge-phone-card.tsx]
+- [x] D-0536 Mark this moment [src/components/practice/judge-phone-card.tsx]
 - [ ] D-0537 14
-- [ ] D-0538 /30 so far
+- [x] D-0538 /30 so far [src/components/practice/judge-phone-card.tsx]
 
 ## Main.html
 
@@ -647,129 +647,129 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## OnePager.html
 
-- [ ] D-0607 Crux: visual one pager
-- [ ] D-0608 ← Back to the case brain
-- [ ] D-0609 Export PDF
-- [ ] D-0610 Save to Drive as a Doc
-- [ ] D-0611 Sign off v7
-- [ ] D-0612 09
-- [ ] D-0613 One pager · Team 3 · v7 · sample
-- [ ] D-0614 GEM in the Rough
-- [ ] D-0615 Leads Jainam, Katie · counter Daniel · supporter Nick · signed off 3 of 4
-- [ ] D-0616 Our answer in one sentence
-- [ ] D-0617 A museum may not keep a taken object once a people with a continuous tie asks and can care for it; the Stone should go to Egypt with a partnership, now.
-- [ ] D-0618 Claim 1
-- [ ] D-0619 The title is defective; the duty falls on whoever still benefits.
-- [ ] D-0620 S1
-- [ ] D-0621 Broken first link
-- [ ] D-0622 Nozick
-- [ ] D-0623 S2
-- [ ] D-0624 Caretaker rule fails
-- [ ] D-0625 Kant
-- [ ] D-0626 S3
-- [ ] D-0627 Responsibility, not blame
-- [ ] D-0628 Young
-- [ ] D-0629 Claim 2
-- [ ] D-0630 The old reasons to keep it no longer hold; return it with a partnership.
-- [ ] D-0631 Care is now a tie
-- [ ] D-0632 GEM
-- [ ] D-0633 The law already bends
-- [ ] D-0634 HTA s.47
-- [ ] D-0635 Return early, well
-- [ ] D-0636 Louvre 2009
-- [ ] D-0637 Counterclaim and our answer
-- [ ] D-0638 "After 225 years, the claim is superseded." (Waldron)
-- [ ] D-0639 Concede
-- [ ] D-0640 True for land: return displaces people.
-- [ ] D-0641 Distinguish
-- [ ] D-0642 One object displaces no one.
-- [ ] D-0643 Rebut
-- [ ] D-0644 We argue responsibility, not blame.
-- [ ] D-0645 Values in tension · where we land
-- [ ] D-0646 Righting a wartime taking
-- [ ] D-0647 Preservation, access, law
-- [ ] D-0648 We lean to repair, and meet access with a partnership.
-- [ ] D-0649 Case facts in order
-- [ ] D-0650 1790s
-- [ ] D-0651 French find it
-- [ ] D-0652 1801
-- [ ] D-0653 To Britain as a war prize
-- [ ] D-0654 1963
-- [ ] D-0655 British Museum Act limits returns
-- [ ] D-0656 2022
-- [ ] D-0657 Return petitions
-- [ ] D-0658 Nov 2025
-- [ ] D-0659 GEM opens
-- [ ] D-0660 Now
-- [ ] D-0661 No formal request yet
-- [ ] D-0662 Stakeholders · stake · voice in the case
-- [ ] D-0663 Egyptian public
-- [ ] D-0664 British Museum, visitors
-- [ ] D-0665 Egyptian scholars
-- [ ] D-0666 Other claimant nations
-- [ ] D-0667 Frameworks in one line
-- [ ] D-0668 Corrective justice:
-- [ ] D-0669 who benefits from a wrong repairs it.
-- [ ] D-0670 Kant:
-- [ ] D-0671 a rule must work for everyone.
-- [ ] D-0672 Hardest questions · our line
-- [ ] D-0673 Parthenon Marbles too?
-- [ ] D-0674 Apply the test aloud; likely yes. Consistency is the point.
-- [ ] D-0675 What if Egypt never asks?
-- [ ] D-0676 A standing public offer; never forced return.
-- [ ] D-0677 Isn't a replica enough?
-- [ ] D-0678 Then London should keep the replica.
-- [ ] D-0679 Egypt took from Nubia?
-- [ ] D-0680 Same test applies; a principle that only runs one way isn't one.
+- [x] D-0607 Crux: visual one pager [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0608 ← Back to the case brain [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0609 Export PDF [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0610 Save to Drive as a Doc [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0611 Sign off v7 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0612 09 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0613 One pager · Team 3 · v7 · sample [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0614 GEM in the Rough [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0615 Leads Jainam, Katie · counter Daniel · supporter Nick · signed off 3 of 4 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0616 Our answer in one sentence [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0617 A museum may not keep a taken object once a people with a continuous tie asks and can care for it; the Stone should go to Egypt with a partnership, now. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0618 Claim 1 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0619 The title is defective; the duty falls on whoever still benefits. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0620 S1 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0621 Broken first link [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0622 Nozick [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0623 S2 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0624 Caretaker rule fails [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0625 Kant [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0626 S3 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0627 Responsibility, not blame [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0628 Young [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0629 Claim 2 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0630 The old reasons to keep it no longer hold; return it with a partnership. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0631 Care is now a tie [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0632 GEM [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0633 The law already bends [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0634 HTA s.47 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0635 Return early, well [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0636 Louvre 2009 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0637 Counterclaim and our answer [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0638 "After 225 years, the claim is superseded." (Waldron) [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0639 Concede [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0640 True for land: return displaces people. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0641 Distinguish [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0642 One object displaces no one. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0643 Rebut [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0644 We argue responsibility, not blame. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0645 Values in tension · where we land [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0646 Righting a wartime taking [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0647 Preservation, access, law [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0648 We lean to repair, and meet access with a partnership. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0649 Case facts in order [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0650 1790s [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0651 French find it [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0652 1801 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0653 To Britain as a war prize [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0654 1963 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0655 British Museum Act limits returns [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0656 2022 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0657 Return petitions [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0658 Nov 2025 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0659 GEM opens [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0660 Now [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0661 No formal request yet [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0662 Stakeholders · stake · voice in the case [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0663 Egyptian public [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0664 British Museum, visitors [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0665 Egyptian scholars [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0666 Other claimant nations [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0667 Frameworks in one line [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0668 Corrective justice: [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0669 who benefits from a wrong repairs it. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0670 Kant: [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0671 a rule must work for everyone. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0672 Hardest questions · our line [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0673 Parthenon Marbles too? [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0674 Apply the test aloud; likely yes. Consistency is the point. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0675 What if Egypt never asks? [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0676 A standing public offer; never forced return. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0677 Isn't a replica enough? [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0678 Then London should keep the replica. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0679 Egypt took from Nubia? [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0680 Same test applies; a principle that only runs one way isn't one. [src/components/case-brain/one-pager-document.tsx]
 
 ## Practice.html
 
-- [ ] D-0681 Crux: practice room
-- [ ] D-0682 Recording · everyone in this room agreed to be recorded
-- [ ] D-0683 23:41
-- [ ] D-0684 crux
-- [ ] D-0685 Full round · Case 9 · sample data
-- [ ] D-0686 Team 3
-- [ ] D-0687 vs
-- [ ] D-0688 Cruxy, playing the other team
-- [ ] D-0689 Pause
-- [ ] D-0690 End round and get the report
-- [ ] D-0691 1 · Team 3 presents
-- [ ] D-0692 10:00 · done
-- [ ] D-0693 2 · Cruxy comments
-- [ ] D-0694 6:00 · done
-- [ ] D-0695 3 · Team 3 responds
-- [ ] D-0696 now
-- [ ] D-0697 4 · Judges' Q&A
-- [ ] D-0698 12:00
-- [ ] D-0699 Time left to respond
-- [ ] D-0700 02:14
-- [ ] D-0701 Cruxy's strongest point in its commentary · answer this first
-- [ ] D-0702 "Your four-part test would also send back the Parthenon Marbles. Are you ready to say that?"
-- [ ] D-0703 Built from the strongest opposing points in all three teams' case brains
-- [ ] D-0704 Read it aloud again
-- [ ] D-0705 Show Cruxy's full commentary
-- [ ] D-0706 Next phase
-- [ ] D-0707 Live captions · rough, final transcript comes after
-- [ ] D-0708 22:58 Katie
-- [ ] D-0709 We'd apply the test to the Marbles case by case, and yes, we think it likely passes.
-- [ ] D-0710 23:27 Jainam
-- [ ] D-0711 And that's the point of consistency: a principle that only runs against Europe isn't a principle.
-- [ ] D-0712 In this round
-- [ ] D-0713 Jainam · Lead 1
-- [ ] D-0714 speaking
-- [ ] D-0715 Katie · Lead 2
-- [ ] D-0716 present
-- [ ] D-0717 Daniel · Counter
-- [ ] D-0718 Nick · Supporter
-- [ ] D-0719 Attendance is confirmed by Jainam or Dr. B.
-- [ ] D-0720 Judging this round
-- [ ] D-0721 C
-- [ ] D-0722 Cruxy judge
-- [ ] D-0723 L
-- [ ] D-0724 Lehar, in person
-- [ ] D-0725 Recording from
-- [ ] D-0726 One laptop in the room. Voices are matched to the four of you after the round.
+- [x] D-0681 Crux: practice room [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0682 Recording · everyone in this room agreed to be recorded [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0683 23:41 [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0684 crux [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0685 Full round · Case 9 · sample data [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0686 Team 3 [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0687 vs [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0688 Cruxy, playing the other team [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0689 Pause [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0690 End round and get the report [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0691 1 · Team 3 presents [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0692 10:00 · done [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0693 2 · Cruxy comments [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0694 6:00 · done [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0695 3 · Team 3 responds [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0696 now [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0697 4 · Judges' Q&A [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0698 12:00 [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0699 Time left to respond [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0700 02:14 [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0701 Cruxy's strongest point in its commentary · answer this first [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0702 "Your four-part test would also send back the Parthenon Marbles. Are you ready to say that?" [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0703 Built from the strongest opposing points in all three teams' case brains [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0704 Read it aloud again [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0705 Show Cruxy's full commentary [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0706 Next phase [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0707 Live captions · rough, final transcript comes after [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0708 22:58 Katie [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0709 We'd apply the test to the Marbles case by case, and yes, we think it likely passes. [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0710 23:27 Jainam [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0711 And that's the point of consistency: a principle that only runs against Europe isn't a principle. [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0712 In this round [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0713 Jainam · Lead 1 [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0714 speaking [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0715 Katie · Lead 2 [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0716 present [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0717 Daniel · Counter [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0718 Nick · Supporter [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0719 Attendance is confirmed by Jainam or Dr. B. [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0720 Judging this round [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0721 C [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0722 Cruxy judge [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0723 L [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0724 Lehar, in person [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0725 Recording from [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0726 One laptop in the room. Voices are matched to the four of you after the round. [src/app/(app)/practice/rounds/[id]/page.tsx]
 
 ## Reading.html
 
@@ -868,69 +868,69 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## Session.html
 
-- [ ] D-0816 Crux: session control
-- [ ] D-0817 crux
-- [ ] D-0818 ADMIN
-- [ ] D-0819 Sessions
-- [ ] D-0820 People and teams
-- [ ] D-0821 Program analytics
-- [ ] D-0822 Question bank
-- [ ] D-0823 Back to member view
-- [ ] D-0824 Practice day · sample data
-- [ ] D-0825 Tue, Nov 24 · 6:00 pm
-- [ ] D-0826 Taper Hall 101, plus online · created by Dr. B
-- [ ] D-0827 SESSION CODE · ADMINS ONLY
-- [ ] D-0828 482 913
-- [ ] D-0829 Hide
-- [ ] D-0830 The day's split
-- [ ] D-0831 R1
+- [x] D-0816 Crux: session control [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0817 crux [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0818 ADMIN [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0819 Sessions [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0820 People and teams [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0821 Program analytics [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0822 Question bank [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0823 Back to member view [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0824 Practice day · sample data [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0825 Tue, Nov 24 · 6:00 pm [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0826 Taper Hall 101, plus online · created by Dr. B [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0827 SESSION CODE · ADMINS ONLY [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0828 482 913 [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0829 Hide [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0830 The day's split [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0831 R1 [src/app/(app)/practice/sessions/[id]/session-client.tsx]
 - [ ] D-0832 Case 9 · Team 3 presents, Team 1 comments
-- [ ] D-0833 Moderator: Dr. B · judges: 2 in person + Cruxy · 10 / 6 / 12 min
-- [ ] D-0834 NOW
-- [ ] D-0835 R2
-- [ ] D-0836 Case 5 · Team 2 presents, Cruxy plays the commenting team
-- [ ] D-0837 Moderator: Cruxy · judge: Cruxy · 8 / 5 / 10 min
-- [ ] D-0838 7:00 PM
-- [ ] D-0839 R3
-- [ ] D-0840 Moderator drills · everyone, on own devices
-- [ ] D-0841 Random bank questions on each person's cases
-- [ ] D-0842 7:45 PM
-- [ ] D-0843 Who is judging Round 1?
-- [ ] D-0844 In person
-- [ ] D-0845 Human judges only
-- [ ] D-0846 Cruxy judge
-- [ ] D-0847 No human judge today
-- [ ] D-0848 Both
-- [ ] D-0849 Humans score, Cruxy scores too
-- [ ] D-0850 In-person judges
-- [ ] D-0851 Lehar (Team 2)
-- [ ] D-0852 · already in Crux
-- [ ] D-0853 Opens the Judging portal and types the session code you read out
-- [ ] D-0854 ✅ Joined
-- [ ] D-0855 Someone new
-- [ ] D-0856 Show them this code. They type their name and judging background, then land on Round 1's scoring card. No account.
+- [x] D-0833 Moderator: Dr. B · judges: 2 in person + Cruxy · 10 / 6 / 12 min [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0834 NOW [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0835 R2 [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0836 Case 5 · Team 2 presents, Cruxy plays the commenting team [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0837 Moderator: Cruxy · judge: Cruxy · 8 / 5 / 10 min [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0838 7:00 PM [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0839 R3 [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0840 Moderator drills · everyone, on own devices [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0841 Random bank questions on each person's cases [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0842 7:45 PM [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0843 Who is judging Round 1? [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0844 In person [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0845 Human judges only [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0846 Cruxy judge [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0847 No human judge today [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0848 Both [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0849 Humans score, Cruxy scores too [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0850 In-person judges [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0851 Lehar (Team 2) [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0852 · already in Crux [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0853 Opens the Judging portal and types the session code you read out [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0854 ✅ Joined [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0855 Someone new [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0856 Show them this code. They type their name and judging background, then land on Round 1's scoring card. No account. [src/app/(app)/practice/sessions/[id]/session-client.tsx]
 - [ ] D-0857 [QR code]
-- [ ] D-0858 Add another judge
-- [ ] D-0859 Start Round 1 and record
-- [ ] D-0860 Attendance
+- [x] D-0858 Add another judge [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0859 Start Round 1 and record [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0860 Attendance [src/app/(app)/practice/sessions/[id]/session-client.tsx]
 - [ ] D-0861 11 of 14
-- [ ] D-0862 Cruxy pre-fills from voices and joined devices. Jainam or Dr. B confirms.
-- [ ] D-0863 Jainam
-- [ ] D-0864 voice
-- [ ] D-0865 Present
-- [ ] D-0866 Late
-- [ ] D-0867 Absent
-- [ ] D-0868 Katie
-- [ ] D-0869 Nick
-- [ ] D-0870 device
-- [ ] D-0871 Daniel
-- [ ] D-0872 tapped in
-- [ ] D-0873 Serena
-- [ ] D-0874 Stolei
-- [ ] D-0875 not seen
-- [ ] D-0876 Jade
-- [ ] D-0877 text only, not recorded
-- [ ] D-0878 + 7 more
+- [x] D-0862 Cruxy pre-fills from voices and joined devices. Jainam or Dr. B confirms. [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0863 Jainam [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0864 voice [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0865 Present [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0866 Late [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0867 Absent [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0868 Katie [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0869 Nick [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0870 device [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0871 Daniel [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0872 tapped in [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0873 Serena [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0874 Stolei [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0875 not seen [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0876 Jade [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0877 text only, not recorded [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0878 + 7 more [src/app/(app)/practice/sessions/[id]/session-client.tsx]
 
 ## TeamBoard.html
 

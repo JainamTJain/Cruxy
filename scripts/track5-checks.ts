@@ -42,9 +42,9 @@ async function main() {
   const caseRow = store.cases.find((c) => c.active);
   assert(jainam && serena && t1 && t2 && caseRow, "seeded people, teams, case");
 
-  // Chunk loss bound
-  assert(maxLossMs() === CHUNK_DURATION_MS, "chunk strategy loses at most 30s");
-  assert(CHUNK_DURATION_MS === 30_000, "chunks are 30 seconds");
+  // Chunk loss bound (apis.md: 10s chunks; crash loses at most one unfinished chunk)
+  assert(maxLossMs() === CHUNK_DURATION_MS, "chunk strategy loses at most one chunk");
+  assert(CHUNK_DURATION_MS === 10_000, "chunks are 10 seconds");
 
   // Admin session + hashed code (plaintext only at create)
   const created = await createSession({
