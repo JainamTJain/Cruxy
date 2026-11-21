@@ -21,6 +21,9 @@ export type AssistantReply = {
   refusedWithoutSources: boolean;
   stub: boolean;
   questionFirst: string | null;
+  leanFlag?: string | null;
+  truncated?: boolean;
+  wantsMoreAvailable?: boolean;
 };
 
 type Intent =
@@ -232,6 +235,10 @@ export async function askTeamAssistant(
     kind: "truth_item" as const,
   }));
 
+  const wantsMore = /more detail|say more|tell me more|longer answer/i.test(
+    question,
+  );
+
   const reply = await runAssistant({
     question: intentHint ? `${intentHint}\n\n${question}` : question,
     truthSources,
@@ -239,6 +246,7 @@ export async function askTeamAssistant(
     highlight: ctx.highlight,
     personId: ctx.personId,
     adminMode: false,
+    reasonStrong: wantsMore,
   });
 
   const citations =
@@ -251,7 +259,7 @@ export async function askTeamAssistant(
       : truthSources.map((s) => ({
           id: s.id,
           text: s.text,
-          kind: s.kind,
+          kind: s.kind ?? "truth_item",
         }));
 
   return {
@@ -264,5 +272,8 @@ export async function askTeamAssistant(
     refusedWithoutSources: reply.quiet,
     stub: reply.stub,
     questionFirst: reply.questionFirst,
+    leanFlag: reply.leanFlag ?? null,
+    truncated: reply.truncated ?? false,
+    wantsMoreAvailable: reply.wantsMoreAvailable ?? false,
   };
 }

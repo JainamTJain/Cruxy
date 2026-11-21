@@ -7,6 +7,9 @@ import {
 } from "@/lib/cruxy/schemas/assistant";
 import { packCruxyContext, type CaseCard, type ClaimMapNode } from "@/lib/cruxy/context";
 import type { CitationSource } from "@/lib/cruxy/citations";
+import { EVEN_HANDED_PROMPT_LINE, detectLeanFlag } from "@/lib/cruxy/even-handed";
+import { COPYRIGHT_PROMPT_LINE } from "@/lib/cruxy/copyright";
+import { fitPhoneAnswer } from "@/lib/cruxy/shorten";
 
 export type AssistantAgentReply = {
   text: string;
@@ -14,6 +17,11 @@ export type AssistantAgentReply = {
   quiet: boolean;
   citations: CitationSource[];
   stub: boolean;
+  /** True when the answer was trimmed for phone length (F-026). */
+  truncated?: boolean;
+  /** Even-handed lean warning (F-024). */
+  leanFlag?: string | null;
+  wantsMoreAvailable?: boolean;
 };
 
 function isLookup(question: string): boolean {
@@ -95,8 +103,8 @@ export async function runAssistant(input: {
         ? "assistant_reason"
         : "assistant_drawer",
     tier: input.reasonStrong ? "strong" : "small",
-    system: assistantSystemPrompt(),
-    user: `Page: ${input.page ?? "unknown"}\nHighlight: ${input.highlight ?? "none"}\nSources:\n${sourceBlock}\n\nQuestion: ${input.question}`,
+    system: `${assistantSystemPrompt()}\n\n${EVEN_HANDED_PROMPT_LINE}\n${COPYRIGHT_PROMPT_LINE}`,
+    user: `Page: ${input.page ?? "unknown"}\nHighlight: ${input.highlight ?? "none"}\nSources:\n${sourceBlock}\n\nQuestion: ${input.question}${input.reasonStrong ? "\n(User asked for more detail.)" : ""}`,
     schema: assistantSchema,
     personId: input.personId,
     sources: packedSources,
@@ -121,22 +129,34 @@ export async function runAssistant(input: {
     };
   }
 
+  const rawAnswer = data.answer ?? "";
+  const leanFlag = detectLeanFlag(rawAnswer);
+  const fitted = input.reasonStrong
+    ? { text: rawAnswer, truncated: false }
+    : fitPhoneAnswer(rawAnswer);
+
   // Ask before answer: surface the question first when present.
   if (data.question_first && !lookup) {
     return {
-      text: data.answer ?? "",
+      text: fitted.text,
       questionFirst: data.question_first,
       quiet: false,
       citations: cited,
       stub: result.ok ? result.stub : true,
+      truncated: fitted.truncated,
+      leanFlag,
+      wantsMoreAvailable: fitted.truncated,
     };
   }
 
   return {
-    text: data.answer ?? "",
+    text: fitted.text,
     questionFirst: null,
     quiet: false,
     citations: cited,
     stub: result.ok ? result.stub : true,
+    truncated: fitted.truncated,
+    leanFlag,
+    wantsMoreAvailable: fitted.truncated,
   };
 }

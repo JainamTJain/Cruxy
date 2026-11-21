@@ -2,7 +2,11 @@ import "server-only";
 import { isSampleDataMode } from "@/lib/db/config";
 import { getServiceSupabase } from "@/lib/db/supabase/client";
 
-export type OpsBucket = "audio-chunks" | "voice-samples" | "backups";
+export type OpsBucket =
+  | "audio-chunks"
+  | "voice-samples"
+  | "backups"
+  | "crux-uploads";
 
 /** In-memory stand-in for sample / local mode (never writes the Vercel FS). */
 const sampleBlobs = new Map<string, Uint8Array>();

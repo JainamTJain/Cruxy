@@ -108,6 +108,10 @@ export interface BookRequest {
   chapter: string | null;
   case_id: string | null;
   status: BookRequestStatus;
+  /** Supabase storage path under crux-uploads (F-105). */
+  upload_path?: string | null;
+  /** Digested library file id after Jainam uploads a PDF. */
+  library_file_id?: string | null;
   created_at: string;
   created_by: string | null;
 }

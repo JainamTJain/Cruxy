@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
+import { recordAdviceOutcome } from "@/lib/cruxy/outcomes";
 import {
   getRedo,
   getSkillChart,
@@ -42,6 +43,26 @@ export async function POST(
   const chart = await getSkillChart(session.personId);
   const updated = updateSkillsAfterRedo(chart, session.personId, improved);
   await saveSkillChart(updated);
+
+  // F-357: outcomes grade Cruxy against the next score after advice.
+  try {
+    await recordAdviceOutcome({
+      personId: next.person_id,
+      agent: "judge",
+      feedbackId: next.feedback_item_id,
+      adviceRef: next.id,
+      scoreBefore: next.score_before,
+      scoreAfter: next.score_after,
+      followed: true,
+      judgeAgreed: improved,
+      note: improved
+        ? "Redo score rose after Cruxy advice."
+        : "Redo score did not rise after Cruxy advice.",
+      createdBy: session.personId,
+    });
+  } catch {
+    /* outcomes table may not be applied yet locally */
+  }
 
   return NextResponse.json({ redo: next, skills: updated, improved });
 }

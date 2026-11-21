@@ -20,6 +20,7 @@ import {
   listTeams,
 } from "@/lib/db/repository";
 import { listDeckOptInsForCase } from "@/lib/db/supabase/case-brain-extra";
+import { listResearchRuns } from "@/lib/db/library-repository";
 import { listFlashcards, listQuestions } from "@/lib/revision/repository";
 import {
   confirmClaimMapVersion,
@@ -74,7 +75,7 @@ export async function GET(_req: Request, { params }: Params) {
   }
   const refreshed = await getCaseBrain(teamId, caseId);
 
-  const [teams, cases, peopleFull, flashcards, questions, mapVersion, versions, optIns] =
+  const [teams, cases, peopleFull, flashcards, questions, mapVersion, versions, optIns, researchRuns] =
     await Promise.all([
       listTeams(),
       listCases(),
@@ -84,7 +85,10 @@ export async function GET(_req: Request, { params }: Params) {
       getCurrentClaimMap(teamId, caseId),
       listClaimMapVersions(teamId, caseId),
       listDeckOptInsForCase(caseId),
+      listResearchRuns(40),
     ]);
+  const researchForCase = researchRuns.filter((r) => r.case_id === caseId);
+  const latestResearch = researchForCase[0] ?? null;
   const caseRow = cases.find((c) => c.id === caseId) ?? null;
   const people = peopleFull.map((p) => ({
     id: p.id,
@@ -143,6 +147,15 @@ export async function GET(_req: Request, { params }: Params) {
     teams,
     people,
     brain: refreshed,
+    research: latestResearch
+      ? {
+          id: latestResearch.id,
+          stub: latestResearch.stub,
+          created_at: latestResearch.created_at,
+          gaps: latestResearch.gaps,
+          findings: latestResearch.findings,
+        }
+      : null,
     canEdit,
     viewer: {
       personId: auth.session.personId,

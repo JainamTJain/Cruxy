@@ -21,6 +21,10 @@ import { runAnalystNote, detectProposalProblems } from "../src/lib/cruxy/agents/
 import { runJudgeAgent } from "../src/lib/cruxy/agents/judge";
 import { SHARED_SYSTEM_PROMPT, REASONING_STANDARD } from "../src/lib/cruxy/prompts/shared";
 import { parseDriveFileId } from "../src/lib/cruxy/team-doc-import";
+import { capFindingPoint, fitPhoneAnswer } from "../src/lib/cruxy/shorten";
+import { shortQuoteForDisplay } from "../src/lib/cruxy/copyright";
+import { dedupeFindings } from "../src/lib/cruxy/research-dedupe";
+import { detectLeanFlag } from "../src/lib/cruxy/even-handed";
 import {
   loadBaseline,
   loadCaseFixtures,
@@ -119,6 +123,47 @@ async function runCitationUnitTests(): Promise<number> {
     "parse Drive file URL",
   );
   assert(parseDriveFileId("not-a-link") === null, "reject short non-ids");
+  passed += 1;
+
+  assert(
+    capFindingPoint("one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twentyone twentytwo twentythree twentyfour twentyfive twentysix twentyseven twentyeight twentynine thirty thirtyone thirtytwo thirtythree thirtyfour thirtyfive thirtysix thirtyseven thirtyeight thirtynine forty fortyone fortytwo").split(/\s+/).length === 40,
+    "finding point capped at 40 words",
+  );
+  assert(fitPhoneAnswer("word ".repeat(200)).truncated, "phone answer truncates");
+  assert(
+    (shortQuoteForDisplay("a ".repeat(50)) ?? "").split(/\s+/).length <= 41,
+    "display quote short",
+  );
+  assert(detectLeanFlag("Obviously everyone knows this is right.") !== null, "lean flag");
+  const deduped = dedupeFindings({
+    findings: [
+      {
+        id: "1",
+        point: "Name the values in tension before the policy answer",
+        why_it_matters: "x",
+        claim_ref: "c1",
+        quote: "q",
+        link: "https://plato.stanford.edu/entries/ethics/",
+        verified: true,
+        needs_check: false,
+        source_ids: [],
+      },
+      {
+        id: "2",
+        point: "Name the values in tension before the policy answer again",
+        why_it_matters: "x",
+        claim_ref: "c1",
+        quote: "q",
+        link: "https://plato.stanford.edu/entries/ethics/",
+        verified: true,
+        needs_check: false,
+        source_ids: [],
+      },
+    ],
+    priorFindings: [],
+    libraryTexts: [],
+  });
+  assert(deduped.kept.length === 1, "dedupe by link");
   passed += 1;
 
   return passed;

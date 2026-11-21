@@ -31,12 +31,12 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Cruxy
 
-- [ ] F-021 **Cites or stays quiet.** Every claim it shows links to a source, a transcript timestamp or a Truth Source. If it has none, it says "I couldn't find a source for this." (implemented: `src/lib/cruxy/citations.ts`, `src/lib/cruxy/prompts/shared.ts`; owner H to verify)
-- [ ] F-022 **Honest over pleasant.** It names weak arguments plainly and never flatters. Praise is specific ("your thesis came at 0:22, under the 30 second goal"). (implemented: `src/lib/cruxy/prompts/shared.ts`; owner H to verify)
-- [ ] F-023 **Builds your reasoning, doesn't replace it.** It asks before it tells; Socratic questions come first, model answers second and only on request. (implemented: `src/lib/cruxy/prompts/shared.ts`, `src/lib/cruxy/character.ts`; owner H to verify)
-- [ ] F-024 **Even-handed.** It argues every side of a case at full strength, keeps its own politics out, and flags when an example leans one way.
-- [ ] F-025 **Shows where things came from.** Items carry a small origin tag: Cruxy, Dr. B, a team member, Inspired by Team 1, APPE, or the case set. (implemented: `src/components/case-brain/origin-tag.tsx`; owner H to verify)
-- [ ] F-026 **Short.** Answers fit on a phone screen unless the user asks for more. (implemented: `src/lib/cruxy/prompts/shared.ts`; owner H to verify)
+- [x] F-021 **Cites or stays quiet.** Every claim it shows links to a source, a transcript timestamp or a Truth Source. If it has none, it says "I couldn't find a source for this." [`src/lib/cruxy/citations.ts`, `src/lib/cruxy/agents/assistant.ts`, `src/components/cruxy/cruxy-drawer.tsx`]
+- [x] F-022 **Honest over pleasant.** It names weak arguments plainly and never flatters. Praise is specific ("your thesis came at 0:22, under the 30 second goal"). [`src/lib/cruxy/prompts/shared.ts`, `src/lib/cruxy/agents/analyst.ts`]
+- [x] F-023 **Builds your reasoning, doesn't replace it.** It asks before it tells; Socratic questions come first, model answers second and only on request. [`src/lib/cruxy/prompts/shared.ts`, `src/lib/cruxy/character.ts`, `src/components/cruxy/cruxy-drawer.tsx`]
+- [x] F-024 **Even-handed.** It argues every side of a case at full strength, keeps its own politics out, and flags when an example leans one way. [`src/lib/cruxy/even-handed.ts`, `src/lib/cruxy/agents/assistant.ts`]
+- [x] F-025 **Shows where things came from.** Items carry a small origin tag: Cruxy, Dr. B, a team member, Inspired by Team 1, APPE, or the case set. [`src/components/case-brain/origin-tag.tsx`]
+- [x] F-026 **Short.** Answers fit on a phone screen unless the user asks for more. [`src/lib/cruxy/shorten.ts`, `src/lib/cruxy/agents/assistant.ts`, `src/components/cruxy/cruxy-drawer.tsx`]
 
 ## Cruxy's character, floating Cruxy and the lamp
 
@@ -115,21 +115,21 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Research
 
-- [ ] F-093 **Nightly loop per case (batch mode, cheapest rates)** (implemented: `src/app/api/cron/research/route.ts`, `src/lib/cruxy/agents/researcher.ts`; owner H to verify)
+- [x] F-093 **Nightly loop per case (batch mode, cheapest rates)** [`src/app/api/cron/research/route.ts`, `src/lib/cruxy/agents/researcher.ts`, `src/lib/cruxy/research-gaps.ts`]
 - [x] F-094 Gap check: compare the case's claim maps across all three teams with the case set. List supports with no backing, outside facts not yet verified, counterclaims with no answer, and moderator questions with no prepared answer. · [src/lib/cruxy/agents/researcher.ts]
 - [x] F-095 Search free sources for each gap (list in Stack): encyclopedias, academic indexes, court opinions, open books, recent news. Prefer the last 2 years for anything that changes; keep classics for frameworks. · [src/lib/cruxy/agents/researcher.ts, callCruxy webSearch]
-- [ ] F-096 Read the best 3 to 5 results per gap in full, not snippets.
+- [x] F-096 Read the best 3 to 5 results per gap in full, not snippets. [`src/lib/cruxy/research-read.ts`, `src/lib/cruxy/agents/researcher.ts`]
 - [x] F-097 Verify: every fact needs two independent sources or one primary source; mark single-source facts "needs check". · [src/lib/cruxy/agents/researcher.ts]
 - [x] F-098 Write each finding as one card: the point in under 40 words, why it matters to which claim, the exact quote location, and the link. · [src/lib/cruxy/agents/researcher.ts]
-- [ ] F-099 Deduplicate against the library and against yesterday's findings.
+- [x] F-099 Deduplicate against the library and against yesterday's findings. [`src/lib/cruxy/research-dedupe.ts`, `src/lib/cruxy/agents/researcher.ts`]
 - [x] F-100 Post cards to each team's Truth Sources queue as proposals, tagged Cruxy research. · [src/lib/cruxy/agents/researcher.ts]
-- [ ] F-101 Coverage is measured: each case shows a research map of every claim, support and counterclaim with a filled, thin or empty dot.
-- [ ] F-102 Display is capped: a finding card is at most 40 words; the full source is one tap away.
+- [x] F-101 Coverage is measured: each case shows a research map of every claim, support and counterclaim with a filled, thin or empty dot. [`src/lib/cruxy/research-gaps.ts`, `src/components/case-brain/case-brain-client.tsx`]
+- [x] F-102 Display is capped: a finding card is at most 40 words; the full source is one tap away. [`src/components/cruxy/finding-card.tsx`, `src/lib/cruxy/shorten.ts`]
 - [x] F-103 Stop rule: a gap closes once it has two verified sources; Cruxy stops searching it. · [src/lib/cruxy/agents/researcher.ts]
 - [x] F-104 When a gap points to a book the team doesn't own, Cruxy files a book request with the title, why it matters and the chapter. · [src/lib/cruxy/agents/researcher.ts]
-- [ ] F-105 Only Jainam sees and handles book requests. He uploads the PDF, which goes to the Drive's Crux uploads folder and is digested like any file.
-- [ ] F-106 Open books (public domain, open access) are fetched and digested automatically.
-- [ ] F-107 **Copyright rule:** Cruxy stores passages for citation inside Crux, shows short quotes only, and paraphrases the rest.
+- [x] F-105 Only Jainam sees and handles book requests. He uploads the PDF, which goes to the Drive's Crux uploads folder and is digested like any file. [`src/app/(app)/admin/books/page.tsx`, `src/lib/cruxy/book-upload.ts`, `src/app/api/research/books/route.ts`]
+- [x] F-106 Open books (public domain, open access) are fetched and digested automatically. [`src/lib/cruxy/open-books.ts`, `src/lib/cruxy/agents/researcher.ts`]
+- [x] F-107 **Copyright rule:** Cruxy stores passages for citation inside Crux, shows short quotes only, and paraphrases the rest. [`src/lib/cruxy/copyright.ts`]
 
 ## Case brain and Truth Sources
 
@@ -391,7 +391,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Cruxy's agents, models and prompts
 
-- [ ] F-333 Agent · Job · Model tier · Runs
+- [x] F-333 Agent, Job, Model tier, Runs [`src/lib/cruxy/agents-catalog.ts`, `src/app/(app)/admin/agents/page.tsx`, `src/app/api/admin/agents/route.ts`]
 - [x] F-334 Librarian · Sort files, split passages, write file cards, extract ideas · Small · On sync, batch · [src/lib/cruxy/agents/librarian.ts]
 - [x] F-335 Researcher · Find gaps, search, read, verify, write finding cards · Small for search and reading, strong for verification · Nightly, batch · [src/lib/cruxy/agents/researcher.ts]
 - [x] F-336 Analyst · Check proposals (acceptable, relevant, sufficient), consistency across cases, change the facts list · Strong · On each proposal · [src/lib/cruxy/agents/analyst.ts]
@@ -415,7 +415,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-354 **Checks Cruxy runs on any argument:** a catalogue of common fallacies (false dilemma, slippery slope without a stopping point, post hoc, appeal to authority, equivocation on a key term), circular supports, unexplained theory, and a gap between principle and case facts. · [src/lib/cruxy/prompts/shared.ts]
 - [x] F-355 **Growing example library.** Arguments that held up (accepted claim maps, moments judges praised, redos that scored higher) are stored as worked examples; weak ones are stored with what went wrong. Agents read the most similar examples before they work. · [src/lib/cruxy/examples.ts, migration 00011]
 - [x] F-356 **People grade Cruxy.** Every critique, Socratic question and model answer has "useful" and "not useful" buttons with an optional reason; leads and admins can mark a Cruxy point as wrong. · [src/lib/cruxy/examples.ts, api/cruxy/feedback]
-- [ ] F-357 **Outcomes grade Cruxy.** Cruxy's advice is checked against what happened next: did following it raise the person's next score, and did judges later agree?
+- [x] F-357 **Outcomes grade Cruxy.** Cruxy's advice is checked against what happened next: did following it raise the person's next score, and did judges later agree? [`src/lib/cruxy/outcomes.ts`, `src/app/api/practice/redos/[id]/route.ts`, `src/app/(app)/admin/working/page.tsx`]
 - [x] F-358 **A fixed test set.** A set of past transcripts and arguments with agreed critiques is re-run whenever prompts or examples change; a change ships only if Cruxy does at least as well on it. · [tests/cruxy/, npm run test:cruxy]
 - [x] F-359 **Weekly review.** Cruxy drafts updates to its examples and checks from the week's feedback; the technical admin approves them in the console. · [src/lib/cruxy/weekly-review.ts]
 

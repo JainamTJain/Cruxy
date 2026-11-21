@@ -13,11 +13,15 @@ type Book = {
   case_number: number | null;
   case_title: string | null;
   created_at: string;
+  upload_path?: string | null;
+  library_file_id?: string | null;
 };
 
 export default function BookRequestsPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatusMsg] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   async function load() {
     const me = await fetch("/api/auth/me").then((r) => r.json());
@@ -52,6 +56,36 @@ export default function BookRequestsPage() {
     if (res.ok) await load();
   }
 
+  async function uploadPdf(id: string, file: File | null, text: string) {
+    if (!file && !text.trim()) {
+      setStatusMsg("Pick a PDF or paste the chapter text.");
+      return;
+    }
+    setBusyId(id);
+    setStatusMsg(null);
+    try {
+      const form = new FormData();
+      form.set("id", id);
+      if (file) form.set("file", file);
+      if (text.trim()) form.set("text", text.trim());
+      const res = await fetch("/api/research/books", {
+        method: "POST",
+        body: form,
+      });
+      const body = (await res.json()) as { error?: string; uploadPath?: string };
+      if (!res.ok) {
+        setStatusMsg(body.error ?? "Upload failed.");
+        return;
+      }
+      setStatusMsg(
+        `Uploaded and digested under Crux uploads${body.uploadPath ? ` (${body.uploadPath})` : ""}.`,
+      );
+      await load();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <main className="animate-fade-up space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -61,8 +95,9 @@ export default function BookRequestsPage() {
           </Link>
           <h1 className="font-display text-3xl font-semibold">Book requests</h1>
           <p className="mt-1 text-sm text-muted">
-            Jainam only. Upload fulfilled PDFs to Drive Crux uploads (Track 1
-            digests them on next sync).
+            Jainam only. Upload the PDF (or paste the chapter). It lands in
+            Crux uploads and is digested like any library file. Short quotes
+            only in the UI; the rest is paraphrased.
           </p>
         </div>
         <Button type="button" variant="outline" onClick={() => void runResearch()}>
@@ -71,6 +106,7 @@ export default function BookRequestsPage() {
       </div>
 
       {error ? <p className="text-sm text-cardinal">{error}</p> : null}
+      {status ? <p className="text-sm text-ink">{status}</p> : null}
 
       <ul className="space-y-3">
         {books.length === 0 && !error ? (
@@ -98,10 +134,58 @@ export default function BookRequestsPage() {
               {b.reason ? (
                 <p className="mt-1 text-sm text-ink/80">{b.reason}</p>
               ) : null}
+              {b.upload_path ? (
+                <p className="mt-1 text-xs text-muted">
+                  Stored: {b.upload_path}
+                  {b.library_file_id ? " (digested)" : ""}
+                </p>
+              ) : null}
+
+              {b.status === "open" ? (
+                <form
+                  className="mt-3 space-y-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const fd = new FormData(e.currentTarget);
+                    const file = fd.get("file");
+                    const text = String(fd.get("text") ?? "");
+                    void uploadPdf(
+                      b.id,
+                      file instanceof File && file.size > 0 ? file : null,
+                      text,
+                    );
+                  }}
+                >
+                  <label className="block text-sm">
+                    <span className="mb-1 block font-medium">Upload PDF</span>
+                    <input
+                      name="file"
+                      type="file"
+                      accept="application/pdf,.pdf,text/plain"
+                      className="block w-full text-sm"
+                    />
+                  </label>
+                  <label className="block text-sm">
+                    <span className="mb-1 block font-medium">
+                      Or paste chapter text
+                    </span>
+                    <textarea
+                      name="text"
+                      className="min-h-24 w-full rounded-xl border border-ink/10 px-3 py-2 text-sm"
+                      placeholder="Paste the open chapter if you have text rights."
+                    />
+                  </label>
+                  <Button type="submit" size="sm" disabled={busyId === b.id}>
+                    {busyId === b.id ? "Uploading…" : "Upload and digest"}
+                  </Button>
+                </form>
+              ) : null}
+
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button
                   type="button"
                   size="sm"
+                  variant="outline"
                   onClick={() => void setStatus(b.id, "fulfilled")}
                 >
                   Mark fulfilled
