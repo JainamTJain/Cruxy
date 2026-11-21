@@ -5,8 +5,11 @@ import {
   listCommentsForFile,
   listHighlightsForFile,
   listPassagesForFile,
-  listCases,
 } from "@/lib/db/library-repository";
+import {
+  listCasePagesForNumbers,
+  listRelatedFilesForCases,
+} from "@/lib/db/supabase/library-extra";
 
 export async function GET(
   _req: Request,
@@ -21,14 +24,14 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const [passages, highlights, comments, cases] = await Promise.all([
-    listPassagesForFile(id),
-    listHighlightsForFile(id),
-    listCommentsForFile(id),
-    listCases(),
-  ]);
-
-  const casePages = cases.filter((c) => file.case_numbers.includes(c.number));
+  const [passages, highlights, comments, casePages, related] =
+    await Promise.all([
+      listPassagesForFile(id),
+      listHighlightsForFile(id),
+      listCommentsForFile(id),
+      listCasePagesForNumbers(file.case_numbers),
+      listRelatedFilesForCases(file.case_numbers, id),
+    ]);
 
   return NextResponse.json({
     file: {
@@ -57,13 +60,7 @@ export async function GET(
     })),
     highlights,
     comments,
-    casePages: casePages.map((c) => ({
-      id: c.id,
-      number: c.number,
-      title: c.title,
-      case_set_page: c.case_set_page,
-      crux: c.crux,
-      trap: c.trap,
-    })),
+    casePages,
+    related,
   });
 }

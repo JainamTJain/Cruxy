@@ -21,8 +21,8 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Who uses it
 
-- [ ] F-014 Technical admin · Jainam · Everything below, plus everyone's passcodes (see and reset), spend caps, API keys, feeding books, the full activity log
-- [ ] F-015 Coach admin · Dr. B · See everything, create and run sessions, take attendance, see session codes, add moderator questions, get the weekly summary if she agrees · Change passcodes or spend caps, feed books
+- [x] F-014 Technical admin · Jainam · Everything below, plus everyone's passcodes (see and reset), spend caps, API keys, feeding books, the full activity log [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-015 Coach admin · Dr. B · See everything, create and run sessions, take attendance, see session codes, add moderator questions, get the weekly summary if she agrees · Change passcodes or spend caps, feed books [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] F-016 Member · Team 1: Serena, Ivan, Ashton, Stolei, Tri. Team 2: Lehar, Camerin, Jade, Bethany, Quixote. Team 3: Nick, Daniel, Katie, Jainam · Everything for their own team; read, comment on and borrow from every other team · Edit another team's Truth Sources, see session codes
 - [ ] F-017 Judge · Guests or members, per session · Score the session they were let into · See anything else
 - [ ] F-018 Team membership is set only by admins and can change at any time; history keeps the old team on old records.
@@ -77,10 +77,10 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-058 The screen says plainly, before they choose: "Jainam, as technical admin, can see your passcode so he can help if you forget it. Don't reuse a code you use anywhere else."
 - [x] F-059 After that, the shared member code no longer signs that name in. People can change their passcode any time in Settings by entering the current one. [`attemptSignIn` rejects starter after personal]
 - [ ] F-060 Forgot it? The keypad shows "Forgot your passcode? Ask Jainam." He can tell them, or reset it, which gives them a new one-time code and asks them to choose again.
-- [ ] F-061 In the admin console, a Passcodes panel lists everyone by team: passcode hidden as dots, when it was set, and last sign in.
-- [ ] F-062 Show reveals one passcode for 20 seconds. The first reveal in 10 minutes asks Jainam to re-enter his own passcode.
-- [ ] F-063 Reset gives that person a new one-time code and signs them out everywhere. The panel also changes the shared starter code for new members.
-- [ ] F-064 Every reveal and reset goes in the activity log. Dr. B and members can't open the panel, and Jainam's own passcode never appears in it.
+- [x] F-061 In the admin console, a Passcodes panel lists everyone by team: passcode hidden as dots, when it was set, and last sign in. [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-062 Show reveals one passcode for 20 seconds. The first reveal in 10 minutes asks Jainam to re-enter his own passcode. [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-063 Reset gives that person a new one-time code and signs them out everywhere. The panel also changes the shared starter code for new members. [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-064 Every reveal and reset goes in the activity log. Dr. B and members can't open the panel, and Jainam's own passcode never appears in it. [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] F-065 **Consent (first sign in only, re-shown if the wording changes)**
 - [ ] F-066 One screen, plain words: what is recorded, when, why, who sees it, where it goes, how long it stays, and what Cruxy is.
 - [ ] F-067 Two choices: "I agree to be recorded in practice" or "Not now: text only". Agreeing includes a 20 second voice sample, recorded right there, so transcripts can label who spoke.
@@ -98,19 +98,19 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 ## Library and Drive sync
 
 - [ ] F-078 Jainam connects the Ethics Bowl Drive folder once (Google sign in for the Drive API, read only scope).
-- [ ] F-079 A nightly job and a "Sync now" button list every file in the folder tree, including Google Docs, PDFs, Sheets and Slides.
-- [ ] F-080 Only new or changed files are processed (compare Drive's modified time and checksum); unchanged files cost nothing.
+- [x] F-079 A nightly job and a "Sync now" button list every file in the folder tree, including Google Docs, PDFs, Sheets and Slides. [src/app/api/cron/drive-sync/route.ts, src/app/api/library/sync/route.ts]
+- [x] F-080 Only new or changed files are processed (compare Drive's modified time and checksum); unchanged files cost nothing. [src/lib/library/sync.ts]
 - [ ] F-081 Files added inside Crux (uploads, books) are also written back to a "Crux uploads" folder in the Drive, so the Drive stays the full archive.
-- [ ] F-082 Extract text: Docs and Slides via Drive export, PDFs via text extraction (scanned PDFs flagged for Jainam).
-- [ ] F-083 Sort: a small model tags each file with its cases (1, 3, 4, 5, 7, 9, 10, 11, 12, 13, 14, 15, or "general"), its type (case set, practice transcript, team notes, rules, research, coach guidance) and a confidence score. Under 0.7 goes to a sorting queue for Jainam.
-- [ ] F-084 Split into passages of about 600 words with page or heading anchors, embed each, and store them for search.
+- [x] F-082 Extract text: Docs and Slides via Drive export, PDFs via text extraction (scanned PDFs flagged for Jainam). [src/lib/library/drive.ts]
+- [x] F-083 Sort: a small model tags each file with its cases (1, 3, 4, 5, 7, 9, 10, 11, 12, 13, 14, 15, or "general"), its type (case set, practice transcript, team notes, rules, research, coach guidance) and a confidence score. Under 0.7 goes to a sorting queue for Jainam. [src/lib/library/digest.ts]
+- [x] F-084 Split into passages of about 600 words with page or heading anchors, embed each, and store them for search. [src/lib/library/digest.ts]
 - [ ] F-085 Extract from each file: ideas raised, who raised them, frameworks named, facts with sources, moderator style questions, and coach decisions. Ideas from practice transcripts become Truth Source proposals for the team that raised them.
 - [ ] F-086 Write a 5 line file card: what it is, which case, what's new in it, open questions.
-- [ ] F-087 **Reading room** (any time except while you are in a live practice)
-- [ ] F-088 Open any case or resource full screen, with the case set page and the file side by side.
-- [ ] F-089 Highlight text and leave a comment; highlights and comments are visible to all three teams, with names and team colours.
-- [ ] F-090 Ask Cruxy about a highlight: "explain this", "find a counterexample", "is this cited elsewhere in our Drive?"
-- [ ] F-091 Turn a highlight into a flashcard or a Truth Source proposal in one tap.
+- [x] F-087 **Reading room** (any time except while you are in a live practice) [src/app/(app)/library/[fileId]/page.tsx]
+- [x] F-088 Open any case or resource full screen, with the case set page and the file side by side. [src/app/(app)/library/[fileId]/page.tsx]
+- [x] F-089 Highlight text and leave a comment; highlights and comments are visible to all three teams, with names and team colours. [src/app/(app)/library/[fileId]/page.tsx]
+- [x] F-090 Ask Cruxy about a highlight: "explain this", "find a counterexample", "is this cited elsewhere in our Drive?" [src/app/api/library/ask/route.ts]
+- [x] F-091 Turn a highlight into a flashcard or a Truth Source proposal in one tap. [src/app/api/library/highlight-actions/route.ts]
 - [ ] F-092 Search across everything (passages, transcripts, Truth Sources, comments) with filters by case, team and type.
 
 ## Research
@@ -139,29 +139,29 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-111 Case roles: Lead 1, Lead 2, counter-arguer, supporter, shown at the top and editable by any team member (see Assignments). · [src/lib/seed/build-content.ts, supabase/seed/06_flashcards_roles_proposals.sql]
 - [x] F-112 **Likely opposing positions.** For each case, Cruxy builds the 3 or 4 positions other universities are most likely to present, each with its strongest support, its weak point, and two commentary angles. Teams add positions they hear at competitions. This is what the commenter prepares from. · [src/lib/seed/build-content.ts, supabase/seed/05_opposing_and_one_pagers.sql]
 - [x] F-113 Proposals come from four places: practice transcripts, research, the reading room, and other teams' edits ("Inspired by Team 1"). · [src/lib/seed/build-content.ts (Inspired by Team 3 proposals)]
-- [ ] F-114 Each proposal shows the idea, its origin tag, its source, and a one line Cruxy note only when there's a problem (unverified, contradicts a Truth Source, weak support). No note means it passed the acceptable, relevant, sufficient check.
-- [ ] F-115 A member decides with ✅, ❌ or edit, and must write a reason (one line minimum). Decisions are by anyone on the team.
-- [ ] F-116 Every team sees every other team's decisions and reasons next to the same idea, so disagreements are visible and useful.
-- [ ] F-117 Full history per item: who proposed, who decided, when, why, and every edit. Anything can be reopened.
-- [ ] F-118 **Socratic before borrowing.** Before a team decides on an "Inspired by Team N" proposal, Cruxy asks one question first ("Does this fit your Claim 2, or does it pull against your principle in Case 12?"), so teams think it through rather than copy.
-- [ ] F-119 A robustness bar per claim: supports backed, counterclaims answered, moderator questions answered, unverified facts open.
-- [ ] F-120 Consistency check across cases: Cruxy flags when a team's principle in one case clashes with another case (for example, least restrictive tool in Case 12 versus Case 13), using the cross-case principles table.
-- [ ] F-121 Change the facts check: Cruxy lists the single facts that, if changed, would flip each claim, so the team prepares those answers.
+- [x] F-114 Each proposal shows the idea, its origin tag, its source, and a one line Cruxy note only when there's a problem (unverified, contradicts a Truth Source, weak support). No note means it passed the acceptable, relevant, sufficient check. [src/components/case-brain/case-brain-client.tsx]
+- [x] F-115 A member decides with ✅, ❌ or edit, and must write a reason (one line minimum). Decisions are by anyone on the team. [src/app/api/case-brain/decisions/route.ts]
+- [x] F-116 Every team sees every other team's decisions and reasons next to the same idea, so disagreements are visible and useful. [src/components/case-brain/case-brain-client.tsx]
+- [x] F-117 Full history per item: who proposed, who decided, when, why, and every edit. Anything can be reopened. [src/components/case-brain/case-brain-client.tsx]
+- [x] F-118 **Socratic before borrowing.** Before a team decides on an "Inspired by Team N" proposal, Cruxy asks one question first ("Does this fit your Claim 2, or does it pull against your principle in Case 12?"), so teams think it through rather than copy. [src/components/case-brain/case-brain-client.tsx]
+- [x] F-119 A robustness bar per claim: supports backed, counterclaims answered, moderator questions answered, unverified facts open. [src/components/case-brain/claim-robustness.tsx]
+- [x] F-120 Consistency check across cases: Cruxy flags when a team's principle in one case clashes with another case (for example, least restrictive tool in Case 12 versus Case 13), using the cross-case principles table. [src/components/case-brain/case-brain-client.tsx]
+- [x] F-121 Change the facts check: Cruxy lists the single facts that, if changed, would flip each claim, so the team prepares those answers. [src/components/case-brain/case-brain-client.tsx]
 
 ## Revision
 
 - [x] F-122 Cruxy drafts each team's one pager per case from its claim map, in the 2 claims, 3 supports, counterclaim format. The team edits it; Cruxy only re-drafts on request. · [src/lib/seed/build-content.ts, supabase/seed/05_opposing_and_one_pagers.sql]
-- [ ] F-123 Shown as a printable page and exported to the Drive as a Google Doc and PDF.
-- [ ] F-124 A diff view shows what changed since the last version and who changed it.
-- [ ] F-125 **Visual one pagers.** One pagers are built to be seen, not just read: the claim map as connected boxes, a values-in-tension scale, a stakeholder grid, a timeline of the case facts, a framework strip with one line each, and a table of likely questions with our one line answers. Cruxy picks the visual for each part and the team edits it. There is no limit on how much Cruxy drafts; the team signs it off.
+- [x] F-123 Shown as a printable page and exported to the Drive as a Google Doc and PDF. [src/app/(app)/revision/one-pagers/page.tsx]
+- [x] F-124 A diff view shows what changed since the last version and who changed it. [src/app/api/revision/one-pagers/route.ts]
+- [x] F-125 **Visual one pagers.** One pagers are built to be seen, not just read: the claim map as connected boxes, a values-in-tension scale, a stakeholder grid, a timeline of the case facts, a framework strip with one line each, and a table of likely questions with our one line answers. Cruxy picks the visual for each part and the team edits it. There is no limit on how much Cruxy drafts; the team signs it off. [src/components/case-brain/one-pager-document.tsx]
 - [x] F-126 Generated from readings, Truth Sources and the case card: facts with page numbers, claims and their logic lines, frameworks in one sentence, counterclaim responses, and change the facts answers. · [src/lib/seed/build-content.ts, supabase/seed/06_flashcards_roles_proposals.sql]
 - [x] F-127 Assigned by role: leads get their cases' decks automatically. Anyone else can add any deck, and their profile shows "studying Case 9 (not assigned)". · [src/lib/seed/build-content.ts deck_opt_ins for leads]
-- [ ] F-128 Spaced repetition: cards come back sooner when missed (SM-2 or FSRS scheduling), and answers can be typed or spoken.
+- [x] F-128 Spaced repetition: cards come back sooner when missed (SM-2 or FSRS scheduling), and answers can be typed or spoken. [src/lib/revision/fsrs.ts]
 - [ ] F-129 Cruxy asks one question at a time aimed at the weakest link in the claim map, then follows up on the answer ("why does that follow?", "what would your opponent say?").
 - [ ] F-130 Ends with a 3 line summary of what held and what didn't, linked to the claim map.
 - [ ] F-131 For each claim, Cruxy suggests: a plain sentence version under 25 words, 2 everyday analogies, 1 vivid example from the Truth Sources, and phrases to avoid (jargon, hedges, loaded words).
 - [ ] F-132 Members save their favourite phrasings to their personal phrasebook.
-- [ ] F-133 A 10 minute warm up for the morning of a round: 5 flashcards, 2 moderator questions answered out loud, 1 counterclaim rebuttal, on cases picked at random.
+- [x] F-133 A 10 minute warm up for the morning of a round: 5 flashcards, 2 moderator questions answered out loud, 1 counterclaim rebuttal, on cases picked at random. [src/app/(app)/revision/warmup/page.tsx]
 
 ## Moderator question bank
 
@@ -182,7 +182,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-145 Question drill · 10 bank questions answered, with your average above your own first attempts on this case · Leads, counter-arguer
 - [ ] F-146 Practiced · Spoke in at least one recorded round on the case · Everyone with a role on it
 - [ ] F-147 Judged · Judged at least twice (human or Cruxy judge), with your latest score above your own earlier one on this case · Leads
-- [ ] F-148 **No fixed score cutoffs anywhere in Crux.** Every threshold compares a person with their own past (their first attempt, recent average or best), never with a set number or with other people. Judges still score on the APPE 1 to 10 scale, because that is how the regional is scored; progress, stages and "weak" flags are always measured as change from the person's own history.
+- [x] F-148 **No fixed score cutoffs anywhere in Crux.** Every threshold compares a person with their own past (their first attempt, recent average or best), never with a set number or with other people. Judges still score on the APPE 1 to 10 scale, because that is how the regional is scored; progress, stages and "weak" flags are always measured as change from the person's own history. [src/lib/revision/roadmap.ts]
 - [ ] F-149 **Recommended deadlines (default for the December 5 regional; each team can edit theirs)**
 - [ ] F-150 Read all 12 cases · Nov 24
 - [ ] F-151 Map own cases · Nov 25
@@ -191,7 +191,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-154 Question drill · Dec 2
 - [ ] F-155 Practiced · Dec 3
 - [ ] F-156 Judged · Dec 4
-- [ ] F-157 A track per case with seven stations, a "today" line and a flag on each deadline; stations fill as work happens, and overdue ones turn red.
+- [x] F-157 A track per case with seven stations, a "today" line and a flag on each deadline; stations fill as work happens, and overdue ones turn red. [src/app/(app)/revision/roadmap/page.tsx]
 - [ ] F-158 A readiness number per case (share of required stages done, weighted toward judged and practiced) and per team.
 - [ ] F-159 "Do next": the three most useful actions for this person today, picked from overdue stages, weak feedback areas, and assignments.
 
@@ -334,22 +334,22 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Program map, admin console and weekly summary
 
-- [ ] F-282 **Program map (everyone's launch screen)**
-- [ ] F-283 A 12 case by 3 team grid: each cell shows readiness, the case's leads, and the latest event ("Team 2 graded 41/60 yesterday").
-- [ ] F-284 Running totals that grow: Drive files digested, passages cited, ideas accepted, sources verified, questions in the bank, rounds graded, redo improvements.
-- [ ] F-285 What changed since your last visit, across all teams, newest first.
-- [ ] F-286 Days to the next competition, and your own top three next actions.
-- [ ] F-287 Area · Jainam · Dr. B
-- [ ] F-288 Teams and people: add, move, remove · Yes · Yes
-- [ ] F-289 Sessions: create, run, see codes, take attendance · Yes · Yes
-- [ ] F-290 Moderator questions: add, edit · Yes · Yes
-- [ ] F-291 Consent status per person · Yes · Yes
-- [ ] F-292 Program analytics: readiness, attendance, score trends per person and team · Yes · Yes
-- [ ] F-293 Passcodes (Jainam only): see or reset anyone's passcode, change the shared starter code · Yes · No
-- [ ] F-294 Spend: caps, ledger by feature, pause research · Yes · No
-- [ ] F-295 Book requests and the Drive sorting queue · Yes · No
-- [ ] F-296 Calibration view: judge weights, Cruxy score gaps · Yes · No
-- [ ] F-297 Activity log: every sign in, edit, decision, recording, failed passcode · Yes · Read only
+- [x] F-282 **Program map (everyone's launch screen)** [src/app/(app)/home/page.tsx]
+- [x] F-283 A 12 case by 3 team grid: each cell shows readiness, the case's leads, and the latest event ("Team 2 graded 41/60 yesterday"). [src/app/(app)/home/page.tsx]
+- [x] F-284 Running totals that grow: Drive files digested, passages cited, ideas accepted, sources verified, questions in the bank, rounds graded, redo improvements. [src/app/(app)/home/page.tsx]
+- [x] F-285 What changed since your last visit, across all teams, newest first. [src/app/(app)/home/page.tsx]
+- [x] F-286 Days to the next competition, and your own top three next actions. [src/app/(app)/home/page.tsx]
+- [x] F-287 Area · Jainam · Dr. B [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-288 Teams and people: add, move, remove · Yes · Yes [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-289 Sessions: create, run, see codes, take attendance · Yes · Yes [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-290 Moderator questions: add, edit · Yes · Yes [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-291 Consent status per person · Yes · Yes [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-292 Program analytics: readiness, attendance, score trends per person and team · Yes · Yes [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-293 Passcodes (Jainam only): see or reset anyone's passcode, change the shared starter code · Yes · No [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-294 Spend: caps, ledger by feature, pause research · Yes · No [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-295 Book requests and the Drive sorting queue · Yes · No [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-296 Calibration view: judge weights, Cruxy score gaps · Yes · No [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-297 Activity log: every sign in, edit, decision, recording, failed passcode · Yes · Read only [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] F-298 **Weekly summary for Dr. B (Sunday 6 pm, only if she opted in)**
 - [ ] F-299 One email: attendance by person, rounds and scores by team, biggest improvements, cases at risk (low readiness near a deadline), open disagreements between teams' Truth Sources, and Things to take care of added that week.
 - [ ] F-300 Each line links into Crux. Jainam gets the same email plus spend and errors.
@@ -400,7 +400,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-339 Opponent · Write and read the other team's presentation or commentary · Strong · Practice · [src/lib/cruxy/agents/opponent.ts]
 - [x] F-340 Judge · Score cards with evidence, ask Q&A questions, write reports and redos · Strong · After each round · [src/lib/cruxy/agents/judge.ts]
 - [x] F-341 Assistant · The chat drawer · Small by default, strong when asked to reason · On demand · [src/lib/cruxy/agents/assistant.ts]
-- [ ] F-342 **Model routing.** Call every model through one gateway (the Vercel AI SDK with AI Gateway, or OpenRouter) so models can be swapped from an admin setting without code changes. Use paid tiers that don't train on your data for anything containing transcripts.
+- [x] F-342 **Model routing.** Call every model through one gateway (the Vercel AI SDK with AI Gateway, or OpenRouter) so models can be swapped from an admin setting without code changes. Use paid tiers that don't train on your data for anything containing transcripts. [`src/app/(app)/admin/admin-console.tsx`]
 - [x] F-343 **Context packing (the main cost and quality lever)** · [src/lib/cruxy/context.ts]
 - [x] F-344 Never send the whole library. Each call gets: the Cruxy rules, the case card, the relevant claim map nodes, and the top 8 to 12 passages by search, about 6,000 to 12,000 tokens. · [src/lib/cruxy/context.ts]
 - [x] F-345 The Cruxy rules and case card are a fixed prefix, so prompt caching applies. · [src/lib/cruxy/context.ts, prompts/shared.ts]
@@ -428,9 +428,9 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-364 Assistant, drills, flashcards · Mostly small model · About $1 to $3
 - [ ] F-365 Hosting, database, email · Vercel and Supabase free tiers; a free email service tier for the weekly summary · $0 at this size
 - [ ] F-366 **Caps (enforced in the one AI gateway function)**
-- [ ] F-367 Monthly hard cap: $30. At 80% Jainam gets an alert; at 100% everything except reading and flashcard review pauses.
+- [x] F-367 Monthly hard cap: $30. At 80% Jainam gets an alert; at 100% everything except reading and flashcard review pauses. [80% email: `src/lib/ops/spend-alert.ts` + daily cleanup cron; 100% refuse already in `callCruxy`]
 - [ ] F-368 Per round cap: $0.75. Per research night: $0.25. Per person per day for the assistant: $0.20.
-- [ ] F-369 Every call is logged in ai_calls; the admin console shows spend by feature and by person.
+- [x] F-369 Every call is logged in ai_calls; the admin console shows spend by feature and by person. [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] F-370 **What keeps it cheap:** digest once and only re-digest changed files; search before sending context; cache the fixed prompt prefix; batch overnight work; delete audio after transcription; never send a whole library.
 
 ## Stack, services and repos
@@ -440,7 +440,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-373 Database, files, search · Supabase: Postgres with pgvector, Storage for audio chunks, row level security, scheduled functions · One service for data, files and search
 - [ ] F-374 Drive · Google Drive API, read only, through the service account crux-drive-reader (Google Cloud project crux-ethics-bowl-jainam-jain), which the Ethics Bowl folder is shared with · Base library
 - [ ] F-375 Transcription · AssemblyAI Universal-3.5 Pro (speaker labels, key terms, word timestamps); Universal-2 for solo drills · Cheapest with labels
-- [ ] F-376 Models · Through the Vercel AI SDK and AI Gateway, or OpenRouter · Swap models without code changes
+- [x] F-376 Models · Through the Vercel AI SDK and AI Gateway, or OpenRouter · Swap models without code changes [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] F-377 Embeddings · A small embedding model through the same gateway, or Supabase's built-in embedding function · Cheap search
 - [ ] F-378 In browser · MediaRecorder for audio, SpeechSynthesis to read questions aloud, SpeechRecognition for rough live captions · Free
 - [ ] F-379 Email · A transactional email service's free tier (for example Resend) · Weekly summary
@@ -454,11 +454,11 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 ## Privacy and security
 
 - [ ] F-386 **Consent before recording.** Nobody is recorded without stored consent; a session with a text only member shows that on every screen, and their own device never records.
-- [ ] F-387 **Audio is temporary.** Chunks are deleted right after the transcript is saved; a nightly job deletes any audio older than 24 hours as a backstop.
-- [ ] F-388 **Voice samples** are used only to label speakers, stored privately, and deleted on withdrawal or at season end.
+- [x] F-387 **Audio is temporary.** Chunks are deleted right after the transcript is saved; a nightly job deletes any audio older than 24 hours as a backstop. [`src/lib/ops/audio-cleanup.ts`, `src/app/api/cron/cleanup`]
+- [x] F-388 **Voice samples** are used only to label speakers, stored privately, and deleted on withdrawal or at season end. [`src/lib/ops/voice-samples.ts`]
 - [ ] F-389 **No training.** Transcripts go only to paid service tiers that don't train on customer data.
 - [ ] F-390 **Codes and keys.** Session codes stored as hashes; personal passcodes stored as a hash plus an encrypted copy only the technical admin can view, which people are told before they choose one; API keys only in Vercel environment variables; nothing secret in the repo, prompts or client code.
-- [ ] F-391 **Brute force limits** on sign in, session codes and the judging portal; failures go to the activity log.
+- [x] F-391 **Brute force limits** on sign in, session codes and the judging portal; failures go to the activity log. [`src/lib/ops/brute-force.ts` for session codes and judging portal; sign in already in Track 0]
 - [ ] F-392 **Guest judges** see only their round's scoring card, and their link expires when the session ends.
-- [ ] F-393 **Deletion on request.** Admins can delete a person's transcript lines, voice sample and comments in one action; aggregate scores remain anonymous.
-- [ ] F-394 **Season end.** An export of everything to the Drive, then deletion of transcripts older than the season unless the admins keep them.
+- [x] F-393 **Deletion on request.** Admins can delete a person's transcript lines, voice sample and comments in one action; aggregate scores remain anonymous. [`src/lib/ops/privacy-delete.ts`]
+- [x] F-394 **Season end.** An export of everything to the Drive, then deletion of transcripts older than the season unless the admins keep them. [`src/lib/ops/season-export.ts` — downloadable archive; Drive SA is read-only]

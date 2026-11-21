@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
+import { callCruxy } from "@/lib/cruxy/callCruxy";
 import { runLibrarianTag } from "@/lib/cruxy/agents/librarian";
-import { stubEmbed, checksumOf } from "@/lib/library/embeddings";
+import { checksumOf, embedPassageText, stubEmbed } from "@/lib/library/embeddings";
 import type { CaseRow } from "@/lib/types";
 import {
   PASSAGE_TARGET_WORDS,
@@ -151,10 +152,21 @@ export async function librarianTag(input: {
   };
 }
 
+/** Sync split used by tests; embeddings are stubs only. */
 export function splitPassages(
   text: string,
   opts: { fileId: string; driveId: string | null; createdBy?: string | null },
 ): Passage[] {
+  return splitPassageBodies(text, opts).map((p) => ({
+    ...p,
+    embedding: stubEmbed(p.text || "empty"),
+  }));
+}
+
+function splitPassageBodies(
+  text: string,
+  opts: { fileId: string; driveId: string | null; createdBy?: string | null },
+): Omit<Passage, "embedding">[] {
   const words = text.split(/\s+/).filter(Boolean);
   if (words.length === 0) {
     return [
@@ -164,7 +176,6 @@ export function splitPassages(
         drive_id: opts.driveId,
         anchor: "p1",
         text: text || "(empty)",
-        embedding: stubEmbed(text || "empty"),
         ord: 0,
         created_at: nowIso(),
         created_by: opts.createdBy ?? null,
@@ -172,7 +183,7 @@ export function splitPassages(
     ];
   }
 
-  const passages: Passage[] = [];
+  const passages: Omit<Passage, "embedding">[] = [];
   let i = 0;
   let ord = 0;
   while (i < words.length) {
@@ -189,7 +200,6 @@ export function splitPassages(
       drive_id: opts.driveId,
       anchor,
       text: body,
-      embedding: stubEmbed(body),
       ord,
       created_at: nowIso(),
       created_by: opts.createdBy ?? null,
@@ -198,6 +208,36 @@ export function splitPassages(
     ord += 1;
   }
   return passages;
+}
+
+/** Split ~600-word passages and embed each with the embed tier. */
+export async function splitAndEmbedPassages(
+  text: string,
+  opts: {
+    fileId: string;
+    driveId: string | null;
+    createdBy?: string | null;
+    personId?: string | null;
+    /** Skip gateway embeds (tests / heuristic-only sync). */
+    skipEmbed?: boolean;
+  },
+): Promise<{ passages: Passage[]; aiCalls: number }> {
+  const bodies = splitPassageBodies(text, opts);
+  let aiCalls = 0;
+  const passages: Passage[] = [];
+  for (const body of bodies) {
+    if (opts.skipEmbed) {
+      passages.push({ ...body, embedding: stubEmbed(body.text || "empty") });
+      continue;
+    }
+    const emb = await embedPassageText(body.text, {
+      personId: opts.personId ?? opts.createdBy,
+      feature: "passage_embed",
+    });
+    aiCalls += emb.aiCalls;
+    passages.push({ ...body, embedding: emb.embedding });
+  }
+  return { passages, aiCalls };
 }
 
 export async function digestListedFile(input: {
@@ -251,16 +291,18 @@ export async function digestListedFile(input: {
     created_by: input.personId ?? null,
   };
 
-  const passages = splitPassages(input.text, {
+  const split = await splitAndEmbedPassages(input.text, {
     fileId,
     driveId: input.listed.drive_id,
     createdBy: input.personId,
+    personId: input.personId,
+    skipEmbed: input.skipAi === true,
   });
 
   return {
     file,
-    passages,
-    aiCalls: tagged.aiCalls,
+    passages: split.passages,
+    aiCalls: tagged.aiCalls + split.aiCalls,
     ideas: tagged.ideas,
   };
 }

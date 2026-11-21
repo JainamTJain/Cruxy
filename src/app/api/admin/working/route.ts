@@ -10,7 +10,7 @@ import {
 
 export const runtime = "nodejs";
 
-/** "Is Crux working?" — Jainam / tech admin only. */
+/** "Is Crux working?" (Jainam / tech admin only). */
 export async function GET() {
   const session = await getSession();
   if (!session?.adminView) {

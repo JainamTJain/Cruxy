@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useCruxy } from "@/components/cruxy/cruxy-context";
 import type { SocraticSession } from "@/lib/revision/types";
 import type { CaseRow, Team } from "@/lib/types";
 
 export default function SocraticPage() {
+  const { setMood, setCaseId: setCruxyCase } = useCruxy();
   const [teams, setTeams] = useState<Team[]>([]);
   const [cases, setCases] = useState<CaseRow[]>([]);
   const [teamId, setTeamId] = useState("");
@@ -32,6 +34,8 @@ export default function SocraticPage() {
     const data = (await res.json()) as { session: SocraticSession };
     setSession(data.session);
     setAnswer("");
+    setCruxyCase(caseId || null);
+    setMood("curious");
   }
 
   async function submit() {
@@ -48,6 +52,8 @@ export default function SocraticPage() {
     const data = (await res.json()) as { session: SocraticSession };
     setSession(data.session);
     setAnswer("");
+    if (data.session.status !== "active") setMood("excited");
+    else setMood("happy");
   }
 
   return (

@@ -27,7 +27,7 @@ as $$
   select
     p.id,
     p.file_id,
-    coalesce(p.case_id, case_id) as case_id,
+    coalesce(p.case_id, match_passages.case_id) as case_id,
     p.anchor,
     p.text,
     (1 - (p.embedding <=> query_embedding))::float as similarity
