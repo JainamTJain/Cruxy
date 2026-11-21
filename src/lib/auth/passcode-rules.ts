@@ -8,13 +8,18 @@ import {
 import {
   getAdminCode,
   getPersonById,
+  getPersonStarter,
   getPersonalCode,
   getSharedStarter,
   logActivity,
   replacePersonalCode,
   savePerson,
 } from "@/lib/db/repository";
-import { LOCKOUT_MINUTES, MAX_FAILED_ATTEMPTS } from "@/lib/constants";
+import {
+  COACH_PERSON_ID,
+  LOCKOUT_MINUTES,
+  MAX_FAILED_ATTEMPTS,
+} from "@/lib/constants";
 import { addMinutes, isLocked, nowIso } from "@/lib/utils";
 import { CONSENT_VERSION, type Person, type SessionPayload } from "@/lib/types";
 import { randomUUID } from "crypto";
@@ -61,33 +66,38 @@ export async function attemptSignIn(
 
   const personal = await getPersonalCode(person.id);
   const admin = await getAdminCode(person.id);
-  const starter = await getSharedStarter();
+  const sharedStarter = await getSharedStarter();
+  const personStarter = await getPersonStarter(person.id);
 
   let matched: "personal" | "admin" | "starter" | null = null;
 
   if (personal && !personal.must_choose) {
     if (await verifyPasscode(personal.hash, code)) matched = "personal";
+  } else if (person.role === "tech_admin") {
+    if (admin && (await verifyPasscode(admin.hash, code))) matched = "admin";
+  } else if (person.role === "coach_admin") {
+    // Dr. B: only her person-scoped starter — never the shared member starter
+    if (personStarter && (await verifyPasscode(personStarter.hash, code))) {
+      matched = "starter";
+    }
   } else {
-    // First-time / reset: accept shared starter (members) or admin starter
+    // Members: shared starter only — never a person-scoped (coach) starter
     if (admin && (await verifyPasscode(admin.hash, code))) matched = "admin";
     else if (
-      person.role !== "tech_admin" &&
-      starter &&
-      (await verifyPasscode(starter.hash, code))
+      sharedStarter &&
+      (await verifyPasscode(sharedStarter.hash, code))
     ) {
       matched = "starter";
-    } else if (
-      person.role === "tech_admin" &&
-      admin &&
-      (await verifyPasscode(admin.hash, code))
-    ) {
-      matched = "admin";
     }
   }
 
-  // After personal is set, shared starter must fail (even if somehow still tried)
-  if (!matched && personal && !personal.must_choose && starter) {
-    if (await verifyPasscode(starter.hash, code)) {
+  // After personal is set, any starter must fail
+  if (!matched && personal && !personal.must_choose) {
+    const hitShared =
+      sharedStarter && (await verifyPasscode(sharedStarter.hash, code));
+    const hitPerson =
+      personStarter && (await verifyPasscode(personStarter.hash, code));
+    if (hitShared || hitPerson) {
       await recordFailure(person, ipHash);
       await logActivity({
         person_id: person.id,
@@ -166,10 +176,14 @@ export async function setPersonalPasscode(
   const err = validatePersonalPasscode(code, starterPlain);
   if (err) return { ok: false, error: err };
 
-  // Also refuse if it matches current shared starter hash
+  // Refuse shared member starter and Dr. B's coach starter
   const starter = await getSharedStarter();
   if (starter && (await verifyPasscode(starter.hash, code))) {
     return { ok: false, error: "Not the member code." };
+  }
+  const coachStarter = await getPersonStarter(COACH_PERSON_ID);
+  if (coachStarter && (await verifyPasscode(coachStarter.hash, code))) {
+    return { ok: false, error: "Not the starter code." };
   }
 
   const person = await getPersonById(personId);

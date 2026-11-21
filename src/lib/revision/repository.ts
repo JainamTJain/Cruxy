@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { isSampleDataMode } from "@/lib/db/config";
 import { readStore, updateStore } from "@/lib/db/sample-store";
 import { logActivity } from "@/lib/db/repository";
+import * as sb from "@/lib/db/supabase/revision";
 import { callCruxy } from "@/lib/cruxy/callCruxy";
 import { createEmptyCard, reviewCard, type FsrsRating } from "@/lib/revision/fsrs";
 import {
@@ -35,19 +36,13 @@ import type {
 } from "@/lib/revision/types";
 import { nowIso } from "@/lib/utils";
 
-function requireSample() {
-  if (!isSampleDataMode()) {
-    throw new Error("Supabase path not wired yet — set USE_SAMPLE_DATA=1");
-  }
-}
-
 // ---------- Truth items + flashcard sync ----------
 
 export async function listTruthItems(filter?: {
   teamId?: string;
   caseId?: string;
 }): Promise<TruthItem[]> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.listTruthItems(filter);
   const store = await readStore();
   return store.truth_items.filter((t) => {
     if (filter?.teamId && t.team_id !== filter.teamId) return false;
@@ -61,7 +56,7 @@ export async function updateTruthItemText(
   text: string,
   personId: string | null,
 ): Promise<{ item: TruthItem; flashcard: Flashcard | null }> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.updateTruthItemText(truthItemId, text, personId);
   let item!: TruthItem;
   let linkedCardId: string | null = null;
 
@@ -111,7 +106,7 @@ export async function ensureFlashcardsForTeamCase(
   teamId: string,
   caseId: string,
 ): Promise<Flashcard[]> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.ensureFlashcardsForTeamCase(teamId, caseId);
   let cards: Flashcard[] = [];
   await updateStore((s) => {
     const truth = s.truth_items.filter(
@@ -137,7 +132,7 @@ export async function listFlashcards(filter?: {
   caseId?: string;
   personId?: string;
 }): Promise<Flashcard[]> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.listFlashcards(filter);
   const store = await readStore();
   let cards = store.flashcards;
   if (filter?.teamId) cards = cards.filter((c) => c.team_id === filter.teamId);
@@ -151,7 +146,7 @@ export async function optInDeck(args: {
   caseId: string;
   assigned?: boolean;
 }) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.optInDeck(args);
   await updateStore((s) => {
     const i = s.deck_opt_ins.findIndex(
       (d) => d.person_id === args.personId && d.case_id === args.caseId,
@@ -172,7 +167,7 @@ export async function optInDeck(args: {
 }
 
 export async function autoAssignLeadDecks(personId: string) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.autoAssignLeadDecks(personId);
   const store = await readStore();
   const person = store.people.find((p) => p.id === personId);
   if (!person?.team_id) return;
@@ -196,7 +191,7 @@ export async function getOrCreateFsrsState(
   personId: string,
   cardId: string,
 ): Promise<CardFsrsState> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.getOrCreateFsrsState(personId, cardId);
   let state!: CardFsrsState;
   await updateStore((s) => {
     const existing = s.card_fsrs_states.find(
@@ -234,7 +229,7 @@ export async function reviewFlashcard(args: {
   grade: FsrsRating;
   mode?: "typed" | "spoken";
 }) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.reviewFlashcard(args);
   const prior = await getOrCreateFsrsState(args.personId, args.cardId);
   const next = reviewCard(
     {
@@ -286,7 +281,7 @@ export async function reviewFlashcard(args: {
 }
 
 export async function dueFlashcardsForPerson(personId: string) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.dueFlashcardsForPerson(personId);
   const store = await readStore();
   const optIns = store.deck_opt_ins.filter((d) => d.person_id === personId);
   const caseIds = new Set(optIns.map((d) => d.case_id));
@@ -322,7 +317,7 @@ export async function draftOnePager(args: {
   caseId: string;
   personId: string;
 }): Promise<OnePager> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.draftOnePager(args);
   const store = await readStore();
   const caseRow = store.cases.find((c) => c.id === args.caseId);
   const body = draftOnePagerBody({
@@ -344,7 +339,7 @@ export async function draftOnePager(args: {
   // Call coach agent (stub ok)
   await callCruxy({
     feature: "one_pager_draft",
-    model: "small",
+    tier: "small",
     messages: [
       {
         role: "user",
@@ -395,7 +390,7 @@ export async function saveOnePagerEdit(args: {
   changeNote: string;
   personId: string;
 }): Promise<OnePager> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.saveOnePagerEdit(args);
   let next!: OnePager;
   await updateStore((s) => {
     const cur = s.one_pagers.find((o) => o.id === args.onePagerId);
@@ -425,7 +420,7 @@ export async function signOffOnePager(args: {
   onePagerId: string;
   personId: string;
 }) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.signOffOnePager(args);
   await updateStore((s) => {
     const cur = s.one_pagers.find((o) => o.id === args.onePagerId);
     if (!cur) throw new Error("one pager not found");
@@ -437,7 +432,7 @@ export async function signOffOnePager(args: {
 }
 
 export async function exportOnePagerStub(onePagerId: string, personId: string) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.exportOnePagerStub(onePagerId, personId);
   // Drive export is stub until DRIVE_ROOT_FOLDER_ID + SA are wired
   const docId = `stub-doc-${onePagerId.slice(0, 8)}`;
   await updateStore((s) => {
@@ -456,7 +451,7 @@ export async function exportOnePagerStub(onePagerId: string, personId: string) {
 }
 
 export async function latestOnePager(teamId: string, caseId: string) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.latestOnePager(teamId, caseId);
   const store = await readStore();
   return (
     store.one_pagers
@@ -466,7 +461,7 @@ export async function latestOnePager(teamId: string, caseId: string) {
 }
 
 export async function onePagerDiff(onePagerId: string) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.onePagerDiff(onePagerId);
   const store = await readStore();
   const page = store.one_pagers.find((o) => o.id === onePagerId);
   if (!page) return [];
@@ -481,7 +476,7 @@ export async function pasteModeratorQuestions(args: {
   personId: string;
   origin?: QuestionOrigin;
 }): Promise<ModeratorQuestion[]> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.pasteModeratorQuestions(args);
   const parts = splitPasteIntoQuestions(args.raw);
   if (parts.length === 0) return [];
 
@@ -524,7 +519,7 @@ export async function pasteModeratorQuestions(args: {
 
   await callCruxy({
     feature: "moderator_paste_split",
-    model: "small",
+    tier: "small",
     messages: [{ role: "user", content: args.raw.slice(0, 2000) }],
     personId: args.personId,
   });
@@ -544,7 +539,7 @@ export async function confirmModeratorQuestions(args: {
   personId: string;
   rejectIds?: string[];
 }) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.confirmModeratorQuestions(args);
   await updateStore((s) => {
     for (const id of args.questionIds) {
       const q = s.questions.find((x) => x.id === id);
@@ -561,7 +556,7 @@ export async function listQuestions(filter?: {
   caseId?: string;
   status?: ModeratorQuestion["status"];
 }) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.listQuestions(filter);
   const store = await readStore();
   return store.questions.filter((q) => {
     if (filter?.caseId && q.case_id !== filter.caseId) return false;
@@ -575,7 +570,7 @@ export async function serveQuestion(args: {
   sessionKey: string;
   preferredCaseIds?: string[];
 }) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.serveQuestion(args);
   const store = await readStore();
   const seen = new Set(store.drill_session_seen[args.sessionKey] ?? []);
   const scoresByQuestion = new Map<string, number[]>();
@@ -617,7 +612,7 @@ export async function answerQuestion(args: {
   score?: number | null;
   feedback?: string | null;
 }) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.answerQuestion(args);
   const store = await readStore();
   const person = store.people.find((p) => p.id === args.personId);
   const prior = store.answers.filter(
@@ -657,7 +652,7 @@ export async function answerQuestion(args: {
 }
 
 export async function bestTeamAnswer(questionId: string, teamId: string) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.bestTeamAnswer(questionId, teamId);
   const store = await readStore();
   return (
     store.answers
@@ -673,7 +668,7 @@ export async function startSocraticDrill(args: {
   teamId: string;
   caseId: string;
 }): Promise<SocraticSession> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.startSocraticDrill(args);
   const store = await readStore();
   const claims = store.claims.filter(
     (c) => c.team_id === args.teamId && c.case_id === args.caseId,
@@ -687,7 +682,7 @@ export async function startSocraticDrill(args: {
 
   await callCruxy({
     feature: "socratic_drill",
-    model: "strong",
+    tier: "strong",
     messages: [{ role: "user", content: question }],
     personId: args.personId,
   });
@@ -718,7 +713,7 @@ export async function continueSocratic(args: {
   personId: string;
   answer: string;
 }): Promise<SocraticSession> {
-  requireSample();
+  if (!isSampleDataMode()) return sb.continueSocratic(args);
   let session!: SocraticSession;
   await updateStore((s) => {
     const cur = s.socratic_sessions.find((x) => x.id === args.sessionId);
@@ -756,7 +751,7 @@ export async function languageSuggestions(args: {
   caseId: string;
   claimId?: string;
 }) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.languageSuggestions(args);
   const store = await readStore();
   const claim =
     store.claims.find((c) => c.id === args.claimId) ??
@@ -773,7 +768,7 @@ export async function languageSuggestions(args: {
 
   await callCruxy({
     feature: "language_analogies",
-    model: "small",
+    tier: "small",
     messages: [
       {
         role: "user",
@@ -802,7 +797,7 @@ export async function savePhrase(args: {
   text: string;
   kind: PhrasebookEntry["kind"];
 }) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.savePhrase(args);
   let row!: PhrasebookEntry;
   await updateStore((s) => {
     row = {
@@ -820,13 +815,13 @@ export async function savePhrase(args: {
 }
 
 export async function listPhrasebook(personId: string) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.listPhrasebook(personId);
   const store = await readStore();
   return store.phrasebook_entries.filter((p) => p.person_id === personId);
 }
 
 export async function buildWarmUp(personId: string) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.buildWarmUp(personId);
   await autoAssignLeadDecks(personId);
   const due = await dueFlashcardsForPerson(personId);
   const cards = due.slice(0, 5).map((d) => d.card);
@@ -845,7 +840,7 @@ export async function buildWarmUp(personId: string) {
 // ---------- Roadmap ----------
 
 export async function ensureRoadmapForPerson(personId: string) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.ensureRoadmapForPerson(personId);
   await updateStore((s) => {
     const person = s.people.find((p) => p.id === personId);
     if (!person) return;
@@ -895,7 +890,7 @@ export async function ensureRoadmapForPerson(personId: string) {
 }
 
 export async function recomputeRoadmapStages(personId: string) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.recomputeRoadmapStages(personId);
   await ensureRoadmapForPerson(personId);
   await updateStore((s) => {
     const stages = s.roadmap_stages.filter((r) => r.person_id === personId);
@@ -1024,7 +1019,7 @@ export async function recordReadingProgress(args: {
   fileId: string;
   openedRatio: number;
 }) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.recordReadingProgress(args);
   await updateStore((s) => {
     const i = s.reading_progress.findIndex(
       (r) =>
@@ -1054,7 +1049,7 @@ export async function recordMapReview(args: {
   claimId?: string | null;
   kind?: string;
 }) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.recordMapReview(args);
   await updateStore((s) => {
     s.map_reviews.push({
       id: randomUUID(),
@@ -1073,7 +1068,7 @@ export async function recordPracticeSpeak(args: {
   personId: string;
   caseId: string;
 }) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.recordPracticeSpeak(args);
   await updateStore((s) => {
     s.practice_speak_logs.push({
       id: randomUUID(),
@@ -1092,7 +1087,7 @@ export async function recordJudgeAttempt(args: {
   caseId: string;
   score: number;
 }) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.recordJudgeAttempt(args);
   await updateStore((s) => {
     s.judge_attempts.push({
       id: randomUUID(),
@@ -1106,7 +1101,7 @@ export async function recordJudgeAttempt(args: {
 }
 
 export async function getRoadmapView(personId: string) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.getRoadmapView(personId);
   await ensureRoadmapForPerson(personId);
   await recomputeRoadmapStages(personId);
   const store = await readStore();
@@ -1140,7 +1135,7 @@ export async function getRoadmapView(personId: string) {
 }
 
 export async function studyingLabels(personId: string) {
-  requireSample();
+  if (!isSampleDataMode()) return sb.studyingLabels(personId);
   const store = await readStore();
   const assigned = new Set(
     store.case_roles
@@ -1162,7 +1157,7 @@ export async function studyingLabels(personId: string) {
 }
 
 export async function listCasesAndTeams() {
-  requireSample();
+  if (!isSampleDataMode()) return sb.listCasesAndTeams();
   const store = await readStore();
   return {
     cases: store.cases.filter((c) => c.active),

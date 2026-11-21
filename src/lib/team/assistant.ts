@@ -79,7 +79,7 @@ export async function askTeamAssistant(
 
   const result = await callCruxy({
     feature: "assistant_drawer",
-    model: "cruxy-default",
+    tier: "small",
     personId: ctx.personId,
     messages: [
       {

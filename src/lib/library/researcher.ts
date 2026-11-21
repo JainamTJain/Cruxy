@@ -132,7 +132,7 @@ export async function runNightlyResearch(opts?: {
 
     const researchCall = await callCruxy({
       feature: "research_night",
-      model: "small",
+      tier: "small",
       personId: opts?.personId ?? null,
       estimatedCostUsd: 0.05,
       messages: [

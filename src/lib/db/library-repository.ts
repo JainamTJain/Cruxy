@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { isSampleDataMode } from "@/lib/db/config";
 import { readStore, updateStore } from "@/lib/db/sample-store";
+import * as librarySb from "@/lib/db/supabase/library";
 import { cosine } from "@/lib/library/embeddings";
 import { stubEmbed } from "@/lib/library/embeddings";
 import type {
@@ -16,32 +17,38 @@ import type {
 import type { CaseRow, Team } from "@/lib/types";
 import { nowIso } from "@/lib/utils";
 
-function requireSample() {
-  if (!isSampleDataMode()) {
-    throw new Error("Supabase path not wired yet — set USE_SAMPLE_DATA=1");
-  }
+async function sb() {
+  return librarySb;
 }
 
 export async function listCases(): Promise<CaseRow[]> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).listCases();
+  }
   const store = await readStore();
   return store.cases;
 }
 
 export async function listTeams(): Promise<Team[]> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).listTeams();
+  }
   const store = await readStore();
   return store.teams;
 }
 
 export async function listLibraryFiles(): Promise<LibraryFile[]> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).listLibraryFiles();
+  }
   const store = await readStore();
   return store.files;
 }
 
 export async function getLibraryFile(id: string): Promise<LibraryFile | null> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).getLibraryFile(id);
+  }
   const store = await readStore();
   return store.files.find((f) => f.id === id) ?? null;
 }
@@ -49,13 +56,17 @@ export async function getLibraryFile(id: string): Promise<LibraryFile | null> {
 export async function getLibraryFileByDriveId(
   driveId: string,
 ): Promise<LibraryFile | null> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).getLibraryFileByDriveId(driveId);
+  }
   const store = await readStore();
   return store.files.find((f) => f.drive_id === driveId) ?? null;
 }
 
 export async function saveLibraryFile(file: LibraryFile): Promise<void> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).saveLibraryFile(file);
+  }
   await updateStore((s) => {
     const i = s.files.findIndex((f) => f.id === file.id);
     if (i >= 0) s.files[i] = file;
@@ -67,7 +78,9 @@ export async function replaceFilePassages(
   fileId: string,
   passages: Passage[],
 ): Promise<void> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).replaceFilePassages(fileId, passages);
+  }
   await updateStore((s) => {
     s.passages = s.passages.filter((p) => p.file_id !== fileId);
     s.passages.push(...passages);
@@ -75,7 +88,9 @@ export async function replaceFilePassages(
 }
 
 export async function listPassagesForFile(fileId: string): Promise<Passage[]> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).listPassagesForFile(fileId);
+  }
   const store = await readStore();
   return store.passages
     .filter((p) => p.file_id === fileId)
@@ -83,13 +98,17 @@ export async function listPassagesForFile(fileId: string): Promise<Passage[]> {
 }
 
 export async function getPassage(id: string): Promise<Passage | null> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).getPassage(id);
+  }
   const store = await readStore();
   return store.passages.find((p) => p.id === id) ?? null;
 }
 
 export async function listSortingQueue(): Promise<LibraryFile[]> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).listSortingQueue();
+  }
   const store = await readStore();
   return store.files.filter(
     (f) =>
@@ -99,14 +118,18 @@ export async function listSortingQueue(): Promise<LibraryFile[]> {
 }
 
 export async function saveSyncRun(run: SyncRun): Promise<void> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).saveSyncRun(run);
+  }
   await updateStore((s) => {
     s.sync_runs.unshift(run);
   });
 }
 
 export async function latestSyncRun(): Promise<SyncRun | null> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).latestSyncRun();
+  }
   const store = await readStore();
   return store.sync_runs[0] ?? null;
 }
@@ -114,7 +137,9 @@ export async function latestSyncRun(): Promise<SyncRun | null> {
 export async function listHighlightsForFile(
   fileId: string,
 ): Promise<(Highlight & { passage_anchor: string })[]> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).listHighlightsForFile(fileId);
+  }
   const store = await readStore();
   const passageIds = new Set(
     store.passages.filter((p) => p.file_id === fileId).map((p) => p.id),
@@ -133,7 +158,9 @@ export async function listCommentsForFile(
 ): Promise<
   (Comment & { passage_anchor: string; person_name: string; team_colour: string | null })[]
 > {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).listCommentsForFile(fileId);
+  }
   const store = await readStore();
   const passageIds = new Set(
     store.passages.filter((p) => p.file_id === fileId).map((p) => p.id),
@@ -156,7 +183,9 @@ export async function listCommentsForFile(
 export async function createHighlight(
   input: Omit<Highlight, "id" | "created_at"> & { id?: string },
 ): Promise<Highlight> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).createHighlight(input);
+  }
   const row: Highlight = {
     id: input.id ?? randomUUID(),
     passage_id: input.passage_id,
@@ -176,7 +205,9 @@ export async function createHighlight(
 export async function createComment(
   input: Omit<Comment, "id" | "created_at"> & { id?: string },
 ): Promise<Comment> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).createComment(input);
+  }
   const row: Comment = {
     id: input.id ?? randomUUID(),
     passage_id: input.passage_id,
@@ -194,27 +225,35 @@ export async function createComment(
 }
 
 export async function saveFlashcard(card: Flashcard): Promise<void> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).saveFlashcard(card);
+  }
   await updateStore((s) => {
     s.flashcards.push(card);
   });
 }
 
 export async function saveResearchRun(run: ResearchRun): Promise<void> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).saveResearchRun(run);
+  }
   await updateStore((s) => {
     s.research_runs.unshift(run);
   });
 }
 
 export async function listResearchRuns(limit = 50): Promise<ResearchRun[]> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).listResearchRuns(limit);
+  }
   const store = await readStore();
   return store.research_runs.slice(0, limit);
 }
 
 export async function saveBookRequest(req: BookRequest): Promise<void> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).saveBookRequest(req);
+  }
   await updateStore((s) => {
     const i = s.book_requests.findIndex((b) => b.id === req.id);
     if (i >= 0) s.book_requests[i] = req;
@@ -223,7 +262,9 @@ export async function saveBookRequest(req: BookRequest): Promise<void> {
 }
 
 export async function listBookRequests(): Promise<BookRequest[]> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).listBookRequests();
+  }
   const store = await readStore();
   return store.book_requests;
 }
@@ -232,7 +273,9 @@ export async function updateBookRequestStatus(
   id: string,
   status: BookRequest["status"],
 ): Promise<BookRequest | null> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).updateBookRequestStatus(id, status);
+  }
   let updated: BookRequest | null = null;
   await updateStore((s) => {
     const row = s.book_requests.find((b) => b.id === id);
@@ -265,7 +308,9 @@ export async function searchLibrary(input: {
   type?: string | null;
   limit?: number;
 }): Promise<SearchHit[]> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).searchLibrary(input);
+  }
   const store = await readStore();
   const q = input.q.trim().toLowerCase();
   if (!q) return [];
@@ -340,7 +385,9 @@ export async function searchLibrary(input: {
 }
 
 export async function countAiCallsSince(iso: string): Promise<number> {
-  requireSample();
+  if (!isSampleDataMode()) {
+    return (await sb()).countAiCallsSince(iso);
+  }
   const store = await readStore();
   const t = new Date(iso).getTime();
   return store.ai_calls.filter(

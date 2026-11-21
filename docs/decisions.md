@@ -83,3 +83,8 @@ Each line is a decision already made. Quotes are Jainam's own words. Don't rever
 - **Tools:** Cursor and Bolt; GitHub; free APIs where possible.
 - **Crux work must not live in the InnovateLA Vercel team** ("i dont want others to have this").
 - **Drive access through a Google Cloud service account under the USC Google account.**
+
+## Models (Jainam, Nov 21, 2026)
+
+- Small tier: GPT-6 Luna, backup Gemini 3.8 Flash. Strong tier: GPT-6.2 Sol, backup Gemini 4 Carbon. Embeddings: OpenAI text-embedding-3-small. All through Vercel AI Gateway with per-request zero data retention. No Anthropic, no direct provider SDKs. Details: `docs/orchestration/model-routing.md`.
+- Dr. B has his own starter code (`COACH_STARTER_CODE_HASH`), separate from the shared member starter code.

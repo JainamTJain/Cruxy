@@ -60,7 +60,7 @@ export async function answerAdminProgramQuestion(input: {
 
   const result = await callCruxy({
     feature: "admin_program",
-    model: "cruxy-admin",
+    tier: "small",
     personId: input.personId,
     messages: [
       {

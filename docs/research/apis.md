@@ -29,7 +29,7 @@ Rules that follow from that:
 
 ## Vercel AI SDK and AI Gateway
 
-- Pass a `creator/model` string (for example `'anthropic/claude-sonnet-5'` or `'google/gemini-3.1-flash-lite'`) to `generateText`, `streamText` or `generateObject`; the SDK routes it through AI Gateway automatically.
+- Pass a `creator/model` string (the exact strings are chosen by Jainam in the admin settings, never hardcoded by an agent) to `generateText`, `streamText` or `generateObject`; the SDK routes it through AI Gateway automatically.
 - Auth: `AI_GATEWAY_API_KEY` locally; on Vercel deployments OIDC works without a key. The key belongs to whichever Vercel team created it.
 - Don't hardcode model prices; the Gateway reports cost per generation. `callCruxy()` records what the Gateway reports.
 - Check the model list in the Vercel dashboard (AI Gateway, Model List) before choosing model strings; names change often.
