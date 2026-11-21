@@ -3,10 +3,16 @@ import { CASE_TITLES } from "@/lib/constants";
 import { getSession } from "@/lib/auth/session";
 import { listCasesForBrain } from "@/lib/case-brain/service";
 import { listTeams } from "@/lib/db/repository";
+import { listCaseRoles } from "@/lib/team/repository";
+import { HomeDiffs } from "@/components/home-diffs";
 
 export default async function HomePage() {
   const session = await getSession();
-  const [teams, cases] = await Promise.all([listTeams(), listCasesForBrain()]);
+  const [teams, cases, roles] = await Promise.all([
+    listTeams(),
+    listCasesForBrain(),
+    listCaseRoles(session?.teamId ?? undefined),
+  ]);
   const active = CASE_TITLES.filter((c) => c.active);
   const caseByNumber = new Map(cases.map((c) => [c.number, c]));
   const days = Math.ceil(
@@ -21,7 +27,14 @@ export default async function HomePage() {
             Where the program stands
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Track 2 case brains live · sample program map
+            Case brain + team space ·{" "}
+            <Link href="/case-brain" className="underline">
+              case brain
+            </Link>
+            {" · "}
+            <Link href="/team" className="underline">
+              team board
+            </Link>
           </p>
         </div>
         <p className="rounded-xl bg-gold/20 px-3 py-2 font-mono text-sm text-ink">
@@ -29,10 +42,12 @@ export default async function HomePage() {
         </p>
       </div>
 
+      <HomeDiffs />
+
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {[
           ["—", "Drive files"],
-          ["—", "ideas accepted"],
+          [String(roles.length), "roles set"],
           ["—", "sources verified"],
           ["—", "bank questions"],
           ["—", "rounds graded"],
@@ -60,7 +75,11 @@ export default async function HomePage() {
               <tr className="border-b border-ink/10 text-xs uppercase tracking-wide text-muted">
                 <th className="py-2 pr-3">Case</th>
                 {teams.map((t) => (
-                  <th key={t.id} className="py-2 pr-3" style={{ color: t.colour }}>
+                  <th
+                    key={t.id}
+                    className="py-2 pr-3"
+                    style={{ color: t.colour }}
+                  >
                     {t.name}
                   </th>
                 ))}
@@ -122,13 +141,17 @@ export default async function HomePage() {
             <Link href="/case-brain" className="underline">
               Case brain
             </Link>{" "}
-            and edit your claim map
+            or check the{" "}
+            <Link href="/team" className="underline">
+              team board
+            </Link>{" "}
+            for gaps
           </li>
-          <li>Finish the first-run checklist</li>
+          <li>Confirm any new claim-map version on home</li>
           <li>
             {session?.role === "tech_admin"
               ? "Use Admin switch → Passcodes when helping teammates"
-              : "Decide Truth Source proposals with a one-line reason"}
+              : "Ask Cruxy from the lamp — it cites Truth Sources or stays quiet"}
           </li>
         </ol>
       </section>

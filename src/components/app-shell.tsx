@@ -5,6 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/types";
+import { CruxyProvider } from "@/components/cruxy/cruxy-context";
+import { FloatingCruxy } from "@/components/cruxy/floating-cruxy";
+import { CruxyLamp } from "@/components/cruxy/cruxy-lamp";
+import { CruxyDrawer } from "@/components/cruxy/cruxy-drawer";
 
 type Me = {
   authenticated: boolean;
@@ -25,6 +29,8 @@ const NAV = [
   { href: "/revision/roadmap", label: "Roadmap" },
   { href: "/checklist", label: "First run" },
   { href: "/settings", label: "Settings" },
+  { href: "/team", label: "Team" },
+  { href: "/team/chat", label: "Chat" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -67,144 +73,155 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     me?.session?.role === "tech_admin" || me?.session?.role === "coach_admin";
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-6xl flex-col px-4 pb-24 pt-4 sm:pb-8 sm:pt-6">
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <Link href="/home" className="font-display text-2xl font-semibold text-cardinal">
-            crux
-          </Link>
-          {me?.session ? (
-            <p className="text-xs text-muted">
-              {me.session.name}
-              {me.session.adminView ? " · admin view" : ""}
-              {me.dataMode === "sample" ? " · sample data" : ""}
-            </p>
-          ) : null}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {isAdminRole ? (
+    <CruxyProvider>
+      <div className="mx-auto flex min-h-dvh max-w-6xl flex-col px-4 pb-28 pt-4 sm:pb-8 sm:pt-6">
+        <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <Link
+              href="/home"
+              className="font-display text-2xl font-semibold text-cardinal"
+            >
+              crux
+            </Link>
+            {me?.session ? (
+              <p className="text-xs text-muted">
+                {me.session.name}
+                {me.session.adminView ? " · admin view" : ""}
+                {me.dataMode === "sample" ? " · sample data" : ""}
+              </p>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {isAdminRole ? (
+              <button
+                type="button"
+                onClick={() => void toggleAdmin(!me?.session?.adminView)}
+                className="rounded-xl border border-ink/15 bg-white/70 px-3 py-2 text-xs font-medium"
+              >
+                {me?.session?.adminView
+                  ? "Back to member view"
+                  : "Admin switch"}
+              </button>
+            ) : null}
             <button
               type="button"
-              onClick={() => void toggleAdmin(!me?.session?.adminView)}
-              className="rounded-xl border border-ink/15 bg-white/70 px-3 py-2 text-xs font-medium"
+              onClick={() => void signOut()}
+              className="rounded-xl px-3 py-2 text-xs text-muted underline"
             >
-              {me?.session?.adminView ? "Back to member view" : "Admin switch"}
+              Sign out
             </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => void signOut()}
-            className="rounded-xl px-3 py-2 text-xs text-muted underline"
-          >
-            Sign out
-          </button>
-        </div>
-      </header>
+          </div>
+        </header>
 
-      <div className="flex flex-1 gap-6">
-        <nav className="hidden w-44 shrink-0 flex-col gap-1 sm:flex">
-          {NAV.map((item) => {
-            const active =
-              item.href === "/home"
-                ? pathname === item.href
-                : pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "rounded-xl px-3 py-2 text-sm",
-                  active
-                    ? "bg-ink text-white"
-                    : "text-ink/80 hover:bg-white/70",
-                )}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-          {me?.session?.adminView ? (
-            <>
+        <div className="flex flex-1 gap-6">
+          <nav className="hidden w-44 shrink-0 flex-col gap-1 sm:flex">
+            {NAV.map((item) => {
+              const active =
+                item.href === "/home"
+                  ? pathname === item.href
+                  : pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "rounded-xl px-3 py-2 text-sm",
+                    active
+                      ? "bg-ink text-white"
+                      : "text-ink/80 hover:bg-white/70",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+            {me?.session?.adminView ? (
+              <>
+                <Link
+                  href="/admin"
+                  className={cn(
+                    "rounded-xl px-3 py-2 text-sm",
+                    pathname === "/admin"
+                      ? "bg-ink text-white"
+                      : "text-ink/80 hover:bg-white/70",
+                  )}
+                >
+                  Admin console
+                </Link>
+                {me.session.role === "tech_admin" ? (
+                  <>
+                    <Link
+                      href="/admin/passcodes"
+                      className={cn(
+                        "rounded-xl px-3 py-2 text-sm",
+                        pathname.startsWith("/admin/passcodes")
+                          ? "bg-ink text-white"
+                          : "text-ink/80 hover:bg-white/70",
+                      )}
+                    >
+                      Passcodes
+                    </Link>
+                    <Link
+                      href="/admin/books"
+                      className={cn(
+                        "rounded-xl px-3 py-2 text-sm",
+                        pathname.startsWith("/admin/books")
+                          ? "bg-ink text-white"
+                          : "text-ink/80 hover:bg-white/70",
+                      )}
+                    >
+                      Books
+                    </Link>
+                  </>
+                ) : null}
+              </>
+            ) : null}
+          </nav>
+          <div className="min-w-0 flex-1">{children}</div>
+        </div>
+
+        <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-ink/10 bg-paper/95 px-2 py-2 backdrop-blur sm:hidden">
+          <div className="mx-auto flex max-w-lg justify-around text-[11px]">
+            {NAV.slice(0, 4).map((item) => {
+              const active =
+                item.href === "/home"
+                  ? pathname === item.href
+                  : pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "px-2 py-1",
+                    active ? "font-semibold text-cardinal" : "text-muted",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+            {me?.session?.adminView ? (
               <Link
                 href="/admin"
                 className={cn(
-                  "rounded-xl px-3 py-2 text-sm",
-                  pathname === "/admin"
-                    ? "bg-ink text-white"
-                    : "text-ink/80 hover:bg-white/70",
+                  "px-2 py-1",
+                  pathname.startsWith("/admin")
+                    ? "font-semibold text-cardinal"
+                    : "text-muted",
                 )}
               >
-                Admin console
+                Admin
               </Link>
-              {me.session.role === "tech_admin" ? (
-                <>
-                  <Link
-                    href="/admin/passcodes"
-                    className={cn(
-                      "rounded-xl px-3 py-2 text-sm",
-                      pathname.startsWith("/admin/passcodes")
-                        ? "bg-ink text-white"
-                        : "text-ink/80 hover:bg-white/70",
-                    )}
-                  >
-                    Passcodes
-                  </Link>
-                  <Link
-                    href="/admin/books"
-                    className={cn(
-                      "rounded-xl px-3 py-2 text-sm",
-                      pathname.startsWith("/admin/books")
-                        ? "bg-ink text-white"
-                        : "text-ink/80 hover:bg-white/70",
-                    )}
-                  >
-                    Book requests
-                  </Link>
-                </>
-              ) : null}
-            </>
-          ) : null}
+            ) : null}
+          </div>
         </nav>
-        <div className="min-w-0 flex-1">{children}</div>
-      </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-ink/10 bg-paper/95 px-2 py-2 backdrop-blur sm:hidden">
-        <div className="mx-auto flex max-w-lg justify-around text-[11px]">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "px-2 py-1",
-                pathname === item.href ? "font-semibold text-cardinal" : "text-muted",
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
-          {me?.session?.adminView ? (
-            <Link
-              href="/admin"
-              className={cn(
-                "px-2 py-1",
-                pathname.startsWith("/admin")
-                  ? "font-semibold text-cardinal"
-                  : "text-muted",
-              )}
-            >
-              Admin
-            </Link>
-          ) : null}
-        </div>
-      </nav>
-
-      {/* Lamp placeholder — full Cruxy float is Track 4 */}
-      <div
-        className="animate-bob fixed bottom-20 right-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-ink text-[10px] font-medium text-gold shadow-lg sm:bottom-6"
-        title="Cruxy's lamp (Track 4)"
-      >
-        lamp
+        <FloatingCruxy />
+        <CruxyLamp />
+        <CruxyDrawer />
       </div>
-    </div>
+    </CruxyProvider>
   );
 }

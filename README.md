@@ -11,11 +11,11 @@ Web app for USC’s three Ethics Bowl teams.
 | **0 Foundation** | Auth, schema/RLS, `callCruxy`, activity log, design tokens |
 | **1 Library** | Drive sync + digest, reading room, search, nightly research, book requests |
 | **2 Case brain** | Claim maps, Truth Sources queue, Inspired-by, Analyst, opposing positions, robustness |
-| **3 Revision** (this PR) | One-pagers, FSRS flashcards, Socratic drills, moderator bank, personal roadmaps |
+| **4 Team space** | Assignments/roles, team board + chat, floating Cruxy/lamp + drawer, versioned claim maps + drift |
 
 ### Local / sample-data path
 
-Supabase, AI gateway, and `DRIVE_ROOT_FOLDER_ID` may still be missing. With `USE_SAMPLE_DATA=1` (default when Supabase is unset), the app uses a local JSON store under `.data/` (gitignored) and **sample Drive stubs** when the folder id is unset. Case brain and revision tools work in this path; Analyst / Coach / Librarian stubs use `callCruxy` when keys are missing.
+Supabase, AI gateway, and `DRIVE_ROOT_FOLDER_ID` may still be missing. With `USE_SAMPLE_DATA=1` (default when Supabase is unset), the app uses a local JSON store under `.data/` (gitignored) and **sample Drive stubs** when the folder id is unset.
 
 ```bash
 cp .env.example .env.local
@@ -33,12 +33,12 @@ Use it once per person, then choose your own 6-digit passcode.
 npm run check:track0
 npm run check:track1
 npm run check:track2
-npm run check:track3
+npm run check:track4
 ```
 
 Track 1 checks: unchanged re-sync → 0 AI calls; every passage has Drive id + anchor; sorting queue lists confidence &lt; 0.7.
 
-Drive one-pager export is a stub until `DRIVE_ROOT_FOLDER_ID` + service account are set.
+Track 4 checks: lead change updates board/roadmap/chat; claim change needs confirmation; assistant refuses without Truth Sources.
 
 ### Library (Track 1)
 
@@ -50,10 +50,16 @@ Drive one-pager export is a stub until `DRIVE_ROOT_FOLDER_ID` + service account 
 - Nightly research cron `30 7 * * *` → `/api/cron/research`; book requests at `/admin/books` (tech admin only)
 - Research / reading / transcript ideas post into the shared Track 2 proposals queue
 
+### Team space (Track 4)
+
+- Team board `/team`, chat `/team/chat`, claim-map versions `/team/cases/[caseId]`
+- Floating Cruxy + lamp on every app page; cite-or-quiet assistant drawer
+- Versioned claim maps, “I've got vN”, two-person claim approval, drift flags
+
 ### Still needed from Jainam for production
 
-1. **Supabase** — `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; apply `00001_track0_foundation.sql`, `00002_track2_case_brain.sql`, `00003_track1_library.sql`, `00004_track3_revision.sql`, and `supabase/seed.sql`
-2. **AI gateway** — `AI_GATEWAY_API_KEY` or `OPENROUTER_API_KEY` (Librarian/Researcher/Coach stub until set)
+1. **Supabase** — `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; apply `00001_track0_foundation.sql`, `00002_track2_case_brain.sql`, `00003_track1_library.sql`, `00004_track4_team_space.sql`, and `supabase/seed.sql`
+2. **AI gateway** — `AI_GATEWAY_API_KEY` or `OPENROUTER_API_KEY` (Librarian/Researcher stub until set)
 3. **Drive** — share the Ethics Bowl root folder with `crux-drive-reader@crux-ethics-bowl-jainam-jain.iam.gserviceaccount.com`, then set `DRIVE_ROOT_FOLDER_ID` (service account JSON via `GOOGLE_SERVICE_ACCOUNT_JSON`)
 4. Optional: `CRON_SECRET` for cron routes
 
@@ -68,3 +74,11 @@ Drive one-pager export is a stub until `DRIVE_ROOT_FOLDER_ID` + service account 
 
 - Cardinal `#9D2235` · Gold `#F5B700` · Ink `#111318`
 - Fonts: Bricolage Grotesque, Inter, IBM Plex Mono
+
+
+## Track checks
+- `npm run check:track0`
+- `npm run check:track1`
+- `npm run check:track2`
+- `npm run check:track3`
+- `npm run check:track4`
