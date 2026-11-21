@@ -172,9 +172,66 @@ async function main() {
   );
 
   console.log("5) Chat / proposal / decision…");
-  console.log("   DEFERRED to follow-up commits on this PR.");
+  const { listChats, postMessage, listMessages, listCases } = await import(
+    "../src/lib/team/repository"
+  );
+  const {
+    createProposal,
+    decideProposal,
+    getProposalById,
+    listDecisionsForProposal,
+  } = await import("../src/lib/case-brain/service");
 
-  console.log("\nSMOKE OK (sign-in / consent / choose-passcode / coach starter)");
+  const chats = await listChats();
+  assert(chats.length >= 1, `at least one chat channel (got ${chats.length})`);
+  const program =
+    chats.find((c) => c.channel === "program") ?? chats[0];
+  const posted = await postMessage({
+    chatId: program.id,
+    personId: member.id,
+    body: `smoke chat from ${member.name}`,
+    actorTeamId: member.team_id,
+    actorRole: member.role,
+  });
+  const messages = await listMessages(program.id);
+  assert(
+    messages.some((m) => m.id === posted.id),
+    "chat message read back",
+  );
+
+  const cases = await listCases();
+  const activeCase = cases.find((c) => c.active) ?? cases[0];
+  assert(activeCase, "active case for proposal");
+  assert(member.team_id, "member has team_id");
+
+  const proposal = await createProposal({
+    teamId: member.team_id,
+    caseId: activeCase.id,
+    personId: member.id,
+    text: "Smoke test: we should weigh consent before recording practice.",
+    kind: "other",
+    origin: "member",
+  });
+  assert(
+    (await getProposalById(proposal.id))?.id === proposal.id,
+    "proposal read back",
+  );
+
+  const decided = await decideProposal({
+    proposalId: proposal.id,
+    personId: member.id,
+    teamId: member.team_id,
+    verdict: "accept",
+    reason: "Clear and usable for this case in smoke test.",
+  });
+  assert(decided.ok, decided.ok ? "decision saved" : decided.error);
+  const decisions = await listDecisionsForProposal(proposal.id);
+  assert(
+    decisions.some((d) => d.id === decided.decision.id && d.reason.length > 0),
+    "decision with reason read back",
+  );
+
+  console.log("\nSMOKE OK (sign-in / coach / chat / proposal / decision)");
 }
 
 main().catch((err) => {
