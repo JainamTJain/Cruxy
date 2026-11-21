@@ -10,8 +10,7 @@ import {
   saveLibraryFile,
   saveSyncRun,
 } from "@/lib/db/library-repository";
-import { readStore } from "@/lib/db/sample-store";
-import { logActivity } from "@/lib/db/repository";
+import { listPeopleFull, logActivity } from "@/lib/db/repository";
 import type { SyncRun } from "@/lib/library/types";
 import { nowIso } from "@/lib/utils";
 
@@ -29,10 +28,10 @@ export type SyncResult = {
 
 async function resolveActorId(personId?: string | null): Promise<string> {
   if (personId) return personId;
-  const store = await readStore();
+  const people = await listPeopleFull();
   return (
-    store.people.find((p) => p.role === "tech_admin")?.id ??
-    store.people[0]?.id ??
+    people.find((p) => p.role === "tech_admin")?.id ??
+    people[0]?.id ??
     "system"
   );
 }

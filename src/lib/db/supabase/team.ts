@@ -1154,6 +1154,34 @@ export async function homeDiffsForPerson(
   }));
 }
 
+export async function listPendingAlignmentForPerson(
+  personId: string,
+): Promise<AlignmentQuestionSet[]> {
+  const { data, error } = await getServiceSupabase()
+    .from("alignment_questions")
+    .select("*")
+    .eq("person_id", personId)
+    .is("answered_at", null)
+    .order("created_at", { ascending: false });
+  assertOk(error, "listPendingAlignmentForPerson");
+  return (data ?? []).map((r) => mapAlignment(r as Row));
+}
+
+export async function listPendingClaimChangeProposals(filter: {
+  teamId: string;
+  caseId: string;
+}): Promise<ClaimChangeProposal[]> {
+  const { data, error } = await getServiceSupabase()
+    .from("claim_change_proposals")
+    .select("*")
+    .eq("team_id", filter.teamId)
+    .eq("case_id", filter.caseId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+  assertOk(error, "listPendingClaimChangeProposals");
+  return (data ?? []).map((r) => mapProposal(r as Row));
+}
+
 export async function teamBoardSnapshot(
   teamId: string,
 ): Promise<TeamBoardSnapshot> {

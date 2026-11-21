@@ -860,6 +860,17 @@ export async function getTranscript(roundId: string): Promise<TranscriptLine[]> 
   return rows.map(mapLine);
 }
 
+export async function getTranscriptLineById(
+  lineId: string,
+): Promise<TranscriptLine | null> {
+  const sb = getServiceSupabase();
+  const row = must(
+    await sb.from("transcript_lines").select("*").eq("id", lineId).maybeSingle(),
+    "getTranscriptLineById",
+  );
+  return row ? mapLine(row) : null;
+}
+
 export async function getGlossary(caseId: string | null): Promise<GlossaryTerm[]> {
   const sb = getServiceSupabase();
   const query = sb.from("glossary_terms").select("*");

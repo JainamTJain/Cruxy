@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { getPersonById, dumpStoreForAdmin } from "@/lib/db/repository";
+import { getPersonById, listAuthCodesMeta } from "@/lib/db/repository";
 
 export const runtime = "nodejs";
 
@@ -20,9 +20,9 @@ export async function GET() {
       { status: 403 },
     );
   }
-  const store = await dumpStoreForAdmin();
+  const codes = await listAuthCodesMeta();
   return NextResponse.json({
-    auth_codes: store.auth_codes.map((c) => ({
+    auth_codes: codes.map((c) => ({
       id: c.id,
       kind: c.kind,
       person_id: c.person_id,

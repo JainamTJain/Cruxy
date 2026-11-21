@@ -287,7 +287,19 @@ export function effectiveRole(
 }
 
 export async function dumpStoreForAdmin(): Promise<SampleStore> {
+  if (!isSampleDataMode()) {
+    throw new Error(
+      "dumpStoreForAdmin is sample-data only; use listAuthCodesMeta on live",
+    );
+  }
   return readStore();
+}
+
+/** Live-safe auth_codes listing for the tech-admin panel (never returns plaintext). */
+export async function listAuthCodesMeta(): Promise<AuthCode[]> {
+  if (!isSampleDataMode()) return sbAuth.listAllAuthCodes();
+  const store = await readStore();
+  return store.auth_codes;
 }
 
 // ---------- Track 6: program map / admin / spend ----------
@@ -405,11 +417,13 @@ export async function spendByPerson(now = new Date()): Promise<
 }
 
 export async function listBookRequests(): Promise<BookRequest[]> {
+  if (!isSampleDataMode()) return sbProgram.listBookRequests();
   const store = await readStore();
   return store.book_requests;
 }
 
 export async function listDriveSortQueue(): Promise<DriveSortItem[]> {
+  if (!isSampleDataMode()) return sbProgram.listDriveSortQueue();
   const store = await readStore();
   return store.drive_sort_queue;
 }
@@ -418,6 +432,7 @@ export async function sortDriveItem(
   id: string,
   status: DriveSortItem["status"] = "sorted",
 ): Promise<DriveSortItem | null> {
+  if (!isSampleDataMode()) return sbProgram.sortDriveItem(id, status);
   let found: DriveSortItem | null = null;
   await updateStore((s) => {
     const item = s.drive_sort_queue.find((d) => d.id === id);
@@ -430,11 +445,13 @@ export async function sortDriveItem(
 }
 
 export async function listCalibration(): Promise<CalibrationRow[]> {
+  if (!isSampleDataMode()) return sbProgram.listCalibration();
   const store = await readStore();
   return store.calibration;
 }
 
 export async function listCompetitionLogs(): Promise<CompetitionLogEntry[]> {
+  if (!isSampleDataMode()) return sbProgram.listCompetitionLogs();
   const store = await readStore();
   return store.competition_logs;
 }
@@ -442,6 +459,7 @@ export async function listCompetitionLogs(): Promise<CompetitionLogEntry[]> {
 export async function addCompetitionLog(
   entry: Omit<CompetitionLogEntry, "id" | "created_at">,
 ): Promise<CompetitionLogEntry> {
+  if (!isSampleDataMode()) return sbProgram.addCompetitionLog(entry);
   const row: CompetitionLogEntry = {
     ...entry,
     id: randomUUID(),
@@ -454,12 +472,14 @@ export async function addCompetitionLog(
 }
 
 export async function recordLastVisit(personId: string): Promise<void> {
+  if (!isSampleDataMode()) return sbProgram.recordLastVisit(personId);
   await updateStore((s) => {
     s.last_visits[personId] = nowIso();
   });
 }
 
 export async function getLastVisit(personId: string): Promise<string | null> {
+  if (!isSampleDataMode()) return sbProgram.getLastVisit(personId);
   const store = await readStore();
   return store.last_visits[personId] ?? null;
 }
@@ -468,6 +488,7 @@ export async function changesSince(
   sinceIso: string | null,
   limit = 20,
 ): Promise<ActivityLogEntry[]> {
+  if (!isSampleDataMode()) return sbProgram.changesSince(sinceIso, limit);
   const log = await listActivityLog(200);
   if (!sinceIso) return log.slice(0, limit);
   const since = new Date(sinceIso).getTime();
@@ -475,6 +496,7 @@ export async function changesSince(
 }
 
 export async function featureUsageStats(): Promise<FeatureUsageStat[]> {
+  if (!isSampleDataMode()) return sbProgram.featureUsageStats();
   const store = await readStore();
   const byFeature = new Map<
     string,
@@ -512,6 +534,7 @@ export async function markFeatureUseful(
   feature: string,
   personId: string,
 ): Promise<void> {
+  if (!isSampleDataMode()) return sbProgram.markFeatureUseful(feature, personId);
   await updateStore((s) => {
     s.feature_useful.push({
       feature,
@@ -524,6 +547,7 @@ export async function markFeatureUseful(
 export async function teamReadinessAverages(): Promise<
   { team_id: string; avg: number; delta_week: number }[]
 > {
+  if (!isSampleDataMode()) return sbProgram.teamReadinessAverages();
   const store = await readStore();
   const byTeam = new Map<string, number[]>();
   for (const cell of store.readiness) {
@@ -547,6 +571,7 @@ export async function teamReadinessAverages(): Promise<
 }
 
 export async function buildWeeklyEmailPreview(): Promise<WeeklyEmailPreview> {
+  if (!isSampleDataMode()) return sbProgram.buildWeeklyEmailPreview();
   const store = await readStore();
   const teams = store.teams;
   const people = store.people;

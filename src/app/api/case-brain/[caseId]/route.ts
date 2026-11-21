@@ -66,7 +66,7 @@ export async function GET(_req: Request, { params }: Params) {
   }
   const refreshed = await getCaseBrain(teamId, caseId);
 
-  const [teams, cases, people, flashcards, questions, mapVersion] =
+  const [teams, cases, peopleFull, flashcards, questions, mapVersion] =
     await Promise.all([
       listTeams(),
       listCases(),
@@ -76,6 +76,11 @@ export async function GET(_req: Request, { params }: Params) {
       getCurrentClaimMap(teamId, caseId),
     ]);
   const caseRow = cases.find((c) => c.id === caseId) ?? null;
+  const people = peopleFull.map((p) => ({
+    id: p.id,
+    name: p.name,
+    team_id: p.team_id,
+  }));
   const confirmations = mapVersion
     ? await listConfirmations(mapVersion.id)
     : [];
@@ -87,11 +92,7 @@ export async function GET(_req: Request, { params }: Params) {
   return NextResponse.json({
     case: caseRow,
     teams,
-    people: people.map((p) => ({
-      id: p.id,
-      name: p.name,
-      team_id: p.team_id,
-    })),
+    people,
     brain: refreshed,
     canEdit,
     viewer: {

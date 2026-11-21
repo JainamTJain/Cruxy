@@ -70,3 +70,30 @@ After Wave 2: one agent runs both checklists top to bottom, fixes what's left, a
 - Never write to the filesystem on Vercel. Every mutation writes `activity_log`. RLS on any new table, revoke anon and authenticated.
 - AI only through `callCruxy({ tier: 'small' | 'strong', ... })`. No model names, no provider SDKs, no Anthropic.
 - Prove parity with `npm run shots` (desktop 1440 and phone 390) next to the reference HTML, and tick only D- and F-items you can show.
+
+### Migration numbers (reserved so parallel agents never collide)
+
+Applied on the live project: 00001 to 00010. Reserved: **H 00011, I 00012, C 00013, D 00014, E 00015, F 00016, G 00017**. If you need a second migration, use your number with a letter suffix (`00014b_...`). Never reuse or edit an applied migration. Claude applies them to the live project when your PR merges.
+
+## Wave 3 (start now, in parallel with Wave 2)
+
+- **H. Cruxy's brain** (spec "Cruxy", "Cruxy's agents, models and prompts", "Research"). Build the eight agents as separate modules in `src/lib/cruxy/agents/` (Librarian, Researcher, Analyst, Coach, Moderator, Opponent, Judge, Assistant), each with its prompt in `src/lib/cruxy/prompts/<agent>.ts` (shared system prompt and the reasoning standard copied verbatim from the spec) and a zod output schema, all calling `callCruxy` with a tier. Owns:
+  - `src/lib/cruxy/citations.ts`: the server check that every cited id exists and every quoted string appears in the cited text; failures are dropped and logged. Hook it into `callCruxy` by adding, not rewriting.
+  - `src/lib/cruxy/context.ts`: context packing. Fixed prefix (rules and case card, so caching applies), the relevant claim-map nodes and the top 8 to 12 passages from a pgvector search RPC `match_passages(query_embedding, case_id, match_count)` in migration 00011, embedded with the `embed` tier.
+  - The example library: tables for worked examples and Cruxy feedback (useful or not useful, with a reason; leads and admins can mark a point wrong), also in 00011.
+  - `tests/cruxy/` with the fixed test set built from `docs/domain/cases/`, run by `npm run test:cruxy`. A prompt change ships only if the score is the same or higher.
+  - The weekly review draft that the technical admin approves.
+  - The Researcher: nightly gap finding and verification with Gateway web search through `callCruxy`, writing finding cards with sources, and `src/app/api/cron/research`. This replaces the Research item in F's brief.
+  - The Librarian extracting ideas from synced Drive files into proposals for each team, so Teams 1 and 2 get their own content from their own Drive docs.
+  - Existing feature code (case-brain analyst, practice judge, team assistant, library digest) calls the agents; change only those call lines.
+- **I. Privacy, operations and reliability** (spec "Privacy and security", "Cost plan and caps" alerts). Owns `src/app/api/cron/{cleanup,keepalive,backup}/**`, `src/lib/ops/**`, `vercel.json` (merge cron entries carefully; others may add theirs), `public/manifest.webmanifest` and icons, `next.config` headers, migration 00012. Covers:
+  - A nightly backstop that deletes audio older than 24 hours.
+  - Voice samples deleted on withdrawal and at season end.
+  - An admin "delete this person's transcript lines, voice sample and comments" action, exposed as a server function for G's admin screen.
+  - Season-end export to the Drive folder: the service account is read-only, so produce a downloadable archive for the admin instead and say so in the PR.
+  - Brute-force limits and activity-log entries on session codes and the judging portal (coordinate with D through server helpers, not D's pages).
+  - A Supabase keep-alive so the free project never pauses over winter break.
+  - A weekly logical backup of key tables to Supabase Storage.
+  - Security headers (CSP, frame-ancestors, referrer policy).
+  - A PWA manifest with the lamp as the icon so phones can add Crux to the home screen.
+  - The 80 percent spend alert by email to Jainam through Resend (`EMAIL_API_KEY`; sender `onboarding@resend.dev` until a domain is verified).

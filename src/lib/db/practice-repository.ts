@@ -373,6 +373,14 @@ export async function getTranscript(roundId: string): Promise<TranscriptLine[]> 
     .sort((a, b) => a.start_ms - b.start_ms);
 }
 
+export async function getTranscriptLineById(
+  lineId: string,
+): Promise<TranscriptLine | null> {
+  if (!isSampleDataMode()) return sb.getTranscriptLineById(lineId);
+  const store = await readStore();
+  return store.transcript_lines.find((l) => l.id === lineId) ?? null;
+}
+
 export async function getGlossary(caseId: string | null): Promise<GlossaryTerm[]> {
   if (!isSampleDataMode()) return sb.getGlossary(caseId);
   const store = await readStore();
