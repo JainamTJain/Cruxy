@@ -302,3 +302,26 @@ export interface TalkAnalytics {
   time_to_first_answer_ms: number | null;
   interruptions: number;
 }
+
+/** Wave 6: required pre-round score prediction per speaker. */
+export interface RoundScorePrediction {
+  id: string;
+  round_id: string;
+  person_id: string;
+  item_scores: Partial<Record<AppeItemKey, number>>;
+  expected_question: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Wave 6: personal Brier after judging (never ranked against others). */
+export interface PredictionBrierScore {
+  id: string;
+  person_id: string;
+  round_id: string;
+  brier: number;
+  item_briers: Partial<Record<AppeItemKey, number>>;
+  predicted_mean: number | null;
+  actual_mean: number | null;
+  created_at: string;
+}

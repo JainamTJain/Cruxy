@@ -85,6 +85,16 @@ export async function POST(
   const { id } = await ctx.params;
   const body = (await req.json()) as { action?: string; phase?: RoundPhase };
   if (body.action === "start") {
+    const { assertPredictionsReady } = await import(
+      "@/lib/practice/predictions"
+    );
+    const gate = await assertPredictionsReady(id);
+    if (!gate.ok) {
+      return NextResponse.json(
+        { error: gate.reason, missing: gate.missing },
+        { status: 400 },
+      );
+    }
     const round = await startRound(id);
     return NextResponse.json({ round });
   }

@@ -9,6 +9,7 @@ import {
   saveJudgeCard,
 } from "@/lib/db/practice-repository";
 import { analyseHumanCard } from "@/lib/practice/judge-card-analysis";
+import { syncCalibratedJudgeForRound } from "@/lib/practice/calibrated-judge";
 import { validateEvidence } from "@/lib/practice/appe-card";
 import type { AppeItemKey, CardScore, JudgeCard } from "@/lib/practice/types";
 import { nowIso } from "@/lib/utils";
@@ -152,12 +153,24 @@ export async function POST(req: Request) {
   card.calibration_use = bundle.analysis.effective_use;
   await saveJudgeCard(card, scores);
 
+  // Wave 6 C: pair this human card with Cruxy's card and refresh kappa.
+  await syncCalibratedJudgeForRound({
+    roundId: body.roundId,
+    personId: session?.personId ?? null,
+  });
+
   await logActivity({
     person_id: session?.personId ?? null,
     action: body.peer ? "peer_judge_card" : "judge_card_submitted",
     target: body.roundId,
     meta: { teamId: body.teamId, use: bundle.analysis.effective_use },
   });
+
+  // Wave 6: refresh personal Brier when human cards arrive.
+  const { computeBrierAfterJudging } = await import(
+    "@/lib/practice/predictions"
+  );
+  await computeBrierAfterJudging({ roundId: body.roundId });
 
   return NextResponse.json({
     card: {

@@ -9,6 +9,7 @@ import {
 } from "@/lib/ops/privacy-scope";
 import { filterCitedFeedback } from "@/lib/practice/feedback";
 import { filterDisplayableScores } from "@/lib/practice/appe-card";
+import { getCalibratedJudgeForReport } from "@/lib/practice/calibrated-judge";
 
 export async function GET(
   _req: Request,
@@ -44,6 +45,7 @@ export async function GET(
         (r) =>
           r.person_id === session.personId || r.person_id === "unknown",
       );
+  const calibrated = await getCalibratedJudgeForReport(id);
 
   return NextResponse.json({
     round,
@@ -69,5 +71,6 @@ export async function GET(
     people: extras.people,
     teams: extras.teams,
     judges: extras.judges,
+    calibrated,
   });
 }
