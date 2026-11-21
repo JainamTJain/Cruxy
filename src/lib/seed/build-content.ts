@@ -704,11 +704,7 @@ export async function buildContentSeed(
           c.case_id === item.case_id &&
           (item.text.includes(c.text.slice(0, 40)) ||
             c.text.includes(item.text.slice(0, 40))),
-      ) ??
-      claims.find(
-        (c) => c.team_id === item.team_id && c.case_id === item.case_id,
-      ) ??
-      null;
+      ) ?? null;
     flashcards.push({
       id: seedUuid(`card:${item.id}`),
       team_id: item.team_id,

@@ -29,14 +29,7 @@ alter table node_mastery enable row level security;
 
 revoke all on table node_mastery from anon, authenticated;
 
-do $$
-begin
-  if not exists (
-    select 1 from pg_policies where policyname = 'node_mastery_read' and tablename = 'node_mastery'
-  ) then
-    create policy node_mastery_read on node_mastery for select using (true);
-  end if;
-end $$;
+-- No client policies: node mastery is personal and read only through server routes (deny by default, see 00019).
 
 comment on column flashcards.claim_id is
   'Claim-map node this card drills. Null until linked.';
