@@ -1,0 +1,61 @@
+<!-- Crux design reference. Translate to Next.js + Tailwind; ignore the <x-dc>, <helmet> and DCLogic wrappers. Sample data only. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crux: flashcards on a phone</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,system-ui,sans-serif;color:#111318}
+.disp{font-family:'Bricolage Grotesque',Inter,sans-serif}
+.g{height:56px;border-radius:12px;border:none;font:700 14px Inter,sans-serif;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.g span{font-size:11px;font-weight:500}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F3F4F6; display: flex; flex-direction: column; padding: 18px; gap: 14px; overflow: hidden">
+  <div style="display: flex; justify-content: space-between; align-items: center">
+    <span class="disp" style="font-size: 26px; font-weight: 800; letter-spacing: -0.03em">crux</span>
+    <span style="font-size: 12px; font-weight: 700; color: #5A606B">18 due · sample</span>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <span style="font-size: 13px; font-weight: 700"><span style="color: #9D2235">Case 9</span> · your lead deck · 64 cards</span>
+    <div style="height: 6px; border-radius: 999px; background: #E3E5E9"><div style="width: 44%; height: 6px; border-radius: 999px; background: #111318"></div></div>
+  </div>
+
+  <section style="flex: 1; display: flex; flex-direction: column; gap: 12px">
+    <div style="background: #111318; color: #FFFFFF; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 11px; font-weight: 700; letter-spacing: .1em; color: #F5B700">COUNTERCLAIM ANSWER</span>
+      <p class="disp" style="margin: 0; font-size: 24px; line-height: 1.2; font-weight: 600">How do we answer Waldron's "the claim is superseded"?</p>
+    </div>
+    <div style="background: #FFFFFF; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 10px; border: 2px solid #111318">
+      <span style="font-size: 11px; font-weight: 700; letter-spacing: .1em; color: #5A606B">TEAM 3 v7 ANSWER</span>
+      <p style="margin: 0; font-size: 16px; line-height: 1.5"><strong>Concede</strong> it for land, where return displaces people. <strong>Distinguish:</strong> returning one object displaces no one. <strong>Rebut:</strong> our claim rests on responsibility, not blame.</p>
+      <span style="align-self: flex-start; font: 500 11px 'IBM Plex Mono', monospace; padding: 3px 7px; border-radius: 6px; background: #F3F4F6">Truth Source · Waldron 1992</span>
+    </div>
+    <button style="height: 48px; border-radius: 12px; border: 1px solid #C9CCD3; background: #FFFFFF; font: 600 14px Inter, sans-serif; cursor: pointer">Say it out loud instead</button>
+  </section>
+
+  <div style="display: flex; flex-direction: column; gap: 8px">
+    <span style="font-size: 12px; font-weight: 600; color: #5A606B; text-align: center">How well did you know it?</span>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
+      <button class="g" style="background: #FDECEC; color: #9D2235">Again<span>1 min</span></button>
+      <button class="g" style="background: #FFFFFF; color: #111318">Hard<span>10 min</span></button>
+      <button class="g" style="background: #111318; color: #FFFFFF">Good<span>2 days</span></button>
+      <button class="g" style="background: #E8F5F1; color: #0B5E53">Easy<span>5 days</span></button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

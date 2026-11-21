@@ -10,7 +10,6 @@ import type {
   Highlight,
   LibraryFile,
   Passage,
-  Proposal,
   ResearchRun,
   SyncRun,
 } from "@/lib/library/types";
@@ -192,15 +191,6 @@ export async function createComment(
     s.comments.push(row);
   });
   return row;
-}
-
-export async function saveProposal(proposal: Proposal): Promise<void> {
-  requireSample();
-  await updateStore((s) => {
-    const i = s.proposals.findIndex((p) => p.id === proposal.id);
-    if (i >= 0) s.proposals[i] = proposal;
-    else s.proposals.push(proposal);
-  });
 }
 
 export async function saveFlashcard(card: Flashcard): Promise<void> {

@@ -112,18 +112,7 @@ export interface BookRequest {
   created_by: string | null;
 }
 
-export interface Proposal {
-  id: string;
-  team_id: string;
-  case_id: string | null;
-  origin: "transcript" | "research" | "reading" | "inspired_by_team";
-  origin_ref: string | null;
-  text: string;
-  cruxy_note: string | null;
-  status: "pending" | "accepted" | "rejected" | "edited";
-  created_at: string;
-  created_by: string | null;
-}
+/** Proposals live in case-brain types (shared Truth Sources queue). */
 
 export interface Flashcard {
   id: string;

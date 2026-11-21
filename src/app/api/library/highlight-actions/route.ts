@@ -1,11 +1,11 @@
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/require-session";
+import { createProposal } from "@/lib/case-brain/service";
 import {
   getPassage,
   getLibraryFile,
   saveFlashcard,
-  saveProposal,
 } from "@/lib/db/library-repository";
 import { logActivity } from "@/lib/db/repository";
 import { nowIso } from "@/lib/utils";
@@ -67,20 +67,23 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
+  if (!caseId) {
+    return NextResponse.json(
+      { error: "File must be tagged to a case before proposing" },
+      { status: 400 },
+    );
+  }
 
-  const proposal = {
-    id: randomUUID(),
-    team_id: teamId,
-    case_id: caseId,
-    origin: "reading" as const,
-    origin_ref: passage.id,
+  const proposal = await createProposal({
+    teamId,
+    caseId,
+    personId: auth.session.personId,
     text,
-    cruxy_note: null,
-    status: "pending" as const,
-    created_at: nowIso(),
-    created_by: auth.session.personId,
-  };
-  await saveProposal(proposal);
+    kind: "quote",
+    origin: "reading",
+    originRef: passage.id,
+    citationIds: [passage.id],
+  });
   await logActivity({
     person_id: auth.session.personId,
     action: "highlight_to_proposal",

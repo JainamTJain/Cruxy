@@ -1,13 +1,16 @@
 # Crux
 
-Web app for USC’s three Ethics Bowl teams. **Cruxy** is the built-in thinking partner (users never see “AI” or model names).
+Web app for USC’s three Ethics Bowl teams.
 
-## Tracks shipped
+**Building with Cursor:** start every chat by @-mentioning `AGENTS.md` and the track file in `docs/tracks/`. Everything about the product is indexed in `docs/README.md`. **Cruxy** is the built-in thinking partner (users never see “AI” or model names).
+
+## Tracks landed
 
 | Track | Status |
 |-------|--------|
 | **0 Foundation** | Auth, schema/RLS, `callCruxy`, activity log, design tokens |
 | **1 Library** | Drive sync + digest, reading room, search, nightly research, book requests |
+| **2 Case brain** | Claim maps, Truth Sources queue, Inspired-by, Analyst, opposing positions, robustness |
 
 ### Local / sample-data path
 
@@ -28,6 +31,7 @@ Use it once per person, then choose your own 6-digit passcode.
 ```bash
 npm run check:track0
 npm run check:track1
+npm run check:track2
 ```
 
 Track 1 checks: unchanged re-sync → 0 AI calls; every passage has Drive id + anchor; sorting queue lists confidence &lt; 0.7.
@@ -40,10 +44,11 @@ Track 1 checks: unchanged re-sync → 0 AI calls; every passage has Drive id + a
 - Reading room: `/library/[fileId]` — case pane + file, highlights, comments, ask Cruxy, → flashcard / Truth Source proposal
 - Search: `/library/search` · Sorting queue: `/library/sorting`
 - Nightly research cron `30 7 * * *` → `/api/cron/research`; book requests at `/admin/books` (tech admin only)
+- Research / reading / transcript ideas post into the shared Track 2 proposals queue
 
 ### Still needed from Jainam for production
 
-1. **Supabase** — `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; apply `supabase/migrations/00001_track0_foundation.sql`, `00002_track1_library.sql`, and `supabase/seed.sql`
+1. **Supabase** — `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; apply `00001_track0_foundation.sql`, `00002_track2_case_brain.sql`, `00003_track1_library.sql`, and `supabase/seed.sql`
 2. **AI gateway** — `AI_GATEWAY_API_KEY` or `OPENROUTER_API_KEY` (Librarian/Researcher stub until set)
 3. **Drive** — share the Ethics Bowl root folder with `crux-drive-reader@crux-ethics-bowl-jainam-jain.iam.gserviceaccount.com`, then set `DRIVE_ROOT_FOLDER_ID` (service account JSON via `GOOGLE_SERVICE_ACCOUNT_JSON`)
 4. Optional: `CRON_SECRET` for cron routes

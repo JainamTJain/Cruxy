@@ -1,15 +1,16 @@
 import { randomUUID } from "crypto";
 import { extractDriveText, listDriveFiles } from "@/lib/library/drive";
 import { digestListedFile } from "@/lib/library/digest";
+import { createProposal } from "@/lib/case-brain/service";
 import {
   getLibraryFileByDriveId,
   listCases,
   listTeams,
   replaceFilePassages,
   saveLibraryFile,
-  saveProposal,
   saveSyncRun,
 } from "@/lib/db/library-repository";
+import { readStore } from "@/lib/db/sample-store";
 import { logActivity } from "@/lib/db/repository";
 import type { SyncRun } from "@/lib/library/types";
 import { nowIso } from "@/lib/utils";
@@ -25,6 +26,16 @@ export type SyncResult = {
   run: SyncRun;
   message: string;
 };
+
+async function resolveActorId(personId?: string | null): Promise<string> {
+  if (personId) return personId;
+  const store = await readStore();
+  return (
+    store.people.find((p) => p.role === "tech_admin")?.id ??
+    store.people[0]?.id ??
+    "system"
+  );
+}
 
 /**
  * Nightly / Sync now. Only new or changed files are digested.
@@ -47,6 +58,7 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
 
   const cases = await listCases();
   const teams = await listTeams();
+  const actorId = await resolveActorId(opts.personId);
 
   for (const file of listed.files) {
     const existing = await getLibraryFileByDriveId(file.drive_id);
@@ -79,24 +91,22 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
     filesProcessed += 1;
 
     // Practice transcript ideas → proposals for each team (Truth Source queue)
+    const caseId = digested.file.case_ids[0] ?? null;
     if (
       digested.file.type === "practice_transcript" &&
-      digested.ideas.length > 0
+      digested.ideas.length > 0 &&
+      caseId
     ) {
-      const caseId = digested.file.case_ids[0] ?? null;
       for (const team of teams) {
         for (const idea of digested.ideas) {
-          await saveProposal({
-            id: randomUUID(),
-            team_id: team.id,
-            case_id: caseId,
-            origin: "transcript",
-            origin_ref: digested.file.id,
+          await createProposal({
+            teamId: team.id,
+            caseId,
+            personId: actorId,
             text: idea,
-            cruxy_note: null,
-            status: "pending",
-            created_at: nowIso(),
-            created_by: opts.personId ?? null,
+            kind: "other",
+            origin: "transcript",
+            originRef: digested.file.id,
           });
         }
       }

@@ -1,14 +1,15 @@
 import { randomUUID } from "crypto";
 import { callCruxy } from "@/lib/cruxy/callCruxy";
+import { createProposal } from "@/lib/case-brain/service";
 import {
   listBookRequests,
   listCases,
   listLibraryFiles,
   listTeams,
   saveBookRequest,
-  saveProposal,
   saveResearchRun,
 } from "@/lib/db/library-repository";
+import { readStore } from "@/lib/db/sample-store";
 import { logActivity } from "@/lib/db/repository";
 import type {
   BookRequest,
@@ -105,6 +106,13 @@ export async function runNightlyResearch(opts?: {
     ? cases.filter((c) => opts.caseNumbers!.includes(c.number))
     : cases;
 
+  const store = await readStore();
+  const actorId =
+    opts?.personId ??
+    store.people.find((p) => p.role === "tech_admin")?.id ??
+    store.people[0]?.id ??
+    "system";
+
   const runs: ResearchRun[] = [];
   let bookRequestsCreated = 0;
   let proposalsCreated = 0;
@@ -158,17 +166,14 @@ export async function runNightlyResearch(opts?: {
 
     for (const team of teams) {
       for (const finding of findings) {
-        await saveProposal({
-          id: randomUUID(),
-          team_id: team.id,
-          case_id: c.id,
-          origin: "research",
-          origin_ref: run.id,
+        await createProposal({
+          teamId: team.id,
+          caseId: c.id,
+          personId: actorId,
           text: `${finding.point} (${finding.link})`,
-          cruxy_note: finding.needs_check ? "needs check — single or stub source" : null,
-          status: "pending",
-          created_at: nowIso(),
-          created_by: null,
+          kind: "fact",
+          origin: "research",
+          originRef: run.id,
         });
         proposalsCreated += 1;
       }

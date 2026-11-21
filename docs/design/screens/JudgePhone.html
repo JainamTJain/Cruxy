@@ -1,0 +1,65 @@
+<!-- Crux design reference. Translate to Next.js + Tailwind; ignore the <x-dc>, <helmet> and DCLogic wrappers. Sample data only. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crux: judge's scoring card on a phone</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,system-ui,sans-serif;color:#111318}
+.disp{font-family:'Bricolage Grotesque',Inter,sans-serif}
+.n{width:32px;height:44px;border-radius:8px;border:1px solid #E3E5E9;background:#FFFFFF;font:600 13px Inter,sans-serif;color:#111318;padding:0;cursor:pointer}
+.on{background:#111318;color:#FFFFFF;border-color:#111318}
+.item{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-top:1px solid #ECEEF1}
+.q{font-size:13px;line-height:1.4;color:#3B404A}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFFF; display: flex; flex-direction: column; overflow: hidden">
+  <div style="background: #9D2235; color: #FFFFFF; padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 4px">
+    <span style="font-size: 11px; font-weight: 700; letter-spacing: .1em">JUDGING · ROUND 1 · CASE 9 · SAMPLE</span>
+    <span class="disp" style="font-size: 24px; font-weight: 800">Prof. [name]</span>
+    <span style="font-size: 12px; color: #F3D0D6">APPE scoring sheet, as in the team's Drive</span>
+  </div>
+  <div role="tablist" aria-label="Team" style="display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #E3E5E9">
+    <button role="tab" aria-selected="true" style="height: 48px; border: none; border-bottom: 3px solid #111318; background: #FFFFFF; font: 700 14px Inter, sans-serif; cursor: pointer">Team 3 · presenting</button>
+    <button role="tab" aria-selected="false" style="height: 48px; border: none; background: #FFFFFF; font: 600 14px Inter, sans-serif; color: #5A606B; cursor: pointer">Team 1 · commenting</button>
+  </div>
+  <div style="flex: 1; padding: 4px 18px 0; display: flex; flex-direction: column; overflow: hidden">
+    <div class="item">
+      <strong style="font-size: 14px">Presentation A</strong>
+      <span class="q">Was the presentation clear and systematic?</span>
+      <div style="display: flex; gap: 2px"><button class="n">1</button><button class="n">2</button><button class="n">3</button><button class="n">4</button><button class="n">5</button><button class="n on">6</button><button class="n">7</button><button class="n">8</button><button class="n">9</button><button class="n">10</button></div>
+    </div>
+    <div class="item">
+      <strong style="font-size: 14px">Presentation B</strong>
+      <span class="q">Did the presentation clearly identify and thoroughly discuss the central moral dimensions of the case?</span>
+      <div style="display: flex; gap: 2px"><button class="n">1</button><button class="n">2</button><button class="n">3</button><button class="n">4</button><button class="n">5</button><button class="n">6</button><button class="n">7</button><button class="n on">8</button><button class="n">9</button><button class="n">10</button></div>
+    </div>
+    <div class="item">
+      <strong style="font-size: 14px">Presentation C</strong>
+      <span class="q">Did the presentation show awareness of and thoughtful consideration for different viewpoints, especially those that would weigh heavily for those who disagree?</span>
+      <div style="display: flex; gap: 2px"><button class="n">1</button><button class="n">2</button><button class="n">3</button><button class="n">4</button><button class="n">5</button><button class="n">6</button><button class="n">7</button><button class="n">8</button><button class="n">9</button><button class="n">10</button></div>
+      <label for="cc" style="font-size: 12px; font-weight: 600">Comment on C</label>
+      <input id="cc" placeholder="What would raise this score?" style="height: 40px; border-radius: 10px; border: 1px solid #E3E5E9; padding: 0 10px; font: 400 14px Inter, sans-serif">
+    </div>
+    <span style="font-size: 12px; color: #5A606B; padding-top: 6px">Scroll for commentary, responses and spirit points</span>
+  </div>
+  <div style="padding: 12px 18px 18px; border-top: 1px solid #E3E5E9; display: flex; gap: 10px; align-items: center">
+    <button style="flex: 1; height: 50px; border-radius: 12px; border: none; background: #F5B700; color: #111318; font: 700 15px Inter, sans-serif; cursor: pointer">Mark this moment</button>
+    <span style="text-align: right"><span class="disp" style="font-size: 26px; font-weight: 800">14</span><span style="font-size: 12px; color: #5A606B">/30 so far</span></span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

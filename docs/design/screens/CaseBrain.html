@@ -1,0 +1,177 @@
+<!-- Crux design reference. Translate to Next.js + Tailwind; ignore the <x-dc>, <helmet> and DCLogic wrappers. Sample data only. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crux: case brain</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;font-family:Inter,system-ui,sans-serif;color:#111318}
+a{color:inherit;text-decoration:none}
+.disp{font-family:'Bricolage Grotesque',Inter,sans-serif}
+.lab{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5A606B}
+.nav{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;font-size:15px;font-weight:500;color:#C9CCD3}
+.nav:hover{background:#1E2129;color:#FFFFFF}
+.src{display:inline-flex;align-items:center;font:500 12px 'IBM Plex Mono',monospace;padding:3px 8px;border-radius:6px;background:#F3F4F6;color:#3B404A}
+.sup{background:#F7F8FA;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.tab{padding:10px 14px;font-size:14px;font-weight:600;color:#5A606B;border-bottom:3px solid transparent}
+.seg{padding:8px 14px;border-radius:10px;font:600 13px Inter,sans-serif;border:none;background:transparent;color:#3B404A;cursor:pointer}
+.dec{height:42px;border-radius:12px;border:1px solid #E3E5E9;background:#FFFFFF;font:600 14px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.role{display:flex;flex-direction:column;gap:6px;padding:12px 14px;background:#FFFFFF;border-radius:14px}
+.role select{height:36px;border-radius:10px;border:1px solid #E3E5E9;font:600 14px Inter,sans-serif;padding:0 8px;background:#F7F8FA;color:#111318}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap">
+  <aside style="flex: 0 0 248px; background: #111318; color: #FFFFFF; padding: 28px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 28px">
+    <span class="disp" style="font-size: 38px; font-weight: 800; letter-spacing: -0.04em; padding: 0 12px">crux</span>
+    <nav aria-label="Main" style="display: flex; flex-direction: column; gap: 2px">
+      <a class="nav" href="Home.html">Program map</a>
+      <a class="nav" href="Roadmap.html">My roadmap</a>
+      <a class="nav" href="CaseBrain.html" style="background: #9D2235; color: #FFFFFF">Cases</a>
+      <a class="nav" href="Reading.html">Reading room</a>
+      <a class="nav" href="Practice.html">Practice</a>
+      <a class="nav" href="Feedback.html">Reports</a>
+      <a class="nav" href="#">Team chat</a>
+    </nav>
+    <button style="margin-top: auto; height: 44px; border-radius: 12px; border: none; background: #F5B700; color: #111318; font: 700 15px Inter, sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px"><img src="/cruxy/cruxy-lamp.png" alt="" style="width: 42px; height: auto">Ask Cruxy</button>
+  </aside>
+
+  <main style="flex: 999 1 640px; min-width: 0; padding: 32px 40px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 20px">
+      <div style="display: flex; align-items: flex-end; gap: 20px">
+        <span class="disp" style="font-size: 120px; line-height: .8; font-weight: 800; color: #9D2235; letter-spacing: -0.05em">09</span>
+        <div style="display: flex; flex-direction: column; gap: 6px; max-width: 620px">
+          <span class="lab">Case brain · Team 3 · sample data</span>
+          <h1 class="disp" style="margin: 0; font-size: 44px; line-height: 1; font-weight: 800; letter-spacing: -0.02em">GEM in the Rough</h1>
+          <p style="margin: 0; font-size: 16px; color: #3B404A">Crux: righting a wartime taking <em>versus</em> preservation, global access and the law.</p>
+        </div>
+      </div>
+      <div role="tablist" aria-label="Whose case brain" style="display: flex; gap: 4px; background: #E3E5E9; padding: 4px; border-radius: 12px">
+        <button class="seg" role="tab" aria-selected="false">Team 1</button>
+        <button class="seg" role="tab" aria-selected="false">Team 2</button>
+        <button class="seg" role="tab" aria-selected="true" style="background: #FFFFFF; color: #C2410C">Team 3</button>
+        <button class="seg" role="tab" aria-selected="false">Compare</button>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+      <label class="role"><span class="lab">Lead 1</span><select><option>Jainam</option><option>Nick</option><option>Daniel</option><option>Katie</option></select></label>
+      <label class="role"><span class="lab">Lead 2</span><select><option>Katie</option><option>Nick</option><option>Daniel</option><option>Jainam</option></select></label>
+      <label class="role"><span class="lab">Counter-arguer</span><select><option>Daniel</option><option>Nick</option><option>Katie</option><option>Jainam</option></select></label>
+      <label class="role"><span class="lab">Supporter</span><select><option>Nick</option><option>Daniel</option><option>Katie</option><option>Jainam</option></select></label>
+    </div>
+
+    <nav aria-label="Case sections" style="display: flex; gap: 4px; border-bottom: 1px solid #E3E5E9; flex-wrap: wrap">
+      <a class="tab" href="#" style="color: #111318; border-bottom-color: #9D2235">Claim map</a>
+      <a class="tab" href="#">Truth Sources · 38</a>
+      <a class="tab" href="Reading.html">Readings · 12</a>
+      <a class="tab" href="#">Flashcards · 64</a>
+      <a class="tab" href="#">Questions · 24</a>
+      <a class="tab" href="#">Research</a>
+    </nav>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+      <div style="flex: 999 1 620px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+        <section style="background: #FFFFFF; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
+            <span style="display: flex; align-items: center; gap: 10px"><span class="disp" style="font-size: 15px; font-weight: 800; background: #111318; color: #FFFFFF; border-radius: 8px; padding: 4px 9px">C1</span><span style="font-size: 13px; color: #5A606B">Jainam · 3 of 3 supports backed</span></span>
+            <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600"><span style="width: 120px; height: 8px; border-radius: 999px; background: #ECEEF1"><span style="display: block; width: 92%; height: 8px; border-radius: 999px; background: #C2410C"></span></span>92% robust</span>
+          </div>
+          <h2 class="disp" style="margin: 0; font-size: 26px; line-height: 1.15; font-weight: 600">The British Museum's title is defective, and the duty to repair falls on the institution that still benefits.</h2>
+          <p style="margin: 0; font: 500 14px 'IBM Plex Mono', monospace; color: #3B404A">Because S1, S2 and S3 → Claim 1</p>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+            <div class="sup"><strong style="font-size: 14px">S1 · A broken first link</strong><span style="font-size: 14px; line-height: 1.45; color: #3B404A">A spoil of war passed between empires is not a just transfer.</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><span class="src">Nozick 1974</span><span class="src">Case set p. [n]</span></div></div>
+            <div class="sup"><strong style="font-size: 14px">S2 · Caretaker rule fails</strong><span style="font-size: 14px; line-height: 1.45; color: #3B404A">"Keep it if you care for it better" can't be universalised.</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><span class="src">Kant</span><span class="src">Practice Nov 12 · 14:32</span></div></div>
+            <div class="sup"><strong style="font-size: 14px">S3 · Responsibility, not blame</strong><span style="font-size: 14px; line-height: 1.45; color: #3B404A">Power and benefit put the duty on today's holder.</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><span class="src">Young 2011</span><span class="src">Ross</span></div></div>
+          </div>
+        </section>
+
+        <section style="background: #FFFFFF; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
+            <span style="display: flex; align-items: center; gap: 10px"><span class="disp" style="font-size: 15px; font-weight: 800; background: #111318; color: #FFFFFF; border-radius: 8px; padding: 4px 9px">C2</span><span style="font-size: 13px; color: #5A606B">Katie · 2 of 3 supports backed</span></span>
+            <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600"><span style="width: 120px; height: 8px; border-radius: 999px; background: #ECEEF1"><span style="display: block; width: 61%; height: 8px; border-radius: 999px; background: #C2410C"></span></span>61% robust</span>
+          </div>
+          <h2 class="disp" style="margin: 0; font-size: 26px; line-height: 1.15; font-weight: 600">The classic reasons for keeping the Stone no longer hold; return it with a partnership, now.</h2>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+            <div class="sup"><strong style="font-size: 14px">S1 · Care is now a tie</strong><div style="display: flex; flex-wrap: wrap; gap: 6px"><span class="src">GEM, case set</span></div></div>
+            <div class="sup"><strong style="font-size: 14px">S2 · The law already bends</strong><div style="display: flex; flex-wrap: wrap; gap: 6px"><span class="src">Human Tissue Act s.47</span></div></div>
+            <div class="sup" style="background: #FFFFFF; border: 2px dashed #C62828"><strong style="font-size: 14px">S3 · Return well, and early</strong><span style="font-size: 13px; color: #C62828; font-weight: 600">No backing yet · 1 waiting in the queue</span></div>
+          </div>
+        </section>
+
+        <section style="background: #111318; color: #FFFFFF; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+          <span style="display: flex; align-items: center; gap: 10px"><span class="disp" style="font-size: 15px; font-weight: 800; background: #FFFFFF; color: #111318; border-radius: 8px; padding: 4px 9px">vs</span><span style="font-size: 13px; color: #9AA0AA">Counterclaim · Daniel</span></span>
+          <h2 class="disp" style="margin: 0; font-size: 24px; line-height: 1.2; font-weight: 600">"After 225 years, the claim is superseded." (Waldron 1992)</h2>
+          <p style="margin: 0; font-size: 15px; line-height: 1.5; color: #D6D9DF"><strong style="color: #FFFFFF">Concede</strong> it for land. <strong style="color: #FFFFFF">Distinguish:</strong> one object displaces no one. <strong style="color: #FFFFFF">Rebut:</strong> the claim rests on responsibility, not blame.</p>
+        </section>
+
+        <section style="background: #FFFFFF; border-radius: 20px; padding: 18px 22px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between">
+          <span style="font-size: 14px; line-height: 1.45"><strong>Flashcards from these readings · 64 cards.</strong> Leads Jainam and Katie get them automatically. Also studying: Daniel <span style="color: #8A6500; font-weight: 600">(not assigned)</span></span>
+          <a href="#" style="padding: 12px 18px; border-radius: 12px; background: #111318; color: #FFFFFF; font-weight: 600; font-size: 14px">Study the deck</a>
+        </section>
+      </div>
+
+      <aside style="flex: 1 1 340px; display: flex; flex-direction: column; gap: 16px">
+        <section aria-labelledby="q" style="background: #FFFFFF; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; justify-content: space-between; align-items: baseline">
+            <h2 id="q" class="disp" style="margin: 0; font-size: 22px; font-weight: 800">Waiting for Team 3</h2>
+            <span class="disp" style="font-size: 22px; font-weight: 800; color: #9D2235">4</span>
+          </div>
+
+          <article style="display: flex; flex-direction: column; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid #ECEEF1">
+            <span style="align-self: flex-start; font-size: 12px; font-weight: 700; color: #FFFFFF; background: #0F7B6C; border-radius: 6px; padding: 3px 8px">Inspired by Team 1</span>
+            <p style="margin: 0; font-size: 15px; line-height: 1.45; font-weight: 500">Egypt's 2009 Louvre stand-off shows an early, voluntary return buys goodwill. Use it to back C2 S3.</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px"><span class="src">France 24, 2009</span><span class="src">Team 1 edit by Ivan</span></div>
+            <label for="r1" style="font-size: 13px; font-weight: 600">Your reason</label>
+            <input id="r1" placeholder="One line on why" style="height: 42px; border-radius: 10px; border: 1px solid #E3E5E9; padding: 0 12px; font: 400 14px Inter, sans-serif">
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px">
+              <button class="dec" aria-label="Accept">✅ Accept</button>
+              <button class="dec" aria-label="Reject">❌ Reject</button>
+              <button class="dec" style="padding: 0 14px">Edit</button>
+            </div>
+            <span style="font-size: 13px; color: #5A606B"><span style="color: #0F7B6C; font-weight: 700">Team 1 ✅</span> Ivan: use it in Q&amp;A only · <span style="color: #4F46E5; font-weight: 700">Team 2</span> hasn't decided</span>
+          </article>
+
+          <article style="display: flex; flex-direction: column; gap: 8px; padding-bottom: 14px; border-bottom: 1px solid #ECEEF1">
+            <span style="align-self: flex-start; font-size: 12px; font-weight: 700; color: #3B404A; background: #ECEEF1; border-radius: 6px; padding: 3px 8px">From practice · Nov 12 · 41:10 · Nick</span>
+            <p style="margin: 0; font-size: 15px; line-height: 1.45; font-weight: 500">"The Stone toured Chicago in the 1980s."</p>
+            <span style="font-size: 13px; color: #C62828; font-weight: 600">Cruxy found no source: it left London only for wartime storage and one month in Paris (1972).</span>
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px">
+              <button class="dec">✅ Accept</button><button class="dec">❌ Reject</button><button class="dec" style="padding: 0 14px">Edit</button>
+            </div>
+          </article>
+
+          <article style="display: flex; flex-direction: column; gap: 8px">
+            <span style="align-self: flex-start; font-size: 12px; font-weight: 700; color: #111318; background: #F5B700; border-radius: 6px; padding: 3px 8px">Cruxy research</span>
+            <p style="margin: 0; font-size: 15px; line-height: 1.45; font-weight: 500">UK Charities Act 2022 moral-obligation power took effect Nov 2025 but excludes the British Museum.</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px"><span class="src">Museums Association</span><span class="src">The Art Newspaper</span></div>
+          </article>
+        </section>
+
+        <section aria-labelledby="cov" style="background: #FFFFFF; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+          <h2 id="cov" class="disp" style="margin: 0; font-size: 20px; font-weight: 800">Research coverage</h2>
+          <div style="display: grid; grid-template-columns: 56px repeat(4, minmax(0, 1fr)); gap: 8px; align-items: center; font-size: 12px; font-weight: 600; color: #5A606B">
+            <span></span><span>S1</span><span>S2</span><span>S3</span><span>vs</span>
+            <span>C1</span><span style="width: 16px; height: 16px; border-radius: 50%; background: #111318"></span><span style="width: 16px; height: 16px; border-radius: 50%; background: #111318"></span><span style="width: 16px; height: 16px; border-radius: 50%; background: #111318"></span><span style="width: 16px; height: 16px; border-radius: 50%; background: #111318"></span>
+            <span>C2</span><span style="width: 16px; height: 16px; border-radius: 50%; background: #111318"></span><span style="width: 16px; height: 16px; border-radius: 50%; background: linear-gradient(90deg, #111318 50%, #E3E5E9 50%)"></span><span style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid #C62828; box-sizing: border-box"></span><span style="width: 16px; height: 16px; border-radius: 50%; background: #111318"></span>
+          </div>
+          <span style="font-size: 13px; line-height: 1.45; color: #3B404A">14 of 16 gaps closed with two verified sources. Cruxy is searching C2 S3 tonight.</span>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
