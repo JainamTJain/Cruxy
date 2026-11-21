@@ -65,8 +65,8 @@ export default function CalibrationPage() {
             <p className="mt-1 font-mono text-sm">
               gap {r.gap > 0 ? "+" : ""}
               {r.gap}
-              {r.judge_name ? ` · ${r.judge_name}` : ""}
-              {r.weight != null ? ` · weight ${r.weight}` : ""}
+              {r.judge_name ? `, ${r.judge_name}` : ""}
+              {r.weight != null ? `, weight ${r.weight}` : ""}
             </p>
           </li>
         ))}

@@ -90,7 +90,17 @@ type Overview = {
     optedIn: boolean;
     email: string | null;
     nextSend: string;
-    preview: { recipients: { name: string }[] };
+    preview: {
+      attendance: { name: string; sessions: number; present: number }[];
+      scoresByTeam: { team: string; rounds: number; avg: number }[];
+      biggestImprovements: string[];
+      casesAtRisk: string[];
+      openDisagreements: string[];
+      thingsToCare: string[];
+      spendLine: string | null;
+      errors: string[];
+      recipients: { name: string; email: string; includeSpend: boolean }[];
+    };
   };
 };
 
@@ -128,7 +138,7 @@ function formatActivity(e: Overview["activity"]["entries"][0]): string {
   const a = e.action;
   if (a === "passcode_reveal") return `Showed a passcode`;
   if (a === "passcode_reset") return `Reset a passcode`;
-  if (a === "sign_in_locked") return `5 wrong codes · locked 10 min`;
+  if (a === "sign_in_locked") return `5 wrong codes, locked 10 min`;
   if (a === "sign_in_failed") return `Wrong passcode try`;
   if (a === "decision_accept") return e.meta?.reason
     ? `✅ ${String(e.meta.reason)}`
@@ -187,10 +197,16 @@ export function AdminConsole() {
   const [deletePersonId, setDeletePersonId] = useState("");
   const [privacyMsg, setPrivacyMsg] = useState<string | null>(null);
   const [seasonMsg, setSeasonMsg] = useState<string | null>(null);
+  const [seasonDownload, setSeasonDownload] = useState<string | null>(null);
   const [backupNote, setBackupNote] = useState<string>(
     "Checking backup status…",
   );
   const [backupAt, setBackupAt] = useState<string | null>(null);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [movePersonId, setMovePersonId] = useState("");
+  const [moveTeamId, setMoveTeamId] = useState("");
+  const [moveMsg, setMoveMsg] = useState<string | null>(null);
+  const [weeklyPreviewOpen, setWeeklyPreviewOpen] = useState(false);
   const [reviewMsg, setReviewMsg] = useState<string | null>(null);
   const [reviewDrafts, setReviewDrafts] = useState<
     {
@@ -399,14 +415,45 @@ export function AdminConsole() {
       return;
     }
     if (action === "send_now") {
+      setWeeklyPreviewOpen(true);
       setWeeklyMsg(
         j.skippedReason ??
-          `Preview sent to ${j.recipientCount} opted-in admin(s)${j.stub ? " (email stub)" : ""}.`,
+          `Preview ready for ${j.recipientCount ?? 0} opted-in admin(s)${
+            j.stub ? " (email stubbed until EMAIL_API_KEY is set)" : ""
+          }.`,
       );
+      await load();
     } else {
       setWeeklyMsg(action === "opt_in" ? "Opted in." : "Opted out.");
       await load();
     }
+  }
+
+  async function movePerson() {
+    if (!movePersonId) {
+      setMoveMsg("Pick a person.");
+      return;
+    }
+    const res = await fetch("/api/admin/people", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        personId: movePersonId,
+        teamId: moveTeamId || null,
+      }),
+    });
+    const j = (await res.json()) as { error?: string; person?: { name: string } };
+    if (!res.ok) {
+      setMoveMsg(j.error ?? "Could not move.");
+      return;
+    }
+    setMoveMsg(
+      moveTeamId
+        ? `Moved ${j.person?.name ?? "person"} to the selected team.`
+        : `Removed ${j.person?.name ?? "person"} from their team.`,
+    );
+    setMovePersonId("");
+    await load();
   }
 
   async function deletePersonData() {
@@ -437,7 +484,7 @@ export function AdminConsole() {
       };
     };
     if (res.status === 501 || j.available === false) {
-      setPrivacyMsg(j.message ?? "Waiting for Workstream I.");
+      setPrivacyMsg(j.message ?? "Privacy delete is not available yet.");
       return;
     }
     if (!res.ok) {
@@ -453,6 +500,7 @@ export function AdminConsole() {
 
   async function runSeasonExport() {
     setSeasonMsg(null);
+    setSeasonDownload(null);
     const res = await fetch("/api/admin/ops/season-export", { method: "POST" });
     const j = (await res.json()) as {
       error?: string;
@@ -463,15 +511,16 @@ export function AdminConsole() {
       downloadPath?: string;
     };
     if (res.status === 501 || j.available === false) {
-      setSeasonMsg(j.message ?? "Waiting for Workstream I.");
+      setSeasonMsg(j.message ?? "Season archive is not available yet.");
       return;
     }
     if (!res.ok) {
       setSeasonMsg(j.error ?? "Export failed.");
       return;
     }
+    setSeasonDownload(j.downloadPath ?? null);
     setSeasonMsg(
-      `Archive ready: ${j.filename} (${j.bytes ?? 0} bytes). Drive upload is not available with the read-only service account.`,
+      `Archive ready: ${j.filename} (${j.bytes ?? 0} bytes). The Drive service account is read only, so download this file yourself.`,
     );
   }
 
@@ -628,6 +677,10 @@ export function AdminConsole() {
               <button
                 type="button"
                 className="h-[38px] self-start rounded-[10px] border border-mist bg-white px-3 text-[13px] font-semibold"
+                onClick={() => {
+                  setMoveOpen(true);
+                  setMoveMsg(null);
+                }}
               >
                 Add or move a person
               </button>
@@ -635,6 +688,65 @@ export function AdminConsole() {
           </section>
         ))}
       </div>
+
+      {moveOpen ? (
+        <section className="flex flex-col gap-3 rounded-[20px] bg-white p-5">
+          <strong>Move a person</strong>
+          <p className="text-sm text-muted">
+            Move someone between teams, or clear their team. New people join
+            through the starter code, not from here.
+          </p>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="flex flex-col gap-1 text-sm">
+              Person
+              <select
+                className="h-[38px] rounded-[10px] border border-mist bg-white px-3"
+                value={movePersonId}
+                onChange={(e) => setMovePersonId(e.target.value)}
+              >
+                <option value="">Pick a person</option>
+                {data.teams.flatMap((t) =>
+                  t.members.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} ({t.name})
+                    </option>
+                  )),
+                )}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              New team
+              <select
+                className="h-[38px] rounded-[10px] border border-mist bg-white px-3"
+                value={moveTeamId}
+                onChange={(e) => setMoveTeamId(e.target.value)}
+              >
+                <option value="">No team</option>
+                {data.teams.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="h-[38px] rounded-[10px] bg-ink px-3 text-[13px] font-semibold text-white"
+              onClick={() => void movePerson()}
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              className="h-[38px] rounded-[10px] border border-mist bg-white px-3 text-[13px] font-semibold"
+              onClick={() => setMoveOpen(false)}
+            >
+              Close
+            </button>
+          </div>
+          {moveMsg ? <p className="text-sm text-muted">{moveMsg}</p> : null}
+        </section>
+      ) : null}
 
       {tech ? (
         <div className="grid gap-3 lg:grid-cols-3">
@@ -662,7 +774,7 @@ export function AdminConsole() {
                     <span>{f.label}</span>
                     <span className="font-mono">
                       ${f.cost_usd.toFixed(2)}
-                      {f.note ? ` · ${f.note}` : ""}
+                      {f.note ? ` (${f.note})` : ""}
                     </span>
                   </div>
                 ))}
@@ -702,7 +814,7 @@ export function AdminConsole() {
                 >
                   <span>
                     <em>{b.title}</em>
-                    {b.chapter ? ` · ${b.chapter}` : ""}
+                    {b.chapter ? `, ${b.chapter}` : ""}
                   </span>
                   <Link
                     href="/admin/books"
@@ -723,7 +835,7 @@ export function AdminConsole() {
                   className="flex items-center justify-between gap-2 rounded-[10px] bg-[#F7F8FA] px-3 py-2.5 text-sm"
                 >
                   <span>
-                    &ldquo;{d.filename}&rdquo; · {d.hint}
+                    &ldquo;{d.filename}&rdquo;, {d.hint}
                   </span>
                   <button
                     type="button"
@@ -946,7 +1058,7 @@ export function AdminConsole() {
                               month: "short",
                               day: "numeric",
                             })
-                          : "·"}
+                          : "not set"}
                       </td>
                       <td
                         className={`px-2.5 py-2.5 ${!p.lastSignIn ? "text-[#C62828]" : ""}`}
@@ -1090,7 +1202,7 @@ export function AdminConsole() {
             <strong>Delete a person&apos;s private data</strong>
             <p className="text-sm text-muted">
               One action: transcript lines, voice sample and comments. Aggregate
-              scores stay. Wired to Workstream I when it lands.
+              scores stay.
             </p>
             <select
               className="h-[38px] rounded-[10px] border border-mist bg-white px-3 text-sm"
@@ -1129,13 +1241,23 @@ export function AdminConsole() {
               Build season archive
             </button>
             {seasonMsg ? <p className="text-sm text-muted">{seasonMsg}</p> : null}
+            {seasonDownload ? (
+              <a
+                href={seasonDownload}
+                className="text-sm font-semibold text-cardinal underline"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Download archive
+              </a>
+            ) : null}
           </section>
 
           <section className="flex flex-col gap-3 rounded-[20px] bg-white p-5">
             <OnlyJainam />
             <strong>Backup status</strong>
             <p className="text-sm text-muted">
-              Weekly logical backup of key tables to Storage (Workstream I).
+              Weekly logical backup of key tables to Storage.
             </p>
             <div className="grid grid-cols-[1fr_auto] gap-1.5 text-[13px]">
               <span>Last backup</span>
@@ -1159,7 +1281,7 @@ export function AdminConsole() {
           </span>
           <p className="text-sm text-muted">
             Cruxy drafts updates to its examples and checks from the week&apos;s
-            feedback. You approve them here. Slot for Workstream H.
+            feedback. You approve them here.
           </p>
           {reviewWaiting ? (
             <p className="rounded-[10px] bg-[#F7F8FA] px-3 py-2 text-sm text-muted">
@@ -1253,8 +1375,11 @@ export function AdminConsole() {
           <strong>Weekly summary</strong>
           <span className="text-sm leading-relaxed text-[#D6D9DF]">
             {data.weekly.optedIn
-              ? `Opted in. Next email ${data.weekly.nextSend}: attendance, scores by team, biggest improvements, cases at risk, open disagreements.`
-              : `Opt in for Sunday 6 pm: attendance, scores by team, biggest improvements, cases at risk, open disagreements.`}
+              ? `Opted in. Next email ${data.weekly.nextSend}: attendance, scores by team, biggest improvements, cases at risk, open disagreements, Things to take care of.`
+              : `Opt in for Sunday 6 pm: attendance, scores by team, biggest improvements, cases at risk, open disagreements, Things to take care of.`}
+            {tech
+              ? " Jainam also gets spend and errors."
+              : ""}
           </span>
           <button
             type="button"
@@ -1281,6 +1406,56 @@ export function AdminConsole() {
           </div>
           {weeklyMsg ? (
             <p className="text-xs text-[#D6D9DF]">{weeklyMsg}</p>
+          ) : null}
+          {weeklyPreviewOpen ? (
+            <div className="mt-1 space-y-2 rounded-[12px] border border-white/15 bg-white/5 p-3 text-xs text-[#D6D9DF]">
+              <p className="font-semibold text-white">This week</p>
+              <p>
+                Recipients:{" "}
+                {data.weekly.preview.recipients.length
+                  ? data.weekly.preview.recipients
+                      .map((r) =>
+                        r.includeSpend ? `${r.name} (with spend)` : r.name,
+                      )
+                      .join(", ")
+                  : "none opted in"}
+              </p>
+              <p>
+                Attendance:{" "}
+                {data.weekly.preview.attendance
+                  .slice(0, 4)
+                  .map((a) => `${a.name} ${a.present}/${a.sessions}`)
+                  .join(", ") || "none"}
+              </p>
+              <p>
+                Scores:{" "}
+                {data.weekly.preview.scoresByTeam
+                  .map((s) => `${s.team} avg ${s.avg}/60`)
+                  .join(", ") || "none"}
+              </p>
+              <p>
+                Improvements:{" "}
+                {data.weekly.preview.biggestImprovements.join("; ") || "none"}
+              </p>
+              <p>
+                At risk:{" "}
+                {data.weekly.preview.casesAtRisk.join("; ") || "none"}
+              </p>
+              <p>
+                Disagreements:{" "}
+                {data.weekly.preview.openDisagreements.join("; ") || "none"}
+              </p>
+              <p>
+                Things:{" "}
+                {data.weekly.preview.thingsToCare.join("; ") || "none"}
+              </p>
+              {tech && data.weekly.preview.spendLine ? (
+                <p>Spend: {data.weekly.preview.spendLine}</p>
+              ) : null}
+              {tech && data.weekly.preview.errors.length ? (
+                <p>Errors: {data.weekly.preview.errors.join("; ")}</p>
+              ) : null}
+            </div>
           ) : null}
         </section>
       </div>

@@ -19,6 +19,43 @@ type SpendData = {
   canEdit: boolean;
 };
 
+const COST_PLAN = [
+  {
+    label: "Transcription with speaker labels",
+    detail:
+      "AssemblyAI Universal-3.5 Pro for rounds; Universal-2 for solo drills. About $9 to $15 a month; early months covered by the $50 credit.",
+  },
+  {
+    label: "Drive digesting",
+    detail: "Small tier once per file, then only on changes. Under $1 once; cents after.",
+  },
+  {
+    label: "Judging and reports",
+    detail: "Strong tier, one call per round with the whole transcript. About $4 to $15.",
+  },
+  {
+    label: "Nightly research",
+    detail: "Small tier in batch; strong only to verify. About $2 to $5.",
+  },
+  {
+    label: "Assistant, drills, flashcards",
+    detail: "Mostly small tier. About $1 to $3.",
+  },
+  {
+    label: "Hosting, database, email",
+    detail: "Vercel and Supabase free tiers; free email tier for the weekly summary. $0 at this size.",
+  },
+] as const;
+
+const CHEAP_RULES = [
+  "Digest once and only re-digest changed files",
+  "Search before sending context",
+  "Cache the fixed prompt prefix",
+  "Batch overnight work",
+  "Delete audio after transcription",
+  "Never send a whole library",
+] as const;
+
 function bucketLabel(feature: string): string {
   const f = feature.toLowerCase();
   if (f.includes("transcri") || f.includes("assembly")) return "Transcription";
@@ -40,6 +77,12 @@ export default function SpendPage() {
   const [data, setData] = useState<SpendData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [draftCaps, setDraftCaps] = useState({
+    monthly_usd: 30,
+    per_round_usd: 0.75,
+    per_research_night_usd: 0.25,
+    per_person_assistant_day_usd: 0.2,
+  });
 
   async function load() {
     const res = await fetch("/api/admin/spend");
@@ -48,7 +91,14 @@ export default function SpendPage() {
       setError(j.error ?? "Forbidden");
       return;
     }
-    setData(await res.json());
+    const next = (await res.json()) as SpendData;
+    setData(next);
+    setDraftCaps({
+      monthly_usd: next.caps.monthly_usd,
+      per_round_usd: next.caps.per_round_usd,
+      per_research_night_usd: next.caps.per_research_night_usd,
+      per_person_assistant_day_usd: next.caps.per_person_assistant_day_usd,
+    });
   }
 
   useEffect(() => {
@@ -70,7 +120,8 @@ export default function SpendPage() {
     return Object.entries(buckets).map(([label, cost_usd]) => ({
       label,
       cost_usd,
-      note: label === "Transcription" && cost_usd === 0 ? "free credit" : undefined,
+      note:
+        label === "Transcription" && cost_usd === 0 ? "free credit" : undefined,
     }));
   }, [data]);
 
@@ -134,7 +185,7 @@ export default function SpendPage() {
           <div className="h-2.5 rounded-full bg-ink" style={{ width: `${pct}%` }} />
         </div>
         <p className="text-sm">
-          Feature ledger sum: ${data.ledgerTotal.toFixed(2)} ·{" "}
+          Feature ledger sum: ${data.ledgerTotal.toFixed(2)}.{" "}
           {data.matchesLedger ? (
             <span className="font-bold text-[#0B5E53]">matches ai_calls</span>
           ) : (
@@ -150,7 +201,7 @@ export default function SpendPage() {
               <span>{f.label}</span>
               <span className="font-mono">
                 ${f.cost_usd.toFixed(2)}
-                {f.note ? ` · ${f.note}` : ""}
+                {f.note ? ` (${f.note})` : ""}
               </span>
             </div>
           ))}
@@ -204,13 +255,49 @@ export default function SpendPage() {
 
       {data.canEdit ? (
         <section className="flex flex-col gap-3 rounded-[20px] bg-white p-5">
-          <strong>Caps</strong>
+          <strong>Caps (enforced in the one Cruxy gateway)</strong>
           <p className="text-sm text-muted">
-            Monthly ${data.caps.monthly_usd} · per round ${data.caps.per_round_usd} ·
-            research night ${data.caps.per_research_night_usd} · assistant/day $
-            {data.caps.per_person_assistant_day_usd}
+            Monthly hard cap ${data.caps.monthly_usd}. At 80% you get an alert;
+            at 100% everything except reading and flashcard review pauses. Per
+            round ${data.caps.per_round_usd}, research night $
+            {data.caps.per_research_night_usd}, assistant per person per day $
+            {data.caps.per_person_assistant_day_usd}.
           </p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {(
+              [
+                ["monthly_usd", "Monthly $"],
+                ["per_round_usd", "Per round $"],
+                ["per_research_night_usd", "Research night $"],
+                ["per_person_assistant_day_usd", "Assistant / day $"],
+              ] as const
+            ).map(([key, label]) => (
+              <label key={key} className="flex flex-col gap-1 text-xs text-muted">
+                {label}
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="h-[38px] rounded-[10px] border border-mist bg-white px-3 font-mono text-[13px] text-ink"
+                  value={draftCaps[key]}
+                  onChange={(e) =>
+                    setDraftCaps((d) => ({
+                      ...d,
+                      [key]: Number(e.target.value),
+                    }))
+                  }
+                />
+              </label>
+            ))}
+          </div>
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="h-[38px] rounded-[10px] bg-ink px-3 text-[13px] font-semibold text-white"
+              onClick={() => void saveCaps(draftCaps)}
+            >
+              Save caps
+            </button>
             <button
               type="button"
               className="h-[38px] rounded-[10px] border border-mist bg-white px-3 text-[13px] font-semibold"
@@ -223,14 +310,49 @@ export default function SpendPage() {
             <button
               type="button"
               className="h-[38px] rounded-[10px] border border-mist bg-white px-3 text-[13px] font-semibold"
-              onClick={() => void saveCaps({ monthly_usd: 30 })}
+              onClick={() =>
+                void saveCaps({
+                  monthly_usd: 30,
+                  per_round_usd: 0.75,
+                  per_research_night_usd: 0.25,
+                  per_person_assistant_day_usd: 0.2,
+                })
+              }
             >
-              Reset monthly to $30
+              Reset to plan defaults
             </button>
           </div>
           {msg ? <p className="text-sm text-muted">{msg}</p> : null}
         </section>
       ) : null}
+
+      <section className="flex flex-col gap-3 rounded-[20px] bg-white p-5">
+        <strong>Cost plan</strong>
+        <p className="text-sm text-muted">
+          Rough monthly estimates at this program size. Live spend above is the
+          source of truth.
+        </p>
+        <ul className="space-y-2 text-sm">
+          {COST_PLAN.map((row) => (
+            <li
+              key={row.label}
+              className="rounded-[10px] bg-[#F7F8FA] px-3 py-2"
+            >
+              <strong className="block">{row.label}</strong>
+              <span className="text-muted">{row.detail}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="flex flex-col gap-3 rounded-[20px] bg-white p-5">
+        <strong>What keeps it cheap</strong>
+        <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
+          {CHEAP_RULES.map((rule) => (
+            <li key={rule}>{rule}</li>
+          ))}
+        </ul>
+      </section>
 
       <Link href="/admin" className="text-sm underline">
         Back to admin

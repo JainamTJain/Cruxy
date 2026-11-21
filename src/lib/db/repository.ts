@@ -618,11 +618,11 @@ export async function buildWeeklyEmailPreview(): Promise<WeeklyEmailPreview> {
       .map((c) => {
         const team = teams.find((t) => t.id === c.team_id)?.name ?? "?";
         const cas = store.cases.find((x) => x.id === c.case_id);
-        return `${team} · Case ${cas?.number ?? "?"} at ${c.readiness_pct}%`;
+        return `${team}, Case ${cas?.number ?? "?"} at ${c.readiness_pct}%`;
       }),
     openDisagreements: [
-      "Case 3 · Team 1 accepted Unit 731 example; Team 3 rejected",
-      "Case 9 · Inspired-by from Team 1 waiting on Team 3",
+      "Case 3: Team 1 accepted Unit 731 example; Team 3 rejected",
+      "Case 9: Inspired-by from Team 1 waiting on Team 3",
     ],
     thingsToCare: [
       "Ask for a clearer distinction on Case 13 counterclaim",
@@ -667,6 +667,6 @@ export async function archiveSeasonStub(actorId: string): Promise<{
   return {
     ok: true,
     message:
-      "Season rollover queued (sample). Archives Drive + imports next case set once Drive sync is connected.",
+      "Season rollover queued. Build the archive from Admin, then import the next case set when Drive sync is connected.",
   };
 }

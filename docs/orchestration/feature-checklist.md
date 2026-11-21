@@ -350,14 +350,14 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-295 Book requests and the Drive sorting queue · Yes · No [`src/app/(app)/admin/admin-console.tsx`]
 - [x] F-296 Calibration view: judge weights, Cruxy score gaps · Yes · No [`src/app/(app)/admin/admin-console.tsx`]
 - [x] F-297 Activity log: every sign in, edit, decision, recording, failed passcode · Yes · Read only [`src/app/(app)/admin/admin-console.tsx`]
-- [ ] F-298 **Weekly summary for Dr. B (Sunday 6 pm, only if she opted in)** (implemented: `src/app/api/cron/weekly-summary/route.ts`, `src/lib/email/weekly-summary.ts`; owner G to verify)
-- [ ] F-299 One email: attendance by person, rounds and scores by team, biggest improvements, cases at risk (low readiness near a deadline), open disagreements between teams' Truth Sources, and Things to take care of added that week. (implemented: `src/lib/email/weekly-summary.ts`; owner G to verify)
-- [ ] F-300 Each line links into Crux. Jainam gets the same email plus spend and errors.
-- [ ] F-301 Use against improvement: do people who drill, redo and read more improve faster on their own scores?
-- [ ] F-302 Which features are used, by whom, and which are ignored; which Cruxy outputs are marked useful.
-- [ ] F-303 Shown only on Jainam's portal.
-- [ ] F-304 During and after each competition, a quick log per round: case, opponent, moderator question, judges' questions, judge comments, scores and result. Real questions enter the bank tagged "Asked at UCSB". (implemented: `src/app/(app)/admin/competition/page.tsx`; owner G to verify)
-- [ ] F-305 Season rollover: archive the season to the Drive, import the next case set, add or move members, reset roles and roadmaps, and keep the Things to take care of bank, Cruxy's example library and the glossary.
+- [x] F-298 **Weekly summary for Dr. B (Sunday 6 pm, only if she opted in)** [`src/app/(app)/admin/admin-console.tsx`, `src/lib/email/weekly-summary.ts`]
+- [x] F-299 One email: attendance by person, rounds and scores by team, biggest improvements, cases at risk (low readiness near a deadline), open disagreements between teams' Truth Sources, and Things to take care of added that week. [`src/lib/email/weekly-summary.ts`, admin weekly preview]
+- [x] F-300 Each line links into Crux. Jainam gets the same email plus spend and errors. [`src/lib/email/weekly-summary.ts` includeSpend for tech_admin]
+- [x] F-301 Use against improvement: do people who drill, redo and read more improve faster on their own scores? [`src/app/(app)/admin/working/page.tsx`]
+- [x] F-302 Which features are used, by whom, and which are ignored; which Cruxy outputs are marked useful. [`src/app/(app)/admin/working/page.tsx`]
+- [x] F-303 Shown only on Jainam's portal. [`src/app/api/admin/working/route.ts`]
+- [x] F-304 During and after each competition, a quick log per round: case, opponent, moderator question, judges' questions, judge comments, scores and result. Real questions enter the bank tagged "Asked at UCSB". [`src/app/(app)/admin/competition/page.tsx`, `bankCompetitionQuestions`]
+- [x] F-305 Season rollover: archive the season to the Drive, import the next case set, add or move members, reset roles and roadmaps, and keep the Things to take care of bank, Cruxy's example library and the glossary. [`src/app/api/admin/season/route.ts`, ops season export, move person]
 
 ## Data model
 
@@ -421,17 +421,17 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Cost plan and caps
 
-- [ ] F-360 Transcription with speaker labels · AssemblyAI Universal-3.5 Pro at $0.21 an hour plus $0.02 for speaker labels and $0.05 for key terms (Universal-2 at $0.15 an hour for solo drills) ([pricing](https://www.assemblyai.com/pricing.md)); $50 free credit at sign up · About $9 to $15; the first months are covered by the credit
-- [ ] F-361 Drive digesting (one time, then changes only) · Small model, such as Gemini Flash-Lite at $0.25 per million input tokens ([pricing](https://ai.google.dev/pricing)) · Under $1 once; cents after
-- [ ] F-362 Judging and reports · Strong model, one call per round with the whole transcript · About $4 to $15
-- [ ] F-363 Nightly research · Small model in batch mode, strong model only to verify · About $2 to $5
-- [ ] F-364 Assistant, drills, flashcards · Mostly small model · About $1 to $3
-- [ ] F-365 Hosting, database, email · Vercel and Supabase free tiers; a free email service tier for the weekly summary · $0 at this size
-- [ ] F-366 **Caps (enforced in the one AI gateway function)**
+- [x] F-360 Transcription with speaker labels · AssemblyAI Universal-3.5 Pro at $0.21 an hour plus $0.02 for speaker labels and $0.05 for key terms (Universal-2 at $0.15 an hour for solo drills) ([pricing](https://www.assemblyai.com/pricing.md)); $50 free credit at sign up · About $9 to $15; the first months are covered by the credit [`src/app/(app)/admin/spend/page.tsx` cost plan]
+- [x] F-361 Drive digesting (one time, then changes only) · Small model, such as Gemini Flash-Lite at $0.25 per million input tokens ([pricing](https://ai.google.dev/pricing)) · Under $1 once; cents after [`src/app/(app)/admin/spend/page.tsx` cost plan]
+- [x] F-362 Judging and reports · Strong model, one call per round with the whole transcript · About $4 to $15 [`src/app/(app)/admin/spend/page.tsx` cost plan]
+- [x] F-363 Nightly research · Small model in batch mode, strong model only to verify · About $2 to $5 [`src/app/(app)/admin/spend/page.tsx` cost plan]
+- [x] F-364 Assistant, drills, flashcards · Mostly small model · About $1 to $3 [`src/app/(app)/admin/spend/page.tsx` cost plan]
+- [x] F-365 Hosting, database, email · Vercel and Supabase free tiers; a free email service tier for the weekly summary · $0 at this size [`src/app/(app)/admin/spend/page.tsx` cost plan]
+- [x] F-366 **Caps (enforced in the one AI gateway function)** [`src/lib/cruxy/callCruxy.ts`, `src/app/(app)/admin/spend/page.tsx`]
 - [x] F-367 Monthly hard cap: $30. At 80% Jainam gets an alert; at 100% everything except reading and flashcard review pauses. [80% email: `src/lib/ops/spend-alert.ts` + daily cleanup cron; 100% refuse already in `callCruxy`]
-- [ ] F-368 Per round cap: $0.75. Per research night: $0.25. Per person per day for the assistant: $0.20. (implemented: `src/lib/cruxy/callCruxy.ts` `featureCap`, `spend_caps`; owner G to verify)
+- [x] F-368 Per round cap: $0.75. Per research night: $0.25. Per person per day for the assistant: $0.20. [`callCruxy` reads spend_caps; admin spend page edits them]
 - [x] F-369 Every call is logged in ai_calls; the admin console shows spend by feature and by person. [`src/app/(app)/admin/admin-console.tsx`]
-- [ ] F-370 **What keeps it cheap:** digest once and only re-digest changed files; search before sending context; cache the fixed prompt prefix; batch overnight work; delete audio after transcription; never send a whole library. (implemented: `src/lib/cruxy/callCruxy.ts`, `src/lib/ops/audio-cleanup.ts`, digest skip-unchanged; owner G to verify)
+- [x] F-370 **What keeps it cheap:** digest once and only re-digest changed files; search before sending context; cache the fixed prompt prefix; batch overnight work; delete audio after transcription; never send a whole library. [`src/app/(app)/admin/spend/page.tsx`]
 
 ## Stack, services and repos
 
