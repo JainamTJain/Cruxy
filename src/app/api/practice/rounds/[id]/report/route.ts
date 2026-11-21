@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { getReport, getRoundById } from "@/lib/db/practice-repository";
+import { getReportExtras } from "@/lib/db/supabase/practice-extra";
 import { filterCitedFeedback } from "@/lib/practice/feedback";
 import { filterDisplayableScores } from "@/lib/practice/appe-card";
 
@@ -19,6 +20,7 @@ export async function GET(
   }
 
   const data = await getReport(id);
+  const extras = await getReportExtras(id);
   const feedback = filterCitedFeedback(data.feedback, data.lines);
   const scores = data.scores.filter((s) => {
     const card = data.cards.find((c) => c.id === s.card_id);
@@ -26,8 +28,7 @@ export async function GET(
     return filterDisplayableScores([s], true).length > 0;
   });
 
-  const tech =
-    session.adminView && session.role === "tech_admin";
+  const tech = session.adminView && session.role === "tech_admin";
 
   return NextResponse.json({
     round,
@@ -41,5 +42,11 @@ export async function GET(
     })),
     scores,
     lines: data.lines,
+    skills: extras.skills,
+    talk: extras.talk,
+    bank: extras.bank,
+    people: extras.people,
+    teams: extras.teams,
+    judges: extras.judges,
   });
 }

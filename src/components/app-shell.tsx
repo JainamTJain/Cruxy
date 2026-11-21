@@ -10,6 +10,7 @@ import { CruxyLamp } from "@/components/cruxy/cruxy-lamp";
 import { FloatingCruxy } from "@/components/cruxy/floating-cruxy";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/types";
+import { PRACTICE_FIXTURE_IDS } from "@/lib/practice/fixture-ids";
 
 type Me = {
   authenticated: boolean;
@@ -33,7 +34,11 @@ const SIDE_NAV: { href: string; label: string; match?: string }[] = [
   { href: "/case-brain", label: "Cases" },
   { href: "/library", label: "Reading room" },
   { href: "/practice", label: "Practice" },
-  { href: "/practice", label: "Reports", match: "/report" },
+  {
+    href: `/practice/rounds/${PRACTICE_FIXTURE_IDS.roundReport}/report`,
+    label: "Reports",
+    match: "/report",
+  },
   { href: "/team/chat", label: "Team chat" },
 ];
 
@@ -143,6 +148,15 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const onAdminScreen =
     Boolean(me?.session?.adminView) && pathname.startsWith("/admin");
   const sideItems = onAdminScreen ? ADMIN_SIDE_NAV : SIDE_NAV;
+
+  // Workstream D: live practice room and thesis drill are full-bleed (no shell chrome).
+  const immersive =
+    pathname.includes("/practice/rounds/") ||
+    pathname.includes("/practice/drills/");
+
+  if (immersive) {
+    return <div className="min-h-dvh bg-[#0C0D11]">{children}</div>;
+  }
 
   return (
     <div className="flex min-h-dvh bg-paper text-ink">

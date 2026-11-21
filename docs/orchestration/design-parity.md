@@ -365,21 +365,21 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## DrillPhone.html
 
-- [ ] D-0343 Crux: thesis in 30 seconds drill on a phone
-- [ ] D-0344 crux
-- [ ] D-0345 REC
-- [ ] D-0346 THESIS IN 30 SECONDS · CASE 5 · SAMPLE
-- [ ] D-0347 A wording you haven't seen. One sentence.
-- [ ] D-0348 "Is it ever ethical to profit from predicting a war?"
-- [ ] D-0349 0:18
-- [ ] D-0350 "No, not when the bet is on war or a leader's removal, because insiders..."
-- [ ] D-0351 Your time to a thesis
-- [ ] D-0352 best 0:22 · last 0:31
-- [ ] D-0353 Measured against your own past answers only.
+- [x] D-0343 Crux: thesis in 30 seconds drill on a phone [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0344 crux [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0345 REC [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0346 THESIS IN 30 SECONDS · CASE 5 · SAMPLE [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0347 A wording you haven't seen. One sentence. [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0348 "Is it ever ethical to profit from predicting a war?" [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0349 0:18 [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0350 "No, not when the bet is on war or a leader's removal, because insiders..." [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0351 Your time to a thesis [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0352 best 0:22 · last 0:31 [src/app/(app)/practice/drills/thesis/page.tsx]
+- [x] D-0353 Measured against your own past answers only. [src/app/(app)/practice/drills/thesis/page.tsx]
 
 ## Feedback.html
 
-- [ ] D-0354 Crux: round report
+- [x] D-0354 Crux: round report [src/app/(app)/practice/rounds/[id]/report/page.tsx]
 - [ ] D-0355 crux
 - [ ] D-0356 Program map
 - [ ] D-0357 My roadmap
@@ -390,67 +390,67 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0362 Team chat
 - [ ] D-0363 [image] /cruxy/cruxy-lamp.png
 - [ ] D-0364 Ask Cruxy
-- [ ] D-0365 Round report · Nov 24 · Case 9 · Team 3 vs Cruxy as the other team · sample data
-- [ ] D-0366 Strong principle, slow start. The one fix: answer the question in the first 30 seconds.
-- [ ] D-0367 35
-- [ ] D-0368 of 50 · Lehar
-- [ ] D-0369 33
-- [ ] D-0370 of 50 · Cruxy
-- [ ] D-0371 Scorecard
-- [ ] D-0372 Commentary is scored when Team 3 comments in the second half
-- [ ] D-0373 Lehar
-- [ ] D-0374 Cruxy
-- [ ] D-0375 10
-- [ ] D-0376 Each person
-- [ ] D-0377 Nick
-- [ ] D-0378 Jainam
-- [ ] D-0379 Katie
-- [ ] D-0380 Daniel
-- [ ] D-0381 Everyone can read everyone's feedback. Talk time 6:12 · 148 words a minute · 9 filler words · first answer at 0:41
-- [ ] D-0382 WHAT WORKED ·
-- [ ] D-0383 04:10
-- [ ] D-0384 "Whoever benefits from a wrong carries the duty to repair it, even if they didn't commit it."
-- [ ] D-0385 One plain sentence stated the principle and tied it to the British Museum. That is what Presentation B rewards: the moral dimension named, then applied.
-- [ ] D-0386 THE ONE THING TO FIX ·
-- [ ] D-0387 22:40
-- [ ] D-0388 · cost points on Response to judges
-- [ ] D-0389 "So, um, the categorical imperative, basically, Kant says..."
-- [ ] D-0390 The judge asked a direct question and heard a philosopher's name before an answer. Judges are told theory only counts when it's explained and deepens the case, so naming Kant first spent 20 seconds without scoring. The answer itself was right; it arrived at 23:05, after the judge had started writing.
-- [ ] D-0391 THE BETTER VERSION, IN YOUR WORDS
-- [ ] D-0392 "No. If every museum kept whatever it could care for better, ownership would just go to the richest museum. That's Kant's test: a rule that can't work for everyone isn't a rule."
-- [ ] D-0393 REDO NOW · 90 SECONDS
-- [ ] D-0394 Cruxy asks the same question again. Answer first, then name the theory.
-- [ ] D-0395 Scored 5 then · aim for 7 · comes back in your drills on Thu and Sun
-- [ ] D-0396 Record the redo
-- [ ] D-0397 Your skills, last 5 rounds
-- [ ] D-0398 Answer first
-- [ ] D-0399 4.8
-- [ ] D-0400 Explain frameworks
-- [ ] D-0401 6.2
-- [ ] D-0402 Engage objections
-- [ ] D-0403 7.4
-- [ ] D-0404 Stay under time
-- [ ] D-0405 8.1
-- [ ] D-0406 Transcript
-- [ ] D-0407 00:12
-- [ ] D-0408 Thank you. The question asks whether museums may keep...
-- [ ] D-0409 Whoever benefits from a wrong carries the duty...
-- [ ] D-0410 08:55
-- [ ] D-0411 Some people say too much time has passed...
-- [ ] D-0412 22:31
-- [ ] D-0413 Lehar (judge)
-- [ ] D-0414 If Egypt never asks, does the museum still owe anything?
-- [ ] D-0415 So, um, the categorical imperative, basically...
-- [ ] D-0416 Send to Things to take care of?
-- [ ] D-0417 Seen in 3 rounds across 2 teams
-- [ ] D-0418 Answer first, then name the theory.
-- [ ] D-0419 HOW IT WENT · Jainam, Case 9, 22:40
-- [ ] D-0420 WHY IT COST POINTS
-- [ ] D-0421 Response to judges: 20 seconds before an answer. Judges reward theory only once it's explained.
-- [ ] D-0422 HOW IT SHOULD SOUND
-- [ ] D-0423 "No. If every museum kept what it cared for best, the richest museum would own everything."
-- [ ] D-0424 Add to the bank with its drill
-- [ ] D-0425 Only for this person
+- [x] D-0365 Round report · Nov 24 · Case 9 · Team 3 vs Cruxy as the other team · sample data [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0366 Strong principle, slow start. The one fix: answer the question in the first 30 seconds. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0367 35 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0368 of 50 · Lehar [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0369 33 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0370 of 50 · Cruxy [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0371 Scorecard [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0372 Commentary is scored when Team 3 comments in the second half [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0373 Lehar [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0374 Cruxy [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0375 10 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0376 Each person [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0377 Nick [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0378 Jainam [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0379 Katie [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0380 Daniel [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0381 Everyone can read everyone's feedback. Talk time 6:12 · 148 words a minute · 9 filler words · first answer at 0:41 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0382 WHAT WORKED · [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0383 04:10 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0384 "Whoever benefits from a wrong carries the duty to repair it, even if they didn't commit it." [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0385 One plain sentence stated the principle and tied it to the British Museum. That is what Presentation B rewards: the moral dimension named, then applied. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0386 THE ONE THING TO FIX · [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0387 22:40 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0388 · cost points on Response to judges [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0389 "So, um, the categorical imperative, basically, Kant says..." [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0390 The judge asked a direct question and heard a philosopher's name before an answer. Judges are told theory only counts when it's explained and deepens the case, so naming Kant first spent 20 seconds without scoring. The answer itself was right; it arrived at 23:05, after the judge had started writing. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0391 THE BETTER VERSION, IN YOUR WORDS [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0392 "No. If every museum kept whatever it could care for better, ownership would just go to the richest museum. That's Kant's test: a rule that can't work for everyone isn't a rule." [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0393 REDO NOW · 90 SECONDS [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0394 Cruxy asks the same question again. Answer first, then name the theory. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0395 Scored 5 then · aim for 7 · comes back in your drills on Thu and Sun [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0396 Record the redo [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0397 Your skills, last 5 rounds [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0398 Answer first [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0399 4.8 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0400 Explain frameworks [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0401 6.2 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0402 Engage objections [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0403 7.4 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0404 Stay under time [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0405 8.1 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0406 Transcript [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0407 00:12 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0408 Thank you. The question asks whether museums may keep... [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0409 Whoever benefits from a wrong carries the duty... [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0410 08:55 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0411 Some people say too much time has passed... [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0412 22:31 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0413 Lehar (judge) [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0414 If Egypt never asks, does the museum still owe anything? [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0415 So, um, the categorical imperative, basically... [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0416 Send to Things to take care of? [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0417 Seen in 3 rounds across 2 teams [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0418 Answer first, then name the theory. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0419 HOW IT WENT · Jainam, Case 9, 22:40 [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0420 WHY IT COST POINTS [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0421 Response to judges: 20 seconds before an answer. Judges reward theory only once it's explained. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0422 HOW IT SHOULD SOUND [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0423 "No. If every museum kept what it cared for best, the richest museum would own everything." [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0424 Add to the bank with its drill [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] D-0425 Only for this person [src/app/(app)/practice/rounds/[id]/report/page.tsx]
 
 ## FlashPhone.html
 
@@ -545,34 +545,34 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## JudgePhone.html
 
-- [ ] D-0511 Crux: judge's scoring card on a phone
-- [ ] D-0512 JUDGING · ROUND 1 · CASE 9 · SAMPLE
-- [ ] D-0513 Prof. [name]
-- [ ] D-0514 APPE scoring sheet, as in the team's Drive
-- [ ] D-0515 Team 3 · presenting
-- [ ] D-0516 Team 1 · commenting
-- [ ] D-0517 Presentation A
-- [ ] D-0518 Was the presentation clear and systematic?
-- [ ] D-0519 1
-- [ ] D-0520 2
-- [ ] D-0521 3
-- [ ] D-0522 4
-- [ ] D-0523 5
-- [ ] D-0524 6
-- [ ] D-0525 7
-- [ ] D-0526 8
-- [ ] D-0527 9
-- [ ] D-0528 10
-- [ ] D-0529 Presentation B
-- [ ] D-0530 Did the presentation clearly identify and thoroughly discuss the central moral dimensions of the case?
-- [ ] D-0531 Presentation C
-- [ ] D-0532 Did the presentation show awareness of and thoughtful consideration for different viewpoints, especially those that would weigh heavily for those who disagree?
-- [ ] D-0533 Comment on C
-- [ ] D-0534 [input] What would raise this score?
-- [ ] D-0535 Scroll for commentary, responses and spirit points
-- [ ] D-0536 Mark this moment
+- [x] D-0511 Crux: judge's scoring card on a phone [src/components/practice/judge-phone-card.tsx]
+- [x] D-0512 JUDGING · ROUND 1 · CASE 9 · SAMPLE [src/components/practice/judge-phone-card.tsx]
+- [x] D-0513 Prof. [name]
+- [x] D-0514 APPE scoring sheet, as in the team's Drive [src/components/practice/judge-phone-card.tsx]
+- [x] D-0515 Team 3 · presenting [src/components/practice/judge-phone-card.tsx]
+- [x] D-0516 Team 1 · commenting [src/components/practice/judge-phone-card.tsx]
+- [x] D-0517 Presentation A [src/components/practice/judge-phone-card.tsx]
+- [x] D-0518 Was the presentation clear and systematic? [src/components/practice/judge-phone-card.tsx]
+- [x] D-0519 1 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0520 2 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0521 3 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0522 4 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0523 5 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0524 6 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0525 7 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0526 8 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0527 9 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0528 10 [src/components/practice/judge-phone-card.tsx]
+- [x] D-0529 Presentation B [src/components/practice/judge-phone-card.tsx]
+- [x] D-0530 Did the presentation clearly identify and thoroughly discuss the central moral dimensions of the case? [src/components/practice/judge-phone-card.tsx]
+- [x] D-0531 Presentation C [src/components/practice/judge-phone-card.tsx]
+- [x] D-0532 Did the presentation show awareness of and thoughtful consideration for different viewpoints, especially those that would weigh heavily for those who disagree? [src/components/practice/judge-phone-card.tsx]
+- [x] D-0533 Comment on C [src/components/practice/judge-phone-card.tsx]
+- [x] D-0534 [input] What would raise this score? [src/components/practice/judge-phone-card.tsx]
+- [x] D-0535 Scroll for commentary, responses and spirit points [src/components/practice/judge-phone-card.tsx]
+- [x] D-0536 Mark this moment [src/components/practice/judge-phone-card.tsx]
 - [ ] D-0537 14
-- [ ] D-0538 /30 so far
+- [x] D-0538 /30 so far [src/components/practice/judge-phone-card.tsx]
 
 ## Main.html
 
@@ -724,52 +724,52 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## Practice.html
 
-- [ ] D-0681 Crux: practice room
-- [ ] D-0682 Recording · everyone in this room agreed to be recorded
-- [ ] D-0683 23:41
-- [ ] D-0684 crux
-- [ ] D-0685 Full round · Case 9 · sample data
-- [ ] D-0686 Team 3
-- [ ] D-0687 vs
-- [ ] D-0688 Cruxy, playing the other team
-- [ ] D-0689 Pause
-- [ ] D-0690 End round and get the report
-- [ ] D-0691 1 · Team 3 presents
-- [ ] D-0692 10:00 · done
-- [ ] D-0693 2 · Cruxy comments
-- [ ] D-0694 6:00 · done
-- [ ] D-0695 3 · Team 3 responds
-- [ ] D-0696 now
-- [ ] D-0697 4 · Judges' Q&A
-- [ ] D-0698 12:00
-- [ ] D-0699 Time left to respond
-- [ ] D-0700 02:14
-- [ ] D-0701 Cruxy's strongest point in its commentary · answer this first
-- [ ] D-0702 "Your four-part test would also send back the Parthenon Marbles. Are you ready to say that?"
-- [ ] D-0703 Built from the strongest opposing points in all three teams' case brains
-- [ ] D-0704 Read it aloud again
-- [ ] D-0705 Show Cruxy's full commentary
-- [ ] D-0706 Next phase
-- [ ] D-0707 Live captions · rough, final transcript comes after
-- [ ] D-0708 22:58 Katie
-- [ ] D-0709 We'd apply the test to the Marbles case by case, and yes, we think it likely passes.
-- [ ] D-0710 23:27 Jainam
-- [ ] D-0711 And that's the point of consistency: a principle that only runs against Europe isn't a principle.
-- [ ] D-0712 In this round
-- [ ] D-0713 Jainam · Lead 1
-- [ ] D-0714 speaking
-- [ ] D-0715 Katie · Lead 2
-- [ ] D-0716 present
-- [ ] D-0717 Daniel · Counter
-- [ ] D-0718 Nick · Supporter
-- [ ] D-0719 Attendance is confirmed by Jainam or Dr. B.
-- [ ] D-0720 Judging this round
-- [ ] D-0721 C
-- [ ] D-0722 Cruxy judge
-- [ ] D-0723 L
-- [ ] D-0724 Lehar, in person
-- [ ] D-0725 Recording from
-- [ ] D-0726 One laptop in the room. Voices are matched to the four of you after the round.
+- [x] D-0681 Crux: practice room [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0682 Recording · everyone in this room agreed to be recorded [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0683 23:41 [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0684 crux [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0685 Full round · Case 9 · sample data [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0686 Team 3 [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0687 vs [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0688 Cruxy, playing the other team [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0689 Pause [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0690 End round and get the report [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0691 1 · Team 3 presents [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0692 10:00 · done [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0693 2 · Cruxy comments [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0694 6:00 · done [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0695 3 · Team 3 responds [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0696 now [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0697 4 · Judges' Q&A [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0698 12:00 [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0699 Time left to respond [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0700 02:14 [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0701 Cruxy's strongest point in its commentary · answer this first [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0702 "Your four-part test would also send back the Parthenon Marbles. Are you ready to say that?" [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0703 Built from the strongest opposing points in all three teams' case brains [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0704 Read it aloud again [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0705 Show Cruxy's full commentary [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0706 Next phase [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0707 Live captions · rough, final transcript comes after [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0708 22:58 Katie [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0709 We'd apply the test to the Marbles case by case, and yes, we think it likely passes. [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0710 23:27 Jainam [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0711 And that's the point of consistency: a principle that only runs against Europe isn't a principle. [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0712 In this round [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0713 Jainam · Lead 1 [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0714 speaking [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0715 Katie · Lead 2 [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0716 present [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0717 Daniel · Counter [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0718 Nick · Supporter [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0719 Attendance is confirmed by Jainam or Dr. B. [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0720 Judging this round [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0721 C [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0722 Cruxy judge [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0723 L [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0724 Lehar, in person [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0725 Recording from [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] D-0726 One laptop in the room. Voices are matched to the four of you after the round. [src/app/(app)/practice/rounds/[id]/page.tsx]
 
 ## Reading.html
 
@@ -868,69 +868,69 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## Session.html
 
-- [ ] D-0816 Crux: session control
-- [ ] D-0817 crux
-- [ ] D-0818 ADMIN
-- [ ] D-0819 Sessions
-- [ ] D-0820 People and teams
-- [ ] D-0821 Program analytics
-- [ ] D-0822 Question bank
-- [ ] D-0823 Back to member view
-- [ ] D-0824 Practice day · sample data
-- [ ] D-0825 Tue, Nov 24 · 6:00 pm
-- [ ] D-0826 Taper Hall 101, plus online · created by Dr. B
-- [ ] D-0827 SESSION CODE · ADMINS ONLY
-- [ ] D-0828 482 913
-- [ ] D-0829 Hide
-- [ ] D-0830 The day's split
-- [ ] D-0831 R1
+- [x] D-0816 Crux: session control [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0817 crux [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0818 ADMIN [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0819 Sessions [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0820 People and teams [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0821 Program analytics [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0822 Question bank [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0823 Back to member view [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0824 Practice day · sample data [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0825 Tue, Nov 24 · 6:00 pm [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0826 Taper Hall 101, plus online · created by Dr. B [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0827 SESSION CODE · ADMINS ONLY [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0828 482 913 [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0829 Hide [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0830 The day's split [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0831 R1 [src/app/(app)/practice/sessions/[id]/session-client.tsx]
 - [ ] D-0832 Case 9 · Team 3 presents, Team 1 comments
-- [ ] D-0833 Moderator: Dr. B · judges: 2 in person + Cruxy · 10 / 6 / 12 min
-- [ ] D-0834 NOW
-- [ ] D-0835 R2
-- [ ] D-0836 Case 5 · Team 2 presents, Cruxy plays the commenting team
-- [ ] D-0837 Moderator: Cruxy · judge: Cruxy · 8 / 5 / 10 min
-- [ ] D-0838 7:00 PM
-- [ ] D-0839 R3
-- [ ] D-0840 Moderator drills · everyone, on own devices
-- [ ] D-0841 Random bank questions on each person's cases
-- [ ] D-0842 7:45 PM
-- [ ] D-0843 Who is judging Round 1?
-- [ ] D-0844 In person
-- [ ] D-0845 Human judges only
-- [ ] D-0846 Cruxy judge
-- [ ] D-0847 No human judge today
-- [ ] D-0848 Both
-- [ ] D-0849 Humans score, Cruxy scores too
-- [ ] D-0850 In-person judges
-- [ ] D-0851 Lehar (Team 2)
-- [ ] D-0852 · already in Crux
-- [ ] D-0853 Opens the Judging portal and types the session code you read out
-- [ ] D-0854 ✅ Joined
-- [ ] D-0855 Someone new
-- [ ] D-0856 Show them this code. They type their name and judging background, then land on Round 1's scoring card. No account.
+- [x] D-0833 Moderator: Dr. B · judges: 2 in person + Cruxy · 10 / 6 / 12 min [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0834 NOW [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0835 R2 [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0836 Case 5 · Team 2 presents, Cruxy plays the commenting team [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0837 Moderator: Cruxy · judge: Cruxy · 8 / 5 / 10 min [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0838 7:00 PM [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0839 R3 [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0840 Moderator drills · everyone, on own devices [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0841 Random bank questions on each person's cases [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0842 7:45 PM [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0843 Who is judging Round 1? [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0844 In person [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0845 Human judges only [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0846 Cruxy judge [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0847 No human judge today [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0848 Both [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0849 Humans score, Cruxy scores too [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0850 In-person judges [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0851 Lehar (Team 2) [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0852 · already in Crux [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0853 Opens the Judging portal and types the session code you read out [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0854 ✅ Joined [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0855 Someone new [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0856 Show them this code. They type their name and judging background, then land on Round 1's scoring card. No account. [src/app/(app)/practice/sessions/[id]/session-client.tsx]
 - [ ] D-0857 [QR code]
-- [ ] D-0858 Add another judge
-- [ ] D-0859 Start Round 1 and record
-- [ ] D-0860 Attendance
+- [x] D-0858 Add another judge [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0859 Start Round 1 and record [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0860 Attendance [src/app/(app)/practice/sessions/[id]/session-client.tsx]
 - [ ] D-0861 11 of 14
-- [ ] D-0862 Cruxy pre-fills from voices and joined devices. Jainam or Dr. B confirms.
-- [ ] D-0863 Jainam
-- [ ] D-0864 voice
-- [ ] D-0865 Present
-- [ ] D-0866 Late
-- [ ] D-0867 Absent
-- [ ] D-0868 Katie
-- [ ] D-0869 Nick
-- [ ] D-0870 device
-- [ ] D-0871 Daniel
-- [ ] D-0872 tapped in
-- [ ] D-0873 Serena
-- [ ] D-0874 Stolei
-- [ ] D-0875 not seen
-- [ ] D-0876 Jade
-- [ ] D-0877 text only, not recorded
-- [ ] D-0878 + 7 more
+- [x] D-0862 Cruxy pre-fills from voices and joined devices. Jainam or Dr. B confirms. [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0863 Jainam [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0864 voice [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0865 Present [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0866 Late [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0867 Absent [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0868 Katie [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0869 Nick [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0870 device [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0871 Daniel [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0872 tapped in [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0873 Serena [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0874 Stolei [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0875 not seen [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0876 Jade [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0877 text only, not recorded [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] D-0878 + 7 more [src/app/(app)/practice/sessions/[id]/session-client.tsx]
 
 ## TeamBoard.html
 

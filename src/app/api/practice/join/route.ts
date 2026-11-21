@@ -13,6 +13,7 @@ export async function POST(req: Request) {
     code: body.code,
     personId: session?.personId ?? null,
     ipKey: req.headers.get("x-forwarded-for") ?? "local",
+    portal: "session_code",
   });
 
   if (!result.ok) {

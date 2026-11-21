@@ -57,6 +57,8 @@ export function proposeBankEntry(opts: {
   improved: string;
   caseId: string | null;
   createdBy: string | null;
+  drillId?: string | null;
+  seenCount?: number;
 }): BankEntry {
   return {
     id: randomUUID(),
@@ -64,8 +66,8 @@ export function proposeBankEntry(opts: {
     example_line_id: opts.exampleLineId,
     why: opts.why,
     improved: opts.improved,
-    drill_id: null,
-    seen_count: 1,
+    drill_id: opts.drillId ?? null,
+    seen_count: opts.seenCount ?? 1,
     case_id: opts.caseId,
     created_at: nowIso(),
     created_by: opts.createdBy,

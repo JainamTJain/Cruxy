@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { ChunkedRecorder } from "@/components/practice/chunked-recorder";
 
 type Round = {
@@ -21,30 +20,70 @@ type Round = {
   sides: { presenting: string | null; commenting: string | null };
 };
 
+type Line = {
+  id: string;
+  start_ms: number;
+  text: string;
+  speaker_label: string | null;
+};
+
+const PHASES = [
+  { key: "presentation", label: (t: string) => `1 · ${t} presents` },
+  { key: "commentary", label: () => "2 · Cruxy comments" },
+  { key: "response", label: (t: string) => `3 · ${t} responds` },
+  { key: "judges_qa", label: () => "4 · Judges' Q&A" },
+] as const;
+
+function fmt(ms: number) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
+}
+
+function clockLabel(sec: number) {
+  const m = Math.floor(sec / 60);
+  const r = sec % 60;
+  return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
+}
+
 export default function RoundPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const [round, setRound] = useState<Round | null>(null);
   const [recording, setRecording] = useState<{
     chunks: number;
     deleted_at: string | null;
     status: string;
   } | null>(null);
-  const [lines, setLines] = useState<
-    { id: string; start_ms: number; text: string; speaker_label: string | null }[]
+  const [lines, setLines] = useState<Line[]>([]);
+  const [people, setPeople] = useState<
+    { id: string; name: string; team_id: string | null }[]
   >([]);
+  const [teams, setTeams] = useState<
+    { id: string; name: string; colour: string }[]
+  >([]);
+  const [judgesMeta, setJudgesMeta] = useState<
+    { id: string; name: string; person_id: string | null }[]
+  >([]);
+  const [recordingOk, setRecordingOk] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
-  const [clock, setClock] = useState(0);
-  const [ticking, setTicking] = useState(false);
+  const [micOn, setMicOn] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [showFullCommentary, setShowFullCommentary] = useState(false);
 
   async function refresh() {
     const res = await fetch(`/api/practice/rounds/${params.id}`);
     const data = await res.json();
-    if (res.ok) {
-      setRound(data.round);
-      setRecording(data.recording);
-      setLines(data.lines ?? []);
-    }
+    if (!res.ok) return;
+    setRound(data.round);
+    setRecording(data.recording);
+    setLines(data.lines ?? []);
+    setPeople(data.people ?? []);
+    setTeams(data.teams ?? []);
+    setJudgesMeta(data.judges ?? []);
+    setRecordingOk(Boolean(data.recordingOk));
   }
 
   useEffect(() => {
@@ -53,10 +92,31 @@ export default function RoundPage() {
   }, [params.id]);
 
   useEffect(() => {
-    if (!ticking) return;
-    const id = setInterval(() => setClock((c) => c + 1), 1000);
+    if (paused || round?.phase === "done" || round?.phase === "setup") return;
+    const id = setInterval(() => setElapsed((e) => e + 1), 1000);
     return () => clearInterval(id);
-  }, [ticking]);
+  }, [paused, round?.phase]);
+
+  const presentTeam = useMemo(() => {
+    if (!round?.sides.presenting) return "Team";
+    return (
+      teams.find((t) => t.id === round.sides.presenting)?.name ?? "Team"
+    );
+  }, [round, teams]);
+
+  const phaseMaxSec = useMemo(() => {
+    if (!round) return 0;
+    if (round.phase === "presentation")
+      return round.timings.presentation_max * 60;
+    if (round.phase === "commentary") return round.timings.commentary_max * 60;
+    if (round.phase === "response") return 5 * 60;
+    if (round.phase === "judges_qa") return round.timings.qa_max * 60;
+    return 0;
+  }, [round]);
+
+  const left = Math.max(0, phaseMaxSec - elapsed);
+  const isRecording =
+    micOn || recording?.status === "recording" || round?.phase === "response";
 
   async function start() {
     await fetch(`/api/practice/rounds/${params.id}`, {
@@ -64,150 +124,345 @@ export default function RoundPage() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ action: "start" }),
     });
-    setClock(0);
-    setTicking(true);
+    setElapsed(0);
+    setPaused(false);
     await refresh();
   }
 
-  async function nextPhase(phase: string) {
+  async function nextPhase() {
+    if (!round) return;
+    const order = ["presentation", "commentary", "response", "judges_qa", "scoring"];
+    const i = order.indexOf(round.phase);
+    const next = order[Math.min(i + 1, order.length - 1)];
     await fetch(`/api/practice/rounds/${params.id}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "phase", phase }),
+      body: JSON.stringify({ action: "phase", phase: next }),
     });
+    setElapsed(0);
     await refresh();
   }
 
   async function finalize() {
     setBusy(true);
-    setResult(null);
     const res = await fetch(`/api/practice/rounds/${params.id}/finalize`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({}),
     });
-    const data = await res.json();
     setBusy(false);
-    setTicking(false);
-    if (!res.ok) {
-      setResult(data.error ?? "Finalize failed");
+    if (res.ok) {
+      router.push(`/practice/rounds/${params.id}/report`);
       return;
     }
-    setResult(
-      `Transcript ${data.lineCount} lines · audio deleted: ${data.audioDeleted} · Cruxy cards: ${data.cruxyCards}`,
-    );
     await refresh();
   }
 
   if (!round) {
-    return <p className="text-sm text-muted">Loading round…</p>;
+    return (
+      <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#0C0D11] text-[#C9CCD3]">
+        Loading round…
+      </div>
+    );
   }
 
-  const hardStop =
-    round.timings.presentation_max * 60 +
-    (round.sides.commenting ? round.timings.commentary_max * 60 : 0);
+  // Thesis drill routes to dedicated phone screen
+  if (round.mode === "thesis_30") {
+    router.replace("/practice/drills/thesis");
+  }
+
+  const presenters = people.filter(
+    (p) => p.team_id && p.team_id === round.sides.presenting,
+  );
 
   return (
-    <main className="animate-fade-up space-y-6">
-      {recording && !recording.deleted_at && recording.status === "recording" ? (
-        <div className="fixed inset-x-0 top-0 z-30 bg-cardinal px-3 py-2 text-center text-xs font-medium text-white">
-          Recording — red bar on every screen
+    <div className="fixed inset-0 z-40 overflow-y-auto bg-[#0C0D11] text-[#F2F3F5]">
+      {isRecording ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-[#C62828] px-8 py-2.5 text-sm font-semibold text-white">
+          <span className="flex items-center gap-2.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-white" />
+            Recording · everyone in this room agreed to be recorded
+          </span>
+          <span className="font-mono">{clockLabel(elapsed)}</span>
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-muted">
-            {round.mode} · phase {round.phase}
-          </p>
-          <h1 className="font-display text-3xl font-semibold">
-            Case {round.case_number ?? "—"}
-          </h1>
-        </div>
-        <div className="rounded-xl bg-ink px-4 py-2 font-mono text-lg text-gold">
-          {Math.floor(clock / 60)}:{String(clock % 60).padStart(2, "0")}
-          {ticking && clock >= hardStop ? (
-            <span className="ml-2 text-cardinal">that&apos;s time</span>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" onClick={() => void start()}>
-          Start round
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => void nextPhase("commentary")}
-        >
-          Next: commentary
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => void nextPhase("judges_qa")}
-        >
-          Next: judges Q&A
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={busy}
-          onClick={() => void finalize()}
-        >
-          {busy ? "Transcribing…" : "End · transcript · judge"}
-        </Button>
-      </div>
-
-      <ChunkedRecorder roundId={params.id} />
-
-      {result ? (
-        <p className="rounded-xl border border-ink/10 bg-white/70 px-3 py-2 text-sm">
-          {result}
-        </p>
-      ) : null}
-
-      {recording?.deleted_at ? (
-        <p className="text-sm text-muted">
-          Audio deleted at {new Date(recording.deleted_at).toLocaleString()}. Only text
-          remains.
-        </p>
-      ) : null}
-
-      {lines.length > 0 ? (
-        <section className="rounded-2xl border border-ink/10 bg-white/70 p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-display text-lg font-semibold">Transcript</h2>
+      <div className="mx-auto flex max-w-[1360px] flex-col gap-5 px-8 py-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex items-center gap-5">
             <Link
-              href={`/practice/rounds/${params.id}/report`}
-              className="text-sm text-cardinal underline"
+              href="/home"
+              className="font-display text-[34px] font-extrabold tracking-[-0.04em]"
             >
-              Open report
+              crux
             </Link>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#8C929D]">
+                Full round · Case {round.case_number ?? "—"}
+              </span>
+              <span className="font-display text-[26px] font-extrabold">
+                {presentTeam}{" "}
+                <span className="font-semibold text-[#8C929D]">vs</span> Cruxy,
+                playing the other team
+              </span>
+            </div>
           </div>
-          <ul className="max-h-80 space-y-2 overflow-y-auto text-sm">
-            {lines.map((l) => (
-              <li key={l.id} className="border-b border-ink/5 pb-2">
-                <span className="font-mono text-xs text-muted">
-                  {l.speaker_label ?? "?"} @{(l.start_ms / 1000).toFixed(1)}s
-                </span>
-                <p>{l.text}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setPaused((p) => !p)}
+              className="h-[46px] rounded-xl border border-[#3B404A] px-[18px] text-sm font-semibold"
+            >
+              {paused ? "Resume" : "Pause"}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void finalize()}
+              className="flex h-[46px] items-center rounded-xl border border-[#F2F3F5] bg-[#F2F3F5] px-[18px] text-sm font-semibold text-[#0C0D11]"
+            >
+              {busy ? "Ending…" : "End round and get the report"}
+            </button>
+          </div>
+        </div>
 
-      <p className="text-sm">
-        <Link href={`/practice/sessions/${round.session_id}`} className="underline">
-          Back to session
-        </Link>
-        {" · "}
-        <Link href="/judging" className="underline">
-          Judging portal
-        </Link>
-      </p>
-    </main>
+        <ol
+          aria-label="Round phases"
+          className="m-0 grid list-none grid-cols-2 gap-2 p-0 md:grid-cols-4"
+        >
+          {PHASES.map((ph, idx) => {
+            const keys = ["presentation", "commentary", "response", "judges_qa"];
+            const cur = keys.indexOf(round.phase);
+            const done = cur > idx || round.phase === "done" || round.phase === "scoring";
+            const now = round.phase === ph.key;
+            const timeLabel =
+              ph.key === "presentation"
+                ? `${String(round.timings.presentation_max).padStart(2, "0")}:00`
+                : ph.key === "commentary"
+                  ? `${round.timings.commentary_max}:00`
+                  : ph.key === "judges_qa"
+                    ? `${round.timings.qa_max}:00`
+                    : "";
+            return (
+              <li
+                key={ph.key}
+                className={
+                  now
+                    ? "rounded-[14px] border border-gold bg-gold p-3 text-[#0C0D11]"
+                    : done
+                      ? "rounded-[14px] border border-[#262934] bg-[#16181F] p-3 text-[#8C929D]"
+                      : "rounded-[14px] border border-dashed border-[#262934] bg-[#16181F] p-3 text-[#8C929D]"
+                }
+              >
+                <div className={`text-[13px] ${now ? "font-bold" : ""}`}>
+                  {ph.label(presentTeam)}
+                </div>
+                <div className="font-mono text-[15px] font-semibold">
+                  {now ? "now" : done ? `${timeLabel} · done` : timeLabel}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+
+        <div className="flex flex-wrap items-stretch gap-5">
+          <section className="flex min-w-0 flex-[999] flex-col gap-[22px] rounded-[20px] border border-[#262934] bg-[#16181F] p-8">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#8C929D]">
+                {round.phase === "response"
+                  ? "Time left to respond"
+                  : round.phase === "setup"
+                    ? "Ready to start"
+                    : "Time left"}
+              </span>
+              <span className="font-mono text-[112px] font-semibold leading-none text-gold">
+                {round.phase === "setup" ? "—:— " : clockLabel(left)}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-2.5 rounded-2xl bg-[#0C0D11] p-5">
+              <span className="text-[13px] font-bold text-gold">
+                Cruxy&apos;s strongest point in its commentary · answer this
+                first
+              </span>
+              <p className="font-display m-0 text-[28px] font-semibold leading-tight sm:text-[34px]">
+                &ldquo;Your four-part test would also send back the Parthenon
+                Marbles. Are you ready to say that?&rdquo;
+              </p>
+              <span className="text-[13px] text-[#8C929D]">
+                Built from the strongest opposing points in all three teams&apos;
+                case brains
+              </span>
+              {showFullCommentary ? (
+                <p className="mt-2 text-sm leading-relaxed text-[#C9CCD3]">
+                  Cruxy as the other team: A principle of return that does not
+                  stop at Egypt must also face the Marbles. Either accept
+                  consistency, or name a morally relevant difference that survives
+                  scrutiny.
+                </p>
+              ) : null}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="h-[46px] rounded-xl border border-[#3B404A] px-[18px] text-sm font-semibold"
+                onClick={() => {
+                  if (typeof window !== "undefined" && "speechSynthesis" in window) {
+                    const u = new SpeechSynthesisUtterance(
+                      "Your four-part test would also send back the Parthenon Marbles. Are you ready to say that?",
+                    );
+                    window.speechSynthesis.speak(u);
+                  }
+                }}
+              >
+                Read it aloud again
+              </button>
+              <button
+                type="button"
+                className="h-[46px] rounded-xl border border-[#3B404A] px-[18px] text-sm font-semibold"
+                onClick={() => setShowFullCommentary((s) => !s)}
+              >
+                Show Cruxy&apos;s full commentary
+              </button>
+              {round.phase === "setup" ? (
+                <button
+                  type="button"
+                  onClick={() => void start()}
+                  className="h-[46px] rounded-xl border border-[#F2F3F5] bg-[#F2F3F5] px-[18px] text-sm font-semibold text-[#0C0D11]"
+                >
+                  Start round
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void nextPhase()}
+                  className="h-[46px] rounded-xl border border-[#F2F3F5] bg-[#F2F3F5] px-[18px] text-sm font-semibold text-[#0C0D11]"
+                >
+                  Next phase
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2.5 border-t border-[#262934] pt-4">
+              <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#8C929D]">
+                Live captions · rough, final transcript comes after
+              </span>
+              {lines.length === 0 ? (
+                <p className="m-0 text-[17px] leading-relaxed text-[#C9CCD3]">
+                  Captions appear as people speak. The final transcript is saved
+                  after the round; audio is deleted then.
+                </p>
+              ) : (
+                lines.slice(-4).map((l) => (
+                  <p
+                    key={l.id}
+                    className="m-0 text-[17px] leading-relaxed text-[#C9CCD3]"
+                  >
+                    <span className="font-mono text-[13px] text-[#8C929D]">
+                      {fmt(l.start_ms)} {l.speaker_label ?? "?"}
+                    </span>{" "}
+                    {l.text}
+                  </p>
+                ))
+              )}
+            </div>
+
+            <ChunkedRecorder
+              roundId={round.id}
+              embedded
+              consentOk={recordingOk}
+              autoStart={round.phase === "response"}
+              onRecordingChange={setMicOn}
+            />
+            {recording?.deleted_at ? (
+              <p className="text-xs text-[#8C929D]">
+                Audio deleted at {new Date(recording.deleted_at).toLocaleString()}
+              </p>
+            ) : null}
+          </section>
+
+          <aside className="flex w-full flex-col gap-4 sm:w-[300px]">
+            <section className="flex flex-col gap-3 rounded-[20px] border border-[#262934] bg-[#16181F] p-5">
+              <h2 className="m-0 text-base font-bold">In this round</h2>
+              <div className="flex flex-col gap-2 text-sm">
+                {(presenters.length
+                  ? presenters
+                  : [
+                      { id: "1", name: "Jainam", team_id: null },
+                      { id: "2", name: "Katie", team_id: null },
+                      { id: "3", name: "Daniel", team_id: null },
+                      { id: "4", name: "Nick", team_id: null },
+                    ]
+                ).map((p, i) => {
+                  const role =
+                    i === 0
+                      ? "Lead 1"
+                      : i === 1
+                        ? "Lead 2"
+                        : i === 2
+                          ? "Counter"
+                          : "Supporter";
+                  const speaking = i === 0 && round.phase === "response";
+                  return (
+                    <span
+                      key={p.id}
+                      className="flex justify-between gap-2"
+                    >
+                      <span>
+                        {p.name} · {role}
+                      </span>
+                      <span className="text-[#8C929D]">
+                        {speaking ? "speaking" : "present"}
+                      </span>
+                    </span>
+                  );
+                })}
+              </div>
+              <span className="text-[13px] text-[#8C929D]">
+                Attendance is confirmed by Jainam or Dr. B.
+              </span>
+            </section>
+
+            <section className="flex flex-col gap-2.5 rounded-[20px] border border-[#262934] bg-[#16181F] p-5">
+              <h2 className="m-0 text-base font-bold">Judging this round</h2>
+              {round.judges.cruxy ? (
+                <span className="flex items-center gap-2.5 text-sm">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gold font-extrabold text-[#0C0D11]">
+                    C
+                  </span>
+                  Cruxy judge
+                </span>
+              ) : null}
+              {round.judges.humans.map((hid) => {
+                const person = people.find((p) => p.id === hid);
+                const judge = judgesMeta.find((j) => j.person_id === hid);
+                const name = person?.name ?? judge?.name ?? "Judge";
+                const team = teams.find((t) => t.id === person?.team_id);
+                return (
+                  <span key={hid} className="flex items-center gap-2.5 text-sm">
+                    <span
+                      className="flex h-7 w-7 items-center justify-center rounded-lg font-extrabold text-white"
+                      style={{ background: team?.colour ?? "#4F46E5" }}
+                    >
+                      {name.slice(0, 1)}
+                    </span>
+                    {name}, in person
+                  </span>
+                );
+              })}
+            </section>
+
+            <section className="flex flex-col gap-2 rounded-[20px] border border-[#262934] bg-[#16181F] p-5">
+              <h2 className="m-0 text-base font-bold">Recording from</h2>
+              <span className="text-sm leading-snug text-[#C9CCD3]">
+                One laptop in the room. Voices are matched to the four of you
+                after the round.
+              </span>
+            </section>
+          </aside>
+        </div>
+      </div>
+    </div>
   );
 }

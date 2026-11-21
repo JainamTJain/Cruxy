@@ -26,6 +26,8 @@ export async function POST(req: Request) {
     why?: string;
     improved?: string;
     caseId?: string | null;
+    drillId?: string | null;
+    seenCount?: number;
   };
   if (!body.lesson?.trim()) {
     return NextResponse.json({ error: "lesson required" }, { status: 400 });
@@ -37,6 +39,8 @@ export async function POST(req: Request) {
     improved: body.improved ?? "",
     caseId: body.caseId ?? null,
     createdBy: session.personId,
+    drillId: body.drillId ?? null,
+    seenCount: body.seenCount,
   });
   await saveBankEntry(entry);
   return NextResponse.json({ entry });
