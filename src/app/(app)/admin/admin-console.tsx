@@ -184,6 +184,24 @@ export function AdminConsole() {
     strong: { model: "", fallbacks: "", effort: "" },
     embed: { model: "", fallbacks: "", effort: "" },
   });
+  const [deletePersonId, setDeletePersonId] = useState("");
+  const [privacyMsg, setPrivacyMsg] = useState<string | null>(null);
+  const [seasonMsg, setSeasonMsg] = useState<string | null>(null);
+  const [backupNote, setBackupNote] = useState<string>(
+    "Checking backup status…",
+  );
+  const [backupAt, setBackupAt] = useState<string | null>(null);
+  const [reviewMsg, setReviewMsg] = useState<string | null>(null);
+  const [reviewDrafts, setReviewDrafts] = useState<
+    {
+      id: string;
+      weekOf: string;
+      summary: string;
+      proposedUpdates: { kind: string; text: string }[];
+      status: string;
+    }[]
+  >([]);
+  const [reviewWaiting, setReviewWaiting] = useState<string | null>(null);
 
   async function load() {
     const me = await fetch("/api/auth/me").then((r) => r.json());
@@ -226,6 +244,25 @@ export function AdminConsole() {
         };
         setTeamsMap(j.teams);
         setPassPeople(j.people);
+      }
+      const bak = await fetch("/api/admin/ops/backup");
+      if (bak.ok) {
+        const j = (await bak.json()) as {
+          status?: { note?: string; lastBackupAt?: string | null };
+          message?: string;
+        };
+        setBackupNote(j.status?.note ?? j.message ?? "No backup yet.");
+        setBackupAt(j.status?.lastBackupAt ?? null);
+      }
+      const rev = await fetch("/api/admin/cruxy-review");
+      if (rev.ok) {
+        const j = (await rev.json()) as {
+          available?: boolean;
+          message?: string;
+          drafts?: typeof reviewDrafts;
+        };
+        setReviewDrafts(j.drafts ?? []);
+        setReviewWaiting(j.available === false ? j.message ?? null : null);
       }
     }
   }
@@ -370,6 +407,87 @@ export function AdminConsole() {
       setWeeklyMsg(action === "opt_in" ? "Opted in." : "Opted out.");
       await load();
     }
+  }
+
+  async function deletePersonData() {
+    if (!deletePersonId) {
+      setPrivacyMsg("Pick a person first.");
+      return;
+    }
+    if (
+      !window.confirm(
+        "Delete this person's transcript lines, voice sample and comments? Scores stay anonymous.",
+      )
+    ) {
+      return;
+    }
+    const res = await fetch("/api/admin/ops/delete-person", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ personId: deletePersonId }),
+    });
+    const j = (await res.json()) as {
+      error?: string;
+      message?: string;
+      available?: boolean;
+      deleted?: {
+        transcript_lines: number;
+        voice_sample: boolean;
+        comments: number;
+      };
+    };
+    if (res.status === 501 || j.available === false) {
+      setPrivacyMsg(j.message ?? "Waiting for Workstream I.");
+      return;
+    }
+    if (!res.ok) {
+      setPrivacyMsg(j.error ?? "Delete failed.");
+      return;
+    }
+    setPrivacyMsg(
+      `Deleted ${j.deleted?.transcript_lines ?? 0} transcript lines, ${
+        j.deleted?.comments ?? 0
+      } comments${j.deleted?.voice_sample ? ", voice sample" : ""}.`,
+    );
+  }
+
+  async function runSeasonExport() {
+    setSeasonMsg(null);
+    const res = await fetch("/api/admin/ops/season-export", { method: "POST" });
+    const j = (await res.json()) as {
+      error?: string;
+      message?: string;
+      available?: boolean;
+      filename?: string;
+      bytes?: number;
+      downloadPath?: string;
+    };
+    if (res.status === 501 || j.available === false) {
+      setSeasonMsg(j.message ?? "Waiting for Workstream I.");
+      return;
+    }
+    if (!res.ok) {
+      setSeasonMsg(j.error ?? "Export failed.");
+      return;
+    }
+    setSeasonMsg(
+      `Archive ready: ${j.filename} (${j.bytes ?? 0} bytes). Drive upload is not available with the read-only service account.`,
+    );
+  }
+
+  async function reviewAction(draftId: string, action: "approve" | "reject") {
+    const res = await fetch("/api/admin/cruxy-review", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ draftId, action }),
+    });
+    const j = (await res.json()) as { error?: string; message?: string };
+    if (!res.ok) {
+      setReviewMsg(j.message ?? j.error ?? "Could not update review.");
+      return;
+    }
+    setReviewMsg(action === "approve" ? "Approved." : "Rejected.");
+    await load();
   }
 
   async function saveModel(tier: ModelTier) {
@@ -962,6 +1080,136 @@ export function AdminConsole() {
             ))}
           </div>
           {modelMsg ? <p className="text-sm text-muted">{modelMsg}</p> : null}
+        </section>
+      ) : null}
+
+      {tech ? (
+        <div className="grid gap-3 lg:grid-cols-3">
+          <section className="flex flex-col gap-3 rounded-[20px] bg-white p-5">
+            <OnlyJainam />
+            <strong>Delete a person&apos;s private data</strong>
+            <p className="text-sm text-muted">
+              One action: transcript lines, voice sample and comments. Aggregate
+              scores stay. Wired to Workstream I when it lands.
+            </p>
+            <select
+              className="h-[38px] rounded-[10px] border border-mist bg-white px-3 text-sm"
+              value={deletePersonId}
+              onChange={(e) => setDeletePersonId(e.target.value)}
+            >
+              <option value="">Pick a person</option>
+              {passPeople.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="h-[38px] self-start rounded-[10px] border border-mist bg-white px-3 text-[13px] font-semibold"
+              onClick={() => void deletePersonData()}
+            >
+              Delete private data
+            </button>
+            {privacyMsg ? <p className="text-sm text-muted">{privacyMsg}</p> : null}
+          </section>
+
+          <section className="flex flex-col gap-3 rounded-[20px] bg-white p-5">
+            <OnlyJainam />
+            <strong>Season archive</strong>
+            <p className="text-sm text-muted">
+              Downloadable export for season end. The Drive service account is
+              read only, so this is a file you download, not an upload.
+            </p>
+            <button
+              type="button"
+              className="h-[38px] self-start rounded-[10px] border border-mist bg-white px-3 text-[13px] font-semibold"
+              onClick={() => void runSeasonExport()}
+            >
+              Build season archive
+            </button>
+            {seasonMsg ? <p className="text-sm text-muted">{seasonMsg}</p> : null}
+          </section>
+
+          <section className="flex flex-col gap-3 rounded-[20px] bg-white p-5">
+            <OnlyJainam />
+            <strong>Backup status</strong>
+            <p className="text-sm text-muted">
+              Weekly logical backup of key tables to Storage (Workstream I).
+            </p>
+            <div className="grid grid-cols-[1fr_auto] gap-1.5 text-[13px]">
+              <span>Last backup</span>
+              <span className="font-mono">
+                {backupAt ? formatWhen(backupAt) : "never"}
+              </span>
+            </div>
+            <span className="text-xs text-muted">{backupNote}</span>
+          </section>
+        </div>
+      ) : null}
+
+      {tech ? (
+        <section
+          id="cruxy-review"
+          className="flex flex-col gap-3 rounded-[20px] bg-white p-5"
+        >
+          <span className="flex items-center gap-2.5">
+            <OnlyJainam />
+            <strong className="text-[17px]">Weekly Cruxy review</strong>
+          </span>
+          <p className="text-sm text-muted">
+            Cruxy drafts updates to its examples and checks from the week&apos;s
+            feedback. You approve them here. Slot for Workstream H.
+          </p>
+          {reviewWaiting ? (
+            <p className="rounded-[10px] bg-[#F7F8FA] px-3 py-2 text-sm text-muted">
+              {reviewWaiting}
+            </p>
+          ) : null}
+          {reviewDrafts.length === 0 && !reviewWaiting ? (
+            <p className="text-sm text-muted">No pending drafts.</p>
+          ) : null}
+          {reviewDrafts.map((d) => (
+            <div
+              key={d.id}
+              className="flex flex-col gap-2 rounded-[12px] border border-mist bg-[#F7F8FA] p-3"
+            >
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <strong>Week of {d.weekOf}</strong>
+                <span className="text-xs uppercase tracking-wide text-muted">
+                  {d.status}
+                </span>
+              </div>
+              <p className="text-sm">{d.summary}</p>
+              <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
+                {d.proposedUpdates.map((u, i) => (
+                  <li key={i}>
+                    <span className="font-medium text-ink">{u.kind}:</span>{" "}
+                    {u.text}
+                  </li>
+                ))}
+              </ul>
+              {d.status === "pending" ? (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="h-[38px] rounded-[10px] bg-ink px-3 text-[13px] font-semibold text-white"
+                    onClick={() => void reviewAction(d.id, "approve")}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    className="h-[38px] rounded-[10px] border border-mist bg-white px-3 text-[13px] font-semibold"
+                    onClick={() => void reviewAction(d.id, "reject")}
+                  >
+                    Reject
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ))}
+          {reviewMsg ? <p className="text-sm text-muted">{reviewMsg}</p> : null}
         </section>
       ) : null}
 
