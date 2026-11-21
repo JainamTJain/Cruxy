@@ -27,8 +27,8 @@ export function NamePicker({
         {byTeam.map(({ team, members }) => (
           <div key={team.id} className="animate-fade-up">
             <p
-              className="mb-2 text-xs font-bold uppercase tracking-[0.12em]"
-              style={{ color: team.colour }}
+              className="mb-2 border-b-[3px] pb-1.5 text-[13px] font-bold"
+              style={{ color: team.colour, borderColor: team.colour }}
             >
               {team.name}
             </p>
@@ -39,18 +39,14 @@ export function NamePicker({
                   <li key={m.id}>
                     <button
                       type="button"
+                      aria-pressed={active}
                       onClick={() => onSelect(m.id)}
                       className={cn(
-                        "w-full rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition",
+                        "w-full rounded-xl border px-3 py-2.5 text-left text-sm transition",
                         active
-                          ? "border-transparent text-white"
+                          ? "border-ink bg-ink font-semibold text-white"
                           : "border-mist bg-white text-ink hover:border-ink/20",
                       )}
-                      style={
-                        active
-                          ? { backgroundColor: team.colour }
-                          : undefined
-                      }
                     >
                       {m.name}
                     </button>
@@ -71,11 +67,12 @@ export function NamePicker({
               <button
                 key={m.id}
                 type="button"
+                aria-pressed={selectedId === m.id}
                 onClick={() => onSelect(m.id)}
                 className={cn(
-                  "rounded-xl border px-4 py-2.5 text-sm font-medium transition",
+                  "rounded-xl border px-4 py-2.5 text-sm transition",
                   selectedId === m.id
-                    ? "border-transparent bg-ink text-white"
+                    ? "border-ink bg-ink font-semibold text-white"
                     : "border-mist bg-white text-ink",
                 )}
               >

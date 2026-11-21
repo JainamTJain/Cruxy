@@ -134,7 +134,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-dvh bg-paper text-ink">
-      <aside className="hidden w-[248px] shrink-0 flex-col gap-7 bg-ink px-4 py-7 text-white sm:flex">
+      <aside className="hidden w-[248px] shrink-0 flex-col gap-7 bg-ink px-4 pb-7 pt-[28px] text-white sm:flex">
         <Link
           href="/home"
           className="font-display px-3 text-[38px] font-extrabold leading-none tracking-[-0.04em] text-white"
