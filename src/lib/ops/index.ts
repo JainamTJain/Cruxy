@@ -28,3 +28,10 @@ export {
 } from "@/lib/ops/backup";
 export { checkAndSendSpendAlert } from "@/lib/ops/spend-alert";
 export { sendOpsEmail } from "@/lib/ops/email";
+export {
+  assertMayRecord,
+  assertRecordingLayoutAllowed,
+  assertSessionJoinable,
+  assertGuestRoundStillOpen,
+  isPracticeSessionEnded,
+} from "@/lib/ops/consent-recording";

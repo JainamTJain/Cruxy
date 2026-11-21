@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
+import { getRoundById } from "@/lib/db/practice-repository";
+import { assertRecordingLayoutAllowed } from "@/lib/ops/consent-recording";
 import type { RecordingLayout } from "@/lib/practice/types";
 import { setRoundRecordingLayout } from "@/lib/practice/wave5";
 
@@ -18,9 +20,21 @@ export async function POST(
   if (!body.layout || !LAYOUTS.includes(body.layout as RecordingLayout)) {
     return NextResponse.json({ error: "layout required" }, { status: 400 });
   }
+  const existing = await getRoundById(id);
+  if (!existing) {
+    return NextResponse.json({ error: "Round not found" }, { status: 404 });
+  }
+  const layout = body.layout as RecordingLayout;
+  const allowed = await assertRecordingLayoutAllowed({
+    sessionId: existing.session_id,
+    layout,
+  });
+  if (!allowed.ok) {
+    return NextResponse.json({ error: allowed.reason }, { status: 403 });
+  }
   const round = await setRoundRecordingLayout({
     roundId: id,
-    layout: body.layout as RecordingLayout,
+    layout,
     actorId: session.personId,
   });
   if (!round) {

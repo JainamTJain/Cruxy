@@ -40,6 +40,7 @@ export async function POST(req: Request) {
   }
 
   let judgeId = body.judgeId ?? null;
+  let guestMode = false;
   if (body.guestToken) {
     const guest = await resolveGuestToken(body.guestToken);
     if (!guest || guest.roundId !== body.roundId) {
@@ -49,6 +50,7 @@ export async function POST(req: Request) {
       );
     }
     judgeId = guest.judge.id;
+    guestMode = true;
   }
 
   if (!judgeId && !session) {
@@ -58,6 +60,19 @@ export async function POST(req: Request) {
   const round = await getRoundById(body.roundId);
   if (!round) {
     return NextResponse.json({ error: "Round not found" }, { status: 404 });
+  }
+  if (guestMode && round.session?.status === "ended") {
+    return NextResponse.json(
+      { error: "This session has ended. Guest scoring is closed." },
+      { status: 403 },
+    );
+  }
+  // Guests may only score teams on their assigned round card.
+  if (guestMode && !round.team_ids.includes(body.teamId)) {
+    return NextResponse.json(
+      { error: "That team is not on this round." },
+      { status: 403 },
+    );
   }
 
   const lines = await getTranscript(body.roundId);

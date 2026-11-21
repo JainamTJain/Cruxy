@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { TextOnlyBanner } from "@/components/practice/text-only-banner";
 
 type Round = {
   id: string;
@@ -87,6 +88,7 @@ export function SessionClient() {
   const [inviteTeamId, setInviteTeamId] = useState("");
   const [inviteMsg, setInviteMsg] = useState<string | null>(null);
   const [shareLink, setShareLink] = useState<string | null>(null);
+  const [textOnlyNames, setTextOnlyNames] = useState<string[]>([]);
 
   async function refresh() {
     const res = await fetch(`/api/practice/sessions/${params.id}`);
@@ -98,6 +100,11 @@ export function SessionClient() {
     setCanInvite(Boolean(data.canInvite));
     setPeople(data.people ?? []);
     setJoinedJudgeIds(data.joinedJudgeIds ?? []);
+    setTextOnlyNames(
+      Array.isArray(data.textOnlyBanner?.names)
+        ? (data.textOnlyBanner.names as string[])
+        : [],
+    );
     if (data.code) setCode(data.code);
     if (data.creatorName) setCreatorName(data.creatorName);
     if (data.teams) setTeams(data.teams);
@@ -223,7 +230,7 @@ export function SessionClient() {
 
   const codeDisplay = code
     ? `${code.slice(0, 3)} ${code.slice(3)}`.trim()
-    : "••••••";
+    : "Not set";
 
   const qrUrl =
     typeof window !== "undefined"
@@ -277,6 +284,7 @@ export function SessionClient() {
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col gap-5 px-1 sm:px-0">
+        <TextOnlyBanner names={textOnlyNames} />
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex flex-col gap-1.5">
             <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
@@ -298,7 +306,7 @@ export function SessionClient() {
                   SESSION CODE, ADMINS ONLY
                 </div>
                 <div className="font-mono text-[34px] font-semibold tracking-[0.12em]">
-                  {codeHidden ? "••• •••" : codeDisplay}
+                  {codeHidden ? "hidden" : codeDisplay}
                 </div>
               </div>
               <button

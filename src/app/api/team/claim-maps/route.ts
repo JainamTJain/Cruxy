@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { canSetCaseRole } from "@/lib/auth/capabilities";
 import { getSession } from "@/lib/auth/session";
+import { getPersonById } from "@/lib/db/repository";
 import {
   acceptClaimChange,
   confirmClaimMapVersion,
@@ -13,6 +15,24 @@ import {
 import type { ClaimMapBody } from "@/lib/team/types";
 
 export const runtime = "nodejs";
+
+/**
+ * Reads are shared across the three teams (spec). Writes must stay on the
+ * caller's own team unless an admin is acting in admin view.
+ */
+async function assertCanWriteTeam(
+  session: NonNullable<Awaited<ReturnType<typeof getSession>>>,
+  teamId: string,
+): Promise<true | NextResponse> {
+  const person = await getPersonById(session.personId);
+  if (!person || !canSetCaseRole(person, session, teamId)) {
+    return NextResponse.json(
+      { error: "You can only edit your own team's claim map." },
+      { status: 403 },
+    );
+  }
+  return true;
+}
 
 export async function GET(req: Request) {
   const session = await getSession();
@@ -71,6 +91,8 @@ export async function POST(req: Request) {
       if (!body.teamId || !body.caseId || !body.claimKey || !body.newText || !body.reason) {
         return NextResponse.json({ error: "Missing fields" }, { status: 400 });
       }
+      const allowed = await assertCanWriteTeam(session, body.teamId);
+      if (allowed !== true) return allowed;
       const proposal = await proposeClaimChange({
         teamId: body.teamId,
         caseId: body.caseId,
@@ -94,6 +116,8 @@ export async function POST(req: Request) {
       if (!body.teamId || !body.caseId || !body.mapBody || !body.changeSummary) {
         return NextResponse.json({ error: "Missing fields" }, { status: 400 });
       }
+      const allowed = await assertCanWriteTeam(session, body.teamId);
+      if (allowed !== true) return allowed;
       const version = await publishClaimMapEdit({
         teamId: body.teamId,
         caseId: body.caseId,

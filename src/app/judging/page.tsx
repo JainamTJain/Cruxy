@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { JudgePhoneCard } from "@/components/practice/judge-phone-card";
+import { TextOnlyBanner } from "@/components/practice/text-only-banner";
 import type { AppeItemKey } from "@/lib/practice/types";
 import { PRACTICE_FIXTURE_CODE } from "@/lib/practice/fixture-ids";
 
@@ -25,6 +26,7 @@ export default function JudgingPortalPage() {
     caseNumber?: number | null;
     teams?: { id: string; name: string; role: "presenting" | "commenting" }[];
     guestToken?: string;
+    textOnlyNames?: string[];
   } | null>(null);
   const [momentNote, setMomentNote] = useState<string | null>(null);
 
@@ -88,6 +90,9 @@ export default function JudgingPortalPage() {
           name: `Team ${i === 0 ? 3 : 1}`,
           role: i === 0 ? "presenting" : "commenting",
         })),
+      textOnlyNames: Array.isArray(data.textOnlyBanner?.names)
+        ? data.textOnlyBanner.names
+        : [],
     });
   }
 
@@ -128,6 +133,9 @@ export default function JudgingPortalPage() {
   if (access) {
     return (
       <>
+        <div className="mx-auto max-w-lg px-4 pt-4">
+          <TextOnlyBanner names={access.textOnlyNames ?? []} />
+        </div>
         <JudgePhoneCard
           judgeName={access.judge.name.startsWith("Prof") ? access.judge.name : `Prof. ${access.judge.name}`}
           caseNumber={access.caseNumber ?? 9}
@@ -136,7 +144,9 @@ export default function JudgingPortalPage() {
           hasCommentingTeam={teams.length > 1}
           hasJudgesQa
           onMarkMoment={() =>
-            setMomentNote("Moment marked — pinned when the transcript lands.")
+            setMomentNote(
+              "Moment marked. It is pinned when the transcript lands.",
+            )
           }
           onSubmit={submitScores}
         />
@@ -159,7 +169,7 @@ export default function JudgingPortalPage() {
           Judging portal
         </h1>
         <p className="mt-1 text-sm text-muted">
-          Enter the session code the admin reads aloud — or scan the QR for
+          Enter the session code the admin reads aloud, or scan the QR for
           guests.
         </p>
       </header>

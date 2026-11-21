@@ -401,6 +401,33 @@ export async function callCruxy(
       setting.model,
     );
     const zdr = gatewayZdr(meta);
+    // F-389: refuse any successful reply that did not actually run under ZDR.
+    if (!zdr) {
+      await insertAiCall({
+        feature: input.feature,
+        model: modelUsed,
+        tokens_in: tokensIn,
+        tokens_out: tokensOut,
+        cost_usd: costUsd,
+        person_id: input.personId ?? null,
+        refused: true,
+        refuse_reason: "no_zdr_providers",
+      });
+      await logActivity({
+        person_id: input.personId ?? null,
+        action: "ai_gateway_zdr_missing",
+        target: input.feature,
+        meta: { tier, model: modelUsed },
+      });
+      return {
+        ok: false,
+        refused: true,
+        reason:
+          "Cruxy could not reach a zero-retention model path. Try again shortly.",
+        monthlySpend: spent,
+        monthlyCap: cap,
+      };
+    }
 
     await insertAiCall({
       feature: input.feature,
@@ -428,7 +455,7 @@ export async function callCruxy(
       tokensOut,
       costUsd,
       stub: false,
-      zeroDataRetention: zdr,
+      zeroDataRetention: true,
     };
   } catch (err) {
     const message =
@@ -560,6 +587,31 @@ export async function embedCruxy(
       (result.usage as { tokens?: number } | undefined)?.tokens ?? 0;
     const reported = gatewayCost(meta);
     const costUsd = reported != null ? reported : estimated;
+    const zdr = gatewayZdr(meta);
+    if (!zdr) {
+      await insertAiCall({
+        feature: input.feature,
+        model: setting.model,
+        tokens_in: tokensIn,
+        tokens_out: 0,
+        cost_usd: costUsd,
+        person_id: input.personId ?? null,
+        refused: true,
+        refuse_reason: "no_zdr_providers",
+      });
+      await logActivity({
+        person_id: input.personId ?? null,
+        action: "ai_gateway_zdr_missing",
+        target: input.feature,
+        meta: { tier: "embed", model: setting.model },
+      });
+      return {
+        ok: false,
+        refused: true,
+        reason:
+          "Cruxy could not embed on a zero-retention path. Try again shortly.",
+      };
+    }
 
     await insertAiCall({
       feature: input.feature,

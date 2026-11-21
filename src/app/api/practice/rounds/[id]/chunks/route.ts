@@ -33,13 +33,13 @@ export async function POST(
     return NextResponse.json({ error: "Round not found" }, { status: 404 });
   }
 
-  const { getPersonById } = await import("@/lib/db/repository");
-  const person = await getPersonById(session.personId);
-  if (person && !person.recording_ok && person.consent_version) {
-    return NextResponse.json(
-      { error: "Text-only consent. This device does not record." },
-      { status: 403 },
-    );
+  const {
+    assertMayRecord,
+    assertRecordingLayoutAllowed,
+  } = await import("@/lib/ops/consent-recording");
+  const mayRecord = await assertMayRecord(session.personId);
+  if (!mayRecord.ok) {
+    return NextResponse.json({ error: mayRecord.reason }, { status: 403 });
   }
 
   const form = await req.formData();
@@ -57,6 +57,13 @@ export async function POST(
   }
 
   const layout = round.recording_layout ?? "room";
+  const layoutOk = await assertRecordingLayoutAllowed({
+    sessionId: round.session_id,
+    layout,
+  });
+  if (!layoutOk.ok) {
+    return NextResponse.json({ error: layoutOk.reason }, { status: 403 });
+  }
   const perDevice = layout === "own_device" || layout === "mixed";
   const ownerKey = perDevice ? session.personId : null;
 

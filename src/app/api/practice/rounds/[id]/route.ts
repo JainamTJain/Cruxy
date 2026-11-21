@@ -11,6 +11,7 @@ import {
 } from "@/lib/db/practice-repository";
 import { getReportExtras } from "@/lib/db/supabase/practice-extra";
 import { getPersonById } from "@/lib/db/repository";
+import { sessionHasTextOnlyMembers } from "@/lib/attendance";
 import type { RoundPhase } from "@/lib/practice/types";
 
 export async function GET(
@@ -32,6 +33,7 @@ export async function GET(
   const { cards, scores } = await listJudgeCards(id);
   const extras = await getReportExtras(id);
   const me = await getPersonById(session.personId);
+  const textOnlyBanner = await sessionHasTextOnlyMembers(round.session_id);
   const caseTitle =
     extras.teams && round.case_number != null
       ? `Case ${round.case_number}`
@@ -57,6 +59,7 @@ export async function GET(
     caseLabel: caseTitle,
     recordingOk: Boolean(me?.recording_ok),
     consentVersion: me?.consent_version ?? null,
+    textOnlyBanner,
   });
 }
 

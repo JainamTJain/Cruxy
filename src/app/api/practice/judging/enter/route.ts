@@ -6,11 +6,14 @@ import {
   joinWithSessionCode,
   upsertJudge,
 } from "@/lib/db/practice-repository";
+import { sessionHasTextOnlyMembers } from "@/lib/attendance";
+import { assertSessionJoinable } from "@/lib/ops/consent-recording";
 
 /**
- * Judging portal entry:
- * - Known judge (signed-in member): enter session code → scoring card
- * - Guest: name + background + session code (or QR token path)
+ * Judging portal entry (F-392):
+ * - Guests and known judges must enter a live session code.
+ * - Guest tokens are bound to one round and die when the session ends.
+ * - Client-supplied roundId alone is never enough (no open scoring of arbitrary rounds).
  */
 export async function POST(req: Request) {
   const session = await getSession();
@@ -22,38 +25,45 @@ export async function POST(req: Request) {
     roundId?: string;
   };
 
-  if (!body.code?.trim() && !body.roundId) {
+  if (!body.code?.trim()) {
     return NextResponse.json(
-      { error: "Session code or roundId required" },
+      { error: "Session code required" },
       { status: 400 },
     );
   }
 
-  let roundId = body.roundId ?? null;
-  let sessionId: string | null = null;
-
-  if (body.code?.trim()) {
-    const joined = await joinWithSessionCode({
-      code: body.code,
-      personId: session?.personId ?? null,
-      ipKey: req.headers.get("x-forwarded-for") ?? "judge",
-      portal: "judging",
-    });
-    if (!joined.ok) {
-      return NextResponse.json({ error: joined.reason }, { status: 400 });
-    }
-    sessionId = joined.session.id;
-    roundId = joined.rounds[0]?.id ?? null;
+  const joined = await joinWithSessionCode({
+    code: body.code,
+    personId: session?.personId ?? null,
+    ipKey: req.headers.get("x-forwarded-for") ?? "judge",
+    portal: "judging",
+  });
+  if (!joined.ok) {
+    return NextResponse.json({ error: joined.reason }, { status: 400 });
   }
+
+  const joinable = await assertSessionJoinable(joined.session);
+  if (!joinable.ok) {
+    return NextResponse.json({ error: joinable.reason }, { status: 403 });
+  }
+
+  const sessionId = joined.session.id;
+  const preferred = body.roundId?.trim() || null;
+  const roundFromSession = preferred
+    ? joined.rounds.find((r) => r.id === preferred) ?? null
+    : null;
+  const roundId = roundFromSession?.id ?? joined.rounds[0]?.id ?? null;
 
   if (!roundId) {
     return NextResponse.json({ error: "No round in session" }, { status: 400 });
   }
 
   const round = await getRoundById(roundId);
-  if (!round) {
+  if (!round || round.session_id !== sessionId) {
     return NextResponse.json({ error: "Round not found" }, { status: 404 });
   }
+
+  const textOnlyBanner = await sessionHasTextOnlyMembers(sessionId);
 
   if (body.guest || !session) {
     if (!body.name?.trim()) {
@@ -74,6 +84,8 @@ export async function POST(req: Request) {
       sessionId,
       guestToken: token,
       teamIds: round.team_ids,
+      caseNumber: round.case_number,
+      textOnlyBanner,
     });
   }
 
@@ -87,7 +99,9 @@ export async function POST(req: Request) {
     path: "known",
     judge: { id: judge.id, name: judge.name, background: judge.background },
     roundId,
-    sessionId: sessionId ?? round.session_id,
+    sessionId,
     teamIds: round.team_ids,
+    caseNumber: round.case_number,
+    textOnlyBanner,
   });
 }

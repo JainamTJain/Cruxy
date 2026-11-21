@@ -26,8 +26,17 @@ function assemblyAiKey(): string | null {
  * When the key is missing, returns a deterministic stub transcript.
  * Never logs the API key.
  *
+ * F-389 / no training: only paid Universal tiers (universal-3-5-pro with
+ * universal-2 fallback). Those commercial tiers do not train on customer
+ * audio. Never send practice audio to a free or training-enabled path.
  * Current API (docs/research/apis.md): universal-3-5-pro + keyterms_prompt.
  */
+
+/** Paid AssemblyAI models that do not train on customer data (F-389). */
+export const ASSEMBLYAI_NO_TRAIN_SPEECH_MODELS = [
+  "universal-3-5-pro",
+  "universal-2",
+] as const;
 export async function transcribeWithSpeakerLabels(opts: {
   audio: Buffer;
   keyTerms: string[];
@@ -65,7 +74,8 @@ export async function transcribeWithSpeakerLabels(opts: {
     const createBody: Record<string, unknown> = {
       audio_url: uploadJson.upload_url,
       speaker_labels: true,
-      speech_models: ["universal-3-5-pro", "universal-2"],
+      // Assert paid no-train tier only (F-389).
+      speech_models: [...ASSEMBLYAI_NO_TRAIN_SPEECH_MODELS],
       keyterms_prompt: opts.keyTerms.slice(0, 100),
     };
     if (opts.speakersExpected && opts.speakersExpected > 0) {

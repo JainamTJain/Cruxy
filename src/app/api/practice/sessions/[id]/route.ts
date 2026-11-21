@@ -40,11 +40,10 @@ export async function GET(
   const canInvite =
     admin || row.created_by === session.personId || row.kind === "member_practice";
 
+  // Never return code_hash (or plaintext codes) here. Admins use reveal_code.
+  const safeSession = { ...row, code_hash: undefined };
   return NextResponse.json({
-    session: {
-      ...row,
-      code_hash: admin ? row.code_hash : undefined,
-    },
+    session: safeSession,
     attendance,
     textOnlyBanner,
     admin,
@@ -81,6 +80,17 @@ export async function POST(
   if (body.action === "reveal_code" || body.action === "rotate_code") {
     const code = await revealSessionCode(id, session.personId);
     return NextResponse.json({ code });
+  }
+
+  if (body.action === "end_session") {
+    const { endPracticeSession } = await import(
+      "@/lib/db/practice-repository"
+    );
+    const ended = await endPracticeSession(id, session.personId);
+    if (!ended) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json({ session: { ...ended, code_hash: undefined } });
   }
 
   if (body.action === "set_judges" && body.roundId && body.mode) {
