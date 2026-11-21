@@ -111,7 +111,7 @@ export async function GET(_req: Request, { params }: Params) {
     : [];
 
   // Leads get the deck automatically. Anyone else on the case (or an
-  // explicit unassigned opt-in) shows as "Also studying · (not assigned)".
+  // explicit unassigned opt-in) shows as "Also studying (not assigned)".
   const leadIds = new Set(
     refreshed.case_roles
       .filter((r) => r.role === "lead_1" || r.role === "lead_2")
