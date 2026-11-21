@@ -3,11 +3,11 @@ export const TOKENS = {
   cardinal: "#9D2235",
   gold: "#F5B700",
   ink: "#111318",
-  paper: "#F7F4EF",
+  paper: "#F3F4F6",
   mist: "#E8E4DC",
-  team1: "#9D2235",
-  team2: "#1B4F72",
-  team3: "#1F6F4A",
+  team1: "#0F7B6C",
+  team2: "#4F46E5",
+  team3: "#C2410C",
 } as const;
 
 export const MONTHLY_CAP_USD_DEFAULT = 30;
@@ -36,7 +36,7 @@ export const CASE_TITLES: { number: number; title: string; active: boolean }[] =
     { number: 7, title: "Equal Access Activism", active: true },
     { number: 8, title: "(inactive for California)", active: false },
     { number: 9, title: "GEM in the Rough", active: true },
-    { number: 10, title: "Right to Be Forgotten", active: true },
+    { number: 10, title: "To Be, or Not to Be…Forgotten?", active: true },
     { number: 11, title: "The Cost of a Conscience", active: true },
     { number: 12, title: "Medicine and Misinformation", active: true },
     { number: 13, title: "Normally Distributed Violence", active: true },

@@ -1,0 +1,1003 @@
+# Design parity checklist (generated from docs/design/screens/*.html)
+
+For each screen, every visible label, number, button and image in the reference must exist in the real page, in the same order and hierarchy, styled with the Crux tokens. Sample names and numbers become real data, but the element must be there. Tick each line only after comparing a screenshot of the real page side by side with the reference (`npm run shots`). Never delete a line.
+
+
+## Admin.html
+
+- [ ] D-0001 Crux: admin console
+- [ ] D-0002 crux
+- [ ] D-0003 ADMIN
+- [ ] D-0004 Sessions
+- [ ] D-0005 People and teams
+- [ ] D-0006 Program analytics
+- [ ] D-0007 Question bank
+- [ ] D-0008 Back to member view
+- [ ] D-0009 Admin console · sample data
+- [ ] D-0010 Running the program
+- [ ] D-0011 Dr. B sees everything here except the panels marked
+- [ ] D-0012 ONLY JAINAM
+- [ ] D-0013 Team 1 ready
+- [ ] D-0014 51%
+- [ ] D-0015 +9 this week
+- [ ] D-0016 Team 2 ready
+- [ ] D-0017 54%
+- [ ] D-0018 +6 this week
+- [ ] D-0019 Team 3 ready
+- [ ] D-0020 52%
+- [ ] D-0021 +11 this week
+- [ ] D-0022 Attendance
+- [ ] D-0023 86%
+- [ ] D-0024 last 3 sessions
+- [ ] D-0025 Team 1
+- [ ] D-0026 5
+- [ ] D-0027 Serena
+- [ ] D-0028 recorded ✓ voice ✓
+- [ ] D-0029 Ivan
+- [ ] D-0030 Ashton
+- [ ] D-0031 Stolei
+- [ ] D-0032 hasn't signed in
+- [ ] D-0033 Tri
+- [ ] D-0034 Team 2
+- [ ] D-0035 Lehar
+- [ ] D-0036 Camerin
+- [ ] D-0037 Jade
+- [ ] D-0038 text only
+- [ ] D-0039 Bethany
+- [ ] D-0040 Quixote
+- [ ] D-0041 Team 3
+- [ ] D-0042 4
+- [ ] D-0043 Nick
+- [ ] D-0044 Daniel
+- [ ] D-0045 Katie
+- [ ] D-0046 Jainam
+- [ ] D-0047 Add or move a person
+- [ ] D-0048 Spend this month
+- [ ] D-0049 $11.40 / $30
+- [ ] D-0050 Transcription
+- [ ] D-0051 $0.00 · free credit
+- [ ] D-0052 Judging and reports
+- [ ] D-0053 $6.80
+- [ ] D-0054 Research
+- [ ] D-0055 $2.90
+- [ ] D-0056 Assistant and drills
+- [ ] D-0057 $1.70
+- [ ] D-0058 Caps
+- [ ] D-0059 Pause research
+- [ ] D-0060 Books Cruxy asked for
+- [ ] D-0061 Who Owns Antiquity?
+- [ ] D-0062 · Case 9 · ch. 3
+- [ ] D-0063 Upload
+- [ ] D-0064 The Harm in Hate Speech
+- [ ] D-0065 · Case 13
+- [ ] D-0066 Drive sorting queue
+- [ ] D-0067 "notes final v2.docx" · Case 10 or 11?
+- [ ] D-0068 Sort
+- [ ] D-0069 Calibration
+- [ ] D-0070 Human cards so far
+- [ ] D-0071 9
+- [ ] D-0072 Cruxy vs judges, Presentation A
+- [ ] D-0073 −0.6
+- [ ] D-0074 Cruxy vs judges, Response to judges
+- [ ] D-0075 −1.1
+- [ ] D-0076 Most weighted judge
+- [ ] D-0077 Prof. [name]
+- [ ] D-0078 Members never see weights or gaps.
+- [ ] D-0079 Passcodes
+- [ ] D-0080 Starter code for new members: set
+- [ ] D-0081 Change starter code
+- [ ] D-0082 Person
+- [ ] D-0083 Team
+- [ ] D-0084 Passcode
+- [ ] D-0085 Chosen
+- [ ] D-0086 Last sign in
+- [ ] D-0087 Actions
+- [ ] D-0088 ••••••
+- [ ] D-0089 Nov 18
+- [ ] D-0090 today 09:40
+- [ ] D-0091 Show
+- [ ] D-0092 Reset
+- [ ] D-0093 48 17 05
+- [ ] D-0094 sample · hides in 18s
+- [ ] D-0095 Nov 19
+- [ ] D-0096 yesterday
+- [ ] D-0097 Hide
+- [ ] D-0098 Hasn't chosen one yet
+- [ ] D-0099 never
+- [ ] D-0100 Send starter code
+- [ ] D-0101 Nov 17
+- [ ] D-0102 today 09:12
+- [ ] D-0103 Dr. B
+- [ ] D-0104 Admin
+- [ ] D-0105 Nov 16
+- [ ] D-0106 today 08:30
+- [ ] D-0107 Showing 5 of 14 · sample. The first Show in 10 minutes asks for your own passcode. Every Show and Reset goes in the activity log. Your own passcode is never listed. Everyone was told you can see theirs when they chose it.
+- [ ] D-0108 Activity log
+- [ ] D-0109 Dr. B: read only
+- [ ] D-0110 09:44
+- [ ] D-0111 Showed Lehar's passcode (she forgot it)
+- [ ] D-0112 09:41
+- [ ] D-0113 ✅ "repair, not payout" · Case 7 · "Matches DRA's own goal"
+- [ ] D-0114 09:12
+- [ ] D-0115 ❌ Unit 731 example · Case 3 · "Can't verify in time"
+- [ ] D-0116 08:30
+- [ ] D-0117 Created session Tue Nov 24, 3 rounds
+- [ ] D-0118 08:02
+- [ ] D-0119 unknown
+- [ ] D-0120 5 wrong codes on "Tri" · locked 10 min
+- [ ] D-0121 Weekly summary
+- [ ] D-0122 Dr. B opted in. Next email Sunday 6 pm: attendance, scores by team, biggest improvements, cases at risk, open disagreements.
+- [ ] D-0123 Preview this week's email
+
+## CaseBrain.html
+
+- [ ] D-0124 Crux: case brain
+- [ ] D-0125 crux
+- [ ] D-0126 Program map
+- [ ] D-0127 My roadmap
+- [ ] D-0128 Cases
+- [ ] D-0129 Reading room
+- [ ] D-0130 Practice
+- [ ] D-0131 Reports
+- [ ] D-0132 Team chat
+- [ ] D-0133 [image] /cruxy/cruxy-lamp.png
+- [ ] D-0134 Ask Cruxy
+- [ ] D-0135 09
+- [ ] D-0136 Case brain · Team 3 · sample data
+- [ ] D-0137 GEM in the Rough
+- [ ] D-0138 Crux: righting a wartime taking
+- [ ] D-0139 versus
+- [ ] D-0140 preservation, global access and the law.
+- [ ] D-0141 Team 1
+- [ ] D-0142 Team 2
+- [ ] D-0143 Team 3
+- [ ] D-0144 Compare
+- [ ] D-0145 Lead 1
+- [ ] D-0146 Jainam
+- [ ] D-0147 Nick
+- [ ] D-0148 Daniel
+- [ ] D-0149 Katie
+- [ ] D-0150 Lead 2
+- [ ] D-0151 Counter-arguer
+- [ ] D-0152 Supporter
+- [ ] D-0153 Claim map
+- [ ] D-0154 Truth Sources · 38
+- [ ] D-0155 Readings · 12
+- [ ] D-0156 Flashcards · 64
+- [ ] D-0157 Questions · 24
+- [ ] D-0158 Research
+- [ ] D-0159 C1
+- [ ] D-0160 Jainam · 3 of 3 supports backed
+- [ ] D-0161 92% robust
+- [ ] D-0162 The British Museum's title is defective, and the duty to repair falls on the institution that still benefits.
+- [ ] D-0163 Because S1, S2 and S3 → Claim 1
+- [ ] D-0164 S1 · A broken first link
+- [ ] D-0165 A spoil of war passed between empires is not a just transfer.
+- [ ] D-0166 Nozick 1974
+- [ ] D-0167 Case set p. [n]
+- [ ] D-0168 S2 · Caretaker rule fails
+- [ ] D-0169 "Keep it if you care for it better" can't be universalised.
+- [ ] D-0170 Kant
+- [ ] D-0171 Practice Nov 12 · 14:32
+- [ ] D-0172 S3 · Responsibility, not blame
+- [ ] D-0173 Power and benefit put the duty on today's holder.
+- [ ] D-0174 Young 2011
+- [ ] D-0175 Ross
+- [ ] D-0176 C2
+- [ ] D-0177 Katie · 2 of 3 supports backed
+- [ ] D-0178 61% robust
+- [ ] D-0179 The classic reasons for keeping the Stone no longer hold; return it with a partnership, now.
+- [ ] D-0180 S1 · Care is now a tie
+- [ ] D-0181 GEM, case set
+- [ ] D-0182 S2 · The law already bends
+- [ ] D-0183 Human Tissue Act s.47
+- [ ] D-0184 S3 · Return well, and early
+- [ ] D-0185 No backing yet · 1 waiting in the queue
+- [ ] D-0186 vs
+- [ ] D-0187 Counterclaim · Daniel
+- [ ] D-0188 "After 225 years, the claim is superseded." (Waldron 1992)
+- [ ] D-0189 Concede
+- [ ] D-0190 it for land.
+- [ ] D-0191 Distinguish:
+- [ ] D-0192 one object displaces no one.
+- [ ] D-0193 Rebut:
+- [ ] D-0194 the claim rests on responsibility, not blame.
+- [ ] D-0195 Flashcards from these readings · 64 cards.
+- [ ] D-0196 Leads Jainam and Katie get them automatically. Also studying: Daniel
+- [ ] D-0197 (not assigned)
+- [ ] D-0198 Study the deck
+- [ ] D-0199 Waiting for Team 3
+- [ ] D-0200 4
+- [ ] D-0201 Inspired by Team 1
+- [ ] D-0202 Egypt's 2009 Louvre stand-off shows an early, voluntary return buys goodwill. Use it to back C2 S3.
+- [ ] D-0203 France 24, 2009
+- [ ] D-0204 Team 1 edit by Ivan
+- [ ] D-0205 Your reason
+- [ ] D-0206 [input] One line on why
+- [ ] D-0207 ✅ Accept
+- [ ] D-0208 ❌ Reject
+- [ ] D-0209 Edit
+- [ ] D-0210 Team 1 ✅
+- [ ] D-0211 Ivan: use it in Q&A only ·
+- [ ] D-0212 hasn't decided
+- [ ] D-0213 From practice · Nov 12 · 41:10 · Nick
+- [ ] D-0214 "The Stone toured Chicago in the 1980s."
+- [ ] D-0215 Cruxy found no source: it left London only for wartime storage and one month in Paris (1972).
+- [ ] D-0216 Cruxy research
+- [ ] D-0217 UK Charities Act 2022 moral-obligation power took effect Nov 2025 but excludes the British Museum.
+- [ ] D-0218 Museums Association
+- [ ] D-0219 The Art Newspaper
+- [ ] D-0220 Research coverage
+- [ ] D-0221 S1
+- [ ] D-0222 S2
+- [ ] D-0223 S3
+- [ ] D-0224 14 of 16 gaps closed with two verified sources. Cruxy is searching C2 S3 tonight.
+
+## ChooseCode.html
+
+- [ ] D-0225 Crux: choose your passcode
+- [ ] D-0226 USC ETHICS BOWL
+- [ ] D-0227 FIRST SIGN IN · JAINAM · SAMPLE
+- [ ] D-0228 [image] Cruxy, thinking
+- [ ] D-0229 Cruxy
+- [ ] D-0230 What six digits will you still remember the morning of the regional, that nobody could guess?
+- [ ] D-0231 crux
+- [ ] D-0232 Step 3 of 3 · first time only
+- [ ] D-0233 Choose your passcode
+- [ ] D-0234 From now on you'll sign in with your name and this passcode. The member code stops working for you.
+- [ ] D-0235 Jainam, as technical admin, can see your passcode so he can help if you forget it. Don't reuse a code you use anywhere else.
+- [ ] D-0236 Passcode saved
+- [ ] D-0237 Change it any time in Settings. Forgot it? Ask Jainam.
+- [ ] D-0238 Enter Crux
+- [ ] D-0239 Try the flow again
+
+## Cruxy.html
+
+- [ ] D-0240 Crux: Cruxy floating, sleeping in the lamp
+- [ ] D-0241 crux
+- [ ] D-0242 Program
+- [ ] D-0243 My roadmap
+- [ ] D-0244 Cases
+- [ ] D-0245 Practice
+- [ ] D-0246 Team 3
+- [ ] D-0247 09
+- [ ] D-0248 Case brain · Team 3 · v7 · sample
+- [ ] D-0249 GEM in the Rough
+- [ ] D-0250 Claim 1
+- [ ] D-0251 The title is defective; the duty falls on whoever still benefits.
+- [ ] D-0252 Claim 2
+- [ ] D-0253 The old reasons to keep it no longer hold; return it with a partnership.
+- [ ] D-0254 Counterclaim
+- [ ] D-0255 After 225 years, the claim is superseded. (Waldron)
+- [ ] D-0256 Truth Sources
+- [ ] D-0257 14 accepted · 3 rejected · 2 waiting for Team 3
+- [ ] D-0258 Drag Cruxy anywhere. Drop it on the lamp, or press "Back to the lamp", and it falls asleep there. Tap the lamp to call it back.
+- [ ] D-0259 [image] {{moodSrc}}
+- [ ] D-0260 Cruxy
+- [ ] D-0261 Before I tell you what I think: what is the strongest reason the British Museum would give for keeping the Stone?
+- [ ] D-0262 Your answer
+- [ ] D-0263 [input] One sentence is enough
+- [ ] D-0264 Send
+- [ ] D-0265 One hint, please
+- [ ] D-0266 One nudge, not the answer: who can see the Stone today, and who can't?
+- [ ] D-0267 Let me try again
+- [ ] D-0268 That's the access argument, and you put it more fairly than last week. Now press on it: does it still hold now that GEM is open?
+- [ ] D-0269 From your Case 9 practice, Nov 14
+- [ ] D-0270 Ask me another
+- [ ] D-0271 You called. What are you trying to figure out?
+- [ ] D-0272 Quiz me on Case 9
+- [ ] D-0273 Back to the lamp. Tap it whenever you want to think something through.
+- [ ] D-0274 Back to the lamp
+- [ ] D-0275 z z
+- [ ] D-0276 [image] /cruxy/cruxy-lamp.png
+
+## CruxyMoods.html
+
+- [ ] D-0277 Crux: Cruxy's moods
+- [ ] D-0278 [image] Cruxy's lamp
+- [ ] D-0279 Cruxy
+- [ ] D-0280 A wise, careful learner who would rather ask you a good question than hand you an answer.
+- [ ] D-0281 Asks first. Answers only after you've tried, or when you ask twice.
+- [ ] D-0282 Gives hints one at a time, never the whole answer.
+- [ ] D-0283 Cites every claim, and says plainly when it doesn't know.
+- [ ] D-0284 Is honest about weak arguments, kindly, and never flatters.
+- [ ] D-0285 Learns from every round and every judge, after weighing them.
+- [ ] D-0286 Changing moods is a nice to have. If it isn't built, Cruxy stays curious.
+- [ ] D-0287 [image] Cruxy looking curious
+- [ ] D-0288 Curious
+- [ ] D-0289 The default. Cruxy is asking you a question.
+- [ ] D-0290 [image] Cruxy listening
+- [ ] D-0291 Listening
+- [ ] D-0292 While you type, speak or record an answer.
+- [ ] D-0293 [image] Cruxy winking
+- [ ] D-0294 Hint
+- [ ] D-0295 One nudge, never the answer.
+- [ ] D-0296 [image] Cruxy happy
+- [ ] D-0297 Pleased
+- [ ] D-0298 You did better than your own past, or answered well.
+- [ ] D-0299 [image] Cruxy excited
+- [ ] D-0300 Excited
+- [ ] D-0301 A personal best, or the team signs off a new version.
+- [ ] D-0302 [image] Cruxy surprised
+- [ ] D-0303 Surprised
+- [ ] D-0304 Something new: a drift flag, a new source, an unexpected judge comment.
+- [ ] D-0305 [image] Cruxy sad
+- [ ] D-0306 Sad
+- [ ] D-0307 A round went worse than your own past. Cruxy feels it with you, then asks what you'd change.
+- [ ] D-0308 [image] Cruxy sleepy
+- [ ] D-0309 Sleepy
+- [ ] D-0310 Going back to the lamp, or nothing has happened for 5 minutes.
+- [ ] D-0311 [image] Cruxy fierce
+- [ ] D-0312 Fierce
+- [ ] D-0313 Only while Cruxy plays the other team in practice. Never aimed at a person.
+
+## Drawer.html
+
+- [ ] D-0314 Crux: Cruxy drawer in admin mode
+- [ ] D-0315 [image] /cruxy/cruxy-lamp.png
+- [ ] D-0316 Cruxy
+- [ ] D-0317 ADMIN MODE · Dr. B
+- [ ] D-0318 Which team needs help on Case 13, and why?
+- [ ] D-0319 Team 2. Their Case 13 counterclaim has no answer yet, and 2 of 5 haven't caught up with their latest version.
+- [ ] D-0320 Team 2 progress on their own path
+- [ ] D-0321 38%
+- [ ] D-0322 (Team 1 42%, Team 3 69%)
+- [ ] D-0323 Counterclaim answered
+- [ ] D-0324 No
+- [ ] D-0325 Confirmed v6
+- [ ] D-0326 3 of 5 · Lehar, Jade not yet
+- [ ] D-0327 Last practice on Case 13
+- [ ] D-0328 12 days ago
+- [ ] D-0329 Suggested next step:
+- [ ] D-0330 a 30 minute Team 2 drill on the post hoc objection, with Daniel (Team 3, counter on this case) as a peer judge.
+- [ ] D-0331 Case 13 · Team 2 brain
+- [ ] D-0332 Team 2 board
+- [ ] D-0333 Create session
+- [ ] D-0334 From roadmaps, case brains and attendance, updated 4 minutes ago.
+- [ ] D-0335 Ask about the program
+- [ ] D-0336 Who is ready to lead Case 9?
+- [ ] D-0337 What happened today?
+- [ ] D-0338 Where do teams disagree?
+- [ ] D-0339 Readiness brief for UCSB
+- [ ] D-0340 Ask Cruxy
+- [ ] D-0341 [input] Who hasn't practised Case 5?
+- [ ] D-0342 Ask
+
+## DrillPhone.html
+
+- [ ] D-0343 Crux: thesis in 30 seconds drill on a phone
+- [ ] D-0344 crux
+- [ ] D-0345 REC
+- [ ] D-0346 THESIS IN 30 SECONDS · CASE 5 · SAMPLE
+- [ ] D-0347 A wording you haven't seen. One sentence.
+- [ ] D-0348 "Is it ever ethical to profit from predicting a war?"
+- [ ] D-0349 0:18
+- [ ] D-0350 "No, not when the bet is on war or a leader's removal, because insiders..."
+- [ ] D-0351 Your time to a thesis
+- [ ] D-0352 best 0:22 · last 0:31
+- [ ] D-0353 Measured against your own past answers only.
+
+## Feedback.html
+
+- [ ] D-0354 Crux: round report
+- [ ] D-0355 crux
+- [ ] D-0356 Program map
+- [ ] D-0357 My roadmap
+- [ ] D-0358 Cases
+- [ ] D-0359 Reading room
+- [ ] D-0360 Practice
+- [ ] D-0361 Reports
+- [ ] D-0362 Team chat
+- [ ] D-0363 [image] /cruxy/cruxy-lamp.png
+- [ ] D-0364 Ask Cruxy
+- [ ] D-0365 Round report · Nov 24 · Case 9 · Team 3 vs Cruxy as the other team · sample data
+- [ ] D-0366 Strong principle, slow start. The one fix: answer the question in the first 30 seconds.
+- [ ] D-0367 35
+- [ ] D-0368 of 50 · Lehar
+- [ ] D-0369 33
+- [ ] D-0370 of 50 · Cruxy
+- [ ] D-0371 Scorecard
+- [ ] D-0372 Commentary is scored when Team 3 comments in the second half
+- [ ] D-0373 Lehar
+- [ ] D-0374 Cruxy
+- [ ] D-0375 10
+- [ ] D-0376 Each person
+- [ ] D-0377 Nick
+- [ ] D-0378 Jainam
+- [ ] D-0379 Katie
+- [ ] D-0380 Daniel
+- [ ] D-0381 Everyone can read everyone's feedback. Talk time 6:12 · 148 words a minute · 9 filler words · first answer at 0:41
+- [ ] D-0382 WHAT WORKED ·
+- [ ] D-0383 04:10
+- [ ] D-0384 "Whoever benefits from a wrong carries the duty to repair it, even if they didn't commit it."
+- [ ] D-0385 One plain sentence stated the principle and tied it to the British Museum. That is what Presentation B rewards: the moral dimension named, then applied.
+- [ ] D-0386 THE ONE THING TO FIX ·
+- [ ] D-0387 22:40
+- [ ] D-0388 · cost points on Response to judges
+- [ ] D-0389 "So, um, the categorical imperative, basically, Kant says..."
+- [ ] D-0390 The judge asked a direct question and heard a philosopher's name before an answer. Judges are told theory only counts when it's explained and deepens the case, so naming Kant first spent 20 seconds without scoring. The answer itself was right; it arrived at 23:05, after the judge had started writing.
+- [ ] D-0391 THE BETTER VERSION, IN YOUR WORDS
+- [ ] D-0392 "No. If every museum kept whatever it could care for better, ownership would just go to the richest museum. That's Kant's test: a rule that can't work for everyone isn't a rule."
+- [ ] D-0393 REDO NOW · 90 SECONDS
+- [ ] D-0394 Cruxy asks the same question again. Answer first, then name the theory.
+- [ ] D-0395 Scored 5 then · aim for 7 · comes back in your drills on Thu and Sun
+- [ ] D-0396 Record the redo
+- [ ] D-0397 Your skills, last 5 rounds
+- [ ] D-0398 Answer first
+- [ ] D-0399 4.8
+- [ ] D-0400 Explain frameworks
+- [ ] D-0401 6.2
+- [ ] D-0402 Engage objections
+- [ ] D-0403 7.4
+- [ ] D-0404 Stay under time
+- [ ] D-0405 8.1
+- [ ] D-0406 Transcript
+- [ ] D-0407 00:12
+- [ ] D-0408 Thank you. The question asks whether museums may keep...
+- [ ] D-0409 Whoever benefits from a wrong carries the duty...
+- [ ] D-0410 08:55
+- [ ] D-0411 Some people say too much time has passed...
+- [ ] D-0412 22:31
+- [ ] D-0413 Lehar (judge)
+- [ ] D-0414 If Egypt never asks, does the museum still owe anything?
+- [ ] D-0415 So, um, the categorical imperative, basically...
+- [ ] D-0416 Send to Things to take care of?
+- [ ] D-0417 Seen in 3 rounds across 2 teams
+- [ ] D-0418 Answer first, then name the theory.
+- [ ] D-0419 HOW IT WENT · Jainam, Case 9, 22:40
+- [ ] D-0420 WHY IT COST POINTS
+- [ ] D-0421 Response to judges: 20 seconds before an answer. Judges reward theory only once it's explained.
+- [ ] D-0422 HOW IT SHOULD SOUND
+- [ ] D-0423 "No. If every museum kept what it cared for best, the richest museum would own everything."
+- [ ] D-0424 Add to the bank with its drill
+- [ ] D-0425 Only for this person
+
+## FlashPhone.html
+
+- [ ] D-0426 Crux: flashcards on a phone
+- [ ] D-0427 crux
+- [ ] D-0428 18 due · sample
+- [ ] D-0429 Case 9
+- [ ] D-0430 · your lead deck · 64 cards
+- [ ] D-0431 COUNTERCLAIM ANSWER
+- [ ] D-0432 How do we answer Waldron's "the claim is superseded"?
+- [ ] D-0433 TEAM 3 v7 ANSWER
+- [ ] D-0434 Concede
+- [ ] D-0435 it for land, where return displaces people.
+- [ ] D-0436 Distinguish:
+- [ ] D-0437 returning one object displaces no one.
+- [ ] D-0438 Rebut:
+- [ ] D-0439 our claim rests on responsibility, not blame.
+- [ ] D-0440 Truth Source · Waldron 1992
+- [ ] D-0441 Say it out loud instead
+- [ ] D-0442 How well did you know it?
+- [ ] D-0443 Again
+- [ ] D-0444 1 min
+- [ ] D-0445 Hard
+- [ ] D-0446 10 min
+- [ ] D-0447 Good
+- [ ] D-0448 2 days
+- [ ] D-0449 Easy
+- [ ] D-0450 5 days
+
+## Home.html
+
+- [ ] D-0451 Crux: program map
+- [ ] D-0452 crux
+- [ ] D-0453 Program map
+- [ ] D-0454 My roadmap
+- [ ] D-0455 Cases
+- [ ] D-0456 Reading room
+- [ ] D-0457 Practice
+- [ ] D-0458 Reports
+- [ ] D-0459 Team chat
+- [ ] D-0460 [image] /cruxy/cruxy-lamp.png
+- [ ] D-0461 Ask Cruxy
+- [ ] D-0462 J
+- [ ] D-0463 Jainam
+- [ ] D-0464 Team 3 · admin
+- [ ] D-0465 Saturday, Nov 21 · sample data
+- [ ] D-0466 Where the program stands
+- [ ] D-0467 14
+- [ ] D-0468 days to UCSB
+- [ ] D-0469 Regional, Dec 5
+- [ ] D-0470 412
+- [ ] D-0471 Drive files read
+- [ ] D-0472 +18 this week
+- [ ] D-0473 96
+- [ ] D-0474 ideas accepted
+- [ ] D-0475 +31 this week
+- [ ] D-0476 61
+- [ ] D-0477 sources verified
+- [ ] D-0478 +9 overnight
+- [ ] D-0479 238
+- [ ] D-0480 bank questions
+- [ ] D-0481 +40 from Dr. B
+- [ ] D-0482 27
+- [ ] D-0483 rounds graded
+- [ ] D-0484 avg 41 of 60
+- [ ] D-0485 53
+- [ ] D-0486 redos that improved
+- [ ] D-0487 +2.1 points each
+- [ ] D-0488 Case board
+- [ ] D-0489 Readiness per team · leads · latest
+- [ ] D-0490 Case
+- [ ] D-0491 Team 1
+- [ ] D-0492 Team 2
+- [ ] D-0493 Team 3
+- [ ] D-0494 Your next three
+- [ ] D-0495 CASE 13 · OVERDUE 1 DAY
+- [ ] D-0496 Fill the counterclaim row on the one pager
+- [ ] D-0497 REDO · 90 SECONDS
+- [ ] D-0498 Re-take your Kant answer from Thursday's round
+- [ ] D-0499 CASE 9 · 4 WAITING
+- [ ] D-0500 Decide on 4 ideas inspired by Team 1
+- [ ] D-0501 Since you were here
+- [ ] D-0502 ✅ "repair, not payout" in Case 7 ·
+- [ ] D-0503 Serena: matches DRA's own goal
+- [ ] D-0504 scored 44 of 60 on Case 5 with a guest judge
+- [ ] D-0505 ❌ the Unit 731 example in Case 3 ·
+- [ ] D-0506 Daniel: can't verify in time
+- [ ] D-0507 Cruxy
+- [ ] D-0508 verified 9 sources overnight for Cases 12 and 14
+- [ ] D-0509 Dr. B
+- [ ] D-0510 added 40 questions to the bank
+
+## JudgePhone.html
+
+- [ ] D-0511 Crux: judge's scoring card on a phone
+- [ ] D-0512 JUDGING · ROUND 1 · CASE 9 · SAMPLE
+- [ ] D-0513 Prof. [name]
+- [ ] D-0514 APPE scoring sheet, as in the team's Drive
+- [ ] D-0515 Team 3 · presenting
+- [ ] D-0516 Team 1 · commenting
+- [ ] D-0517 Presentation A
+- [ ] D-0518 Was the presentation clear and systematic?
+- [ ] D-0519 1
+- [ ] D-0520 2
+- [ ] D-0521 3
+- [ ] D-0522 4
+- [ ] D-0523 5
+- [ ] D-0524 6
+- [ ] D-0525 7
+- [ ] D-0526 8
+- [ ] D-0527 9
+- [ ] D-0528 10
+- [ ] D-0529 Presentation B
+- [ ] D-0530 Did the presentation clearly identify and thoroughly discuss the central moral dimensions of the case?
+- [ ] D-0531 Presentation C
+- [ ] D-0532 Did the presentation show awareness of and thoughtful consideration for different viewpoints, especially those that would weigh heavily for those who disagree?
+- [ ] D-0533 Comment on C
+- [ ] D-0534 [input] What would raise this score?
+- [ ] D-0535 Scroll for commentary, responses and spirit points
+- [ ] D-0536 Mark this moment
+- [ ] D-0537 14
+- [ ] D-0538 /30 so far
+
+## Main.html
+
+- [ ] D-0539 Crux: sign in and meet Cruxy
+- [ ] D-0540 USC ETHICS BOWL
+- [ ] D-0541 CALIFORNIA REGIONAL · DEC 5
+- [ ] D-0542 crux
+- [ ] D-0543 Three teams, twelve cases, one place where every argument is built, tested and backed by a source.
+- [ ] D-0544 BUILT SO FAR · SAMPLE DATA
+- [ ] D-0545 412
+- [ ] D-0546 Drive files read and cited
+- [ ] D-0547 96
+- [ ] D-0548 ideas accepted into Truth Sources
+- [ ] D-0549 238
+- [ ] D-0550 moderator questions in the bank
+- [ ] D-0551 27
+- [ ] D-0552 practice rounds graded
+- [ ] D-0553 61
+- [ ] D-0554 new sources verified
+- [ ] D-0555 14
+- [ ] D-0556 days to the regional
+- [ ] D-0557 Step 1 of 3
+- [ ] D-0558 Tap your name
+- [ ] D-0559 Team 1
+- [ ] D-0560 Serena
+- [ ] D-0561 Ivan
+- [ ] D-0562 Ashton
+- [ ] D-0563 Stolei
+- [ ] D-0564 Tri
+- [ ] D-0565 Team 2
+- [ ] D-0566 Lehar
+- [ ] D-0567 Camerin
+- [ ] D-0568 Jade
+- [ ] D-0569 Bethany
+- [ ] D-0570 Quixote
+- [ ] D-0571 Team 3
+- [ ] D-0572 Nick
+- [ ] D-0573 Daniel
+- [ ] D-0574 Katie
+- [ ] D-0575 Jainam
+- [ ] D-0576 Passcode
+- [ ] D-0577 1
+- [ ] D-0578 2
+- [ ] D-0579 3
+- [ ] D-0580 4
+- [ ] D-0581 5
+- [ ] D-0582 6
+- [ ] D-0583 7
+- [ ] D-0584 8
+- [ ] D-0585 9
+- [ ] D-0586 Clear
+- [ ] D-0587 0
+- [ ] D-0588 Enter
+- [ ] D-0589 First time? Use the member code Jainam gave you. After that, your own passcode. Forgot it? Ask Jainam.
+- [ ] D-0590 Step 2 of 3 · first time only
+- [ ] D-0591 Meet Cruxy
+- [ ] D-0592 [image] /cruxy/cruxy-neutral.png
+- [ ] D-0593 Cruxy is our built-in thinking partner. It would rather ask you a good question than hand you an answer. It reads our Drive and the cases, finds new sources, asks practice questions, plays the other team or the judge when we need one, and gives feedback that quotes what you said. It can be wrong, so it always shows its source, and a person accepts every new idea. It floats on every page; drag it anywhere, or tap its lamp to send it to sleep.
+- [ ] D-0594 What Crux records
+- [ ] D-0595 When
+- [ ] D-0596 Only after someone presses Record in practice. A red bar shows while it's on.
+- [ ] D-0597 What
+- [ ] D-0598 Audio of the room, turned into a transcript of who said what, and when.
+- [ ] D-0599 Your voice
+- [ ] D-0600 A 20 second sample so the transcript knows which lines are yours.
+- [ ] D-0601 Who sees it
+- [ ] D-0602 All three teams, Dr. B and Jainam. Nobody else.
+- [ ] D-0603 How long
+- [ ] D-0604 Audio is deleted once the transcript is saved. Transcripts stay for the season.
+- [ ] D-0605 I agree: record my voice sample
+- [ ] D-0606 Not now, use Crux without being recorded
+
+## OnePager.html
+
+- [ ] D-0607 Crux: visual one pager
+- [ ] D-0608 ← Back to the case brain
+- [ ] D-0609 Export PDF
+- [ ] D-0610 Save to Drive as a Doc
+- [ ] D-0611 Sign off v7
+- [ ] D-0612 09
+- [ ] D-0613 One pager · Team 3 · v7 · sample
+- [ ] D-0614 GEM in the Rough
+- [ ] D-0615 Leads Jainam, Katie · counter Daniel · supporter Nick · signed off 3 of 4
+- [ ] D-0616 Our answer in one sentence
+- [ ] D-0617 A museum may not keep a taken object once a people with a continuous tie asks and can care for it; the Stone should go to Egypt with a partnership, now.
+- [ ] D-0618 Claim 1
+- [ ] D-0619 The title is defective; the duty falls on whoever still benefits.
+- [ ] D-0620 S1
+- [ ] D-0621 Broken first link
+- [ ] D-0622 Nozick
+- [ ] D-0623 S2
+- [ ] D-0624 Caretaker rule fails
+- [ ] D-0625 Kant
+- [ ] D-0626 S3
+- [ ] D-0627 Responsibility, not blame
+- [ ] D-0628 Young
+- [ ] D-0629 Claim 2
+- [ ] D-0630 The old reasons to keep it no longer hold; return it with a partnership.
+- [ ] D-0631 Care is now a tie
+- [ ] D-0632 GEM
+- [ ] D-0633 The law already bends
+- [ ] D-0634 HTA s.47
+- [ ] D-0635 Return early, well
+- [ ] D-0636 Louvre 2009
+- [ ] D-0637 Counterclaim and our answer
+- [ ] D-0638 "After 225 years, the claim is superseded." (Waldron)
+- [ ] D-0639 Concede
+- [ ] D-0640 True for land: return displaces people.
+- [ ] D-0641 Distinguish
+- [ ] D-0642 One object displaces no one.
+- [ ] D-0643 Rebut
+- [ ] D-0644 We argue responsibility, not blame.
+- [ ] D-0645 Values in tension · where we land
+- [ ] D-0646 Righting a wartime taking
+- [ ] D-0647 Preservation, access, law
+- [ ] D-0648 We lean to repair, and meet access with a partnership.
+- [ ] D-0649 Case facts in order
+- [ ] D-0650 1790s
+- [ ] D-0651 French find it
+- [ ] D-0652 1801
+- [ ] D-0653 To Britain as a war prize
+- [ ] D-0654 1963
+- [ ] D-0655 British Museum Act limits returns
+- [ ] D-0656 2022
+- [ ] D-0657 Return petitions
+- [ ] D-0658 Nov 2025
+- [ ] D-0659 GEM opens
+- [ ] D-0660 Now
+- [ ] D-0661 No formal request yet
+- [ ] D-0662 Stakeholders · stake · voice in the case
+- [ ] D-0663 Egyptian public
+- [ ] D-0664 British Museum, visitors
+- [ ] D-0665 Egyptian scholars
+- [ ] D-0666 Other claimant nations
+- [ ] D-0667 Frameworks in one line
+- [ ] D-0668 Corrective justice:
+- [ ] D-0669 who benefits from a wrong repairs it.
+- [ ] D-0670 Kant:
+- [ ] D-0671 a rule must work for everyone.
+- [ ] D-0672 Hardest questions · our line
+- [ ] D-0673 Parthenon Marbles too?
+- [ ] D-0674 Apply the test aloud; likely yes. Consistency is the point.
+- [ ] D-0675 What if Egypt never asks?
+- [ ] D-0676 A standing public offer; never forced return.
+- [ ] D-0677 Isn't a replica enough?
+- [ ] D-0678 Then London should keep the replica.
+- [ ] D-0679 Egypt took from Nubia?
+- [ ] D-0680 Same test applies; a principle that only runs one way isn't one.
+
+## Practice.html
+
+- [ ] D-0681 Crux: practice room
+- [ ] D-0682 Recording · everyone in this room agreed to be recorded
+- [ ] D-0683 23:41
+- [ ] D-0684 crux
+- [ ] D-0685 Full round · Case 9 · sample data
+- [ ] D-0686 Team 3
+- [ ] D-0687 vs
+- [ ] D-0688 Cruxy, playing the other team
+- [ ] D-0689 Pause
+- [ ] D-0690 End round and get the report
+- [ ] D-0691 1 · Team 3 presents
+- [ ] D-0692 10:00 · done
+- [ ] D-0693 2 · Cruxy comments
+- [ ] D-0694 6:00 · done
+- [ ] D-0695 3 · Team 3 responds
+- [ ] D-0696 now
+- [ ] D-0697 4 · Judges' Q&A
+- [ ] D-0698 12:00
+- [ ] D-0699 Time left to respond
+- [ ] D-0700 02:14
+- [ ] D-0701 Cruxy's strongest point in its commentary · answer this first
+- [ ] D-0702 "Your four-part test would also send back the Parthenon Marbles. Are you ready to say that?"
+- [ ] D-0703 Built from the strongest opposing points in all three teams' case brains
+- [ ] D-0704 Read it aloud again
+- [ ] D-0705 Show Cruxy's full commentary
+- [ ] D-0706 Next phase
+- [ ] D-0707 Live captions · rough, final transcript comes after
+- [ ] D-0708 22:58 Katie
+- [ ] D-0709 We'd apply the test to the Marbles case by case, and yes, we think it likely passes.
+- [ ] D-0710 23:27 Jainam
+- [ ] D-0711 And that's the point of consistency: a principle that only runs against Europe isn't a principle.
+- [ ] D-0712 In this round
+- [ ] D-0713 Jainam · Lead 1
+- [ ] D-0714 speaking
+- [ ] D-0715 Katie · Lead 2
+- [ ] D-0716 present
+- [ ] D-0717 Daniel · Counter
+- [ ] D-0718 Nick · Supporter
+- [ ] D-0719 Attendance is confirmed by Jainam or Dr. B.
+- [ ] D-0720 Judging this round
+- [ ] D-0721 C
+- [ ] D-0722 Cruxy judge
+- [ ] D-0723 L
+- [ ] D-0724 Lehar, in person
+- [ ] D-0725 Recording from
+- [ ] D-0726 One laptop in the room. Voices are matched to the four of you after the round.
+
+## Reading.html
+
+- [ ] D-0727 Crux: reading room
+- [ ] D-0728 crux
+- [ ] D-0729 Program map
+- [ ] D-0730 My roadmap
+- [ ] D-0731 Cases
+- [ ] D-0732 Reading room
+- [ ] D-0733 Practice
+- [ ] D-0734 Reports
+- [ ] D-0735 Team chat
+- [ ] D-0736 [image] /cruxy/cruxy-lamp.png
+- [ ] D-0737 Ask Cruxy
+- [ ] D-0738 Reading room · Case 9 · sample text
+- [ ] D-0739 GEM in the Rough
+- [ ] D-0740 Case set, p. [n]
+- [ ] D-0741 1801 Capitulation notes · Drive
+- [ ] D-0742 Team 3 practice, Nov 12
+- [ ] D-0743 + 9 more
+- [ ] D-0744 The Grand Egyptian Museum opened near the pyramids in November 2025, holding tens of thousands of objects from five millennia. Its opening renewed a familiar question about objects held abroad.
+- [ ] D-0745 The Rosetta Stone was found by French forces in the late 1790s and passed to Britain soon after,
+- [ ] D-0746 where it has been on display ever since
+- [ ] D-0747 . The British Museum says it has received no formal request from Egypt's government, and that
+- [ ] D-0748 a 1963 law strictly limits what it may give away
+- [ ] D-0749 .
+- [ ] D-0750 Supporters of return point to the circumstances of the taking and to Egypt's new capacity to care for the object. Defenders of the current arrangement point to
+- [ ] D-0751 global access, the cost of deaccessioning, and public trust
+- [ ] D-0752 Placeholder paraphrase for the mockup. The real reader shows the case set page and Drive files exactly.
+- [ ] D-0753 Your highlight
+- [ ] D-0754 "where it has been on display ever since"
+- [ ] D-0755 Cruxy: is this accurate?
+- [ ] D-0756 Find a counterexample
+- [ ] D-0757 Make a flashcard
+- [ ] D-0758 Propose to Truth Sources
+- [ ] D-0759 Cruxy:
+- [ ] D-0760 Mostly. It left the museum for wartime storage and for about a month in Paris in 1972.
+- [ ] D-0761 2 sources
+- [ ] D-0762 Comments on this page · all teams
+- [ ] D-0763 Ivan · Team 1
+- [ ] D-0764 on "a 1963 law"
+- [ ] D-0765 The Act already has exceptions for human remains. Consistency point?
+- [ ] D-0766 Reply · 2 replies
+- [ ] D-0767 Bethany · Team 2
+- [ ] D-0768 on "global access"
+- [ ] D-0769 Free entry in London vs paid entry in Cairo. Weigh access by connection, not headcount?
+- [ ] D-0770 Reply
+- [ ] D-0771 Add a comment on your highlight
+- [ ] D-0772 [input] Visible to all three teams
+
+## Roadmap.html
+
+- [ ] D-0773 Crux: my roadmap
+- [ ] D-0774 crux
+- [ ] D-0775 Program map
+- [ ] D-0776 My roadmap
+- [ ] D-0777 Cases
+- [ ] D-0778 Reading room
+- [ ] D-0779 Practice
+- [ ] D-0780 Reports
+- [ ] D-0781 Team chat
+- [ ] D-0782 [image] /cruxy/cruxy-lamp.png
+- [ ] D-0783 Ask Cruxy
+- [ ] D-0784 Jainam · Team 3 · sample data
+- [ ] D-0785 62%
+- [ ] D-0786 ready overall
+- [ ] D-0787 1
+- [ ] D-0788 overdue
+- [ ] D-0789 Recommended deadlines to Dec 5
+- [ ] D-0790 Team 3 can edit these
+- [ ] D-0791 Thanksgiving
+- [ ] D-0792 Today
+- [ ] D-0793 My cases, stage by stage
+- [ ] D-0794 Case · my role
+- [ ] D-0795 Read
+- [ ] D-0796 Map
+- [ ] D-0797 One pager
+- [ ] D-0798 Flashcards
+- [ ] D-0799 Question drill
+- [ ] D-0800 Practiced
+- [ ] D-0801 Judged
+- [ ] D-0802 Done
+- [ ] D-0803 In progress
+- [ ] D-0804 To do
+- [ ] D-0805 Overdue
+- [ ] D-0806 Not needed for your role
+- [ ] D-0807 Assigned to you
+- [ ] D-0808 Case 13 one pager: counterclaim row
+- [ ] D-0809 by Nick · was due Nov 20
+- [ ] D-0810 Lead 1 on Case 9
+- [ ] D-0811 by Katie · Nov 14
+- [ ] D-0812 Read Case 10 files 4 to 9
+- [ ] D-0813 by Daniel · due Nov 24
+- [ ] D-0814 Redo: Kant answer, 90 seconds
+- [ ] D-0815 from Thursday's report · Cruxy
+
+## Session.html
+
+- [ ] D-0816 Crux: session control
+- [ ] D-0817 crux
+- [ ] D-0818 ADMIN
+- [ ] D-0819 Sessions
+- [ ] D-0820 People and teams
+- [ ] D-0821 Program analytics
+- [ ] D-0822 Question bank
+- [ ] D-0823 Back to member view
+- [ ] D-0824 Practice day · sample data
+- [ ] D-0825 Tue, Nov 24 · 6:00 pm
+- [ ] D-0826 Taper Hall 101, plus online · created by Dr. B
+- [ ] D-0827 SESSION CODE · ADMINS ONLY
+- [ ] D-0828 482 913
+- [ ] D-0829 Hide
+- [ ] D-0830 The day's split
+- [ ] D-0831 R1
+- [ ] D-0832 Case 9 · Team 3 presents, Team 1 comments
+- [ ] D-0833 Moderator: Dr. B · judges: 2 in person + Cruxy · 10 / 6 / 12 min
+- [ ] D-0834 NOW
+- [ ] D-0835 R2
+- [ ] D-0836 Case 5 · Team 2 presents, Cruxy plays the commenting team
+- [ ] D-0837 Moderator: Cruxy · judge: Cruxy · 8 / 5 / 10 min
+- [ ] D-0838 7:00 PM
+- [ ] D-0839 R3
+- [ ] D-0840 Moderator drills · everyone, on own devices
+- [ ] D-0841 Random bank questions on each person's cases
+- [ ] D-0842 7:45 PM
+- [ ] D-0843 Who is judging Round 1?
+- [ ] D-0844 In person
+- [ ] D-0845 Human judges only
+- [ ] D-0846 Cruxy judge
+- [ ] D-0847 No human judge today
+- [ ] D-0848 Both
+- [ ] D-0849 Humans score, Cruxy scores too
+- [ ] D-0850 In-person judges
+- [ ] D-0851 Lehar (Team 2)
+- [ ] D-0852 · already in Crux
+- [ ] D-0853 Opens the Judging portal and types the session code you read out
+- [ ] D-0854 ✅ Joined
+- [ ] D-0855 Someone new
+- [ ] D-0856 Show them this code. They type their name and judging background, then land on Round 1's scoring card. No account.
+- [ ] D-0857 [QR code]
+- [ ] D-0858 Add another judge
+- [ ] D-0859 Start Round 1 and record
+- [ ] D-0860 Attendance
+- [ ] D-0861 11 of 14
+- [ ] D-0862 Cruxy pre-fills from voices and joined devices. Jainam or Dr. B confirms.
+- [ ] D-0863 Jainam
+- [ ] D-0864 voice
+- [ ] D-0865 Present
+- [ ] D-0866 Late
+- [ ] D-0867 Absent
+- [ ] D-0868 Katie
+- [ ] D-0869 Nick
+- [ ] D-0870 device
+- [ ] D-0871 Daniel
+- [ ] D-0872 tapped in
+- [ ] D-0873 Serena
+- [ ] D-0874 Stolei
+- [ ] D-0875 not seen
+- [ ] D-0876 Jade
+- [ ] D-0877 text only, not recorded
+- [ ] D-0878 + 7 more
+
+## TeamBoard.html
+
+- [ ] D-0879 Crux: team board and chat
+- [ ] D-0880 crux
+- [ ] D-0881 Program map
+- [ ] D-0882 My roadmap
+- [ ] D-0883 Cases
+- [ ] D-0884 Reading room
+- [ ] D-0885 Practice
+- [ ] D-0886 Reports
+- [ ] D-0887 Team
+- [ ] D-0888 [image] /cruxy/cruxy-lamp.png
+- [ ] D-0889 Ask Cruxy
+- [ ] D-0890 Team 3 · sample data
+- [ ] D-0891 Who's on what
+- [ ] D-0892 Assign
+- [ ] D-0893 Roles and versions, 12 cases
+- [ ] D-0894 Case
+- [ ] D-0895 Lead 1
+- [ ] D-0896 Lead 2
+- [ ] D-0897 Counter
+- [ ] D-0898 Supporter
+- [ ] D-0899 On the same page
+- [ ] D-0900 Team 3 chat
+- [ ] D-0901 readable by all teams
+- [ ] D-0902 CRUXY · CASE 9 IS NOW v7
+- [ ] D-0903 Claim 2 changed:
+- [ ] D-0904 "return it now"
+- [ ] D-0905 → "return it with a partnership, now". Reason (Katie): Team 1's Louvre point.
+- [ ] D-0906 I've got v7
+- [ ] D-0907 3 of 4 confirmed
+- [ ] D-0908 Nick
+- [ ] D-0909 Can someone own the Case 13 counterclaim row by Monday?
+- [ ] D-0910 Daniel
+- [ ] D-0911 On it. Also: the Panthers example shows why the law must stay narrow.
+- [ ] D-0912 Marked as idea → sent to Case 13 queue
+- [ ] D-0913 ROLE CHANGE
+- [ ] D-0914 Katie made Jainam Lead 1 on Case 9.
+- [ ] D-0915 Message
+- [ ] D-0916 [input] Write to Team 3
+
+## TodayPhone.html
+
+- [ ] D-0917 Crux: today on a phone
+- [ ] D-0918 crux
+- [ ] D-0919 2
+- [ ] D-0920 Saturday · Katie · Team 3
+- [ ] D-0921 14 days to UCSB
+- [ ] D-0922 YOUR NEXT THREE
+- [ ] D-0923 1
+- [ ] D-0924 Review 18 Case 9 cards
+- [ ] D-0925 about 9 minutes
+- [ ] D-0926 Thesis in 30 seconds, Case 5
+- [ ] D-0927 beat your 0:22
+- [ ] D-0928 3
+- [ ] D-0929 Sign off Case 9 v7
+- [ ] D-0930 assigned by Jainam · due Mon
+- [ ] D-0931 CASE 9 CHANGED TO v7
+- [ ] D-0932 Claim 2 now answers Waldron with concede, distinguish, rebut. Daniel's edit, Jainam accepted.
+- [ ] D-0933 I've got v7
+- [ ] D-0934 REMINDERS
+- [ ] D-0935 Session Tue 6 pm, THH 210. Attendance from your voice.
+- [ ] D-0936 Email copies on · change in settings
+- [ ] D-0937 Today
+- [ ] D-0938 Cases
+- [ ] D-0939 Practice
+- [ ] D-0940 Team
+- [ ] D-0941 [image] /cruxy/cruxy-lamp.png
+- [ ] D-0942 Cruxy
