@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+:root {
+  --crux-cardinal: #9d2235;
+  --crux-gold: #f5b700;
+  --crux-ink: #111318;
+  --crux-paper: #f7f4ef;
+  --crux-mist: #e8e4dc;
+  --crux-muted: #5c6170;
+  --crux-team-1: #9d2235;
+  --crux-team-2: #1b4f72;
+  --crux-team-3: #1f6f4a;
+  --background: var(--crux-paper);
+  --foreground: var(--crux-ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-cardinal: var(--crux-cardinal);
+  --color-gold: var(--crux-gold);
+  --color-ink: var(--crux-ink);
+  --color-paper: var(--crux-paper);
+  --color-mist: var(--crux-mist);
+  --color-muted: var(--crux-muted);
+  --font-display: var(--font-bricolage);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-ibm-plex-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(245, 183, 0, 0.18), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, rgba(157, 34, 53, 0.12), transparent 50%),
+    linear-gradient(180deg, #faf7f2 0%, var(--crux-paper) 40%, #efeae2 100%);
+  color: var(--foreground);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.font-mono {
+  font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
+}
+
+@keyframes keypad-press {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(0.94);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-press {
+  animation: keypad-press 120ms ease-out;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 420ms ease-out both;
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-press,
+  .animate-fade-up,
+  .animate-bob {
+    animation: none !important;
+  }
+}
+
+.animate-bob {
+  animation: bob 2.8s ease-in-out infinite;
+}
