@@ -19,7 +19,7 @@ const PAIRS = [
   [`/case-brain/${CASE9}`, "CaseBrain.html", true],
   [`/revision/one-pagers?caseId=${CASE9}&teamId=${TEAM3}`, "OnePager.html", true],
   ["/revision/questions", "Roadmap.html", true],
-  ["/library", "Reading.html", true],
+  ["/library", "Reading.html", true], // resolved to a file id after bootstrap
   ["/practice", "Practice.html", true],
   ["/practice/admin", "Session.html", true],
   ["/team", "TeamBoard.html", true],
@@ -44,6 +44,18 @@ async function signIn(ctx) {
   }
 }
 
+async function readingRoomRoute(ctx) {
+  const res = await ctx.request.get(`${BASE}/api/library/files`);
+  if (!res.ok()) return "/library";
+  const data = await res.json();
+  const files = data.files ?? [];
+  const hit =
+    files.find((f) => (f.case_numbers ?? []).includes(9)) ||
+    files.find((f) => /GEM|case set|Rosetta/i.test(f.name || "")) ||
+    files[0];
+  return hit ? `/library/${hit.id}` : "/library";
+}
+
 for (const [w, h, tag] of [[1440, 1000, "desktop"], [390, 844, "phone"]]) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h } });
   const page = await ctx.newPage();
@@ -51,9 +63,16 @@ for (const [w, h, tag] of [[1440, 1000, "desktop"], [390, 844, "phone"]]) {
     const f = join("public", new URL(route.request().url()).pathname);
     return existsSync(f) ? route.fulfill({ path: f }) : route.continue();
   });
-  for (const [route, ref, needsAuth] of PAIRS) {
+  for (const [route0, ref, needsAuth] of PAIRS) {
     if (needsAuth && !(await ctx.cookies()).length) await signIn(ctx);
-    const name = route.replace(/\//g, "_").replace(/^_/, "").replace(/[?&=]/g, "_") || "root";
+    let route = route0;
+    if (route0 === "/library") {
+      route = await readingRoomRoute(ctx);
+    }
+    const name =
+      route0 === "/library"
+        ? "library_reading"
+        : route.replace(/\//g, "_").replace(/^_/, "").replace(/[?&=]/g, "_") || "root";
     try {
       await page.goto(BASE + route, { waitUntil: "networkidle" });
       // One pagers default to Team 1; seeded content is Team 3.

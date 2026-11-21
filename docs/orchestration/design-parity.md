@@ -454,9 +454,9 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## FlashPhone.html
 
-- [ ] D-0426 Crux: flashcards on a phone
-- [ ] D-0427 crux
-- [ ] D-0428 18 due · sample
+- [x] D-0426 Crux: flashcards on a phone [src/app/(app)/revision/flashcards/page.tsx]
+- [x] D-0427 crux [src/app/(app)/revision/flashcards/page.tsx]
+- [x] D-0428 18 due · sample [src/app/(app)/revision/flashcards/page.tsx]
 - [ ] D-0429 Case 9
 - [ ] D-0430 · your lead deck · 64 cards
 - [ ] D-0431 COUNTERCLAIM ANSWER
@@ -469,7 +469,7 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0438 Rebut:
 - [ ] D-0439 our claim rests on responsibility, not blame.
 - [ ] D-0440 Truth Source · Waldron 1992
-- [ ] D-0441 Say it out loud instead
+- [x] D-0441 Say it out loud instead [src/app/(app)/revision/flashcards/page.tsx]
 - [ ] D-0442 How well did you know it?
 - [ ] D-0443 Again
 - [ ] D-0444 1 min
@@ -496,11 +496,11 @@ For each screen, every visible label, number, button and image in the reference 
 - [x] D-0462 J [src/components/app-shell.tsx]
 - [x] D-0463 Jainam [src/components/app-shell.tsx]
 - [x] D-0464 Team 3 · admin [src/components/app-shell.tsx]
-- [ ] D-0465 Saturday, Nov 21 · sample data
-- [ ] D-0466 Where the program stands
-- [ ] D-0467 14
-- [ ] D-0468 days to UCSB
-- [ ] D-0469 Regional, Dec 5
+- [x] D-0465 Saturday, Nov 21 · sample data [src/app/(app)/home/page.tsx]
+- [x] D-0466 Where the program stands [src/app/(app)/home/page.tsx]
+- [x] D-0467 14 [src/app/(app)/home/page.tsx]
+- [x] D-0468 days to UCSB [src/app/(app)/home/page.tsx]
+- [x] D-0469 Regional, Dec 5 [src/app/(app)/home/page.tsx]
 - [ ] D-0470 412
 - [ ] D-0471 Drive files read
 - [ ] D-0472 +18 this week
@@ -511,7 +511,7 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0477 sources verified
 - [ ] D-0478 +9 overnight
 - [ ] D-0479 238
-- [ ] D-0480 bank questions
+- [x] D-0480 bank questions [src/app/(app)/home/page.tsx]
 - [ ] D-0481 +40 from Dr. B
 - [ ] D-0482 27
 - [ ] D-0483 rounds graded
@@ -519,20 +519,20 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0485 53
 - [ ] D-0486 redos that improved
 - [ ] D-0487 +2.1 points each
-- [ ] D-0488 Case board
-- [ ] D-0489 Readiness per team · leads · latest
-- [ ] D-0490 Case
-- [ ] D-0491 Team 1
-- [ ] D-0492 Team 2
-- [ ] D-0493 Team 3
-- [ ] D-0494 Your next three
+- [x] D-0488 Case board [src/app/(app)/home/page.tsx]
+- [x] D-0489 Readiness per team · leads · latest [src/app/(app)/home/page.tsx]
+- [x] D-0490 Case [src/app/(app)/home/page.tsx]
+- [x] D-0491 Team 1 [src/app/(app)/home/page.tsx]
+- [x] D-0492 Team 2 [src/app/(app)/home/page.tsx]
+- [x] D-0493 Team 3 [src/app/(app)/home/page.tsx]
+- [x] D-0494 Your next three [src/app/(app)/home/page.tsx]
 - [ ] D-0495 CASE 13 · OVERDUE 1 DAY
 - [ ] D-0496 Fill the counterclaim row on the one pager
 - [ ] D-0497 REDO · 90 SECONDS
 - [ ] D-0498 Re-take your Kant answer from Thursday's round
 - [ ] D-0499 CASE 9 · 4 WAITING
 - [ ] D-0500 Decide on 4 ideas inspired by Team 1
-- [ ] D-0501 Since you were here
+- [x] D-0501 Since you were here [src/app/(app)/home/page.tsx]
 - [ ] D-0502 ✅ "repair, not payout" in Case 7 ·
 - [ ] D-0503 Serena: matches DRA's own goal
 - [ ] D-0504 scored 44 of 60 on Case 5 with a guest judge
@@ -773,7 +773,7 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## Reading.html
 
-- [ ] D-0727 Crux: reading room
+- [x] D-0727 Crux: reading room [src/app/(app)/library/[fileId]/page.tsx]
 - [ ] D-0728 crux
 - [ ] D-0729 Program map
 - [ ] D-0730 My roadmap
@@ -799,16 +799,16 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0750 Supporters of return point to the circumstances of the taking and to Egypt's new capacity to care for the object. Defenders of the current arrangement point to
 - [ ] D-0751 global access, the cost of deaccessioning, and public trust
 - [ ] D-0752 Placeholder paraphrase for the mockup. The real reader shows the case set page and Drive files exactly.
-- [ ] D-0753 Your highlight
+- [x] D-0753 Your highlight [src/app/(app)/library/[fileId]/page.tsx]
 - [ ] D-0754 "where it has been on display ever since"
-- [ ] D-0755 Cruxy: is this accurate?
-- [ ] D-0756 Find a counterexample
-- [ ] D-0757 Make a flashcard
-- [ ] D-0758 Propose to Truth Sources
+- [x] D-0755 Cruxy: is this accurate? [src/app/(app)/library/[fileId]/page.tsx]
+- [x] D-0756 Find a counterexample [src/app/(app)/library/[fileId]/page.tsx]
+- [x] D-0757 Make a flashcard [src/app/(app)/library/[fileId]/page.tsx]
+- [x] D-0758 Propose to Truth Sources [src/app/(app)/library/[fileId]/page.tsx]
 - [ ] D-0759 Cruxy:
 - [ ] D-0760 Mostly. It left the museum for wartime storage and for about a month in Paris in 1972.
 - [ ] D-0761 2 sources
-- [ ] D-0762 Comments on this page · all teams
+- [x] D-0762 Comments on this page · all teams [src/app/(app)/library/[fileId]/page.tsx]
 - [ ] D-0763 Ivan · Team 1
 - [ ] D-0764 on "a 1963 law"
 - [ ] D-0765 The Act already has exceptions for human remains. Consistency point?
@@ -817,12 +817,12 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0768 on "global access"
 - [ ] D-0769 Free entry in London vs paid entry in Cairo. Weigh access by connection, not headcount?
 - [ ] D-0770 Reply
-- [ ] D-0771 Add a comment on your highlight
-- [ ] D-0772 [input] Visible to all three teams
+- [x] D-0771 Add a comment on your highlight [src/app/(app)/library/[fileId]/page.tsx]
+- [x] D-0772 [input] Visible to all three teams [src/app/(app)/library/[fileId]/page.tsx]
 
 ## Roadmap.html
 
-- [ ] D-0773 Crux: my roadmap
+- [x] D-0773 Crux: my roadmap [src/app/(app)/revision/roadmap/page.tsx]
 - [ ] D-0774 crux
 - [ ] D-0775 Program map
 - [ ] D-0776 My roadmap
@@ -834,29 +834,29 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0782 [image] /cruxy/cruxy-lamp.png
 - [ ] D-0783 Ask Cruxy
 - [ ] D-0784 Jainam · Team 3 · sample data
-- [ ] D-0785 62%
-- [ ] D-0786 ready overall
+- [x] D-0785 62% [src/app/(app)/revision/roadmap/page.tsx]
+- [x] D-0786 ready overall [src/app/(app)/revision/roadmap/page.tsx]
 - [ ] D-0787 1
-- [ ] D-0788 overdue
-- [ ] D-0789 Recommended deadlines to Dec 5
+- [x] D-0788 overdue [src/app/(app)/revision/roadmap/page.tsx]
+- [x] D-0789 Recommended deadlines to Dec 5 [src/app/(app)/revision/roadmap/page.tsx]
 - [ ] D-0790 Team 3 can edit these
 - [ ] D-0791 Thanksgiving
-- [ ] D-0792 Today
-- [ ] D-0793 My cases, stage by stage
-- [ ] D-0794 Case · my role
-- [ ] D-0795 Read
-- [ ] D-0796 Map
-- [ ] D-0797 One pager
-- [ ] D-0798 Flashcards
-- [ ] D-0799 Question drill
-- [ ] D-0800 Practiced
-- [ ] D-0801 Judged
-- [ ] D-0802 Done
-- [ ] D-0803 In progress
-- [ ] D-0804 To do
-- [ ] D-0805 Overdue
-- [ ] D-0806 Not needed for your role
-- [ ] D-0807 Assigned to you
+- [x] D-0792 Today [src/app/(app)/revision/roadmap/page.tsx]
+- [x] D-0793 My cases, stage by stage [src/app/(app)/revision/roadmap/page.tsx]
+- [x] D-0794 Case · my role [src/app/(app)/revision/roadmap/page.tsx]
+- [x] D-0795 Read [src/app/(app)/revision/roadmap/page.tsx]
+- [x] D-0796 Map [src/app/(app)/revision/roadmap/page.tsx]
+- [x] D-0797 One pager [src/app/(app)/revision/roadmap/page.tsx]
+- [x] D-0798 Flashcards [src/app/(app)/revision/roadmap/page.tsx]
+- [x] D-0799 Question drill [src/app/(app)/revision/roadmap/page.tsx]
+- [x] D-0800 Practiced [src/app/(app)/revision/roadmap/page.tsx]
+- [x] D-0801 Judged [src/app/(app)/revision/roadmap/page.tsx]
+- [x] D-0802 Done [src/app/(app)/revision/roadmap/page.tsx]
+- [x] D-0803 In progress [src/app/(app)/revision/roadmap/page.tsx]
+- [x] D-0804 To do [src/app/(app)/revision/roadmap/page.tsx]
+- [x] D-0805 Overdue [src/app/(app)/revision/roadmap/page.tsx]
+- [x] D-0806 Not needed for your role [src/app/(app)/revision/roadmap/page.tsx]
+- [x] D-0807 Assigned to you [src/app/(app)/revision/roadmap/page.tsx]
 - [ ] D-0808 Case 13 one pager: counterclaim row
 - [ ] D-0809 by Nick · was due Nov 20
 - [ ] D-0810 Lead 1 on Case 9
