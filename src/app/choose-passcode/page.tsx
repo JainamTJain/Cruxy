@@ -78,7 +78,7 @@ export default function ChoosePasscodePage() {
           <p className="text-[13px] font-semibold tracking-[0.08em]">
             USC ETHICS BOWL
           </p>
-          <h1 className="font-display text-[120px] font-extrabold leading-[0.82] tracking-[-0.05em]">
+          <h1 className="font-display inline-block rounded-[18px] border-[3px] border-genie-bright px-3 py-1 text-[120px] font-extrabold leading-[0.82] tracking-[-0.05em]">
             crux
           </h1>
         </section>
@@ -102,9 +102,13 @@ export default function ChoosePasscodePage() {
     <main className="flex min-h-dvh flex-col bg-paper lg:flex-row">
       {/* ChooseCode.html: full-height cardinal left panel */}
       <section className="flex min-h-[50vh] flex-1 flex-col justify-between gap-8 bg-cardinal px-8 py-10 text-white sm:px-12 sm:py-12 lg:min-h-dvh">
-        <div className="flex items-center justify-between text-[13px] font-semibold tracking-[0.08em]">
+        <div className="flex items-center justify-between gap-4 text-[13px] font-semibold tracking-[0.08em]">
           <span>USC ETHICS BOWL</span>
-          <span>FIRST SIGN IN · SAMPLE</span>
+          <span className="text-right">
+            First sign in
+            <br />
+            Choose your code
+          </span>
         </div>
         <div className="flex flex-wrap items-end gap-5">
           <Image
@@ -124,7 +128,7 @@ export default function ChoosePasscodePage() {
             </p>
           </div>
         </div>
-        <h1 className="font-display text-[clamp(4.5rem,14vw,7.5rem)] font-extrabold leading-[0.82] tracking-[-0.05em]">
+        <h1 className="font-display inline-block rounded-[18px] border-[3px] border-genie-bright px-3 py-1 text-[clamp(4.5rem,14vw,7.5rem)] font-extrabold leading-[0.82] tracking-[-0.05em]">
           crux
         </h1>
       </section>
@@ -132,8 +136,9 @@ export default function ChoosePasscodePage() {
       <section className="flex flex-1 flex-col gap-5 bg-white px-8 py-10 sm:px-14 sm:py-12">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
-            Step 3 of 3 · first time only
+            Step 3 of 3
           </p>
+          <p className="text-xs text-muted">First time only</p>
           <h2 className="mt-2 font-display text-[40px] font-extrabold leading-none tracking-[-0.02em]">
             Choose your passcode
           </h2>
