@@ -4,10 +4,13 @@ import {
   listLibraryFiles,
   listSortingQueue,
 } from "@/lib/db/library-repository";
+import { ensureSampleLibraryBootstrapped } from "@/lib/db/supabase/library-extra";
 
 export async function GET(req: Request) {
   const auth = await requireSession();
   if ("error" in auth) return auth.error;
+
+  await ensureSampleLibraryBootstrapped(auth.session.personId);
 
   const url = new URL(req.url);
   const queue = url.searchParams.get("queue") === "1";

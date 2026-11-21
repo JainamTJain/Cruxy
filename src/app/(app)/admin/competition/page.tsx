@@ -159,7 +159,7 @@ export default function CompetitionLogPage() {
               value={form.case_id}
               onChange={(e) => setForm({ ...form, case_id: e.target.value })}
             >
-              <option value="">—</option>
+              <option value="">Select</option>
               {cases.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.number}. {c.title}
@@ -268,7 +268,7 @@ export default function CompetitionLogPage() {
       <section className="rounded-2xl border border-ink/10 bg-white/60 p-4">
         <h2 className="font-display text-lg font-semibold">Season rollover</h2>
         <p className="mt-1 text-sm text-muted">
-          Archive the season to Drive, import the next case set, reset roles —
+          Archive the season to Drive, import the next case set, reset roles.
           keep the Things bank, example library, and glossary. Tech admin only.
         </p>
         <Button className="mt-3" variant="outline" onClick={() => void rollover()}>
