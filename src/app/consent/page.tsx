@@ -1,9 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { VoiceSampleRecorder } from "@/components/voice-sample-recorder";
 import { Button } from "@/components/ui/button";
 
 const PLAIN = `Cruxy is our built-in thinking partner. It would rather ask you a good question than hand you an answer. It reads our Drive and the cases, finds new sources, asks practice questions, plays the other team or the judge when we need one, and gives feedback that quotes what you said. It can be wrong, so it always shows its source, and a person accepts every new idea. It floats on every page; drag it anywhere, or tap its lamp to send it to sleep.`;
@@ -28,26 +27,81 @@ const ROWS: [string, string][] = [
   ],
 ];
 
+const SAMPLE_MS = 20_000;
+
 export default function ConsentPage() {
   const router = useRouter();
-  const [voice, setVoice] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const abortRef = useRef(false);
 
-  async function submit(recordingOk: boolean) {
+  async function postConsent(recordingOk: boolean, voice: Blob | null) {
+    const form = new FormData();
+    form.set("recordingOk", recordingOk ? "true" : "false");
+    if (recordingOk && voice) form.set("voice", voice, "sample.webm");
+    const res = await fetch("/api/auth/consent", { method: "POST", body: form });
+    if (!res.ok) {
+      const data = (await res.json()) as { error?: string };
+      throw new Error(data.error ?? "Could not save consent.");
+    }
+  }
+
+  async function recordSample(): Promise<Blob | null> {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+      rec.ondataavailable = (e) => {
+        if (e.data.size) chunks.push(e.data);
+      };
+      const stopped = new Promise<Blob>((resolve) => {
+        rec.onstop = () => {
+          stream.getTracks().forEach((t) => t.stop());
+          resolve(new Blob(chunks, { type: "audio/webm" }));
+        };
+      });
+      rec.start(500);
+      setStatus("Recording voice sample…");
+      await new Promise((r) => window.setTimeout(r, SAMPLE_MS));
+      if (abortRef.current) {
+        rec.stop();
+        stream.getTracks().forEach((t) => t.stop());
+        return null;
+      }
+      rec.stop();
+      return await stopped;
+    } catch {
+      setStatus("Microphone unavailable. Saving consent without a sample.");
+      return null;
+    }
+  }
+
+  async function agreeAndRecord() {
     setBusy(true);
     setError(null);
+    abortRef.current = false;
     try {
-      const form = new FormData();
-      form.set("recordingOk", recordingOk ? "true" : "false");
-      if (recordingOk && voice) form.set("voice", voice, "sample.webm");
-      const res = await fetch("/api/auth/consent", { method: "POST", body: form });
-      if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
-        setError(data.error ?? "Could not save consent.");
-        return;
-      }
+      const voice = await recordSample();
+      await postConsent(true, voice);
       router.push("/choose-passcode");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not save consent.");
+    } finally {
+      setBusy(false);
+      setStatus(null);
+    }
+  }
+
+  async function notNow() {
+    setBusy(true);
+    setError(null);
+    abortRef.current = true;
+    try {
+      await postConsent(false, null);
+      router.push("/choose-passcode");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not save consent.");
     } finally {
       setBusy(false);
     }
@@ -86,14 +140,10 @@ export default function ConsentPage() {
         </div>
       </section>
 
-      <div className="mt-6">
-        <VoiceSampleRecorder onReady={setVoice} />
-      </div>
-
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
         <Button
           disabled={busy}
-          onClick={() => void submit(true)}
+          onClick={() => void agreeAndRecord()}
           className="sm:flex-1"
         >
           I agree: record my voice sample
@@ -101,12 +151,13 @@ export default function ConsentPage() {
         <Button
           variant="outline"
           disabled={busy}
-          onClick={() => void submit(false)}
+          onClick={() => void notNow()}
           className="sm:flex-1"
         >
           Not now, use Crux without being recorded
         </Button>
       </div>
+      {status ? <p className="mt-3 text-sm text-muted">{status}</p> : null}
       {error ? <p className="mt-3 text-sm text-cardinal">{error}</p> : null}
     </main>
   );
