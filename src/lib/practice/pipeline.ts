@@ -23,6 +23,7 @@ import {
   utterancesToLines,
 } from "@/lib/practice/transcription";
 import { runCruxyJudge } from "@/lib/practice/cruxy-judge";
+import { syncCalibratedJudgeForRound } from "@/lib/practice/calibrated-judge";
 import {
   filterCitedFeedback,
   proposeBankEntry,
@@ -228,6 +229,12 @@ export async function finalizeRound(opts: {
     // Cite-or-quiet on feedback (H citation validator when available)
     judgment.feedback = await citeOrQuietFeedback(judgment.feedback, lines);
     await saveJudgmentBundle(judgment);
+
+    // Wave 6 C: pair human cards with Cruxy and refresh calibrated kappa.
+    await syncCalibratedJudgeForRound({
+      roundId: opts.roundId,
+      personId: opts.personId,
+    });
 
     // Bank: one "Things to take care of" entry per fix that still has a citation.
     let bankAdded = 0;
