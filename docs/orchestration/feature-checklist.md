@@ -175,25 +175,25 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Personal roadmap and deadlines
 
-- [ ] F-141 Read · Case set page and every file Cruxy tagged "core" opened for at least 60% of reading time · Everyone, all 12 cases
-- [ ] F-142 Map · Person has contributed to or reviewed every claim on their team's map · Leads, counter-arguer
-- [x] F-143 One pager · Team one pager has no empty rows and the person has signed it off · Leads, supporter [src/components/case-brain/one-pager-document.tsx]
-- [ ] F-144 Flashcards · 90% of the case deck recalled correctly twice · Leads; anyone who opts in
-- [ ] F-145 Question drill · 10 bank questions answered, with your average above your own first attempts on this case · Leads, counter-arguer
-- [ ] F-146 Practiced · Spoke in at least one recorded round on the case · Everyone with a role on it
-- [ ] F-147 Judged · Judged at least twice (human or Cruxy judge), with your latest score above your own earlier one on this case · Leads
+- [x] F-141 Read · Case set page and every file Cruxy tagged "core" opened for at least 60% of reading time · Everyone, all 12 cases [src/lib/revision/roadmap-extra.ts]
+- [x] F-142 Map · Person has contributed to or reviewed every claim on their team's map · Leads, counter-arguer [src/lib/revision/roadmap-extra.ts]
+- [x] F-143 One pager · Team one pager has no empty rows and the person has signed it off · Leads, supporter [src/components/case-brain/one-pager-document.tsx, src/lib/revision/roadmap-extra.ts]
+- [x] F-144 Flashcards · 90% of the case deck recalled correctly twice · Leads; anyone who opts in [src/lib/revision/roadmap-extra.ts]
+- [x] F-145 Question drill · 10 bank questions answered, with your average above your own first attempts on this case · Leads, counter-arguer [src/lib/revision/roadmap-extra.ts]
+- [x] F-146 Practiced · Spoke in at least one recorded round on the case · Everyone with a role on it [src/lib/revision/roadmap-extra.ts]
+- [x] F-147 Judged · Judged at least twice (human or Cruxy judge), with your latest score above your own earlier one on this case · Leads [src/lib/revision/roadmap-extra.ts]
 - [x] F-148 **No fixed score cutoffs anywhere in Crux.** Every threshold compares a person with their own past (their first attempt, recent average or best), never with a set number or with other people. Judges still score on the APPE 1 to 10 scale, because that is how the regional is scored; progress, stages and "weak" flags are always measured as change from the person's own history. [src/lib/revision/roadmap.ts]
-- [ ] F-149 **Recommended deadlines (default for the December 5 regional; each team can edit theirs)** (implemented: `src/lib/revision/roadmap.ts`, `src/app/(app)/revision/roadmap/page.tsx`; owner F to verify)
-- [ ] F-150 Read all 12 cases · Nov 24
-- [ ] F-151 Map own cases · Nov 25
-- [ ] F-152 One pagers · Nov 28
-- [ ] F-153 Flashcards · Dec 2
-- [ ] F-154 Question drill · Dec 2
-- [ ] F-155 Practiced · Dec 3
-- [ ] F-156 Judged · Dec 4
+- [x] F-149 **Recommended deadlines (default for the December 5 regional; each team can edit theirs)** [src/lib/revision/roadmap-extra.ts, src/app/(app)/revision/roadmap/page.tsx, supabase/migrations/00024_workstream_e_roadmap_deadlines.sql]
+- [x] F-150 Read all 12 cases · Nov 24 [src/lib/revision/types.ts DEFAULT_STAGE_DEADLINES, src/app/(app)/revision/roadmap/page.tsx]
+- [x] F-151 Map own cases · Nov 25 [src/lib/revision/types.ts DEFAULT_STAGE_DEADLINES, src/app/(app)/revision/roadmap/page.tsx]
+- [x] F-152 One pagers · Nov 28 [src/lib/revision/types.ts DEFAULT_STAGE_DEADLINES, src/app/(app)/revision/roadmap/page.tsx]
+- [x] F-153 Flashcards · Dec 2 [src/lib/revision/types.ts DEFAULT_STAGE_DEADLINES, src/app/(app)/revision/roadmap/page.tsx]
+- [x] F-154 Question drill · Dec 2 [src/lib/revision/types.ts DEFAULT_STAGE_DEADLINES, src/app/(app)/revision/roadmap/page.tsx]
+- [x] F-155 Practiced · Dec 3 [src/lib/revision/types.ts DEFAULT_STAGE_DEADLINES, src/app/(app)/revision/roadmap/page.tsx]
+- [x] F-156 Judged · Dec 4 [src/lib/revision/types.ts DEFAULT_STAGE_DEADLINES, src/app/(app)/revision/roadmap/page.tsx]
 - [x] F-157 A track per case with seven stations, a "today" line and a flag on each deadline; stations fill as work happens, and overdue ones turn red. [src/app/(app)/revision/roadmap/page.tsx]
-- [ ] F-158 A readiness number per case (share of required stages done, weighted toward judged and practiced) and per team. (implemented: `src/lib/revision/roadmap.ts`, `src/app/(app)/home/page.tsx`; owner F to verify)
-- [ ] F-159 "Do next": the three most useful actions for this person today, picked from overdue stages, weak feedback areas, and assignments.
+- [x] F-158 A readiness number per case (share of required stages done, weighted toward judged and practiced) and per team. [src/lib/revision/roadmap-extra.ts, src/app/(app)/revision/roadmap/page.tsx]
+- [x] F-159 "Do next": the three most useful actions for this person today, picked from overdue stages, weak feedback areas, and assignments. [src/lib/revision/roadmap-extra.ts, src/app/(app)/revision/roadmap/page.tsx]
 
 ## Assignments, team chat and the Cruxy assistant
 

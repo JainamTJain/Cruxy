@@ -225,6 +225,15 @@ export interface SampleStore {
   /** Workstream B content extras */
   case_stakeholders: CaseStakeholderSeed[];
   scoring_card_items: ScoringCardItemSeed[];
+  /** Workstream E Wave 5: team-editable roadmap deadlines */
+  roadmap_deadline_overrides: {
+    id: string;
+    team_id: string;
+    stage: string;
+    due: string;
+    updated_at: string;
+    updated_by: string | null;
+  }[];
 }
 
 function emptyCaseBrainFields(): Pick<
@@ -396,6 +405,7 @@ function emptyAdminFields(): Pick<
   | "competition_logs"
   | "feature_useful"
   | "last_visits"
+  | "roadmap_deadline_overrides"
 > {
   return {
     readiness: [],
@@ -417,6 +427,7 @@ function emptyAdminFields(): Pick<
       updated_at: nowIso(),
       updated_by: null,
     },
+    roadmap_deadline_overrides: [],
     drive_sort_queue: [],
     calibration: [],
     competition_logs: [],
@@ -740,6 +751,8 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     last_visits: raw.last_visits ?? admin.last_visits,
     case_stakeholders: raw.case_stakeholders ?? [],
     scoring_card_items: raw.scoring_card_items ?? [],
+    roadmap_deadline_overrides:
+      raw.roadmap_deadline_overrides ?? admin.roadmap_deadline_overrides ?? [],
   };
 }
 
