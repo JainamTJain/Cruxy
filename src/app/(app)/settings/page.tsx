@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 export default function SettingsPage() {
   const [email, setEmail] = useState("");
   const [optIn, setOptIn] = useState(false);
+  const [digestOptIn, setDigestOptIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -13,10 +15,19 @@ export default function SettingsPage() {
       .then((r) => r.json())
       .then(
         (d: {
-          person?: { email?: string | null; email_reminders_opt_in?: boolean };
+          session?: { role?: string };
+          person?: {
+            email?: string | null;
+            email_reminders_opt_in?: boolean;
+            digest_opt_in?: boolean;
+            role?: string;
+          };
         }) => {
           setEmail(d.person?.email ?? "");
           setOptIn(Boolean(d.person?.email_reminders_opt_in));
+          setDigestOptIn(Boolean(d.person?.digest_opt_in));
+          const role = d.person?.role ?? d.session?.role;
+          setIsAdmin(role === "tech_admin" || role === "coach_admin");
         },
       );
   }, []);
@@ -25,9 +36,17 @@ export default function SettingsPage() {
     const res = await fetch("/api/settings/reminders", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email, emailRemindersOptIn: optIn }),
+      body: JSON.stringify({
+        email,
+        emailRemindersOptIn: optIn,
+        digestOptIn: isAdmin ? digestOptIn : undefined,
+      }),
     });
-    setMsg(res.ok ? "Saved. Email only sends if you opted in." : "Could not save.");
+    setMsg(
+      res.ok
+        ? "Saved. Email only sends if you opted in."
+        : "Could not save.",
+    );
   }
 
   return (
@@ -57,6 +76,16 @@ export default function SettingsPage() {
         />
         Email reminders (opt in)
       </label>
+      {isAdmin ? (
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={digestOptIn}
+            onChange={(e) => setDigestOptIn(e.target.checked)}
+          />
+          Weekly summary email (Sunday 6 pm Pacific, admins only)
+        </label>
+      ) : null}
       <Button onClick={() => void saveReminders()}>Save</Button>
       {msg ? <p className="text-sm text-muted">{msg}</p> : null}
     </main>

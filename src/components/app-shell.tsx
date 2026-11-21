@@ -126,18 +126,53 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 Admin console
               </Link>
+              <Link
+                href="/admin/competition"
+                className={cn(
+                  "rounded-xl px-3 py-2 text-sm",
+                  pathname.startsWith("/admin/competition")
+                    ? "bg-ink text-white"
+                    : "text-ink/80 hover:bg-white/70",
+                )}
+              >
+                Competition log
+              </Link>
               {me.session.role === "tech_admin" ? (
-                <Link
-                  href="/admin/passcodes"
-                  className={cn(
-                    "rounded-xl px-3 py-2 text-sm",
-                    pathname.startsWith("/admin/passcodes")
-                      ? "bg-ink text-white"
-                      : "text-ink/80 hover:bg-white/70",
-                  )}
-                >
-                  Passcodes
-                </Link>
+                <>
+                  <Link
+                    href="/admin/spend"
+                    className={cn(
+                      "rounded-xl px-3 py-2 text-sm",
+                      pathname.startsWith("/admin/spend")
+                        ? "bg-ink text-white"
+                        : "text-ink/80 hover:bg-white/70",
+                    )}
+                  >
+                    Spend
+                  </Link>
+                  <Link
+                    href="/admin/passcodes"
+                    className={cn(
+                      "rounded-xl px-3 py-2 text-sm",
+                      pathname.startsWith("/admin/passcodes")
+                        ? "bg-ink text-white"
+                        : "text-ink/80 hover:bg-white/70",
+                    )}
+                  >
+                    Passcodes
+                  </Link>
+                  <Link
+                    href="/admin/working"
+                    className={cn(
+                      "rounded-xl px-3 py-2 text-sm",
+                      pathname.startsWith("/admin/working")
+                        ? "bg-ink text-white"
+                        : "text-ink/80 hover:bg-white/70",
+                    )}
+                  >
+                    Is Crux working?
+                  </Link>
+                </>
               ) : null}
             </>
           ) : null}

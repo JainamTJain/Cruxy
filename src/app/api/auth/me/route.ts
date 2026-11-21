@@ -24,6 +24,7 @@ export async function GET() {
           recording_ok: person.recording_ok,
           first_run_checklist: person.first_run_checklist,
           email_reminders_opt_in: person.email_reminders_opt_in,
+          digest_opt_in: person.digest_opt_in,
           email: person.email,
         }
       : null,
