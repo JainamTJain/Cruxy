@@ -19,6 +19,7 @@ type Me = {
 
 const NAV = [
   { href: "/home", label: "Program map" },
+  { href: "/practice", label: "Practice" },
   { href: "/checklist", label: "First run" },
   { href: "/settings", label: "Settings" },
 ];

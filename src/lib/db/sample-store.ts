@@ -16,6 +16,24 @@ import type {
   Person,
   Team,
 } from "@/lib/types";
+import type {
+  AttendanceRow,
+  BankEntry,
+  CardScore,
+  FeedbackItem,
+  GlossaryTerm,
+  JudgeCard,
+  JudgeRow,
+  PracticeRound,
+  PracticeSession,
+  RecordingRow,
+  RedoRow,
+  RoundReport,
+  SkillChart,
+  SpeakerLabelConfirm,
+  TalkAnalytics,
+  TranscriptLine,
+} from "@/lib/practice/types";
 import { hashPasscode } from "@/lib/crypto/passcodes";
 import { nowIso } from "@/lib/utils";
 
@@ -33,6 +51,36 @@ export interface SampleStore {
   seeded_at: string;
   /** tech-admin reauth timestamp for reveal window */
   last_tech_reauth_at: string | null;
+  /** Track 5 Practice */
+  practice_sessions: PracticeSession[];
+  practice_rounds: PracticeRound[];
+  attendance: AttendanceRow[];
+  recordings: RecordingRow[];
+  transcript_lines: TranscriptLine[];
+  glossary: GlossaryTerm[];
+  judges: JudgeRow[];
+  judge_cards: JudgeCard[];
+  card_scores: CardScore[];
+  feedback_items: FeedbackItem[];
+  redos: RedoRow[];
+  bank_entries: BankEntry[];
+  round_reports: RoundReport[];
+  skill_charts: SkillChart[];
+  speaker_confirms: SpeakerLabelConfirm[];
+  talk_analytics: TalkAnalytics[];
+  /** Guest judge tokens: hash → judge_id + round_id + expires */
+  guest_judge_tokens: {
+    token_hash: string;
+    judge_id: string;
+    round_id: string;
+    expires_at: string;
+  }[];
+  /** Session code attempt lockouts */
+  session_code_attempts: {
+    key: string;
+    failures: number;
+    locked_until: string | null;
+  }[];
 }
 
 async function ensureDir() {
@@ -172,7 +220,63 @@ export async function buildSeedStore(): Promise<SampleStore> {
     cases,
     seeded_at: nowIso(),
     last_tech_reauth_at: null,
+    ...emptyPracticeTables(),
   };
+}
+
+function emptyPracticeTables(): Pick<
+  SampleStore,
+  | "practice_sessions"
+  | "practice_rounds"
+  | "attendance"
+  | "recordings"
+  | "transcript_lines"
+  | "glossary"
+  | "judges"
+  | "judge_cards"
+  | "card_scores"
+  | "feedback_items"
+  | "redos"
+  | "bank_entries"
+  | "round_reports"
+  | "skill_charts"
+  | "speaker_confirms"
+  | "talk_analytics"
+  | "guest_judge_tokens"
+  | "session_code_attempts"
+> {
+  return {
+    practice_sessions: [],
+    practice_rounds: [],
+    attendance: [],
+    recordings: [],
+    transcript_lines: [],
+    glossary: [],
+    judges: [],
+    judge_cards: [],
+    card_scores: [],
+    feedback_items: [],
+    redos: [],
+    bank_entries: [],
+    round_reports: [],
+    skill_charts: [],
+    speaker_confirms: [],
+    talk_analytics: [],
+    guest_judge_tokens: [],
+    session_code_attempts: [],
+  };
+}
+
+/** Backfill Track 5 tables on stores seeded before Track 5. */
+export function ensurePracticeTables(store: SampleStore): SampleStore {
+  const empty = emptyPracticeTables();
+  for (const key of Object.keys(empty) as (keyof typeof empty)[]) {
+    if (!Array.isArray(store[key])) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (store as any)[key] = empty[key];
+    }
+  }
+  return store;
 }
 
 let writeChain: Promise<void> = Promise.resolve();
@@ -181,7 +285,8 @@ export async function readStore(): Promise<SampleStore> {
   await ensureDir();
   try {
     const raw = await fs.readFile(STORE_PATH, "utf8");
-    return JSON.parse(raw) as SampleStore;
+    const parsed = ensurePracticeTables(JSON.parse(raw) as SampleStore);
+    return parsed;
   } catch {
     const seeded = await buildSeedStore();
     await fs.writeFile(STORE_PATH, JSON.stringify(seeded, null, 2));

@@ -85,10 +85,25 @@ export default async function HomePage() {
       </section>
 
       <section className="rounded-2xl border border-ink/10 bg-white/60 p-4">
+        <h2 className="font-display text-lg font-semibold">Practice</h2>
+        <p className="mt-1 text-sm text-muted">
+          Join today&apos;s session, start a solo drill, or open the judging portal.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-3 text-sm">
+          <a href="/practice" className="text-cardinal underline">
+            Practice home
+          </a>
+          <a href="/judging" className="text-cardinal underline">
+            Judging portal
+          </a>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-ink/10 bg-white/60 p-4">
         <h2 className="font-display text-lg font-semibold">Your next three</h2>
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm">
           <li>Finish the first-run checklist</li>
-          <li>Open Settings if you want email reminders later</li>
+          <li>Run one practice round on your case</li>
           <li>
             {session?.role === "tech_admin"
               ? "Use Admin switch → Passcodes when helping teammates"
