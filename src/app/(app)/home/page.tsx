@@ -1,10 +1,14 @@
+import Link from "next/link";
 import { CASE_TITLES } from "@/lib/constants";
 import { getSession } from "@/lib/auth/session";
 import { listTeams } from "@/lib/db/repository";
+import { listCaseRoles } from "@/lib/team/repository";
+import { HomeDiffs } from "@/components/home-diffs";
 
 export default async function HomePage() {
   const session = await getSession();
   const teams = await listTeams();
+  const roles = await listCaseRoles(session?.teamId ?? undefined);
   const active = CASE_TITLES.filter((c) => c.active);
   const days = Math.ceil(
     (new Date("2026-12-05").getTime() - Date.now()) / (1000 * 60 * 60 * 24),
@@ -18,7 +22,10 @@ export default async function HomePage() {
             Where the program stands
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Track 0 foundation · sample program map shell
+            Team space live ·{" "}
+            <Link href="/team" className="underline">
+              open the board
+            </Link>
           </p>
         </div>
         <p className="rounded-xl bg-gold/20 px-3 py-2 font-mono text-sm text-ink">
@@ -26,10 +33,12 @@ export default async function HomePage() {
         </p>
       </div>
 
+      <HomeDiffs />
+
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {[
           ["—", "Drive files"],
-          ["—", "ideas accepted"],
+          [String(roles.length), "roles set"],
           ["—", "sources verified"],
           ["—", "bank questions"],
           ["—", "rounds graded"],
@@ -57,7 +66,11 @@ export default async function HomePage() {
               <tr className="border-b border-ink/10 text-xs uppercase tracking-wide text-muted">
                 <th className="py-2 pr-3">Case</th>
                 {teams.map((t) => (
-                  <th key={t.id} className="py-2 pr-3" style={{ color: t.colour }}>
+                  <th
+                    key={t.id}
+                    className="py-2 pr-3"
+                    style={{ color: t.colour }}
+                  >
                     {t.name}
                   </th>
                 ))}
@@ -72,11 +85,19 @@ export default async function HomePage() {
                     </span>{" "}
                     {c.title}
                   </td>
-                  {teams.map((t) => (
-                    <td key={t.id} className="py-3 pr-3 text-muted">
-                      —
-                    </td>
-                  ))}
+                  {teams.map((t) => {
+                    const n = roles.filter(
+                      (r) =>
+                        r.team_id === t.id &&
+                        // roles keyed by case uuid; count leads for display via number match later
+                        (r.role === "lead_1" || r.role === "lead_2"),
+                    ).length;
+                    return (
+                      <td key={t.id} className="py-3 pr-3 text-muted">
+                        {n ? `${n} lead slot(s)` : "—"}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
@@ -87,12 +108,18 @@ export default async function HomePage() {
       <section className="rounded-2xl border border-ink/10 bg-white/60 p-4">
         <h2 className="font-display text-lg font-semibold">Your next three</h2>
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm">
-          <li>Finish the first-run checklist</li>
-          <li>Open Settings if you want email reminders later</li>
+          <li>
+            Check the{" "}
+            <Link href="/team" className="underline">
+              team board
+            </Link>{" "}
+            for gaps
+          </li>
+          <li>Confirm any new claim-map version on home</li>
           <li>
             {session?.role === "tech_admin"
               ? "Use Admin switch → Passcodes when helping teammates"
-              : "Ask Cruxy once the gateway key is connected"}
+              : "Ask Cruxy from the lamp — it cites Truth Sources or stays quiet"}
           </li>
         </ol>
       </section>

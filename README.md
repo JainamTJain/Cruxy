@@ -2,13 +2,14 @@
 
 Web app for USC’s three Ethics Bowl teams. **Cruxy** is the built-in thinking partner (users never see “AI” or model names).
 
-## Track 0 Foundation
+## Tracks
 
-This branch ships Track 0: Next.js App Router, design tokens, full schema SQL + RLS, name + 6-digit passcode auth, consent, Passcodes panel (tech admin), activity log, admin switch, `callCruxy` with monthly cap, first-run checklist, mobile layouts, and PWA installability.
+- **Track 0 Foundation** — auth, schema/RLS, `callCruxy`, design tokens, sample-data path
+- **Track 4 Team space** — assignments/roles, team board + chat, floating Cruxy/lamp + drawer, versioned claim maps + drift
 
 ### Local / sample-data path
 
-Supabase and AI gateway keys may still be missing. With `USE_SAMPLE_DATA=1` (default when Supabase is unset), the app uses a local JSON store under `.data/` (gitignored).
+Supabase and AI gateway keys may still be missing. With `USE_SAMPLE_DATA=1` (default when Supabase unset), the app uses a local JSON store under `.data/` (gitignored).
 
 ```bash
 cp .env.example .env.local
@@ -26,13 +27,15 @@ Jainam signs in with the admin starter whose hash is `INITIAL_ADMIN_CODE_HASH` (
 
 ```bash
 npx tsx scripts/track0-checks.ts
+npx tsx scripts/track4-checks.ts
 ```
 
 ### Still needed from Jainam for production
 
-1. **Supabase** — `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; apply `supabase/migrations/00001_track0_foundation.sql` + `supabase/seed.sql`
+1. **Supabase** — `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; apply `supabase/migrations/00001_track0_foundation.sql` + `00002_track4_team_space.sql` + `supabase/seed.sql`
 2. **AI gateway** — `AI_GATEWAY_API_KEY` or `OPENROUTER_API_KEY`
 3. **Drive** — share the Ethics Bowl root folder with the service account email (see secrets inventory), then set `DRIVE_ROOT_FOLDER_ID`
+4. **Cruxy art** — replace placeholder PNGs in `/public/cruxy/` with final transparent sprites when available
 
 ### Security
 
