@@ -1,5 +1,11 @@
 export type Role = "member" | "coach_admin" | "tech_admin";
 
+/** Session-scoped judging access (guests or members for one session). */
+export type JudgeAccess = {
+  sessionId: string;
+  guest: boolean;
+};
+
 export type AuthCodeKind = "starter" | "personal" | "admin";
 
 export type ConsentChoice = "recorded" | "text_only" | null;
@@ -27,6 +33,10 @@ export interface Person {
   failed_attempts: number;
   locked_until: string | null;
   last_sign_in_at: string | null;
+  /** Bumped on passcode reset so every browser session is signed out. */
+  session_version?: number;
+  digest_prompted_at?: string | null;
+  first_run_completed_at?: string | null;
   created_at: string;
   created_by: string | null;
 }
@@ -74,6 +84,31 @@ export interface SessionPayload {
   adminView: boolean;
   mustConsent: boolean;
   mustChoosePasscode: boolean;
+  /** Must match people.session_version or the cookie is rejected. */
+  sessionVersion: number;
+}
+
+export interface TeamMembership {
+  id: string;
+  person_id: string;
+  team_id: string;
+  from_at: string;
+  to_at: string | null;
+  created_at: string;
+  created_by: string | null;
+}
+
+export interface AppNotification {
+  id: string;
+  person_id: string;
+  kind: string;
+  title: string;
+  body: string | null;
+  href: string | null;
+  payload: Record<string, unknown>;
+  read_at: string | null;
+  created_at: string;
+  created_by: string | null;
 }
 
 export interface Competition {

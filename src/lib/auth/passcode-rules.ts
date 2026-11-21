@@ -151,6 +151,11 @@ export async function attemptSignIn(
     matched === "admin" ||
     Boolean(personal?.must_choose);
 
+  const { getPersonSessionVersion } = await import(
+    "@/lib/db/supabase/auth-extra"
+  );
+  const sessionVersion = await getPersonSessionVersion(person.id);
+
   const session: SessionPayload = {
     personId: person.id,
     role: person.role,
@@ -159,6 +164,7 @@ export async function attemptSignIn(
     adminView: false,
     mustConsent,
     mustChoosePasscode,
+    sessionVersion,
   };
 
   return { ok: true, session, person };
@@ -272,10 +278,76 @@ export async function resetPersonPasscode(
     set_at: nowIso(),
     last_revealed_at: null,
   });
+  const { bumpSessionVersion } = await import("@/lib/db/supabase/auth-extra");
+  await bumpSessionVersion(targetId);
   await logActivity({
     person_id: actorId,
     action: "passcode_reset",
     target: targetId,
   });
   return { oneTimeCode };
+}
+
+/** Settings: change passcode by entering the current one, then the new one twice. */
+export async function changePersonalPasscode(
+  personId: string,
+  current: string,
+  next: string,
+  confirm: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const personal = await getPersonalCode(personId);
+  if (!personal || personal.must_choose) {
+    return { ok: false, error: "Choose a passcode first." };
+  }
+  if (!(await verifyPasscode(personal.hash, current))) {
+    return { ok: false, error: "Current passcode is wrong." };
+  }
+  const set = await setPersonalPasscode(personId, next, confirm);
+  if (!set.ok) return set;
+  const { bumpSessionVersion } = await import("@/lib/db/supabase/auth-extra");
+  await bumpSessionVersion(personId);
+  await logActivity({
+    person_id: personId,
+    action: "passcode_changed",
+    target: personId,
+  });
+  return { ok: true };
+}
+
+/** Withdraw or change consent; withdrawing clears the voice sample via I. */
+export async function updateConsentChoice(opts: {
+  personId: string;
+  recordingOk: boolean;
+  voiceSamplePath?: string | null;
+  deleteVoice?: boolean;
+}): Promise<void> {
+  const person = await getPersonById(opts.personId);
+  if (!person) throw new Error("Person not found");
+
+  if (opts.deleteVoice || !opts.recordingOk) {
+    const { deleteVoiceSample } = await import("@/lib/auth/voice-sample");
+    await deleteVoiceSample(person.voice_sample_path, person.id);
+    const after = await getPersonById(opts.personId);
+    if (after) {
+      after.consent_version = CONSENT_VERSION;
+      after.consent_at = nowIso();
+      after.recording_ok = false;
+      await savePerson(after);
+    }
+  } else {
+    person.recording_ok = true;
+    person.consent_version = CONSENT_VERSION;
+    person.consent_at = nowIso();
+    if (opts.voiceSamplePath !== undefined) {
+      person.voice_sample_path = opts.voiceSamplePath;
+    }
+    await savePerson(person);
+  }
+
+  await logActivity({
+    person_id: person.id,
+    action: opts.recordingOk ? "consent_updated" : "consent_withdrawn",
+    target: person.id,
+    meta: { version: CONSENT_VERSION, recording_ok: opts.recordingOk },
+  });
 }

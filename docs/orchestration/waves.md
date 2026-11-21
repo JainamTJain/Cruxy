@@ -73,7 +73,7 @@ After Wave 2: one agent runs both checklists top to bottom, fixes what's left, a
 
 ### Migration numbers (reserved so parallel agents never collide)
 
-Applied on the live project: 00001 to 00010. Reserved: **H 00011, I 00012, C 00013, D 00014, E 00015, F 00016, G 00017**. If you need a second migration, use your number with a letter suffix (`00014b_...`). Never reuse or edit an applied migration. Claude applies them to the live project when your PR merges.
+Applied on the live project: 00001 to 00010. Reserved: **H 00011, I 00012, C 00013, D 00014, E 00015, F 00016, G 00017, J 00018**. If you need a second migration, use your number with a letter suffix (`00014b_...`). Never reuse or edit an applied migration. Claude applies them to the live project when your PR merges.
 
 ## Wave 3 (start now, in parallel with Wave 2)
 

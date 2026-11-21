@@ -4,8 +4,7 @@ import Image from "next/image";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-
-const PLAIN = `Cruxy is our built-in thinking partner. It would rather ask you a good question than hand you an answer. It reads our Drive and the cases, finds new sources, asks practice questions, plays the other team or the judge when we need one, and gives feedback that quotes what you said. It can be wrong, so it always shows its source, and a person accepts every new idea. It floats on every page; drag it anywhere, or tap its lamp to send it to sleep.`;
+import { CRUXY_PLAIN_WORDS } from "@/lib/types";
 
 const ROWS: [string, string][] = [
   [
@@ -17,10 +16,18 @@ const ROWS: [string, string][] = [
     "Audio of the room, turned into a transcript of who said what, and when.",
   ],
   [
+    "Why",
+    "So Cruxy and the team can give feedback that quotes what you said, and so scores stay fair.",
+  ],
+  [
     "Your voice",
     "A 20 second sample so the transcript knows which lines are yours.",
   ],
   ["Who sees it", "All three teams, Dr. B and Jainam. Nobody else."],
+  [
+    "Where it goes",
+    "Audio is stored briefly in Crux, then deleted once the transcript is saved.",
+  ],
   [
     "How long",
     "Audio is deleted once the transcript is saved. Transcripts stay for the season.",
@@ -125,7 +132,7 @@ export default function ConsentPage() {
           className="h-16 w-16 shrink-0"
           unoptimized
         />
-        <p className="text-[15px] leading-relaxed text-ink">{PLAIN}</p>
+        <p className="text-[15px] leading-relaxed text-ink">{CRUXY_PLAIN_WORDS}</p>
       </div>
 
       <section className="mt-8 space-y-3">
@@ -146,7 +153,7 @@ export default function ConsentPage() {
           onClick={() => void agreeAndRecord()}
           className="sm:flex-1"
         >
-          I agree: record my voice sample
+          I agree to be recorded in practice
         </Button>
         <Button
           variant="outline"
@@ -154,7 +161,7 @@ export default function ConsentPage() {
           onClick={() => void notNow()}
           className="sm:flex-1"
         >
-          Not now, use Crux without being recorded
+          Not now: text only
         </Button>
       </div>
       {status ? <p className="mt-3 text-sm text-muted">{status}</p> : null}

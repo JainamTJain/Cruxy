@@ -87,7 +87,10 @@ export default function ChoosePasscodePage() {
           <p className="mt-2 text-sm text-muted">
             Change it any time in Settings. Forgot it? Ask Jainam.
           </p>
-          <Button className="mt-8 w-fit" onClick={() => router.push("/home")}>
+          <Button
+            className="mt-8 w-fit"
+            onClick={() => router.push("/checklist")}
+          >
             Enter Crux
           </Button>
         </section>
