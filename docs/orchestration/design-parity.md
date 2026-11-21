@@ -456,29 +456,22 @@ For each screen, every visible label, number, button and image in the reference 
 
 - [x] D-0426 Crux: flashcards on a phone [src/app/(app)/revision/flashcards/page.tsx]
 - [x] D-0427 crux [src/app/(app)/revision/flashcards/page.tsx]
-- [x] D-0428 18 due · sample [src/app/(app)/revision/flashcards/page.tsx]
-- [ ] D-0429 Case 9
-- [ ] D-0430 · your lead deck · 64 cards
-- [ ] D-0431 COUNTERCLAIM ANSWER
-- [ ] D-0432 How do we answer Waldron's "the claim is superseded"?
-- [ ] D-0433 TEAM 3 v7 ANSWER
-- [ ] D-0434 Concede
-- [ ] D-0435 it for land, where return displaces people.
-- [ ] D-0436 Distinguish:
-- [ ] D-0437 returning one object displaces no one.
-- [ ] D-0438 Rebut:
-- [ ] D-0439 our claim rests on responsibility, not blame.
-- [ ] D-0440 Truth Source · Waldron 1992
+- [x] D-0428 N left today (no sample wording) [src/app/(app)/revision/flashcards/page.tsx]
+- [x] D-0429 Case badge from deck [src/app/(app)/revision/flashcards/page.tsx]
+- [x] D-0430 deck label + daily target / cram [src/app/(app)/revision/flashcards/page.tsx]
+- [x] D-0431 Flip card front (3D) [src/app/(app)/revision/flashcards/page.tsx]
+- [x] D-0432 Question on front [src/app/(app)/revision/flashcards/page.tsx]
+- [x] D-0433 Flip card back [src/app/(app)/revision/flashcards/page.tsx]
+- [x] D-0434 Answer on back [src/app/(app)/revision/flashcards/page.tsx]
+- [x] D-0440 Citation chip (no middle dot) [src/app/(app)/revision/flashcards/page.tsx]
 - [x] D-0441 Say it out loud instead [src/app/(app)/revision/flashcards/page.tsx]
-- [ ] D-0442 How well did you know it?
-- [ ] D-0443 Again
-- [ ] D-0444 1 min
-- [ ] D-0445 Hard
-- [ ] D-0446 10 min
-- [ ] D-0447 Good
-- [ ] D-0448 2 days
-- [ ] D-0449 Easy
-- [ ] D-0450 5 days
+- [x] D-0442 How did it go? [src/app/(app)/revision/flashcards/page.tsx]
+- [x] D-0443 Missed it (FSRS Again) [src/app/(app)/revision/flashcards/page.tsx]
+- [x] D-0445 Keep in my deck (pin) [src/app/(app)/revision/flashcards/page.tsx]
+- [x] D-0447 Got it (FSRS Good) [src/app/(app)/revision/flashcards/page.tsx]
+- [x] D-0448 Swipe on phone (react-swipeable) [src/app/(app)/revision/flashcards/page.tsx]
+- [x] D-0449 Genie moods on streaks [src/app/(app)/revision/flashcards/page.tsx]
+- [x] D-0450 FSRS order + rising daily target + cram [src/lib/revision/deck.ts]
 
 ## Home.html
 
@@ -496,27 +489,19 @@ For each screen, every visible label, number, button and image in the reference 
 - [x] D-0462 J [src/components/app-shell.tsx]
 - [x] D-0463 Jainam [src/components/app-shell.tsx]
 - [x] D-0464 Team 3 · admin [src/components/app-shell.tsx]
-- [x] D-0465 Saturday, Nov 21 · sample data [src/app/(app)/home/page.tsx]
+- [x] D-0465 Saturday, Nov 21 (no sample wording) [src/app/(app)/home/page.tsx]
 - [x] D-0466 Where the program stands [src/app/(app)/home/page.tsx]
 - [x] D-0467 14 [src/app/(app)/home/page.tsx]
 - [x] D-0468 days to UCSB [src/app/(app)/home/page.tsx]
 - [x] D-0469 Regional, Dec 5 [src/app/(app)/home/page.tsx]
-- [ ] D-0470 412
-- [ ] D-0471 Drive files read
-- [ ] D-0472 +18 this week
-- [ ] D-0473 96
-- [ ] D-0474 ideas accepted
-- [ ] D-0475 +31 this week
-- [ ] D-0476 61
-- [ ] D-0477 sources verified
-- [ ] D-0478 +9 overnight
-- [ ] D-0479 238
+- [x] D-0470 Drive count or empty state [src/app/(app)/home/page.tsx]
+- [x] D-0471 Drive files read / Drive not synced yet + Sync now [src/app/(app)/home/page.tsx]
+- [x] D-0472 drive delta when synced [src/app/(app)/home/page.tsx]
+- [x] D-0474 ideas accepted [src/app/(app)/home/page.tsx]
+- [x] D-0477 sources verified [src/app/(app)/home/page.tsx]
 - [x] D-0480 bank questions [src/app/(app)/home/page.tsx]
-- [ ] D-0481 +40 from Dr. B
-- [ ] D-0482 27
-- [ ] D-0483 rounds graded
-- [ ] D-0484 avg 41 of 60
-- [ ] D-0485 53
+- [x] D-0483 rounds graded [src/app/(app)/home/page.tsx]
+- [x] D-0485 redos that improved [src/app/(app)/home/page.tsx]
 - [ ] D-0486 redos that improved
 - [ ] D-0487 +2.1 points each
 - [x] D-0488 Case board [src/app/(app)/home/page.tsx]

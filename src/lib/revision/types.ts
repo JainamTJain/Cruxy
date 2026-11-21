@@ -127,6 +127,8 @@ export interface CardFsrsState {
   state: 0 | 1 | 2 | 3; // New, Learning, Review, Relearning
   last_review: string | null;
   correct_streak: number;
+  /** Keep in my deck: always stays in this person's rotation. */
+  pinned: boolean;
   created_at: string;
 }
 

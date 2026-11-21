@@ -216,6 +216,7 @@ export async function getOrCreateFsrsState(
       state: empty.state,
       last_review: null,
       correct_streak: 0,
+      pinned: false,
       created_at: nowIso(),
     };
     s.card_fsrs_states.push(state);
@@ -262,6 +263,7 @@ export async function reviewFlashcard(args: {
       state: next.state,
       last_review: next.last_review?.toISOString() ?? nowIso(),
       correct_streak: streak,
+      pinned: prior.pinned ?? false,
     };
     if (i >= 0) s.card_fsrs_states[i] = row;
     s.card_reviews.push({
@@ -280,34 +282,91 @@ export async function reviewFlashcard(args: {
   return getOrCreateFsrsState(args.personId, args.cardId);
 }
 
-export async function dueFlashcardsForPerson(personId: string) {
-  if (!isSampleDataMode()) return sb.dueFlashcardsForPerson(personId);
+export async function setFlashcardPinned(args: {
+  personId: string;
+  cardId: string;
+  pinned: boolean;
+}): Promise<CardFsrsState> {
+  if (!isSampleDataMode()) {
+    const { setFlashcardPinned: sbPin } = await import(
+      "@/lib/db/supabase/revision-extra"
+    );
+    return sbPin(args);
+  }
+  const prior = await getOrCreateFsrsState(args.personId, args.cardId);
+  await updateStore((s) => {
+    const i = s.card_fsrs_states.findIndex((c) => c.id === prior.id);
+    if (i >= 0) {
+      s.card_fsrs_states[i] = { ...s.card_fsrs_states[i]!, pinned: args.pinned };
+    }
+  });
+  return getOrCreateFsrsState(args.personId, args.cardId);
+}
+
+export async function dueDeckForPerson(personId: string) {
+  if (!isSampleDataMode()) {
+    const { dueDeckForPerson: sbDeck } = await import(
+      "@/lib/db/supabase/revision-extra"
+    );
+    return sbDeck(personId);
+  }
+  const {
+    applyDailyCap,
+    dailyFlashcardTarget,
+    daysUntil,
+    isCramMode,
+    orderDeckForPerson,
+  } = await import("@/lib/revision/deck");
+  const { listCompetitions } = await import("@/lib/db/repository");
   const store = await readStore();
   const optIns = store.deck_opt_ins.filter((d) => d.person_id === personId);
   const caseIds = new Set(optIns.map((d) => d.case_id));
-  // Leads auto-assigned
+  const leadCaseIds = new Set<string>();
   for (const role of store.case_roles.filter(
     (r) =>
       r.person_id === personId &&
       (r.role === "lead_1" || r.role === "lead_2"),
   )) {
     caseIds.add(role.case_id);
+    leadCaseIds.add(role.case_id);
   }
+  const competitions = await listCompetitions();
+  const daysToCompetition = daysUntil(competitions[0]?.date);
+  const cramMode = isCramMode(daysToCompetition);
+  const dailyTarget = dailyFlashcardTarget({
+    daysToCompetition,
+    leadCaseCount: leadCaseIds.size,
+    cramMode,
+  });
   const cards = store.flashcards.filter(
     (c) => c.case_id != null && caseIds.has(c.case_id),
   );
-  const now = Date.now();
-  const due: { card: Flashcard; state: CardFsrsState | null }[] = [];
-  for (const card of cards) {
-    const state =
-      store.card_fsrs_states.find(
-        (s) => s.person_id === personId && s.card_id === card.id,
-      ) ?? null;
-    if (!state || new Date(state.due).getTime() <= now) {
-      due.push({ card, state });
+  const statesByCardId = new Map<string, CardFsrsState>();
+  for (const s of store.card_fsrs_states) {
+    if (s.person_id === personId) {
+      statesByCardId.set(s.card_id, { ...s, pinned: s.pinned ?? false });
     }
   }
-  return due;
+  const ordered = orderDeckForPerson({
+    cards,
+    statesByCardId,
+    leadCaseIds,
+    cramMode,
+  });
+  const capped = applyDailyCap(ordered, dailyTarget);
+  return {
+    cards: capped,
+    dailyTarget,
+    cramMode,
+    daysToCompetition,
+    leadCaseCount: leadCaseIds.size,
+    totalInRotation: ordered.length,
+  };
+}
+
+export async function dueFlashcardsForPerson(personId: string) {
+  const deck = await dueDeckForPerson(personId);
+  return deck.cards;
 }
 
 // ---------- One pagers ----------

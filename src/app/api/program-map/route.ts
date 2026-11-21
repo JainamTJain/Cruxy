@@ -19,6 +19,7 @@ import {
   countLibraryForProgramMap,
   ensureSampleLibraryBootstrapped,
 } from "@/lib/db/supabase/library-extra";
+import { latestSyncRun } from "@/lib/db/library-repository";
 
 export const runtime = "nodejs";
 
@@ -44,6 +45,7 @@ export async function GET() {
     roadmap,
     assignments,
     libraryCounts,
+    latestDriveSync,
   ] = await Promise.all([
     listTeams(),
     listCases(),
@@ -59,6 +61,7 @@ export async function GET() {
       drive_files: 0,
       passages: 0,
     })),
+    latestSyncRun().catch(() => null),
   ]);
 
   const totals = {
@@ -182,6 +185,12 @@ export async function GET() {
         totals.drive_files > 0
           ? `${totals.drive_files} digested`
           : undefined,
+    },
+    driveStatus: {
+      synced: totals.drive_files > 0 || Boolean(latestDriveSync?.finished_at),
+      fileCount: totals.drive_files,
+      lastSyncAt: latestDriveSync?.finished_at ?? null,
+      canSync: session.role === "tech_admin",
     },
     teamAverages: avgs,
     competition: nextCompetition,

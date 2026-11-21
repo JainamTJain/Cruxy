@@ -151,7 +151,7 @@ export default function ModeratorBankPage() {
               >
                 <p>{q.text}</p>
                 <p className="mt-1 text-xs text-muted">
-                  {q.origin_label} · {q.type} · difficulty {q.difficulty} · pending
+                  {q.origin_label}, {q.type}, difficulty {q.difficulty}, pending
                 </p>
               </li>
             ))}
@@ -171,8 +171,8 @@ export default function ModeratorBankPage() {
             >
               <p>{q.text}</p>
               <p className="mt-1 text-xs text-muted">
-                {q.origin_label} · {q.type} · d{q.difficulty}
-                {q.asked_at_tag ? ` · ${q.asked_at_tag}` : ""}
+                {q.origin_label}, {q.type}, d{q.difficulty}
+                {q.asked_at_tag ? `, ${q.asked_at_tag}` : ""}
               </p>
             </li>
           ))}

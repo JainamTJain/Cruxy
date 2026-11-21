@@ -115,9 +115,9 @@ export default function LibrarySearchPage() {
                 )}
                 <span className="font-mono text-[10px] text-muted">
                   {h.kind}
-                  {h.anchor ? ` · ${h.anchor}` : ""}
-                  {h.drive_id ? ` · ${h.drive_id.slice(0, 10)}` : ""}
-                  {` · ${h.score.toFixed(2)}`}
+                  {h.anchor ? `, ${h.anchor}` : ""}
+                  {h.drive_id ? `, ${h.drive_id.slice(0, 10)}` : ""}
+                  {`, ${h.score.toFixed(2)}`}
                 </span>
               </div>
               <p className="mt-1 text-sm text-ink/80">{h.snippet}</p>

@@ -319,7 +319,7 @@ export default function ReadingRoomPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-col gap-1">
           <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
-            Reading room · {caseLabel}
+            Reading room, {caseLabel}
           </span>
           <h1 className="font-display text-[34px] font-extrabold leading-none tracking-[-0.02em]">
             {primaryCase?.title ?? file.name}
@@ -350,7 +350,7 @@ export default function ReadingRoomPage() {
             }`}
           >
             {file.name.length > 36 ? `${file.name.slice(0, 34)}…` : file.name}
-            {file.drive_id ? " · Drive" : ""}
+            {file.drive_id ? " (Drive)" : ""}
           </button>
           {related.slice(0, 2).map((r) => (
             <Link
@@ -403,15 +403,17 @@ export default function ReadingRoomPage() {
             )}
             {file.card ? (
               <p className="m-0 font-sans text-[15px] text-muted">
-                File card · {file.card.split("\n")[0]}
+                File card: {file.card.split("\n")[0]}
               </p>
             ) : null}
             {passages[0]?.drive_id || passages[0]?.id ? (
               <p className="m-0 font-mono text-[11px] text-muted">
-                Cite · {passages[0]?.anchor}
+                Cite {passages[0]?.anchor ?? ""}
                 {passages[0]?.drive_id
-                  ? ` · drive ${passages[0].drive_id.slice(0, 10)}`
-                  : ` · ${passages[0]?.id.slice(0, 8)}`}
+                  ? ` (drive ${passages[0].drive_id.slice(0, 10)})`
+                  : passages[0]?.id
+                    ? ` (${passages[0].id.slice(0, 8)})`
+                    : ""}
               </p>
             ) : null}
           </div>
@@ -482,7 +484,7 @@ export default function ReadingRoomPage() {
 
           <section className="flex flex-col gap-3.5 rounded-[20px] bg-white p-5">
             <h2 className="font-display m-0 text-xl font-extrabold">
-              Comments on this page · all teams
+              Comments on this page, all teams
             </h2>
             {comments.length === 0 ? (
               <p className="text-sm text-muted">No comments yet.</p>
@@ -498,12 +500,12 @@ export default function ReadingRoomPage() {
                     </strong>
                     {c.range ? (
                       <span className="text-muted"> on “{c.range}”</span>
-                    ) : (
+                    ) : c.passage_anchor ? (
                       <span className="font-mono text-[10px] text-muted">
                         {" "}
-                        · {c.passage_anchor}
+                        ({c.passage_anchor})
                       </span>
-                    )}
+                    ) : null}
                   </span>
                   <span className="text-sm leading-snug">{c.body}</span>
                   <span className="text-[13px] text-muted">Reply</span>
