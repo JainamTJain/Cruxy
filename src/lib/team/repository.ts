@@ -149,7 +149,7 @@ export async function setCaseRole(input: {
       chat_id: chat.id,
       person_id: null,
       from_cruxy: true,
-      body: `${actor?.name ?? "Someone"} set ${person.name} as ${CASE_ROLE_LABELS[input.role]} on Case ${caseRow.number} (${caseRow.title}).`,
+      body: `${actor?.name ?? "Someone"} made ${person.name} ${CASE_ROLE_LABELS[input.role]} on Case ${caseRow.number}.`,
       is_idea: false,
       mention_ids: [input.personId],
       case_id: input.caseId,
@@ -295,22 +295,61 @@ export async function markMessageIdea(
   messageId: string,
   actorId: string,
 ): Promise<ChatMessage> {
+  let saved: ChatMessage | null = null;
   if (!isSampleDataMode()) {
-    return (await sb()).markMessageIdea(messageId, actorId);
+    saved = await (await sb()).markMessageIdea(messageId, actorId);
+  } else {
+    await updateStore((s) => {
+      const msg = s.messages.find((m) => m.id === messageId);
+      if (!msg) throw new Error("Message not found");
+      msg.is_idea = true;
+      saved = { ...msg };
+    });
+    await logActivity({
+      person_id: actorId,
+      action: "chat_idea_queued",
+      target: messageId,
+    });
   }
-  let saved!: ChatMessage;
-  await updateStore((s) => {
-    const msg = s.messages.find((m) => m.id === messageId);
-    if (!msg) throw new Error("Message not found");
-    msg.is_idea = true;
-    saved = msg;
-    // Queue stub: Truth Sources proposal lands with Track 2; log for now
-  });
-  await logActivity({
-    person_id: actorId,
-    action: "chat_idea_queued",
-    target: messageId,
-  });
+  if (!saved) throw new Error("Message not found");
+
+  // Send to the team's Truth Sources queue (assignments stay explicit; chat only queues ideas).
+  if (saved.case_id) {
+    const { getPersonById } = await import("@/lib/db/repository");
+    const person = await getPersonById(actorId);
+    const teamId = person?.team_id;
+    if (teamId) {
+      try {
+        const { createProposal } = await import("@/lib/case-brain/service");
+        await createProposal({
+          teamId,
+          caseId: saved.case_id,
+          personId: actorId,
+          text: saved.body,
+          kind: "other",
+          origin: "member",
+          originRef: `chat:${saved.id}`,
+          ideaKey: `chat-idea:${saved.id}`,
+        });
+        if (isSampleDataMode()) {
+          await updateStore((s) => {
+            const msg = s.messages.find((m) => m.id === messageId);
+            if (!msg) return;
+            const caseRow = s.cases.find((c) => c.id === msg.case_id);
+            msg.link_refs = {
+              ...(msg.link_refs ?? {}),
+              kind: "idea",
+              case_number: caseRow?.number ?? null,
+            };
+            saved = { ...msg };
+          });
+        }
+      } catch {
+        /* proposal queue may already hold this idea_key */
+      }
+    }
+  }
+
   return saved;
 }
 
