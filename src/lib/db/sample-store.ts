@@ -8,6 +8,20 @@ import {
   TOKENS,
 } from "@/lib/constants";
 import type {
+  Backing,
+  CaseRole,
+  ChangeTheFactsItem,
+  Claim,
+  Counterclaim,
+  Decision,
+  ItemHistoryEntry,
+  OpposingPosition,
+  Proposal,
+  Support,
+  TeamPrinciple,
+  TruthItem,
+} from "@/lib/case-brain/types";
+import type {
   ActivityLogEntry,
   AiCall,
   AuthCode,
@@ -19,7 +33,6 @@ import type {
 import type {
   AlignmentQuestionSet,
   Assignment,
-  CaseRole,
   ChatChannel,
   ChatMessage,
   ClaimChangeProposal,
@@ -28,7 +41,6 @@ import type {
   DriftFlag,
   PersonPrefs,
   RoadmapStage,
-  TruthItem,
 } from "@/lib/team/types";
 import { programChannel, teamChannel } from "@/lib/team/channels";
 import { hashPasscode } from "@/lib/crypto/passcodes";
@@ -45,7 +57,20 @@ export interface SampleStore {
   ai_calls: AiCall[];
   competitions: Competition[];
   cases: CaseRow[];
+  /** Track 2 Case brain */
+  claims: Claim[];
+  supports: Support[];
+  backings: Backing[];
+  counterclaims: Counterclaim[];
+  truth_items: TruthItem[];
+  proposals: Proposal[];
+  decisions: Decision[];
   case_roles: CaseRole[];
+  opposing_positions: OpposingPosition[];
+  item_history: ItemHistoryEntry[];
+  team_principles: TeamPrinciple[];
+  change_the_facts: ChangeTheFactsItem[];
+  /** Track 4 Team space */
   assignments: Assignment[];
   chats: ChatChannel[];
   messages: ChatMessage[];
@@ -55,11 +80,68 @@ export interface SampleStore {
   alignment_questions: AlignmentQuestionSet[];
   drift_flags: DriftFlag[];
   roadmap_stages: RoadmapStage[];
-  truth_items: TruthItem[];
   person_prefs: PersonPrefs[];
   seeded_at: string;
   /** tech-admin reauth timestamp for reveal window */
   last_tech_reauth_at: string | null;
+}
+
+function emptyCaseBrainFields(): Pick<
+  SampleStore,
+  | "claims"
+  | "supports"
+  | "backings"
+  | "counterclaims"
+  | "truth_items"
+  | "proposals"
+  | "decisions"
+  | "case_roles"
+  | "opposing_positions"
+  | "item_history"
+  | "team_principles"
+  | "change_the_facts"
+> {
+  return {
+    claims: [],
+    supports: [],
+    backings: [],
+    counterclaims: [],
+    truth_items: [],
+    proposals: [],
+    decisions: [],
+    case_roles: [],
+    opposing_positions: [],
+    item_history: [],
+    team_principles: [],
+    change_the_facts: [],
+  };
+}
+
+function emptyTeamSpaceFields(): Pick<
+  SampleStore,
+  | "assignments"
+  | "chats"
+  | "messages"
+  | "claim_map_versions"
+  | "claim_map_confirmations"
+  | "claim_change_proposals"
+  | "alignment_questions"
+  | "drift_flags"
+  | "roadmap_stages"
+  | "person_prefs"
+> {
+  return {
+    assignments: [],
+    chats: [],
+    messages: [],
+    claim_map_versions: [],
+    claim_map_confirmations: [],
+    claim_change_proposals: [],
+    alignment_questions: [],
+    drift_flags: [],
+    roadmap_stages: [],
+    person_prefs: [],
+  };
 }
 
 async function ensureDir() {
@@ -96,22 +178,6 @@ function emptyPerson(
     created_at: nowIso(),
     created_by: null,
   };
-}
-
-function ensureTeamSpaceFields(store: SampleStore): SampleStore {
-  store.case_roles ??= [];
-  store.assignments ??= [];
-  store.chats ??= [];
-  store.messages ??= [];
-  store.claim_map_versions ??= [];
-  store.claim_map_confirmations ??= [];
-  store.claim_change_proposals ??= [];
-  store.alignment_questions ??= [];
-  store.drift_flags ??= [];
-  store.roadmap_stages ??= [];
-  store.truth_items ??= [];
-  store.person_prefs ??= [];
-  return store;
 }
 
 export async function buildSeedStore(): Promise<SampleStore> {
@@ -232,12 +298,12 @@ export async function buildSeedStore(): Promise<SampleStore> {
     },
   ];
 
-  // Seed a sample claim map + truth item for Team 1 / first active case
   const case7 = cases.find((c) => c.number === 7)!;
   const serena = people.find((p) => p.name === "Serena")!;
   const ivan = people.find((p) => p.name === "Ivan")!;
   const ashton = people.find((p) => p.name === "Ashton")!;
   const stolei = people.find((p) => p.name === "Stolei")!;
+  const at = nowIso();
 
   const case_roles: CaseRole[] = [
     {
@@ -246,7 +312,7 @@ export async function buildSeedStore(): Promise<SampleStore> {
       case_id: case7.id,
       person_id: serena.id,
       role: "lead_1",
-      created_at: nowIso(),
+      created_at: at,
       created_by: serena.id,
     },
     {
@@ -255,7 +321,7 @@ export async function buildSeedStore(): Promise<SampleStore> {
       case_id: case7.id,
       person_id: ivan.id,
       role: "lead_2",
-      created_at: nowIso(),
+      created_at: at,
       created_by: serena.id,
     },
     {
@@ -264,7 +330,7 @@ export async function buildSeedStore(): Promise<SampleStore> {
       case_id: case7.id,
       person_id: ashton.id,
       role: "counter_arguer",
-      created_at: nowIso(),
+      created_at: at,
       created_by: serena.id,
     },
     {
@@ -273,7 +339,7 @@ export async function buildSeedStore(): Promise<SampleStore> {
       case_id: case7.id,
       person_id: stolei.id,
       role: "supporter",
-      created_at: nowIso(),
+      created_at: at,
       created_by: serena.id,
     },
   ];
@@ -290,8 +356,14 @@ export async function buildSeedStore(): Promise<SampleStore> {
           text: "Equal access activism must protect speech without enabling harassment.",
           logic_line: "Rights collide; institutions owe a workable boundary.",
           supports: [
-            { key: "c1s1", text: "Campus codes already balance safety and expression." },
-            { key: "c1s2", text: "Harassment chills participation more than content rules." },
+            {
+              key: "c1s1",
+              text: "Campus codes already balance safety and expression.",
+            },
+            {
+              key: "c1s2",
+              text: "Harassment chills participation more than content rules.",
+            },
           ],
           counterclaim_response:
             "We do not concede viewpoint discrimination; we target conduct.",
@@ -301,14 +373,17 @@ export async function buildSeedStore(): Promise<SampleStore> {
           text: "Transparent criteria beat ad-hoc platform bans.",
           logic_line: "Predictability is fairness for speakers and targets.",
           supports: [
-            { key: "c2s1", text: "Published standards let students plan advocacy." },
+            {
+              key: "c2s1",
+              text: "Published standards let students plan advocacy.",
+            },
           ],
         },
       ],
     },
     change_summary: "Initial Team 1 position for Case 7.",
     created_by: serena.id,
-    created_at: nowIso(),
+    created_at: at,
   };
 
   const truth_items: TruthItem[] = [
@@ -320,7 +395,9 @@ export async function buildSeedStore(): Promise<SampleStore> {
       text: "Team 1 Truth: distinguish protected advocacy from targeted harassment by published conduct criteria.",
       citation_ids: ["seed-truth-c7-1"],
       status: "accepted",
-      created_at: nowIso(),
+      created_at: at,
+      created_by: serena.id,
+      updated_at: at,
     },
     {
       id: randomUUID(),
@@ -330,7 +407,9 @@ export async function buildSeedStore(): Promise<SampleStore> {
       text: "Equal Access Activism case set: platforms that silence speakers without criteria invite distrust.",
       citation_ids: ["seed-truth-c7-2"],
       status: "accepted",
-      created_at: nowIso(),
+      created_at: at,
+      created_by: serena.id,
+      updated_at: at,
     },
   ];
 
@@ -341,8 +420,8 @@ export async function buildSeedStore(): Promise<SampleStore> {
     stage: `role:${r.role}`,
     required: true,
     due: "2026-11-28",
-    done_at: nowIso(),
-    created_at: nowIso(),
+    done_at: at,
+    created_at: at,
   }));
 
   return {
@@ -353,7 +432,9 @@ export async function buildSeedStore(): Promise<SampleStore> {
     ai_calls: [],
     competitions: [competition],
     cases,
+    ...emptyCaseBrainFields(),
     case_roles,
+    truth_items,
     assignments: [],
     chats,
     messages: [],
@@ -363,17 +444,48 @@ export async function buildSeedStore(): Promise<SampleStore> {
         id: randomUUID(),
         version_id: v1.id,
         person_id: serena.id,
-        confirmed_at: nowIso(),
+        confirmed_at: at,
       },
     ],
     claim_change_proposals: [],
     alignment_questions: [],
     drift_flags: [],
     roadmap_stages,
-    truth_items,
     person_prefs: [],
-    seeded_at: nowIso(),
+    seeded_at: at,
     last_tech_reauth_at: null,
+  };
+}
+
+function migrateStoreShape(raw: SampleStore): SampleStore {
+  const brain = emptyCaseBrainFields();
+  const team = emptyTeamSpaceFields();
+  return {
+    ...raw,
+    claims: raw.claims ?? brain.claims,
+    supports: raw.supports ?? brain.supports,
+    backings: raw.backings ?? brain.backings,
+    counterclaims: raw.counterclaims ?? brain.counterclaims,
+    truth_items: raw.truth_items ?? brain.truth_items,
+    proposals: raw.proposals ?? brain.proposals,
+    decisions: raw.decisions ?? brain.decisions,
+    case_roles: raw.case_roles ?? brain.case_roles,
+    opposing_positions: raw.opposing_positions ?? brain.opposing_positions,
+    item_history: raw.item_history ?? brain.item_history,
+    team_principles: raw.team_principles ?? brain.team_principles,
+    change_the_facts: raw.change_the_facts ?? brain.change_the_facts,
+    assignments: raw.assignments ?? team.assignments,
+    chats: raw.chats ?? team.chats,
+    messages: raw.messages ?? team.messages,
+    claim_map_versions: raw.claim_map_versions ?? team.claim_map_versions,
+    claim_map_confirmations:
+      raw.claim_map_confirmations ?? team.claim_map_confirmations,
+    claim_change_proposals:
+      raw.claim_change_proposals ?? team.claim_change_proposals,
+    alignment_questions: raw.alignment_questions ?? team.alignment_questions,
+    drift_flags: raw.drift_flags ?? team.drift_flags,
+    roadmap_stages: raw.roadmap_stages ?? team.roadmap_stages,
+    person_prefs: raw.person_prefs ?? team.person_prefs,
   };
 }
 
@@ -383,7 +495,7 @@ export async function readStore(): Promise<SampleStore> {
   await ensureDir();
   try {
     const raw = await fs.readFile(STORE_PATH, "utf8");
-    return ensureTeamSpaceFields(JSON.parse(raw) as SampleStore);
+    return migrateStoreShape(JSON.parse(raw) as SampleStore);
   } catch {
     const seeded = await buildSeedStore();
     await fs.writeFile(STORE_PATH, JSON.stringify(seeded, null, 2));

@@ -23,6 +23,7 @@ type Me = {
 
 const NAV = [
   { href: "/home", label: "Program map" },
+  { href: "/case-brain", label: "Case brain" },
   { href: "/team", label: "Team" },
   { href: "/team/chat", label: "Chat" },
   { href: "/checklist", label: "First run" },
@@ -111,21 +112,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="flex flex-1 gap-6">
           <nav className="hidden w-44 shrink-0 flex-col gap-1 sm:flex">
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "rounded-xl px-3 py-2 text-sm",
-                  pathname === item.href ||
-                    (item.href !== "/home" && pathname.startsWith(item.href))
-                    ? "bg-ink text-white"
-                    : "text-ink/80 hover:bg-white/70",
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {NAV.map((item) => {
+              const active =
+                item.href === "/home"
+                  ? pathname === item.href
+                  : pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "rounded-xl px-3 py-2 text-sm",
+                    active
+                      ? "bg-ink text-white"
+                      : "text-ink/80 hover:bg-white/70",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
             {me?.session?.adminView ? (
               <>
                 <Link
@@ -160,21 +167,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-ink/10 bg-paper/95 px-2 py-2 backdrop-blur sm:hidden">
           <div className="mx-auto flex max-w-lg justify-around text-[11px]">
-            {NAV.slice(0, 4).map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "px-2 py-1",
-                  pathname === item.href ||
-                    (item.href !== "/home" && pathname.startsWith(item.href))
-                    ? "font-semibold text-cardinal"
-                    : "text-muted",
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {NAV.slice(0, 4).map((item) => {
+              const active =
+                item.href === "/home"
+                  ? pathname === item.href
+                  : pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "px-2 py-1",
+                    active ? "font-semibold text-cardinal" : "text-muted",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
             {me?.session?.adminView ? (
               <Link
                 href="/admin"

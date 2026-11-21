@@ -1,11 +1,14 @@
-/** Track 4 Team space types */
+/** Track 4 Team space types — CaseRole / TruthItem shared with Track 2 case-brain */
+
+import type { CaseRoleKind } from "@/lib/case-brain/types";
+export type { CaseRole, TruthItem } from "@/lib/case-brain/types";
 
 export const CASE_ROLE_SLOTS = [
   "lead_1",
   "lead_2",
   "counter_arguer",
   "supporter",
-] as const;
+] as const satisfies readonly CaseRoleKind[];
 
 export type CaseRoleSlot = (typeof CASE_ROLE_SLOTS)[number];
 
@@ -22,16 +25,6 @@ export type AssignmentTargetKind =
   | "one_pager"
   | "reading"
   | "practice";
-
-export interface CaseRole {
-  id: string;
-  team_id: string;
-  case_id: string;
-  person_id: string;
-  role: CaseRoleSlot;
-  created_at: string;
-  created_by: string | null;
-}
 
 export interface Assignment {
   id: string;
@@ -146,17 +139,6 @@ export interface RoadmapStage {
   required: boolean;
   due: string | null;
   done_at: string | null;
-  created_at: string;
-}
-
-export interface TruthItem {
-  id: string;
-  team_id: string;
-  case_id: string;
-  kind: "fact" | "quote" | "example" | "framework";
-  text: string;
-  citation_ids: string[];
-  status: "accepted" | "rejected" | "pending";
   created_at: string;
 }
 

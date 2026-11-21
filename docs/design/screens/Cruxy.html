@@ -1,0 +1,184 @@
+<!-- Crux design reference. Translate to Next.js + Tailwind; ignore the <x-dc>, <helmet> and DCLogic wrappers. Sample data only. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crux: Cruxy floating, sleeping in the lamp</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,system-ui,sans-serif;color:#111318}
+a{color:inherit;text-decoration:none}
+.disp{font-family:'Bricolage Grotesque',Inter,sans-serif}
+.lab{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5A606B}
+.bob{animation:bob 3.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.zz{animation:zz 2.6s ease-in-out infinite}
+@keyframes zz{0%{opacity:0;transform:translate(0,6px)}40%{opacity:1}100%{opacity:0;transform:translate(10px,-18px)}}
+.pill{min-height:44px;padding:0 14px;border-radius:12px;font:600 14px Inter,sans-serif;cursor:pointer}
+@media (prefers-reduced-motion: reduce){.bob,.zz{animation:none}}
+</style>
+</helmet>
+<div onPointerMove="{{move}}" onPointerUp="{{drop}}" style="position: relative; min-height: 1000px; overflow: hidden; display: flex; flex-wrap: wrap; background: #F3F4F6; touch-action: none">
+  <aside style="flex: 0 0 248px; background: #111318; color: #FFFFFF; padding: 28px 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px">
+    <span class="disp" style="font-size: 34px; font-weight: 800; letter-spacing: -0.04em">crux</span>
+    <nav aria-label="Main" style="display: flex; flex-direction: column; gap: 4px; font-size: 15px; font-weight: 500">
+      <a href="Home.html" style="padding: 10px 12px; border-radius: 10px; color: #C9CCD3">Program</a>
+      <a href="Roadmap.html" style="padding: 10px 12px; border-radius: 10px; color: #C9CCD3">My roadmap</a>
+      <a href="CaseBrain.html" style="padding: 10px 12px; border-radius: 10px; background: #9D2235; color: #FFFFFF">Cases</a>
+      <a href="Practice.html" style="padding: 10px 12px; border-radius: 10px; color: #C9CCD3">Practice</a>
+      <a href="TeamBoard.html" style="padding: 10px 12px; border-radius: 10px; color: #C9CCD3">Team 3</a>
+    </nav>
+  </aside>
+
+  <main style="flex: 999 1 640px; min-width: 0; padding: 32px 40px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+    <div style="display: flex; align-items: flex-end; gap: 16px">
+      <span class="disp" style="font-size: 72px; line-height: .8; font-weight: 800; color: #9D2235">09</span>
+      <div><div class="lab">Case brain · Team 3 · v7 · sample</div><h1 class="disp" style="margin: 0; font-size: 34px; font-weight: 800">GEM in the Rough</h1></div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; max-width: 900px">
+      <div style="background: #FFFFFF; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 6px"><span class="lab">Claim 1</span><span style="font-size: 16px; font-weight: 600; line-height: 1.4">The title is defective; the duty falls on whoever still benefits.</span></div>
+      <div style="background: #FFFFFF; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 6px"><span class="lab">Claim 2</span><span style="font-size: 16px; font-weight: 600; line-height: 1.4">The old reasons to keep it no longer hold; return it with a partnership.</span></div>
+      <div style="background: #FFFFFF; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 6px; border: 2px solid #9D2235"><span class="lab" style="color: #9D2235">Counterclaim</span><span style="font-size: 16px; font-weight: 600; line-height: 1.4">After 225 years, the claim is superseded. (Waldron)</span></div>
+      <div style="background: #FFFFFF; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 6px"><span class="lab">Truth Sources</span><span style="font-size: 16px; line-height: 1.4">14 accepted · 3 rejected · 2 waiting for Team 3</span></div>
+    </div>
+    <p style="margin: 0; font-size: 13px; color: #5A606B; max-width: 560px">Drag Cruxy anywhere. Drop it on the lamp, or press "Back to the lamp", and it falls asleep there. Tap the lamp to call it back.</p>
+  </main>
+
+  <sc-if value="{{awake}}" hint-placeholder-val="{{ true }}">
+    <button aria-label="Cruxy, {{moodName}}. Drag to move, or use the arrow keys." onPointerDown="{{grab}}" onKeyDown="{{nudge}}" style="position: absolute; left: {{x}}px; top: {{y}}px; width: 150px; padding: 0; border: none; background: none; cursor: {{cursor}}; touch-action: none; z-index: 3">
+      <img class="bob" src="{{moodSrc}}" alt="" draggable="false" style="width: 150px; display: block; pointer-events: none; filter: drop-shadow(0 12px 18px rgba(17,19,24,.22))">
+    </button>
+    <section aria-live="polite" style="position: absolute; left: {{bubbleX}}px; top: {{bubbleY}}px; width: 340px; background: #FFFFFF; border: 2px solid #111318; border-radius: 18px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 10px 30px rgba(17,19,24,.14); z-index: 2">
+      <span style="display: flex; align-items: center; gap: 8px"><span class="disp" style="font-size: 17px; font-weight: 800">Cruxy</span><span style="font-size: 12px; font-weight: 600; color: #8A6500">{{moodName}}</span></span>
+      <sc-if value="{{isAsk}}" hint-placeholder-val="{{ true }}">
+        <p style="margin: 0; font-size: 15px; line-height: 1.5">Before I tell you what I think: what is the strongest reason the British Museum would give for keeping the Stone?</p>
+        <label for="ans" style="font-size: 12px; font-weight: 600">Your answer</label>
+        <input id="ans" placeholder="One sentence is enough" style="height: 44px; border-radius: 10px; border: 1px solid #C9CCD3; padding: 0 12px; font: 400 15px Inter, sans-serif">
+        <div style="display: flex; flex-wrap: wrap; gap: 8px">
+          <button class="pill" onClick="{{answer}}" style="border: none; background: #111318; color: #FFFFFF">Send</button>
+          <button class="pill" onClick="{{hint}}" style="border: 1px solid #C9CCD3; background: #FFFFFF">One hint, please</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{isHint}}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 0; font-size: 15px; line-height: 1.5">One nudge, not the answer: who can see the Stone today, and who can't?</p>
+        <button class="pill" onClick="{{back}}" style="align-self: flex-start; border: none; background: #111318; color: #FFFFFF">Let me try again</button>
+      </sc-if>
+      <sc-if value="{{isGood}}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 0; font-size: 15px; line-height: 1.5">That's the access argument, and you put it more fairly than last week. Now press on it: does it still hold now that GEM is open?</p>
+        <span style="font: 500 11px 'IBM Plex Mono', monospace; color: #5A606B">From your Case 9 practice, Nov 14</span>
+        <button class="pill" onClick="{{back}}" style="align-self: flex-start; border: 1px solid #C9CCD3; background: #FFFFFF">Ask me another</button>
+      </sc-if>
+      <sc-if value="{{isHello}}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 0; font-size: 15px; line-height: 1.5">You called. What are you trying to figure out?</p>
+        <button class="pill" onClick="{{back}}" style="align-self: flex-start; border: none; background: #111318; color: #FFFFFF">Quiz me on Case 9</button>
+      </sc-if>
+      <sc-if value="{{isBye}}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 0; font-size: 15px; line-height: 1.5">Back to the lamp. Tap it whenever you want to think something through.</p>
+      </sc-if>
+      <sc-if value="{{canSleep}}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{sleep}}" style="align-self: flex-start; min-height: 32px; padding: 0; border: none; background: none; font: 600 13px Inter, sans-serif; color: #5A606B; text-decoration: underline; cursor: pointer">Back to the lamp</button>
+      </sc-if>
+    </section>
+  </sc-if>
+
+  <div style="position: absolute; right: 20px; bottom: 16px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; z-index: 4">
+    <sc-if value="{{asleep}}" hint-placeholder-val="{{ false }}">
+      <span aria-hidden="true" class="zz disp" style="font-size: 22px; font-weight: 800; color: #1E3A9E; margin-right: 34px">z z</span>
+    </sc-if>
+    <button aria-label="{{lampLabel}}" onClick="{{lamp}}" style="width: 120px; height: 88px; padding: 0; border: none; background: none; cursor: pointer">
+      <img src="/cruxy/cruxy-lamp.png" alt="" style="width: 120px; display: block; filter: drop-shadow(0 6px 10px rgba(17,19,24,.25))">
+    </button>
+    <span style="font-size: 12px; font-weight: 600; color: #5A606B">{{lampText}}</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+const MOODS = {
+  neutral: ['/cruxy/cruxy-neutral.png', 'listening'],
+  curious: ['/cruxy/cruxy-curious.png', 'curious'],
+  happy: ['/cruxy/cruxy-happy.png', 'pleased'],
+  winking: ['/cruxy/cruxy-winking.png', 'giving a hint'],
+  sleepy: ['/cruxy/cruxy-sleepy.png', 'sleepy']
+};
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { x: 620, y: 300, asleep: false, mood: 'curious', step: 'ask', drag: null };
+  }
+  componentWillUnmount() { clearTimeout(this.timer); }
+  point(e, root) {
+    const r = root.getBoundingClientRect();
+    const s = r.width / (root.offsetWidth || 1) || 1;
+    return { x: (e.clientX - r.left) / s, y: (e.clientY - r.top) / s, w: root.offsetWidth, h: root.offsetHeight };
+  }
+  go(step, mood) { clearTimeout(this.timer); this.setState({ step: step, mood: mood }); }
+  sleepNow() {
+    this.go('bye', 'sleepy');
+    this.timer = setTimeout(() => this.setState({ asleep: true }), 1200);
+  }
+  renderVals() {
+    const st = this.state;
+    const m = MOODS[st.mood] || MOODS.neutral;
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const flip = st.x > 760;
+    return {
+      awake: !st.asleep,
+      asleep: st.asleep,
+      x: Math.round(st.x),
+      y: Math.round(st.y),
+      bubbleX: Math.round(flip ? st.x - 350 : st.x + 160),
+      bubbleY: Math.round(clamp(st.y + 10, 16, 700)),
+      cursor: st.drag ? 'grabbing' : 'grab',
+      moodSrc: m[0],
+      moodName: m[1],
+      isAsk: st.step === 'ask',
+      isHint: st.step === 'hint',
+      isGood: st.step === 'good',
+      isHello: st.step === 'hello',
+      isBye: st.step === 'bye',
+      canSleep: st.step !== 'bye',
+      lampLabel: st.asleep ? 'Call Cruxy' : 'Send Cruxy to the lamp',
+      lampText: st.asleep ? 'Cruxy is resting. Tap to call.' : "Cruxy's lamp",
+      answer: () => this.go('good', 'happy'),
+      hint: () => this.go('hint', 'winking'),
+      back: () => this.go('ask', 'curious'),
+      sleep: () => this.sleepNow(),
+      lamp: () => {
+        if (this.state.asleep) { clearTimeout(this.timer); this.setState({ asleep: false, step: 'hello', mood: 'happy' }); }
+        else this.sleepNow();
+      },
+      grab: (e) => {
+        const root = e.currentTarget.parentElement;
+        const p = this.point(e, root);
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+        this.setState({ drag: { dx: p.x - this.state.x, dy: p.y - this.state.y } });
+      },
+      move: (e) => {
+        const d = this.state.drag;
+        if (!d) return;
+        const p = this.point(e, e.currentTarget);
+        this.setState({ x: clamp(p.x - d.dx, 0, p.w - 150), y: clamp(p.y - d.dy, 0, p.h - 280) });
+      },
+      drop: (e) => {
+        if (!this.state.drag) return;
+        const root = e.currentTarget;
+        const nearLamp = this.state.x + 75 > root.offsetWidth - 240 && this.state.y + 240 > root.offsetHeight - 220;
+        this.setState({ drag: null });
+        if (nearLamp) this.sleepNow();
+      },
+      nudge: (e) => {
+        const k = { ArrowLeft: [-24, 0], ArrowRight: [24, 0], ArrowUp: [0, -24], ArrowDown: [0, 24] }[e.key];
+        if (!k) return;
+        e.preventDefault();
+        this.setState({ x: Math.max(0, this.state.x + k[0]), y: Math.max(0, this.state.y + k[1]) });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

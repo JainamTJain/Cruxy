@@ -1,0 +1,117 @@
+<!-- Crux design reference. Translate to Next.js + Tailwind; ignore the <x-dc>, <helmet> and DCLogic wrappers. Sample data only. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crux: sign in and meet Cruxy</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F3F4F6;font-family:Inter,system-ui,sans-serif;color:#111318}
+a{color:#9D2235}a:hover{color:#111318}
+.disp{font-family:'Bricolage Grotesque',Inter,sans-serif}
+.lab{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5A606B}
+.chip{height:44px;padding:0 14px;border-radius:12px;border:1px solid #E3E5E9;background:#FFFFFF;font:500 15px Inter,sans-serif;color:#111318;cursor:pointer;text-align:left}
+.key{height:60px;border-radius:14px;border:1px solid #E3E5E9;background:#F7F8FA;font:600 22px Inter,sans-serif;color:#111318;cursor:pointer}
+.num{font:800 40px/1 'Bricolage Grotesque',sans-serif;color:#FFFFFF}
+.numlab{font-size:13px;color:#F3D0D6;line-height:1.35}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap">
+  <section style="flex: 1 1 480px; background: #9D2235; color: #FFFFFF; padding: 48px 48px 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; gap: 40px">
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; letter-spacing: .08em">
+      <span>USC ETHICS BOWL</span><span>CALIFORNIA REGIONAL · DEC 5</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 18px">
+      <h1 class="disp" style="margin: 0; font-size: 188px; line-height: .82; font-weight: 800; letter-spacing: -0.05em">crux</h1>
+      <p style="margin: 0; max-width: 440px; font-size: 21px; line-height: 1.4; color: #FBE7EA">Three teams, twelve cases, one place where every argument is built, tested and backed by a source.</p>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <span style="font-size: 13px; font-weight: 700; letter-spacing: .1em; color: #F3D0D6">BUILT SO FAR · SAMPLE DATA</span>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 24px">
+        <div><div class="num">412</div><div class="numlab">Drive files read and cited</div></div>
+        <div><div class="num">96</div><div class="numlab">ideas accepted into Truth Sources</div></div>
+        <div><div class="num">238</div><div class="numlab">moderator questions in the bank</div></div>
+        <div><div class="num">27</div><div class="numlab">practice rounds graded</div></div>
+        <div><div class="num">61</div><div class="numlab">new sources verified</div></div>
+        <div><div class="num">14</div><div class="numlab">days to the regional</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="who" style="flex: 1 1 420px; background: #FFFFFF; padding: 48px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; border-right: 1px solid #E3E5E9">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span class="lab">Step 1 of 3</span>
+      <h2 id="who" class="disp" style="margin: 0; font-size: 40px; line-height: 1; font-weight: 800; letter-spacing: -0.02em">Tap your name</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 13px; font-weight: 700; color: #0F7B6C; border-bottom: 3px solid #0F7B6C; padding-bottom: 6px">Team 1</span>
+        <button class="chip">Serena</button><button class="chip">Ivan</button><button class="chip">Ashton</button><button class="chip">Stolei</button><button class="chip">Tri</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 13px; font-weight: 700; color: #4F46E5; border-bottom: 3px solid #4F46E5; padding-bottom: 6px">Team 2</span>
+        <button class="chip">Lehar</button><button class="chip">Camerin</button><button class="chip">Jade</button><button class="chip">Bethany</button><button class="chip">Quixote</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 13px; font-weight: 700; color: #C2410C; border-bottom: 3px solid #C2410C; padding-bottom: 6px">Team 3</span>
+        <button class="chip">Nick</button><button class="chip">Daniel</button><button class="chip">Katie</button>
+        <button class="chip" aria-pressed="true" style="background: #111318; color: #FFFFFF; border-color: #111318; font-weight: 600">Jainam</button>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px; padding-top: 6px; border-top: 1px solid #E3E5E9">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px">
+        <span style="font-size: 15px; font-weight: 600">Passcode</span>
+        <span style="display: flex; gap: 8px" aria-label="4 of 6 digits entered">
+          <span style="width: 12px; height: 12px; border-radius: 50%; background: #111318"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: #111318"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: #111318"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: #111318"></span><span style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid #9AA0AA; box-sizing: border-box"></span><span style="width: 12px; height: 12px; border-radius: 50%; border: 2px solid #9AA0AA; box-sizing: border-box"></span>
+        </span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+        <button class="key">1</button><button class="key">2</button><button class="key">3</button>
+        <button class="key">4</button><button class="key">5</button><button class="key">6</button>
+        <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+        <button class="key" style="font-size: 14px">Clear</button><button class="key">0</button>
+        <button class="key" style="background: #111318; color: #FFFFFF; border-color: #111318; font-size: 15px">Enter</button>
+      </div>
+      <span style="font-size: 13px; color: #5A606B; line-height: 1.45">First time? Use the member code Jainam gave you. After that, your own passcode. Forgot it? Ask Jainam.</span>
+    </div>
+  </section>
+
+  <section aria-labelledby="meet" style="flex: 1 1 440px; background: #FFFFFF; padding: 48px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span class="lab">Step 2 of 3 · first time only</span>
+      <h2 id="meet" class="disp" style="margin: 0; font-size: 40px; line-height: 1; font-weight: 800; letter-spacing: -0.02em">Meet Cruxy</h2>
+    </div>
+    <div style="display: flex; gap: 14px; align-items: flex-start; background: #FFF7DB; border-radius: 16px; padding: 16px">
+      <img src="/cruxy/cruxy-neutral.png" alt="" style="flex: none; width: 64px">
+      <p style="margin: 0; font-size: 15px; line-height: 1.5">Cruxy is our built-in thinking partner. It would rather ask you a good question than hand you an answer. It reads our Drive and the cases, finds new sources, asks practice questions, plays the other team or the judge when we need one, and gives feedback that quotes what you said. It can be wrong, so it always shows its source, and a person accepts every new idea. It floats on every page; drag it anywhere, or tap its lamp to send it to sleep.</p>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 15px; font-weight: 700">What Crux records</span>
+      <div style="display: grid; grid-template-columns: 96px 1fr; gap: 8px 12px; font-size: 14px; line-height: 1.45">
+        <span style="font-weight: 600; color: #5A606B">When</span><span>Only after someone presses Record in practice. A red bar shows while it's on.</span>
+        <span style="font-weight: 600; color: #5A606B">What</span><span>Audio of the room, turned into a transcript of who said what, and when.</span>
+        <span style="font-weight: 600; color: #5A606B">Your voice</span><span>A 20 second sample so the transcript knows which lines are yours.</span>
+        <span style="font-weight: 600; color: #5A606B">Who sees it</span><span>All three teams, Dr. B and Jainam. Nobody else.</span>
+        <span style="font-weight: 600; color: #5A606B">How long</span><span>Audio is deleted once the transcript is saved. Transcripts stay for the season.</span>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: auto">
+      <button style="height: 56px; border-radius: 14px; border: none; background: #111318; color: #FFFFFF; font: 600 16px Inter, sans-serif; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>I agree: record my voice sample</button>
+      <a href="ChooseCode.html" style="text-align: center; font-size: 14px; font-weight: 600; padding: 8px">Not now, use Crux without being recorded</a>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,15 +1,20 @@
 import Link from "next/link";
 import { CASE_TITLES } from "@/lib/constants";
 import { getSession } from "@/lib/auth/session";
+import { listCasesForBrain } from "@/lib/case-brain/service";
 import { listTeams } from "@/lib/db/repository";
 import { listCaseRoles } from "@/lib/team/repository";
 import { HomeDiffs } from "@/components/home-diffs";
 
 export default async function HomePage() {
   const session = await getSession();
-  const teams = await listTeams();
-  const roles = await listCaseRoles(session?.teamId ?? undefined);
+  const [teams, cases, roles] = await Promise.all([
+    listTeams(),
+    listCasesForBrain(),
+    listCaseRoles(session?.teamId ?? undefined),
+  ]);
   const active = CASE_TITLES.filter((c) => c.active);
+  const caseByNumber = new Map(cases.map((c) => [c.number, c]));
   const days = Math.ceil(
     (new Date("2026-12-05").getTime() - Date.now()) / (1000 * 60 * 60 * 24),
   );
@@ -22,9 +27,13 @@ export default async function HomePage() {
             Where the program stands
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Team space live ·{" "}
+            Case brain + team space ·{" "}
+            <Link href="/case-brain" className="underline">
+              case brain
+            </Link>
+            {" · "}
             <Link href="/team" className="underline">
-              open the board
+              team board
             </Link>
           </p>
         </div>
@@ -77,29 +86,48 @@ export default async function HomePage() {
               </tr>
             </thead>
             <tbody>
-              {active.map((c) => (
-                <tr key={c.number} className="border-b border-ink/5">
-                  <td className="py-3 pr-3 font-medium">
-                    <span className="font-mono text-xs text-muted">
-                      {String(c.number).padStart(2, "0")}
-                    </span>{" "}
-                    {c.title}
-                  </td>
-                  {teams.map((t) => {
-                    const n = roles.filter(
-                      (r) =>
-                        r.team_id === t.id &&
-                        // roles keyed by case uuid; count leads for display via number match later
-                        (r.role === "lead_1" || r.role === "lead_2"),
-                    ).length;
-                    return (
+              {active.map((c) => {
+                const row = caseByNumber.get(c.number);
+                return (
+                  <tr key={c.number} className="border-b border-ink/5">
+                    <td className="py-3 pr-3 font-medium">
+                      {row ? (
+                        <Link
+                          href={`/case-brain/${row.id}`}
+                          className="hover:text-cardinal"
+                        >
+                          <span className="font-mono text-xs text-muted">
+                            {String(c.number).padStart(2, "0")}
+                          </span>{" "}
+                          {c.title}
+                        </Link>
+                      ) : (
+                        <>
+                          <span className="font-mono text-xs text-muted">
+                            {String(c.number).padStart(2, "0")}
+                          </span>{" "}
+                          {c.title}
+                        </>
+                      )}
+                    </td>
+                    {teams.map((t) => (
                       <td key={t.id} className="py-3 pr-3 text-muted">
-                        {n ? `${n} lead slot(s)` : "—"}
+                        {row ? (
+                          <Link
+                            href={`/case-brain/${row.id}?team=${t.id}`}
+                            className="text-xs underline-offset-2 hover:underline"
+                            style={{ color: t.colour }}
+                          >
+                            Open
+                          </Link>
+                        ) : (
+                          "—"
+                        )}
                       </td>
-                    );
-                  })}
-                </tr>
-              ))}
+                    ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -109,7 +137,11 @@ export default async function HomePage() {
         <h2 className="font-display text-lg font-semibold">Your next three</h2>
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm">
           <li>
-            Check the{" "}
+            Open{" "}
+            <Link href="/case-brain" className="underline">
+              Case brain
+            </Link>{" "}
+            or check the{" "}
             <Link href="/team" className="underline">
               team board
             </Link>{" "}
