@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { answerAlignment } from "@/lib/team/repository";
-import { readStore } from "@/lib/db/sample-store";
+import {
+  answerAlignment,
+  listPendingAlignmentForPerson,
+} from "@/lib/team/repository";
 
 export const runtime = "nodejs";
 
@@ -10,10 +12,7 @@ export async function GET() {
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const store = await readStore();
-  const pending = store.alignment_questions.filter(
-    (q) => q.person_id === session.personId && !q.answered_at,
-  );
+  const pending = await listPendingAlignmentForPerson(session.personId);
   return NextResponse.json({ pending });
 }
 

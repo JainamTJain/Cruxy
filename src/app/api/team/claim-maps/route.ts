@@ -6,11 +6,11 @@ import {
   getCurrentClaimMap,
   listClaimMapVersions,
   listConfirmations,
+  listPendingClaimChangeProposals,
   proposeClaimChange,
   publishClaimMapEdit,
 } from "@/lib/team/repository";
 import type { ClaimMapBody } from "@/lib/team/types";
-import { readStore } from "@/lib/db/sample-store";
 
 export const runtime = "nodejs";
 
@@ -32,13 +32,7 @@ export async function GET(req: Request) {
   const confirmations = current
     ? await listConfirmations(current.id)
     : [];
-  const store = await readStore();
-  const proposals = store.claim_change_proposals.filter(
-    (p) =>
-      p.team_id === teamId &&
-      p.case_id === caseId &&
-      p.status === "pending",
-  );
+  const proposals = await listPendingClaimChangeProposals({ teamId, caseId });
   return NextResponse.json({ current, versions, confirmations, proposals });
 }
 
