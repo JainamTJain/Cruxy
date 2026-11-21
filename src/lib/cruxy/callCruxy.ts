@@ -360,12 +360,24 @@ export async function callCruxy(
   const fallbacks = setting.fallbacks.filter(Boolean);
 
   try {
+    // AI SDK 7 rejects system messages inside `messages`: pass them as `instructions`.
+    const systemText = input.messages
+      .filter((m) => m.role === "system")
+      .map((m) => m.content)
+      .join("\n\n");
+    const chatMessages = input.messages
+      .filter((m) => m.role !== "system")
+      .map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      }));
     const result = await generateText({
       model: setting.model,
-      messages: input.messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
+      ...(systemText ? { instructions: systemText } : {}),
+      messages:
+        chatMessages.length > 0
+          ? chatMessages
+          : [{ role: "user" as const, content: "Begin." }],
       ...(effort ? { reasoning: effort } : {}),
       ...(input.webSearch
         ? {
@@ -495,6 +507,9 @@ export async function callCruxy(
   }
 }
 
+/** About 6000 tokens at a conservative 3 characters per token. */
+const EMBED_MAX_CHARS = 18_000;
+
 export type EmbedCruxyInput = {
   feature: string;
   value: string;
@@ -571,7 +586,11 @@ export async function embedCruxy(
   try {
     const result = await embed({
       model: setting.model,
-      value: input.value,
+      // text-embedding-3-small accepts at most 8192 tokens; long passages are
+      // embedded from their opening ~6000 tokens (the stored passage stays whole).
+      value: input.value.length > EMBED_MAX_CHARS
+        ? input.value.slice(0, EMBED_MAX_CHARS)
+        : input.value,
       maxRetries: 2,
       providerOptions: {
         gateway: {
