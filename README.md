@@ -2,9 +2,10 @@
 
 Web app for USC’s three Ethics Bowl teams. **Cruxy** is the built-in thinking partner (users never see “AI” or model names).
 
-## Track 0 Foundation
+## Tracks
 
-This branch ships Track 0: Next.js App Router, design tokens, full schema SQL + RLS, name + 6-digit passcode auth, consent, Passcodes panel (tech admin), activity log, admin switch, `callCruxy` with monthly cap, first-run checklist, mobile layouts, and PWA installability.
+- **Track 0 Foundation** (merged): Next.js App Router, design tokens, schema SQL + RLS, passcode auth, consent, Passcodes panel, activity log, `callCruxy` + caps, first-run checklist, PWA.
+- **Track 3 Revision**: one-pagers (visual + diff + Drive export stub), FSRS flashcards synced from Truth Sources, Socratic drills, language/phrasebook, 10-minute warm-up, moderator bank (paste → confirm), personal roadmaps with auto stage marking.
 
 ### Local / sample-data path
 
@@ -25,8 +26,11 @@ Jainam signs in with the admin starter whose hash is `INITIAL_ADMIN_CODE_HASH` (
 ### Acceptance checks
 
 ```bash
-npx tsx scripts/track0-checks.ts
+npm run check:track0
+npm run check:track3
 ```
+
+Track 3 sample path works without Supabase/AI keys (`USE_SAMPLE_DATA=1`). Drive one-pager export is a stub until `DRIVE_ROOT_FOLDER_ID` + service account are set.
 
 ### Still needed from Jainam for production
 
