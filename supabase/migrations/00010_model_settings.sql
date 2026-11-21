@@ -14,11 +14,7 @@ insert into model_settings (tier, model, fallbacks, effort_default) values
   ('small', 'openai/gpt-6-luna', array['google/gemini-3.8-flash'], 'low'),
   ('strong', 'openai/gpt-6.2-sol', array['google/gemini-4-carbon'], 'medium'),
   ('embed', 'openai/text-embedding-3-small', '{}', null)
-on conflict (tier) do update set
-  model = excluded.model,
-  fallbacks = excluded.fallbacks,
-  effort_default = excluded.effort_default,
-  updated_at = now();
+on conflict (tier) do nothing; -- never overwrite Jainam's admin changes
 
 alter table model_settings enable row level security;
 
