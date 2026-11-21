@@ -1,5 +1,9 @@
 import { randomUUID } from "crypto";
-import { extractDriveText, listDriveFiles } from "@/lib/library/drive";
+import {
+  DriveAccessError,
+  extractDriveText,
+  listDriveFiles,
+} from "@/lib/library/drive";
 import { digestListedFile } from "@/lib/library/digest";
 import { createProposal } from "@/lib/case-brain/service";
 import {
@@ -25,21 +29,28 @@ export type SyncOptions = {
 export type SyncResult = {
   run: SyncRun;
   message: string;
+  /** Drive file ids that were newly digested this run. */
+  newFileIds: string[];
 };
 
 async function resolveActorId(personId?: string | null): Promise<string> {
   if (personId) return personId;
-  const store = await readStore();
-  return (
-    store.people.find((p) => p.role === "tech_admin")?.id ??
-    store.people[0]?.id ??
-    "system"
-  );
+  try {
+    const store = await readStore();
+    return (
+      store.people.find((p) => p.role === "tech_admin")?.id ??
+      store.people[0]?.id ??
+      "system"
+    );
+  } catch {
+    return "system";
+  }
 }
 
 /**
- * Nightly / Sync now. Only new or changed files are digested.
- * Unchanged files → zero AI calls.
+ * Nightly / Sync now. Only new or changed files are digested
+ * (compare Drive modifiedTime + checksum). Unchanged files → zero AI calls.
+ * Never writes to the filesystem; only Supabase (or sample store).
  */
 export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
   const started = nowIso();
@@ -50,8 +61,41 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
   let aiCalls = 0;
   let stub = false;
   let notes: string | null = null;
+  const newFileIds: string[] = [];
 
-  const listed = await listDriveFiles();
+  let listed: Awaited<ReturnType<typeof listDriveFiles>>;
+  try {
+    listed = await listDriveFiles();
+  } catch (err) {
+    if (err instanceof DriveAccessError) {
+      const run: SyncRun = {
+        id: runId,
+        started_at: started,
+        finished_at: nowIso(),
+        files_seen: 0,
+        files_processed: 0,
+        files_skipped_unchanged: 0,
+        ai_calls: 0,
+        stub: false,
+        mode: opts.mode,
+        notes: err.message,
+      };
+      await saveSyncRun(run);
+      await logActivity({
+        person_id: opts.personId ?? null,
+        action: "drive_sync_failed",
+        target: runId,
+        meta: { code: err.code, message: err.message, mode: opts.mode },
+      });
+      return {
+        run,
+        message: err.message,
+        newFileIds: [],
+      };
+    }
+    throw err;
+  }
+
   stub = listed.stub;
   notes = listed.notes;
   filesSeen = listed.files.length;
@@ -73,6 +117,7 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
       continue;
     }
 
+    const wasNew = !existing;
     const extracted = await extractDriveText(file);
     if (extracted.stub) stub = true;
 
@@ -89,6 +134,7 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
     await saveLibraryFile(digested.file);
     await replaceFilePassages(digested.file.id, digested.passages);
     filesProcessed += 1;
+    if (wasNew) newFileIds.push(digested.file.id);
 
     // Practice transcript ideas → proposals for each team (Truth Source queue)
     const caseId = digested.file.case_ids[0] ?? null;
@@ -137,6 +183,7 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
       aiCalls,
       stub,
       mode: opts.mode,
+      newFileCount: newFileIds.length,
     },
   });
 
@@ -144,5 +191,5 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
     ? `Sync complete (stub). Seen ${filesSeen}, processed ${filesProcessed}, skipped unchanged ${filesSkipped}, AI calls ${aiCalls}. ${notes ?? ""}`.trim()
     : `Sync complete. Seen ${filesSeen}, processed ${filesProcessed}, skipped unchanged ${filesSkipped}, AI calls ${aiCalls}.`;
 
-  return { run, message };
+  return { run, message, newFileIds };
 }

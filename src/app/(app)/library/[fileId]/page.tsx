@@ -2,8 +2,14 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import { useCruxy } from "@/components/cruxy/cruxy-context";
 
 type Passage = {
   id: string;
@@ -20,6 +26,7 @@ type CommentRow = {
   person_name: string;
   team_colour: string | null;
   passage_anchor: string;
+  range: string | null;
   created_at: string;
 };
 
@@ -27,13 +34,30 @@ type CasePage = {
   id: string;
   number: number;
   title: string;
+  case_set_page: string | null;
   crux: string | null;
   trap: string | null;
+};
+
+type Related = {
+  id: string;
+  name: string;
+  path: string | null;
+  type: string | null;
+  case_numbers: number[];
+};
+
+type HighlightRow = {
+  id: string;
+  passage_id: string;
+  body: string | null;
+  range: string;
 };
 
 export default function ReadingRoomPage() {
   const params = useParams<{ fileId: string }>();
   const fileId = params.fileId;
+  const { setMood, setCaseId, setHighlight } = useCruxy();
 
   const [file, setFile] = useState<{
     name: string;
@@ -41,16 +65,22 @@ export default function ReadingRoomPage() {
     type: string | null;
     case_numbers: number[];
     card: string | null;
+    path: string | null;
   } | null>(null);
   const [passages, setPassages] = useState<Passage[]>([]);
   const [comments, setComments] = useState<CommentRow[]>([]);
+  const [highlights, setHighlights] = useState<HighlightRow[]>([]);
   const [casePages, setCasePages] = useState<CasePage[]>([]);
-  const [selected, setSelected] = useState<Passage | null>(null);
+  const [related, setRelated] = useState<Related[]>([]);
   const [selection, setSelection] = useState("");
   const [commentBody, setCommentBody] = useState("");
   const [askResult, setAskResult] = useState<string | null>(null);
+  const [askCitations, setAskCitations] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"case" | "file" | string>("file");
+
+  const primaryCase = casePages[0] ?? null;
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/library/files/${fileId}`);
@@ -62,25 +92,60 @@ export default function ReadingRoomPage() {
       file: typeof file;
       passages: Passage[];
       comments: CommentRow[];
+      highlights: HighlightRow[];
       casePages: CasePage[];
+      related: Related[];
     };
     setFile(data.file);
     setPassages(data.passages);
     setComments(data.comments);
+    setHighlights(data.highlights ?? []);
     setCasePages(data.casePages);
-    setSelected(data.passages[0] ?? null);
-  }, [fileId]);
+    setRelated(data.related ?? []);
+    if (data.casePages[0]) {
+      setCaseId(data.casePages[0].id);
+      setMood("curious");
+    }
+  }, [fileId, setCaseId, setMood]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  const fullText = useMemo(
+    () => passages.map((p) => p.text).join("\n\n"),
+    [passages],
+  );
+
+  const highlightBodies = useMemo(
+    () =>
+      new Set(
+        highlights
+          .map((h) => h.body?.trim())
+          .filter((b): b is string => Boolean(b && b.length > 8)),
+      ),
+    [highlights],
+  );
+
   function captureSelection() {
     const t = window.getSelection()?.toString().trim() ?? "";
-    if (t) setSelection(t);
+    if (t) {
+      setSelection(t);
+      setHighlight(t);
+    }
+  }
+
+  function passageForSelection(): Passage | null {
+    if (!selection) return passages[0] ?? null;
+    return (
+      passages.find((p) => p.text.includes(selection.slice(0, 40))) ??
+      passages[0] ??
+      null
+    );
   }
 
   async function saveHighlight() {
+    const selected = passageForSelection();
     if (!selected) return;
     const text = selection || selected.text.slice(0, 120);
     const res = await fetch("/api/library/highlights", {
@@ -88,14 +153,16 @@ export default function ReadingRoomPage() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         passageId: selected.id,
-        range: "0:0",
+        range: "selection",
         body: text,
       }),
     });
     setStatus(res.ok ? "Highlight saved for all teams." : "Highlight failed.");
+    if (res.ok) await load();
   }
 
   async function postComment() {
+    const selected = passageForSelection();
     if (!selected || !commentBody.trim()) return;
     const res = await fetch("/api/library/comments", {
       method: "POST",
@@ -103,7 +170,7 @@ export default function ReadingRoomPage() {
       body: JSON.stringify({
         passageId: selected.id,
         body: commentBody,
-        range: selection ? "selection" : null,
+        range: selection ? selection.slice(0, 80) : null,
       }),
     });
     if (res.ok) {
@@ -118,8 +185,11 @@ export default function ReadingRoomPage() {
   async function askCruxy(
     action: "explain" | "counterexample" | "cited_elsewhere",
   ) {
+    const selected = passageForSelection();
     if (!selected) return;
     setAskResult(null);
+    setAskCitations(null);
+    setMood("curious");
     const res = await fetch("/api/library/ask", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -133,18 +203,22 @@ export default function ReadingRoomPage() {
       answer?: string;
       error?: string;
       citation?: { passage_id: string; anchor: string };
+      citations?: { passage_id: string; anchor: string }[];
     };
     if (!res.ok) {
       setAskResult(data.error ?? "Cruxy could not answer.");
       return;
     }
-    const cite = data.citation
-      ? `\n\n— ${data.citation.anchor} (${data.citation.passage_id.slice(0, 8)})`
-      : "";
-    setAskResult(`${data.answer ?? ""}${cite}`);
+    setAskResult(data.answer ?? "");
+    const cites =
+      data.citations?.map((c) => c.anchor).join(", ") ??
+      (data.citation ? data.citation.anchor : null);
+    setAskCitations(cites);
+    setMood("surprised");
   }
 
   async function turnInto(action: "flashcard" | "proposal") {
+    const selected = passageForSelection();
     if (!selected) return;
     const res = await fetch("/api/library/highlight-actions", {
       method: "POST",
@@ -162,6 +236,57 @@ export default function ReadingRoomPage() {
           : "Truth Source proposal queued."
         : "Action failed.",
     );
+    if (res.ok) setMood("happy");
+  }
+
+  function renderDocBody(text: string) {
+    if (!selection && highlightBodies.size === 0) {
+      return text.split("\n\n").map((para, i) => (
+        <p key={i} className="m-0">
+          {para}
+        </p>
+      ));
+    }
+    // Soft-mark the current selection and saved highlights in the prose.
+    const body = text;
+    const marks: { from: number; to: number; kind: "sel" | "team" }[] = [];
+    if (selection) {
+      const idx = body.indexOf(selection);
+      if (idx >= 0) marks.push({ from: idx, to: idx + selection.length, kind: "sel" });
+    }
+    for (const h of highlightBodies) {
+      const idx = body.indexOf(h);
+      if (idx >= 0) marks.push({ from: idx, to: idx + h.length, kind: "team" });
+    }
+    marks.sort((a, b) => a.from - b.from);
+    const nodes: ReactNode[] = [];
+    let cursor = 0;
+    let key = 0;
+    for (const m of marks) {
+      if (m.from < cursor) continue;
+      if (m.from > cursor) nodes.push(body.slice(cursor, m.from));
+      const slice = body.slice(m.from, m.to);
+      nodes.push(
+        m.kind === "sel" ? (
+          <mark
+            key={key++}
+            className="rounded-[3px] bg-[#FFE58A] px-0.5"
+          >
+            {slice}
+          </mark>
+        ) : (
+          <span
+            key={key++}
+            className="border-b-2 border-[#0F7B6C] bg-[#D8EEEB]"
+          >
+            {slice}
+          </span>
+        ),
+      );
+      cursor = m.to;
+    }
+    if (cursor < body.length) nodes.push(body.slice(cursor));
+    return <p className="m-0 whitespace-pre-wrap">{nodes}</p>;
   }
 
   if (error) {
@@ -179,180 +304,228 @@ export default function ReadingRoomPage() {
     return <main className="text-sm text-muted">Opening reading room…</main>;
   }
 
+  const caseLabel = primaryCase
+    ? `Case ${primaryCase.number}`
+    : file.case_numbers.length
+      ? `Case ${file.case_numbers.join(", ")}`
+      : "General";
+
   return (
-    <main className="animate-fade-up space-y-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div>
-          <Link href="/library" className="text-xs text-muted underline">
-            Library
-          </Link>
-          <h1 className="font-display text-2xl font-semibold sm:text-3xl">
-            {file.name}
+    <main className="flex flex-col gap-[18px] animate-fade-up">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
+            Reading room · {caseLabel}
+          </span>
+          <h1 className="font-display text-[34px] font-extrabold leading-none tracking-[-0.02em]">
+            {primaryCase?.title ?? file.name}
           </h1>
-          <p className="text-xs text-muted">
-            {file.type}
-            {file.drive_id ? ` · drive ${file.drive_id.slice(0, 12)}` : " · sample"}
-            {file.case_numbers.length
-              ? ` · cases ${file.case_numbers.join(", ")}`
-              : ""}
-          </p>
         </div>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-2xl border border-ink/10 bg-white/55 p-4">
-          <h2 className="font-display text-lg font-semibold">Case set</h2>
-          {casePages.length === 0 ? (
-            <p className="mt-2 text-sm text-muted">
-              No tagged cases yet — open sorting queue if confidence is low.
-            </p>
-          ) : (
-            <ul className="mt-3 space-y-3">
-              {casePages.map((c) => (
-                <li key={c.id} className="border-t border-ink/5 pt-3 first:border-0 first:pt-0">
-                  <p className="font-medium">
-                    Case {c.number}: {c.title}
-                  </p>
-                  {c.crux ? (
-                    <p className="mt-1 text-sm text-ink/80">{c.crux}</p>
-                  ) : (
-                    <p className="mt-1 text-sm text-muted">
-                      Case card details fill in as the case set is digested.
-                    </p>
-                  )}
-                  {c.trap ? (
-                    <p className="mt-1 text-xs text-muted">Trap: {c.trap}</p>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
-          {file.card ? (
-            <pre className="mt-4 whitespace-pre-wrap rounded-xl bg-mist/50 p-3 font-sans text-xs">
-              {file.card}
-            </pre>
-          ) : null}
-        </section>
-
-        <section className="rounded-2xl border border-ink/10 bg-white/55 p-4">
-          <h2 className="font-display text-lg font-semibold">File</h2>
-          <div className="mt-2 flex flex-wrap gap-1">
-            {passages.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setSelected(p)}
-                className={`rounded-lg px-2 py-1 font-mono text-[10px] ${
-                  selected?.id === p.id
-                    ? "bg-ink text-white"
-                    : "bg-mist/80 text-ink/70"
-                }`}
-              >
-                {p.anchor.slice(0, 18)}
-              </button>
-            ))}
-          </div>
-          {selected ? (
-            <article
-              className="mt-3 max-h-[50vh] overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed"
-              onMouseUp={captureSelection}
-              onTouchEnd={captureSelection}
-            >
-              {selected.text}
-            </article>
-          ) : null}
-          <p className="mt-2 font-mono text-[10px] text-muted">
-            {selected
-              ? `passage ${selected.id.slice(0, 8)} · ${selected.anchor}${
-                  selected.drive_id ? ` · drive ${selected.drive_id.slice(0, 10)}` : ""
-                }`
-              : ""}
-          </p>
-        </section>
-      </div>
-
-      <section className="rounded-2xl border border-ink/10 bg-white/70 p-4">
-        <h2 className="font-display text-lg font-semibold">Highlight tools</h2>
-        {selection ? (
-          <p className="mt-2 rounded-xl bg-gold/15 px-3 py-2 text-sm">
-            Selected: {selection.slice(0, 200)}
-            {selection.length > 200 ? "…" : ""}
-          </p>
-        ) : (
-          <p className="mt-2 text-sm text-muted">
-            Select text in the file pane, or use the whole passage.
-          </p>
-        )}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button type="button" variant="secondary" onClick={() => void saveHighlight()}>
-            Highlight
-          </Button>
-          <Button type="button" variant="secondary" onClick={() => void askCruxy("explain")}>
-            Explain
-          </Button>
-          <Button
+        <div className="flex flex-wrap gap-2">
+          <button
             type="button"
-            variant="secondary"
-            onClick={() => void askCruxy("counterexample")}
+            onClick={() => setActiveTab("case")}
+            className={`rounded-[10px] border px-3.5 py-2 text-sm font-semibold ${
+              activeTab === "case"
+                ? "border-ink bg-ink text-white"
+                : "border-[#E3E5E9] bg-white text-[#3B404A]"
+            }`}
           >
-            Counterexample
-          </Button>
-          <Button
+            Case set
+            {primaryCase?.case_set_page
+              ? `, p. ${primaryCase.case_set_page}`
+              : ""}
+          </button>
+          <button
             type="button"
-            variant="secondary"
-            onClick={() => void askCruxy("cited_elsewhere")}
+            onClick={() => setActiveTab("file")}
+            className={`rounded-[10px] border px-3.5 py-2 text-sm font-semibold ${
+              activeTab === "file"
+                ? "border-ink bg-ink text-white"
+                : "border-[#E3E5E9] bg-white text-[#3B404A]"
+            }`}
           >
-            Cited elsewhere?
-          </Button>
-          <Button type="button" variant="secondary" onClick={() => void turnInto("flashcard")}>
-            → Flashcard
-          </Button>
-          <Button type="button" onClick={() => void turnInto("proposal")}>
-            → Truth Source
-          </Button>
-        </div>
-        {askResult ? (
-          <p className="mt-3 whitespace-pre-wrap rounded-xl border border-ink/10 bg-paper px-3 py-2 text-sm">
-            {askResult}
-          </p>
-        ) : null}
-        {status ? <p className="mt-2 text-xs text-muted">{status}</p> : null}
-
-        <div className="mt-4 space-y-2">
-          <label className="block text-xs font-medium text-muted">
-            Comment (visible to all teams)
-          </label>
-          <textarea
-            value={commentBody}
-            onChange={(e) => setCommentBody(e.target.value)}
-            rows={3}
-            className="w-full rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm"
-            placeholder="Leave a threaded note…"
-          />
-          <Button type="button" onClick={() => void postComment()}>
-            Post comment
-          </Button>
-        </div>
-
-        <ul className="mt-4 space-y-2">
-          {comments.map((c) => (
-            <li
-              key={c.id}
-              className="rounded-xl border border-ink/5 px-3 py-2 text-sm"
-              style={{
-                borderLeftWidth: 3,
-                borderLeftColor: c.team_colour ?? "#5c6170",
-              }}
+            {file.name.length > 36 ? `${file.name.slice(0, 34)}…` : file.name}
+            {file.drive_id ? " · Drive" : ""}
+          </button>
+          {related.slice(0, 2).map((r) => (
+            <Link
+              key={r.id}
+              href={`/library/${r.id}`}
+              className="rounded-[10px] border border-[#E3E5E9] bg-white px-3.5 py-2 text-sm font-semibold text-[#3B404A]"
             >
-              <span className="font-medium">{c.person_name}</span>{" "}
-              <span className="font-mono text-[10px] text-muted">
-                {c.passage_anchor}
-              </span>
-              <p className="mt-1">{c.body}</p>
-            </li>
+              {r.name.length > 28 ? `${r.name.slice(0, 26)}…` : r.name}
+            </Link>
           ))}
-        </ul>
-      </section>
+          {related.length > 2 ? (
+            <Link
+              href="/library"
+              className="rounded-[10px] border border-[#E3E5E9] bg-white px-3.5 py-2 text-sm font-semibold text-[#3B404A]"
+            >
+              + {related.length - 2} more
+            </Link>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-start gap-6">
+        <article className="min-w-0 flex-[999_1_560px] rounded-[20px] bg-white px-8 py-10 sm:px-14">
+          <div
+            className="mx-auto flex max-w-[680px] flex-col gap-[18px] text-[19px] leading-[1.7] text-[#1C1F26]"
+            style={{ fontFamily: "var(--font-source-serif), Georgia, serif" }}
+            onMouseUp={captureSelection}
+            onTouchEnd={captureSelection}
+          >
+            {activeTab === "case" && primaryCase ? (
+              <>
+                {primaryCase.crux ? (
+                  <p className="m-0">
+                    <strong>Crux.</strong> {primaryCase.crux}
+                  </p>
+                ) : null}
+                {primaryCase.trap ? (
+                  <p className="m-0">
+                    <strong>Trap.</strong> {primaryCase.trap}
+                  </p>
+                ) : null}
+                {!primaryCase.crux && !primaryCase.trap ? (
+                  <p className="m-0 text-muted">
+                    Case card details fill in as the case set is digested.
+                  </p>
+                ) : null}
+              </>
+            ) : (
+              renderDocBody(fullText || "(Empty file.)")
+            )}
+            {file.card ? (
+              <p className="m-0 font-sans text-[15px] text-muted">
+                File card · {file.card.split("\n")[0]}
+              </p>
+            ) : null}
+            {passages[0]?.drive_id || passages[0]?.id ? (
+              <p className="m-0 font-mono text-[11px] text-muted">
+                Cite · {passages[0]?.anchor}
+                {passages[0]?.drive_id
+                  ? ` · drive ${passages[0].drive_id.slice(0, 10)}`
+                  : ` · ${passages[0]?.id.slice(0, 8)}`}
+              </p>
+            ) : null}
+          </div>
+        </article>
+
+        <aside className="flex min-w-0 flex-[1_1_340px] flex-col gap-4">
+          <section className="flex flex-col gap-3 rounded-[20px] bg-ink p-5 text-white">
+            <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#9AA0AA]">
+              Your highlight
+            </span>
+            <p
+              className="m-0 text-[18px] italic leading-[1.45] text-[#FFE58A]"
+              style={{ fontFamily: "var(--font-source-serif), Georgia, serif" }}
+            >
+              {selection
+                ? `“${selection.slice(0, 160)}${selection.length > 160 ? "…" : ""}”`
+                : "Select text in the file to ask Cruxy about it."}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => void askCruxy("explain")}
+                className="h-[38px] rounded-[10px] border border-gold bg-gold px-3 text-left text-[13px] font-semibold text-ink"
+              >
+                Cruxy: is this accurate?
+              </button>
+              <button
+                type="button"
+                onClick={() => void askCruxy("counterexample")}
+                className="h-[38px] rounded-[10px] border border-[#E3E5E9] bg-white px-3 text-left text-[13px] font-semibold text-ink"
+              >
+                Find a counterexample
+              </button>
+              <button
+                type="button"
+                onClick={() => void turnInto("flashcard")}
+                className="h-[38px] rounded-[10px] border border-[#E3E5E9] bg-white px-3 text-left text-[13px] font-semibold text-ink"
+              >
+                Make a flashcard
+              </button>
+              <button
+                type="button"
+                onClick={() => void turnInto("proposal")}
+                className="h-[38px] rounded-[10px] border border-[#E3E5E9] bg-white px-3 text-left text-[13px] font-semibold text-ink"
+              >
+                Propose to Truth Sources
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => void saveHighlight()}
+              className="h-[38px] rounded-[10px] border border-white/20 bg-[#1E2129] px-3 text-left text-[13px] font-semibold text-white"
+            >
+              Save highlight
+            </button>
+            {askResult ? (
+              <div className="rounded-xl bg-[#1E2129] p-3 text-sm leading-relaxed text-[#D6D9DF]">
+                <strong className="text-gold">Cruxy:</strong> {askResult}{" "}
+                {askCitations ? (
+                  <span className="underline">{askCitations} sources</span>
+                ) : null}
+              </div>
+            ) : null}
+            {status ? (
+              <p className="text-xs text-[#9AA0AA]">{status}</p>
+            ) : null}
+          </section>
+
+          <section className="flex flex-col gap-3.5 rounded-[20px] bg-white p-5">
+            <h2 className="font-display m-0 text-xl font-extrabold">
+              Comments on this page · all teams
+            </h2>
+            {comments.length === 0 ? (
+              <p className="text-sm text-muted">No comments yet.</p>
+            ) : (
+              comments.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex flex-col gap-1.5 rounded-xl bg-[#F7F8FA] p-3"
+                >
+                  <span className="text-[13px]">
+                    <strong style={{ color: c.team_colour ?? "#5A606B" }}>
+                      {c.person_name}
+                    </strong>
+                    {c.range ? (
+                      <span className="text-muted"> on “{c.range}”</span>
+                    ) : (
+                      <span className="font-mono text-[10px] text-muted">
+                        {" "}
+                        · {c.passage_anchor}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-sm leading-snug">{c.body}</span>
+                  <span className="text-[13px] text-muted">Reply</span>
+                </div>
+              ))
+            )}
+            <label htmlFor="nc" className="text-[13px] font-semibold">
+              Add a comment on your highlight
+            </label>
+            <input
+              id="nc"
+              value={commentBody}
+              onChange={(e) => setCommentBody(e.target.value)}
+              placeholder="Visible to all three teams"
+              className="h-11 rounded-xl border border-[#E3E5E9] px-3 text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => void postComment()}
+              className="h-11 rounded-xl bg-ink text-sm font-semibold text-white"
+            >
+              Post comment
+            </button>
+          </section>
+        </aside>
+      </div>
     </main>
   );
 }
