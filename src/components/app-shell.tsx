@@ -19,6 +19,7 @@ type Me = {
 
 const NAV = [
   { href: "/home", label: "Program map" },
+  { href: "/library", label: "Library" },
   { href: "/case-brain", label: "Case brain" },
   { href: "/practice", label: "Practice" },
   { href: "/checklist", label: "First run" },
@@ -135,17 +136,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 Admin console
               </Link>
               {me.session.role === "tech_admin" ? (
-                <Link
-                  href="/admin/passcodes"
-                  className={cn(
-                    "rounded-xl px-3 py-2 text-sm",
-                    pathname.startsWith("/admin/passcodes")
-                      ? "bg-ink text-white"
-                      : "text-ink/80 hover:bg-white/70",
-                  )}
-                >
-                  Passcodes
-                </Link>
+                <>
+                  <Link
+                    href="/admin/passcodes"
+                    className={cn(
+                      "rounded-xl px-3 py-2 text-sm",
+                      pathname.startsWith("/admin/passcodes")
+                        ? "bg-ink text-white"
+                        : "text-ink/80 hover:bg-white/70",
+                    )}
+                  >
+                    Passcodes
+                  </Link>
+                  <Link
+                    href="/admin/books"
+                    className={cn(
+                      "rounded-xl px-3 py-2 text-sm",
+                      pathname.startsWith("/admin/books")
+                        ? "bg-ink text-white"
+                        : "text-ink/80 hover:bg-white/70",
+                    )}
+                  >
+                    Book requests
+                  </Link>
+                </>
               ) : null}
             </>
           ) : null}

@@ -31,6 +31,16 @@ import type {
   Team,
 } from "@/lib/types";
 import type {
+  BookRequest,
+  Comment,
+  Flashcard,
+  Highlight,
+  LibraryFile,
+  Passage,
+  ResearchRun,
+  SyncRun,
+} from "@/lib/library/types";
+import type {
   AttendanceRow,
   BankEntry,
   CardScore,
@@ -62,7 +72,16 @@ export interface SampleStore {
   ai_calls: AiCall[];
   competitions: Competition[];
   cases: CaseRow[];
-  /** Track 2 Case brain */
+  /** Track 1 Library */
+  files: LibraryFile[];
+  passages: Passage[];
+  highlights: Highlight[];
+  comments: Comment[];
+  flashcards: Flashcard[];
+  research_runs: ResearchRun[];
+  book_requests: BookRequest[];
+  sync_runs: SyncRun[];
+  /** Track 2 Case brain (proposals shared with Library research/reading) */
   claims: Claim[];
   supports: Support[];
   backings: Backing[];
@@ -138,6 +157,29 @@ function emptyCaseBrainFields(): Pick<
     item_history: [],
     team_principles: [],
     change_the_facts: [],
+  };
+}
+
+function emptyLibraryFields(): Pick<
+  SampleStore,
+  | "files"
+  | "passages"
+  | "highlights"
+  | "comments"
+  | "flashcards"
+  | "research_runs"
+  | "book_requests"
+  | "sync_runs"
+> {
+  return {
+    files: [],
+    passages: [],
+    highlights: [],
+    comments: [],
+    flashcards: [],
+    research_runs: [],
+    book_requests: [],
+    sync_runs: [],
   };
 }
 
@@ -276,6 +318,7 @@ export async function buildSeedStore(): Promise<SampleStore> {
     ai_calls: [],
     competitions: [competition],
     cases,
+    ...emptyLibraryFields(),
     ...emptyCaseBrainFields(),
     seeded_at: nowIso(),
     last_tech_reauth_at: null,
@@ -342,8 +385,17 @@ let writeChain: Promise<void> = Promise.resolve();
 
 function migrateStoreShape(raw: SampleStore): SampleStore {
   const brain = emptyCaseBrainFields();
+  const library = emptyLibraryFields();
   return {
     ...raw,
+    files: raw.files ?? library.files,
+    passages: raw.passages ?? library.passages,
+    highlights: raw.highlights ?? library.highlights,
+    comments: raw.comments ?? library.comments,
+    flashcards: raw.flashcards ?? library.flashcards,
+    research_runs: raw.research_runs ?? library.research_runs,
+    book_requests: raw.book_requests ?? library.book_requests,
+    sync_runs: raw.sync_runs ?? library.sync_runs,
     claims: raw.claims ?? brain.claims,
     supports: raw.supports ?? brain.supports,
     backings: raw.backings ?? brain.backings,
