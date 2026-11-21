@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AppeScoringCard } from "@/components/practice/appe-scoring-card";
+import { CalibratedJudgeSummary } from "@/components/practice/calibrated-judge-summary";
 import { SpeakerConfirmPanel } from "@/components/practice/speaker-confirm";
 import { APPE_SCORE_ITEMS } from "@/lib/practice/types";
 
@@ -91,6 +92,12 @@ export default function RoundReportPage() {
     people: { id: string; name: string; team_id: string | null }[];
     teams: { id: string; name: string; colour: string }[];
     judges: { id: string; name: string; person_id: string | null }[];
+    calibrated?: {
+      enough: boolean;
+      message: string;
+      n_cards: number;
+      overall_kappa: number | null;
+    } | null;
   } | null>(null);
   const [who, setWho] = useState<string | null>(null);
   const [bankMsg, setBankMsg] = useState<string | null>(null);
@@ -363,6 +370,8 @@ export default function RoundReportPage() {
           ) : null}
         </div>
       </div>
+
+      <CalibratedJudgeSummary calibrated={data.calibrated} />
 
       <section className="flex flex-col gap-1.5 rounded-[20px] bg-white p-[22px]">
         <div className="flex flex-wrap items-baseline justify-between gap-2 pb-1.5">

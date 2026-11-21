@@ -23,6 +23,7 @@ import {
   utterancesToLines,
 } from "@/lib/practice/transcription";
 import { runCruxyJudge } from "@/lib/practice/cruxy-judge";
+import { syncCalibratedJudgeForRound } from "@/lib/practice/calibrated-judge";
 import {
   filterCitedFeedback,
   proposeBankEntry,
@@ -229,6 +230,12 @@ export async function finalizeRound(opts: {
     judgment.feedback = await citeOrQuietFeedback(judgment.feedback, lines);
     await saveJudgmentBundle(judgment);
 
+    // Wave 6 C: pair human cards with Cruxy and refresh calibrated kappa.
+    await syncCalibratedJudgeForRound({
+      roundId: opts.roundId,
+      personId: opts.personId,
+    });
+
     // Bank: one "Things to take care of" entry per fix that still has a citation.
     let bankAdded = 0;
     for (const f of judgment.feedback.filter((x) => x.kind === "fix")) {
@@ -285,6 +292,14 @@ export async function finalizeRound(opts: {
       personId: opts.personId ?? presentIds[0] ?? round.created_by ?? "",
       ideas: ideas.map((i) => ({ text: i.text, lineId: i.lineId })),
     });
+  }
+
+  // Wave 6: personal Brier from required predictions vs judged scores.
+  if (wantCruxy && judgment) {
+    const { computeBrierAfterJudging } = await import(
+      "@/lib/practice/predictions"
+    );
+    await computeBrierAfterJudging({ roundId: opts.roundId });
   }
 
   return {

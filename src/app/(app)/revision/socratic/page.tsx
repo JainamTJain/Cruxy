@@ -148,6 +148,11 @@ export default function SocraticPage() {
                   </span>
                 ) : null}
               </div>
+              <p className="mt-3 text-xs text-muted">
+                Cruxy will check whether your next try on these claims improves
+                (drill answer, flashcard or round score). See Settings for your
+                outcomes.
+              </p>
             </div>
           )}
         </div>

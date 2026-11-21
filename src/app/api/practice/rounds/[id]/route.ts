@@ -12,6 +12,10 @@ import {
 import { getReportExtras } from "@/lib/db/supabase/practice-extra";
 import { getPersonById } from "@/lib/db/repository";
 import { sessionHasTextOnlyMembers } from "@/lib/attendance";
+import {
+  isAdminViewer,
+  redactPredictions,
+} from "@/lib/ops/privacy-scope";
 import type { RoundPhase } from "@/lib/practice/types";
 
 export async function GET(
@@ -38,6 +42,13 @@ export async function GET(
     extras.teams && round.case_number != null
       ? `Case ${round.case_number}`
       : null;
+  const admin = isAdminViewer(me, session);
+  const safeCards = cards.map((c) =>
+    redactPredictions(c, {
+      viewerPersonId: session.personId,
+      adminViewer: admin,
+    }),
+  );
 
   return NextResponse.json({
     round,
@@ -51,7 +62,7 @@ export async function GET(
       : null,
     lines,
     speakers,
-    cards,
+    cards: safeCards,
     scores,
     people: extras.people,
     teams: extras.teams,
@@ -74,6 +85,16 @@ export async function POST(
   const { id } = await ctx.params;
   const body = (await req.json()) as { action?: string; phase?: RoundPhase };
   if (body.action === "start") {
+    const { assertPredictionsReady } = await import(
+      "@/lib/practice/predictions"
+    );
+    const gate = await assertPredictionsReady(id);
+    if (!gate.ok) {
+      return NextResponse.json(
+        { error: gate.reason, missing: gate.missing },
+        { status: 400 },
+      );
+    }
     const round = await startRound(id);
     return NextResponse.json({ round });
   }

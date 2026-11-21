@@ -586,6 +586,28 @@ export async function reviewFlashcard(args: {
   });
 
   await recomputeRoadmapStages(args.personId);
+
+  const cardRow = must(
+    await sb
+      .from("flashcards")
+      .select("case_id")
+      .eq("id", args.cardId)
+      .maybeSingle(),
+    "reviewFlashcard.card",
+  );
+  if (cardRow?.case_id) {
+    const { observeClaimAttempt } = await import(
+      "@/lib/cruxy/socratic-outcomes"
+    );
+    await observeClaimAttempt({
+      personId: args.personId,
+      caseId: cardRow.case_id as string,
+      attemptKind: "flashcard",
+      scoreAfter: args.grade,
+      refId: args.cardId,
+    }).catch(() => undefined);
+  }
+
   const state = await getOrCreateFsrsState(args.personId, args.cardId);
   return { state, mastery };
 }
@@ -1128,6 +1150,30 @@ export async function answerQuestion(args: {
   assertOk((await sb.from("answers").insert(row)).error, "answerQuestion.insert");
 
   await recomputeRoadmapStages(args.personId);
+
+  if (row.score != null) {
+    const qRow = must(
+      await sb
+        .from("questions")
+        .select("case_id")
+        .eq("id", args.questionId)
+        .maybeSingle(),
+      "answerQuestion.question",
+    );
+    if (qRow?.case_id) {
+      const { observeClaimAttempt } = await import(
+        "@/lib/cruxy/socratic-outcomes"
+      );
+      await observeClaimAttempt({
+        personId: args.personId,
+        caseId: qRow.case_id as string,
+        attemptKind: "drill",
+        scoreAfter: row.score,
+        refId: row.id,
+      }).catch(() => undefined);
+    }
+  }
+
   return row;
 }
 
@@ -1222,6 +1268,10 @@ export async function continueSocratic(args: {
   );
   if (!row) throw new Error("session not found");
   const cur = mapSocratic(row);
+  // Personal Socratic transcript: only the owner may continue.
+  if (cur.person_id !== args.personId) {
+    throw new Error("That Socratic session belongs to someone else.");
+  }
 
   cur.turns.push({ role: "person", text: args.answer, at: nowIso() });
   const claims = await teamCaseClaims(cur.team_id, cur.case_id);
@@ -1256,6 +1306,12 @@ export async function continueSocratic(args: {
     ).error,
     "continueSocratic.update",
   );
+  if (cur.status === "done") {
+    const { openSocraticOutcomes } = await import(
+      "@/lib/cruxy/socratic-outcomes"
+    );
+    await openSocraticOutcomes(cur).catch(() => undefined);
+  }
   return cur;
 }
 

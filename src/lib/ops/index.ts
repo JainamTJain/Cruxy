@@ -35,3 +35,14 @@ export {
   assertGuestRoundStillOpen,
   isPracticeSessionEnded,
 } from "@/lib/ops/consent-recording";
+export {
+  privacyClassFor,
+  isAdminViewer,
+  isTechAdminViewer,
+  isCaseLead,
+  canViewPersonalLearning,
+  canViewMasteryMap,
+  redactPredictions,
+  filterDriftFlagsForViewer,
+  type PrivacyClass,
+} from "@/lib/ops/privacy-scope";

@@ -301,6 +301,22 @@ export async function reviewFlashcard(args: {
   });
 
   await recomputeRoadmapStages(args.personId);
+
+  const storeAfter = await readStore();
+  const card = storeAfter.flashcards.find((c) => c.id === args.cardId);
+  if (card?.case_id) {
+    const { observeClaimAttempt } = await import(
+      "@/lib/cruxy/socratic-outcomes"
+    );
+    await observeClaimAttempt({
+      personId: args.personId,
+      caseId: card.case_id,
+      attemptKind: "flashcard",
+      scoreAfter: args.grade,
+      refId: args.cardId,
+    }).catch(() => undefined);
+  }
+
   const state = await getOrCreateFsrsState(args.personId, args.cardId);
   return { state, mastery };
 }
@@ -680,6 +696,21 @@ export async function answerQuestion(args: {
   });
 
   await recomputeRoadmapStages(args.personId);
+
+  const q = store.questions.find((x) => x.id === args.questionId);
+  if (q?.case_id && row.score != null) {
+    const { observeClaimAttempt } = await import(
+      "@/lib/cruxy/socratic-outcomes"
+    );
+    await observeClaimAttempt({
+      personId: args.personId,
+      caseId: q.case_id,
+      attemptKind: "drill",
+      scoreAfter: row.score,
+      refId: row.id,
+    }).catch(() => undefined);
+  }
+
   return row;
 }
 
@@ -740,6 +771,10 @@ export async function continueSocratic(args: {
   const store = await readStore();
   const cur = store.socratic_sessions.find((x) => x.id === args.sessionId);
   if (!cur) throw new Error("session not found");
+  // Personal Socratic transcript: only the owner may continue.
+  if (cur.person_id !== args.personId) {
+    throw new Error("That Socratic session belongs to someone else.");
+  }
   const turns = [
     ...cur.turns,
     { role: "person" as const, text: args.answer, at: nowIso() },
@@ -771,6 +806,12 @@ export async function continueSocratic(args: {
     live.updated_at = nowIso();
     session = live;
   });
+  if (session.status === "done") {
+    const { openSocraticOutcomes } = await import(
+      "@/lib/cruxy/socratic-outcomes"
+    );
+    await openSocraticOutcomes(session).catch(() => undefined);
+  }
   return session;
 }
 
