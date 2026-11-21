@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Team = { id: string; name: string; colour: string };
 type CaseRow = { id: string; number: number; title: string };
@@ -26,12 +26,20 @@ type NextAction = {
   href: string;
 };
 
+type DriveStatus = {
+  synced: boolean;
+  fileCount: number;
+  lastSyncAt: string | null;
+  canSync: boolean;
+};
+
 type MapData = {
   teams: Team[];
   cases: CaseRow[];
   readiness: Cell[];
   totals: Record<string, number>;
   deltas?: Record<string, string>;
+  driveStatus?: DriveStatus;
   teamAverages: { team_id: string; avg: number; delta_week: number }[];
   competition: { name: string; date: string; place: string | null } | null;
   daysToCompetition: number | null;
@@ -46,7 +54,7 @@ function initials(names: string[]): string {
     .map((n) => {
       const parts = n.trim().split(/\s+/);
       if (parts.length === 1) return parts[0]!.slice(0, 1).toUpperCase();
-      return `${parts[0]!.slice(0, 1)}·${parts[parts.length - 1]!.slice(0, 1)}`;
+      return `${parts[0]!.slice(0, 1)}${parts[parts.length - 1]!.slice(0, 1)}`;
     })
     .join(" ");
 }
@@ -54,16 +62,20 @@ function initials(names: string[]): string {
 export default function HomePage() {
   const [data, setData] = useState<MapData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const r = await fetch("/api/program-map");
+    if (!r.ok) throw new Error("Could not load program map");
+    return r.json() as Promise<MapData>;
+  }, []);
 
   useEffect(() => {
-    void fetch("/api/program-map")
-      .then(async (r) => {
-        if (!r.ok) throw new Error("Could not load program map");
-        return r.json() as Promise<MapData>;
-      })
+    void load()
       .then(setData)
       .catch((e: Error) => setError(e.message));
-  }, []);
+  }, [load]);
 
   const todayLabel = useMemo(() => {
     if (data?.todayLabel) return data.todayLabel;
@@ -73,6 +85,30 @@ export default function HomePage() {
       day: "numeric",
     });
   }, [data?.todayLabel]);
+
+  async function syncDrive() {
+    setSyncBusy(true);
+    setSyncMessage(null);
+    try {
+      const res = await fetch("/api/library/sync", { method: "POST" });
+      const body = (await res.json()) as {
+        message?: string;
+        error?: string;
+        ok?: boolean;
+      };
+      if (!res.ok || body.ok === false) {
+        setSyncMessage(body.error ?? body.message ?? "Sync failed");
+      } else {
+        setSyncMessage(body.message ?? "Synced");
+      }
+      const next = await load();
+      setData(next);
+    } catch (e) {
+      setSyncMessage(e instanceof Error ? e.message : "Sync failed");
+    } finally {
+      setSyncBusy(false);
+    }
+  }
 
   if (error) {
     return <p className="text-sm text-cardinal">{error}</p>;
@@ -84,16 +120,18 @@ export default function HomePage() {
   const cellFor = (teamId: string, caseId: string) =>
     data.readiness.find((c) => c.team_id === teamId && c.case_id === caseId);
 
+  const drive = data.driveStatus ?? {
+    synced: (data.totals.drive_files ?? 0) > 0,
+    fileCount: data.totals.drive_files ?? 0,
+    lastSyncAt: null,
+    canSync: false,
+  };
+
   const totals: {
     key: string;
     label: string;
     delta?: string;
   }[] = [
-    {
-      key: "drive_files",
-      label: "Drive files read",
-      delta: data.deltas?.drive_files,
-    },
     {
       key: "ideas_accepted",
       label: "ideas accepted",
@@ -164,6 +202,47 @@ export default function HomePage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="rounded-2xl bg-white p-4">
+          {drive.synced ? (
+            <>
+              <div className="font-display text-[44px] font-extrabold leading-none">
+                {drive.fileCount}
+              </div>
+              <div className="mt-1.5 text-[13px] text-muted">Drive files read</div>
+              {data.deltas?.drive_files ? (
+                <div className="mt-1 text-xs font-bold text-[#0F7B6C]">
+                  {data.deltas.drive_files}
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <div className="font-display text-[22px] font-extrabold leading-snug tracking-[-0.02em]">
+                Drive not synced yet
+              </div>
+              <div className="mt-1.5 text-[13px] text-muted">
+                No Drive files digested
+              </div>
+              {drive.canSync ? (
+                <button
+                  type="button"
+                  disabled={syncBusy}
+                  onClick={() => void syncDrive()}
+                  className="mt-2 rounded-lg bg-ink px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60"
+                >
+                  {syncBusy ? "Syncing…" : "Sync now"}
+                </button>
+              ) : (
+                <div className="mt-2 text-xs text-muted">
+                  Ask the tech admin to sync
+                </div>
+              )}
+              {syncMessage ? (
+                <div className="mt-1 text-xs text-muted">{syncMessage}</div>
+              ) : null}
+            </>
+          )}
+        </div>
         {totals.map((t) => (
           <div key={t.key} className="rounded-2xl bg-white p-4">
             <div className="font-display text-[44px] font-extrabold leading-none">
@@ -186,7 +265,7 @@ export default function HomePage() {
               Case board
             </h2>
             <span className="text-[13px] text-muted">
-              Readiness per team · leads · latest
+              Readiness per team, leads, latest
             </span>
           </div>
           <div className="overflow-x-auto">
@@ -288,7 +367,7 @@ export default function HomePage() {
                     <span className="font-bold">{e.personName}</span>{" "}
                     <span className="text-muted">{e.action}</span>
                     {e.target ? (
-                      <span className="text-muted"> · {e.target}</span>
+                      <span className="text-muted"> ({e.target})</span>
                     ) : null}
                   </span>
                 ))

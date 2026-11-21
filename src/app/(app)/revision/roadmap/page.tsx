@@ -160,7 +160,7 @@ export default function RoadmapPage() {
         <div className="flex flex-col gap-2">
           <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
             {view?.personName ?? "You"}
-            {view?.teamName ? ` · ${view.teamName}` : ""}
+            {view?.teamName ? `, ${view.teamName}` : ""}
           </span>
           <h1 className="font-display m-0 text-[56px] font-extrabold leading-[0.95] tracking-[-0.03em]">
             My roadmap
@@ -238,7 +238,7 @@ export default function RoadmapPage() {
           </h2>
           <div className="min-w-[820px]">
             <div className="grid grid-cols-[250px_repeat(7,minmax(0,1fr))] px-6 py-2 text-center text-xs font-bold text-muted">
-              <span className="text-left">Case · my role</span>
+              <span className="text-left">Case / my role</span>
               {STAGE_ORDER.map((s) => (
                 <span key={s}>{STAGE_LABELS[s]}</span>
               ))}
@@ -406,7 +406,7 @@ export default function RoadmapPage() {
                 <br />
                 <span className="text-muted">
                   {a.by}
-                  {a.due ? ` · due ${formatDue(a.due)}` : ""}
+                  {a.due ? `, due ${formatDue(a.due)}` : ""}
                 </span>
               </div>
             ))}

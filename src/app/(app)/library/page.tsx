@@ -100,7 +100,7 @@ export default function LibraryPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
-            Library · Drive
+            Library from Drive
           </span>
           <h1 className="font-display mt-1 text-[40px] font-extrabold leading-none tracking-[-0.03em]">
             Reading room
@@ -161,12 +161,12 @@ export default function LibraryPage() {
       {latest ? (
         <p className="text-xs text-muted">
           Last sync: processed {latest.files_processed}, skipped unchanged{" "}
-          {latest.files_skipped_unchanged}, AI calls {latest.ai_calls}
-          {latest.stub ? " · stub" : ""}
+          {latest.files_skipped_unchanged}, Cruxy calls {latest.ai_calls}
+          {latest.stub ? " (offline digest)" : ""}
           {latest.finished_at
-            ? ` · ${new Date(latest.finished_at).toLocaleString()}`
+            ? `, ${new Date(latest.finished_at).toLocaleString()}`
             : ""}
-          {latest.notes ? ` · ${latest.notes}` : ""}
+          {latest.notes ? `, ${latest.notes}` : ""}
         </p>
       ) : null}
 
@@ -185,7 +185,7 @@ export default function LibraryPage() {
             {featured.case_numbers.length
               ? `Cases ${featured.case_numbers.join(", ")}`
               : "General"}
-            {featured.path ? ` · ${featured.path}` : ""}
+            {featured.path ? `, ${featured.path}` : ""}
           </p>
         </Link>
       ) : null}
@@ -212,17 +212,17 @@ export default function LibraryPage() {
                   <span className="font-mono text-[11px] text-muted">
                     {f.type ?? "untyped"}
                     {f.confidence != null
-                      ? ` · ${f.confidence.toFixed(2)}`
+                      ? `, ${f.confidence.toFixed(2)}`
                       : ""}
-                    {f.status === "sorting_queue" ? " · queue" : ""}
+                    {f.status === "sorting_queue" ? ", queue" : ""}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-muted">
                   {f.path}
                   {f.case_numbers.length
-                    ? ` · cases ${f.case_numbers.join(", ")}`
-                    : " · general"}
-                  {f.scanned_pdf ? " · scanned PDF" : ""}
+                    ? `, cases ${f.case_numbers.join(", ")}`
+                    : ", general"}
+                  {f.scanned_pdf ? ", scanned PDF" : ""}
                 </p>
                 {f.card ? (
                   <pre className="mt-2 whitespace-pre-wrap font-sans text-xs text-ink/70">

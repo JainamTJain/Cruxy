@@ -58,7 +58,7 @@ export default function SortingQueuePage() {
                 </Link>
                 <span className="font-mono text-xs text-cardinal">
                   {(f.confidence ?? 0).toFixed(2)}
-                  {f.scanned_pdf ? " · scanned" : ""}
+                  {f.scanned_pdf ? ", scanned" : ""}
                 </span>
               </div>
               <p className="mt-1 text-xs text-muted">{f.path}</p>

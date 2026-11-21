@@ -117,7 +117,7 @@ export default function WarmUpPage() {
               <h2 className="font-display text-lg font-extrabold">
                 Moderator questions ({doneQs}/2)
               </h2>
-              <span className="text-xs text-muted">out loud · ~4 min</span>
+              <span className="text-xs text-muted">out loud, ~4 min</span>
             </div>
             <ol className="mt-3 list-decimal space-y-3 pl-5 text-sm">
               {warm.moderator_questions.map((q) => (

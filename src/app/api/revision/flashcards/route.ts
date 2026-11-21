@@ -3,11 +3,12 @@ import { requireSession } from "@/lib/revision/api-auth";
 import type { FsrsRating } from "@/lib/revision/fsrs";
 import {
   autoAssignLeadDecks,
-  dueFlashcardsForPerson,
+  dueDeckForPerson,
   ensureFlashcardsForTeamCase,
   listFlashcards,
   optInDeck,
   reviewFlashcard,
+  setFlashcardPinned,
   studyingLabels,
   updateTruthItemText,
 } from "@/lib/revision/repository";
@@ -23,12 +24,23 @@ export async function GET(req: Request) {
   if (teamId && caseId) {
     await ensureFlashcardsForTeamCase(teamId, caseId);
   }
-  const cards = due
-    ? await dueFlashcardsForPerson(auth.session.personId)
-    : (await listFlashcards({ teamId, caseId })).map((card) => ({
-        card,
-        state: null,
-      }));
+  if (due) {
+    const deck = await dueDeckForPerson(auth.session.personId);
+    const labels = await studyingLabels(auth.session.personId);
+    return NextResponse.json({
+      cards: deck.cards,
+      studying: labels,
+      dailyTarget: deck.dailyTarget,
+      cramMode: deck.cramMode,
+      daysToCompetition: deck.daysToCompetition,
+      leadCaseCount: deck.leadCaseCount,
+      totalInRotation: deck.totalInRotation,
+    });
+  }
+  const cards = (await listFlashcards({ teamId, caseId })).map((card) => ({
+    card,
+    state: null,
+  }));
   const labels = await studyingLabels(auth.session.personId);
   return NextResponse.json({ cards, studying: labels });
 }
@@ -45,6 +57,7 @@ export async function POST(req: Request) {
     caseId?: string;
     truthItemId?: string;
     text?: string;
+    pinned?: boolean;
   };
 
   if (body.action === "review") {
@@ -56,6 +69,18 @@ export async function POST(req: Request) {
       cardId: body.cardId,
       grade: body.grade as FsrsRating,
       mode: body.mode,
+    });
+    return NextResponse.json({ state });
+  }
+
+  if (body.action === "pin") {
+    if (!body.cardId) {
+      return NextResponse.json({ error: "cardId required" }, { status: 400 });
+    }
+    const state = await setFlashcardPinned({
+      personId: auth.session.personId,
+      cardId: body.cardId,
+      pinned: body.pinned !== false,
     });
     return NextResponse.json({ state });
   }

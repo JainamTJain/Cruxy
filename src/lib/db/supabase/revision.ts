@@ -183,6 +183,7 @@ function mapFsrs(r: Row): CardFsrsState {
     state: r.state,
     last_review: isoOrNull(r.last_review),
     correct_streak: r.correct_streak ?? 0,
+    pinned: Boolean(r.pinned),
     created_at: iso(r.created_at),
   };
 }
@@ -482,6 +483,7 @@ export async function getOrCreateFsrsState(
           state: empty.state,
           last_review: null,
           correct_streak: 0,
+          pinned: false,
           created_at: nowIso(),
         },
         { onConflict: "person_id,card_id", ignoreDuplicates: true },
@@ -534,6 +536,7 @@ export async function reviewFlashcard(args: {
           state: next.state,
           last_review: next.last_review?.toISOString() ?? nowIso(),
           correct_streak: streak,
+          pinned: prior.pinned ?? false,
         })
         .eq("id", prior.id)
     ).error,

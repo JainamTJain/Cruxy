@@ -1,11 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useSwipeable } from "react-swipeable";
 import { useCruxy } from "@/components/cruxy/cruxy-context";
-import {
-  previewIntervals,
-  type FsrsRating,
-} from "@/lib/revision/fsrs";
 import type { Flashcard } from "@/lib/revision/types";
 
 type DueItem = {
@@ -19,11 +16,20 @@ type DueItem = {
     lapses?: number;
     state?: number;
     last_review?: string | null;
+    correct_streak?: number;
+    pinned?: boolean;
   } | null;
 };
 
+type DeckMeta = {
+  dailyTarget: number;
+  cramMode: boolean;
+  daysToCompetition: number | null;
+  totalInRotation: number;
+};
+
 export default function FlashcardsPage() {
-  const { setMood } = useCruxy();
+  const { setMood, setBubble, emitCruxyEvent } = useCruxy();
   const [items, setItems] = useState<DueItem[]>([]);
   const [studying, setStudying] = useState<string[]>([]);
   const [idx, setIdx] = useState(0);
@@ -31,146 +37,300 @@ export default function FlashcardsPage() {
   const [spoken, setSpoken] = useState(false);
   const [initialCount, setInitialCount] = useState(0);
   const [deckLabel, setDeckLabel] = useState("your deck");
+  const [meta, setMeta] = useState<DeckMeta>({
+    dailyTarget: 15,
+    cramMode: false,
+    daysToCompetition: null,
+    totalInRotation: 0,
+  });
+  const [sessionStreak, setSessionStreak] = useState(0);
+  const [swipeHint, setSwipeHint] = useState(true);
+  const [busy, setBusy] = useState(false);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     const res = await fetch("/api/revision/flashcards?due=1");
     const data = (await res.json()) as {
       cards: DueItem[];
       studying: string[];
+      dailyTarget?: number;
+      cramMode?: boolean;
+      daysToCompetition?: number | null;
+      totalInRotation?: number;
     };
     setItems(data.cards);
     setStudying(data.studying);
     setInitialCount(data.cards.length);
+    setMeta({
+      dailyTarget: data.dailyTarget ?? (data.cards.length || 15),
+      cramMode: Boolean(data.cramMode),
+      daysToCompetition: data.daysToCompetition ?? null,
+      totalInRotation: data.totalInRotation ?? data.cards.length,
+    });
     setIdx(0);
     setFlipped(false);
     setSpoken(false);
+    setSessionStreak(0);
     const first = data.cards[0]?.card;
     if (first) {
       setDeckLabel(first.deck || "your lead deck");
     }
-  }
+  }, []);
 
   useEffect(() => {
     void refresh();
-  }, []);
+  }, [refresh]);
 
   const card = items[idx]?.card;
-  const intervals = useMemo(() => {
-    const state = items[idx]?.state;
-    if (!state) return previewIntervals(null);
-    return previewIntervals({
-      due: state.due ? new Date(state.due) : new Date(),
-      stability: state.stability ?? 0,
-      difficulty: state.difficulty ?? 0,
-      elapsed_days: 0,
-      scheduled_days: state.scheduled_days ?? 0,
-      reps: state.reps ?? 0,
-      lapses: state.lapses ?? 0,
-      state: (state.state ?? 0) as 0 | 1 | 2 | 3,
-      last_review: state.last_review ? new Date(state.last_review) : null,
-    });
-  }, [items, idx]);
-
+  const state = items[idx]?.state;
+  const doneCount = Math.max(0, initialCount - items.length);
   const progressPct =
-    initialCount === 0
+    meta.dailyTarget === 0
       ? 0
-      : Math.round(((initialCount - items.length) / initialCount) * 100);
+      : Math.min(100, Math.round((doneCount / meta.dailyTarget) * 100));
 
-  async function grade(g: FsrsRating) {
-    const current = items[idx];
-    if (!current) return;
-    await fetch("/api/revision/flashcards", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        action: "review",
-        cardId: current.card.id,
-        grade: g,
-        mode: spoken ? "spoken" : "typed",
-      }),
-    });
-    if (g >= 3) setMood("happy");
-    const next = items.filter((_, i) => i !== idx);
-    if (next.length === 0) setMood("excited");
+  function applyStreakMood(nextStreak: number, missed: boolean) {
+    if (missed) {
+      setSessionStreak(0);
+      setMood("sad");
+      setBubble("Missed that one. Try it again soon.");
+      return;
+    }
+    setSessionStreak(nextStreak);
+    if (nextStreak >= 8) {
+      emitCruxyEvent("personal_best");
+      setBubble(`${nextStreak} in a row. Keep going.`);
+    } else if (nextStreak >= 5) {
+      setMood("excited");
+      setBubble(`${nextStreak} streak. Nice.`);
+    } else if (nextStreak >= 3) {
+      emitCruxyEvent("feedback.answered_well");
+      setBubble(`${nextStreak} in a row.`);
+    } else {
+      setMood("happy");
+    }
+  }
+
+  function advanceAfter(currentIdx: number) {
+    const next = items.filter((_, i) => i !== currentIdx);
     setItems(next);
     setIdx(0);
     setFlipped(false);
     setSpoken(false);
+    if (next.length === 0) {
+      setMood("excited");
+      setBubble(
+        meta.cramMode
+          ? "Cram target done for today. One more round if you want."
+          : "Today's cards done. Come back tomorrow.",
+      );
+    }
   }
 
-  // Phone-first FlashPhone layout; also works at desktop width.
+  async function grade(kind: "got" | "missed") {
+    const current = items[idx];
+    if (!current || busy) return;
+    setBusy(true);
+    const g = kind === "got" ? 3 : 1;
+    try {
+      const res = await fetch("/api/revision/flashcards", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action: "review",
+          cardId: current.card.id,
+          grade: g,
+          mode: spoken ? "spoken" : "typed",
+        }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as {
+          state?: { correct_streak?: number };
+        };
+        const streak =
+          kind === "got"
+            ? (data.state?.correct_streak ?? sessionStreak + 1)
+            : 0;
+        applyStreakMood(streak, kind === "missed");
+      }
+      advanceAfter(idx);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function keepInDeck() {
+    const current = items[idx];
+    if (!current || busy) return;
+    setBusy(true);
+    try {
+      await fetch("/api/revision/flashcards", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action: "pin",
+          cardId: current.card.id,
+          pinned: true,
+        }),
+      });
+      setMood("winking");
+      setBubble("Pinned. It stays in your deck.");
+      // Move pinned card to the end so it stays in rotation this session
+      const rest = items.filter((_, i) => i !== idx);
+      const pinnedItem: DueItem = {
+        ...current,
+        state: { ...current.state, pinned: true },
+      };
+      setItems([...rest, pinnedItem]);
+      setIdx(0);
+      setFlipped(false);
+      setSpoken(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const handlers = useSwipeable({
+    onSwipedLeft: () => {
+      if (!card) return;
+      setSwipeHint(false);
+      if (!flipped) {
+        setFlipped(true);
+        return;
+      }
+      void grade("missed");
+    },
+    onSwipedRight: () => {
+      if (!card) return;
+      setSwipeHint(false);
+      if (!flipped) {
+        setFlipped(true);
+        return;
+      }
+      void grade("got");
+    },
+    onSwipedUp: () => {
+      if (!card || !flipped) return;
+      setSwipeHint(false);
+      void keepInDeck();
+    },
+    trackMouse: true,
+    preventScrollOnSwipe: true,
+    delta: 40,
+  });
+
+  const caseBadge =
+    card?.deck?.match(/Case\s*\d+/i)?.[0] ?? (card ? "Deck" : "Flashcards");
+
   return (
     <main className="mx-auto flex min-h-[min(844px,100dvh)] w-full max-w-[390px] flex-col gap-3.5 p-4 sm:max-w-lg">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <span className="font-display text-[26px] font-extrabold tracking-[-0.03em]">
           crux
         </span>
-        <span className="text-xs font-bold text-muted">
-          {items.length} due
-          {studying.length ? ` · ${studying[0]}` : ""}
-        </span>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <span className="text-[13px] font-bold">
-          <span className="text-cardinal">
-            {card?.deck?.match(/Case\s*\d+/i)?.[0] ??
-              (card ? "Deck" : "Flashcards")}
-          </span>{" "}
-          · {deckLabel}
-          {initialCount ? ` · ${initialCount} cards` : ""}
-        </span>
-        <div className="h-1.5 overflow-hidden rounded-full bg-[#E3E5E9]">
-          <div
-            className="h-1.5 rounded-full bg-ink transition-[width]"
-            style={{ width: `${progressPct}%` }}
-          />
+        <div className="flex flex-col items-end gap-0.5 text-right">
+          <span className="text-xs font-bold text-muted">
+            {items.length} left today
+          </span>
+          {studying[0] ? (
+            <span className="text-[11px] text-muted">{studying[0]}</span>
+          ) : null}
         </div>
       </div>
 
-      {card ? (
-        <section className="flex flex-1 flex-col gap-3">
-          <div className="flex flex-col gap-2.5 rounded-[20px] bg-ink p-[22px] text-white">
-            <span className="text-[11px] font-bold tracking-[0.1em] text-gold">
-              {card.source_kind === "truth"
-                ? "TRUTH SOURCE"
-                : card.source_kind === "reading"
-                  ? "FROM READING"
-                  : "CARD"}
-            </span>
-            <p className="font-display m-0 text-2xl font-semibold leading-tight">
-              {card.front}
-            </p>
-          </div>
+      <div className="flex flex-col gap-1.5">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <span className="text-[13px] font-bold">
+            <span className="text-cardinal">{caseBadge}</span>
+            <span className="text-muted"> {deckLabel}</span>
+          </span>
+          <span className="text-[11px] font-semibold text-muted">
+            Target {meta.dailyTarget}
+            {meta.cramMode ? " (cram)" : ""}
+          </span>
+        </div>
+        {meta.cramMode ? (
+          <span className="text-[11px] font-bold text-cardinal">
+            Cram mode
+            {meta.daysToCompetition != null
+              ? `: ${meta.daysToCompetition} days to regional`
+              : ""}
+          </span>
+        ) : null}
+        <div className="h-1.5 overflow-hidden rounded-full bg-[#E3E5E9]">
+          <div
+            className="h-1.5 rounded-full bg-ink transition-[width] duration-300"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+        {sessionStreak > 0 ? (
+          <span className="text-[11px] font-bold text-[#0F7B6C]">
+            Streak {sessionStreak}
+          </span>
+        ) : null}
+      </div>
 
-          {flipped ? (
-            <div className="flex flex-col gap-2.5 rounded-[20px] border-2 border-ink bg-white p-[22px]">
-              <span className="text-[11px] font-bold tracking-[0.1em] text-muted">
-                ANSWER
-              </span>
-              <p className="m-0 whitespace-pre-wrap text-base leading-relaxed">
-                {card.back}
-              </p>
-              {card.citation_ids.length ? (
-                <span className="self-start rounded-md bg-paper px-1.5 py-0.5 font-mono text-[11px] font-medium">
-                  Truth Source · {card.citation_ids.length} cite
-                  {card.citation_ids.length === 1 ? "" : "s"}
-                </span>
-              ) : (
-                <span className="self-start rounded-md bg-cardinal/10 px-1.5 py-0.5 font-mono text-[11px] text-cardinal">
-                  Needs citation
-                </span>
-              )}
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setFlipped(true)}
-              className="rounded-[20px] border-2 border-dashed border-[#C9CCD3] bg-white p-[22px] text-left text-sm text-muted"
+      {card ? (
+        <section className="flex flex-1 flex-col gap-3" {...handlers}>
+          <button
+            type="button"
+            aria-label={flipped ? "Show question" : "Flip to answer"}
+            onClick={() => {
+              setFlipped((v) => !v);
+              setSwipeHint(false);
+            }}
+            className="flash-scene relative min-h-[280px] w-full cursor-pointer border-0 bg-transparent p-0 text-left"
+          >
+            <div
+              className={`flash-inner relative h-full min-h-[280px] w-full ${
+                flipped ? "is-flipped" : ""
+              }`}
             >
-              Tap to show the answer
-            </button>
-          )}
+              <div className="flash-face flash-front absolute inset-0 flex flex-col gap-2.5 rounded-[20px] bg-ink p-[22px] text-white">
+                <span className="text-[11px] font-bold tracking-[0.1em] text-gold">
+                  {card.source_kind === "truth"
+                    ? "TRUTH SOURCE"
+                    : card.source_kind === "reading"
+                      ? "FROM READING"
+                      : "CARD"}
+                </span>
+                <p className="font-display m-0 flex-1 text-2xl font-semibold leading-tight">
+                  {card.front}
+                </p>
+                <span className="text-[11px] font-medium text-[#9AA0AA]">
+                  Tap or swipe to flip
+                </span>
+              </div>
+              <div className="flash-face flash-back absolute inset-0 flex flex-col gap-2.5 rounded-[20px] border-2 border-ink bg-white p-[22px]">
+                <span className="text-[11px] font-bold tracking-[0.1em] text-muted">
+                  ANSWER
+                </span>
+                <p className="m-0 flex-1 whitespace-pre-wrap text-base leading-relaxed">
+                  {card.back}
+                </p>
+                {card.citation_ids.length ? (
+                  <span className="self-start rounded-md bg-paper px-1.5 py-0.5 font-mono text-[11px] font-medium">
+                    Truth Source, {card.citation_ids.length} cite
+                    {card.citation_ids.length === 1 ? "" : "s"}
+                  </span>
+                ) : (
+                  <span className="self-start rounded-md bg-cardinal/10 px-1.5 py-0.5 font-mono text-[11px] text-cardinal">
+                    Needs citation
+                  </span>
+                )}
+                {state?.pinned ? (
+                  <span className="self-start rounded-md bg-[#E8F0FE] px-1.5 py-0.5 text-[11px] font-bold text-[#1A56A8]">
+                    Kept in your deck
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          </button>
+
+          {swipeHint && flipped ? (
+            <p className="text-center text-[11px] text-muted">
+              Swipe right: Got it. Left: Missed. Up: Keep in my deck.
+            </p>
+          ) : null}
 
           <button
             type="button"
@@ -185,7 +345,11 @@ export default function FlashcardsPage() {
         </section>
       ) : (
         <section className="flex flex-1 flex-col items-center justify-center gap-3 rounded-[20px] bg-white p-6 text-center text-sm text-muted">
-          <p>No cards due. Leads get decks from Truth Sources; others can opt in.</p>
+          <p>
+            No cards left for today
+            {meta.cramMode ? " (cram target met)" : ""}. Leads get decks from
+            Truth Sources; others can opt in from the roadmap.
+          </p>
           <button
             type="button"
             onClick={() => void refresh()}
@@ -199,29 +363,33 @@ export default function FlashcardsPage() {
       {card && flipped ? (
         <div className="flex flex-col gap-2">
           <span className="text-center text-xs font-semibold text-muted">
-            How well did you know it?
+            How did it go?
           </span>
-          <div className="grid grid-cols-4 gap-1.5">
-            {(
-              [
-                [1, "Again", "bg-[#FDECEC] text-cardinal"],
-                [2, "Hard", "bg-white text-ink"],
-                [3, "Good", "bg-ink text-white"],
-                [4, "Easy", "bg-[#E8F5F1] text-[#0B5E53]"],
-              ] as const
-            ).map(([g, label, cls]) => (
-              <button
-                key={g}
-                type="button"
-                onClick={() => void grade(g)}
-                className={`flex h-14 flex-col items-center justify-center gap-0.5 rounded-xl text-sm font-bold ${cls}`}
-              >
-                {label}
-                <span className="text-[11px] font-medium opacity-80">
-                  {intervals[g]}
-                </span>
-              </button>
-            ))}
+          <div className="grid grid-cols-3 gap-1.5">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void grade("missed")}
+              className="flex h-14 flex-col items-center justify-center gap-0.5 rounded-xl bg-[#FDECEC] text-sm font-bold text-cardinal disabled:opacity-60"
+            >
+              Missed it
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void keepInDeck()}
+              className="flex h-14 flex-col items-center justify-center gap-0.5 rounded-xl bg-white text-sm font-bold text-ink disabled:opacity-60"
+            >
+              Keep in my deck
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void grade("got")}
+              className="flex h-14 flex-col items-center justify-center gap-0.5 rounded-xl bg-ink text-sm font-bold text-white disabled:opacity-60"
+            >
+              Got it
+            </button>
           </div>
         </div>
       ) : null}
