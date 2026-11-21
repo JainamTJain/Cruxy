@@ -183,17 +183,30 @@ export function OnePagerDocument({
               {caseNum}
             </span>
             <div>
-              <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
-                One pager · {team?.name ?? "Team"} · v{page.version}
+              <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
+                <span>One pager</span>
+                <span className="rounded-md bg-[#F7F8FA] px-2 py-0.5 font-semibold normal-case tracking-normal text-[#3B404A]">
+                  {team?.name ?? "Team"}
+                </span>
+                <span className="rounded-md bg-ink px-2 py-0.5 font-semibold normal-case tracking-normal text-white">
+                  v{page.version}
+                </span>
               </div>
               <h1 className="font-display m-0 text-[34px] font-extrabold">
                 {caseRow?.title ?? "Case"}
               </h1>
             </div>
           </div>
-          <span className="text-[13px] text-muted">
-            Leads {roles.lead1}, {roles.lead2} · counter {roles.counter} ·
-            supporter {roles.supporter} · signed off {signed} of {teamSize}
+          <span className="flex max-w-[340px] flex-col items-end gap-0.5 text-right text-[13px] text-muted">
+            <span>
+              Leads {roles.lead1}, {roles.lead2}
+            </span>
+            <span>
+              counter {roles.counter}, supporter {roles.supporter}
+            </span>
+            <span>
+              signed off {signed} of {teamSize}
+            </span>
           </span>
         </header>
 
@@ -265,17 +278,17 @@ export function OnePagerDocument({
                 <div className="rounded-xl bg-[#F7F8FA] p-3">
                   <strong>Concede</strong>
                   <br />
-                  {cc.concede || "—"}
+                  {cc.concede || "Not set"}
                 </div>
                 <div className="rounded-xl bg-[#F7F8FA] p-3">
                   <strong>Distinguish</strong>
                   <br />
-                  {cc.distinguish || "—"}
+                  {cc.distinguish || "Not set"}
                 </div>
                 <div className="rounded-xl bg-[#F7F8FA] p-3">
                   <strong>Rebut</strong>
                   <br />
-                  {cc.rebut || "—"}
+                  {cc.rebut || "Not set"}
                 </div>
               </div>
             ) : null}
@@ -283,7 +296,10 @@ export function OnePagerDocument({
 
           <div className="flex flex-col gap-2.5 rounded-xl bg-[#F7F8FA] p-3.5">
             <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
-              Values in tension · where we land
+              Values in tension
+              <span className="ml-2 font-semibold normal-case tracking-normal text-[#3B404A]">
+                where we land
+              </span>
             </span>
             <div className="relative h-[34px]">
               <div className="absolute top-[15px] right-0 left-0 h-1 rounded-sm bg-[#C9CCD3]" />
@@ -345,7 +361,10 @@ export function OnePagerDocument({
         <section className="grid grid-cols-1 gap-[18px] md:grid-cols-[1fr_1.3fr]">
           <div className="flex flex-col gap-2">
             <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
-              Stakeholders · stake · voice in the case
+              Stakeholders
+              <span className="ml-2 font-semibold normal-case tracking-normal text-[#3B404A]">
+                stake and voice
+              </span>
             </span>
             <div className="grid grid-cols-[1fr_auto] gap-x-2.5 gap-y-1.5 text-[13px]">
               {stakeCells.map((s) => (
@@ -370,7 +389,10 @@ export function OnePagerDocument({
 
           <div className="flex flex-col gap-2">
             <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
-              Hardest questions · our line
+              Hardest questions
+              <span className="ml-2 font-semibold normal-case tracking-normal text-[#3B404A]">
+                our line
+              </span>
             </span>
             <table className="w-full border-collapse text-[13px]">
               <tbody>
@@ -379,7 +401,7 @@ export function OnePagerDocument({
                     <td className="w-[42%] py-2 pr-2 font-semibold align-top">
                       {row.q}
                     </td>
-                    <td className="py-2 align-top">{row.a || "—"}</td>
+                    <td className="py-2 align-top">{row.a || "Not set"}</td>
                   </tr>
                 ))}
               </tbody>

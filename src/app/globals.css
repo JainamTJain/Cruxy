@@ -7,6 +7,9 @@
   --crux-paper: #f3f4f6;
   --crux-mist: #e3e5e9;
   --crux-muted: #5a606b;
+  /* Genie blue sampled from public/cruxy/cruxy-curious.png */
+  --crux-genie: #2f7fe0;
+  --crux-genie-bright: #3ba0f0;
   --crux-team-1: #0f7b6c;
   --crux-team-2: #4f46e5;
   --crux-team-3: #c2410c;
@@ -23,6 +26,8 @@
   --color-paper: var(--crux-paper);
   --color-mist: var(--crux-mist);
   --color-muted: var(--crux-muted);
+  --color-genie: var(--crux-genie);
+  --color-genie-bright: var(--crux-genie-bright);
   --font-display: var(--font-bricolage);
   --font-sans: var(--font-inter);
   --font-mono: var(--font-ibm-plex-mono);
@@ -104,14 +109,6 @@ h1 {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .animate-press,
-  .animate-fade-up,
-  .animate-bob {
-    animation: none !important;
-  }
-}
-
 .animate-bob {
   animation: bob 2.8s ease-in-out infinite;
 }
@@ -142,5 +139,112 @@ h1 {
 @media (prefers-reduced-motion: reduce) {
   .flash-inner {
     transition: none;
+  }
+}
+
+/* Landing: Genie rises out of the lamp beside the wordmark */
+@keyframes genie-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(48px) scale(0.72);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-genie-rise {
+  animation: genie-rise 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Lamp: swirl / smoke when Cruxy goes home */
+@keyframes lamp-swirl {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.6) rotate(0deg);
+  }
+  35% {
+    opacity: 0.85;
+    transform: translateY(-18px) scale(1) rotate(40deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-42px) scale(1.35) rotate(110deg);
+  }
+}
+
+.animate-lamp-swirl {
+  animation: lamp-swirl 700ms ease-out both;
+}
+
+/* Lamp: playful pop when Cruxy is called */
+@keyframes lamp-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.4);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-28px) scale(1.12);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-56px) scale(0.85);
+  }
+}
+
+.animate-lamp-pop {
+  animation: lamp-pop 720ms cubic-bezier(0.22, 1.4, 0.36, 1) both;
+}
+
+@keyframes float-pop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.55);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-float-pop-in {
+  animation: float-pop-in 650ms cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+
+@keyframes float-swirl-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(40px) scale(0.35) rotate(-12deg);
+  }
+}
+
+.animate-float-swirl-out {
+  animation: float-swirl-out 550ms ease-in both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-press,
+  .animate-fade-up,
+  .animate-bob,
+  .animate-genie-rise,
+  .animate-lamp-swirl,
+  .animate-lamp-pop,
+  .animate-float-pop-in,
+  .animate-float-swirl-out {
+    animation: none !important;
   }
 }

@@ -95,7 +95,7 @@ export default function ModeratorBankPage() {
       answer: { feedback: string | null; score: number | null };
     };
     setFeedback(
-      `${data.answer.feedback ?? ""} (score ${data.answer.score?.toFixed(2) ?? "—"})`,
+      `${data.answer.feedback ?? ""} (score ${data.answer.score?.toFixed(2) ?? "Not set"})`,
     );
   }
 

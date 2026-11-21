@@ -49,7 +49,7 @@ type MapData = {
 };
 
 function initials(names: string[]): string {
-  if (!names.length) return "—";
+  if (!names.length) return "Not set";
   return names
     .map((n) => {
       const parts = n.trim().split(/\s+/);

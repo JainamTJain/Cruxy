@@ -48,7 +48,7 @@ export async function ensureDemoProposalQueue(args: {
     text: 'The Stone toured Chicago in the 1980s.',
     kind: "fact",
     origin: "transcript",
-    originRef: "Practice · Nov 12 · 41:10 · Nick",
+    originRef: "Practice, Nov 12, 41:10, Nick",
     ideaKey: "case9-chicago-tour-false",
     citationIds: [],
   });
@@ -64,7 +64,7 @@ export async function ensureDemoProposalQueue(args: {
     if (p) {
       p.cruxy_note =
         "Cruxy found no source: it left London only for wartime storage and one month in Paris (1972).";
-      p.origin_ref = "From practice · Nov 12 · 41:10 · Nick";
+      p.origin_ref = "From practice, Nov 12, 41:10, Nick";
     }
   });
 
@@ -75,7 +75,7 @@ export async function ensureDemoProposalQueue(args: {
     text: "UK Charities Act 2022 moral-obligation power took effect Nov 2025 but excludes the British Museum.",
     kind: "fact",
     origin: "research",
-    originRef: "Museums Association · The Art Newspaper",
+    originRef: "Museums Association, The Art Newspaper",
     ideaKey: "case9-charities-act-exclusion",
     citationIds: ["cite:ma", "cite:artnewspaper"],
   });

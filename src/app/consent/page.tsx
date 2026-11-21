@@ -117,13 +117,14 @@ export default function ConsentPage() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-2xl flex-col px-4 py-10 sm:px-8">
       <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
-        Step 2 of 3 · first time only
+        Step 2 of 3
       </p>
+      <p className="text-xs text-muted">First time only</p>
       <h1 className="mt-2 font-display text-3xl font-extrabold text-ink sm:text-4xl">
         Meet Cruxy
       </h1>
 
-      <div className="mt-6 flex gap-3.5 rounded-2xl bg-[#FFF7DB] p-4">
+      <div className="mt-6 flex gap-3.5 rounded-2xl border-2 border-genie/30 bg-[#FFF7DB] p-4">
         <Image
           src="/cruxy/cruxy-neutral.png"
           alt=""

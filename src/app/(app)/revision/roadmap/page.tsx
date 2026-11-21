@@ -335,7 +335,7 @@ export default function RoadmapPage() {
                               >
                                 {kind === "n"
                                   ? "not needed"
-                                  : formatDue(s.due) || "—"}
+                                  : formatDue(s.due) || "Not set"}
                               </span>
                             </div>
                           );

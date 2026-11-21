@@ -101,6 +101,15 @@ function buildFromAgent(opts: {
   const feedback: FeedbackItem[] = [];
   const redos: RedoRow[] = [];
 
+  const realLineIds = opts.lines.map((l) => l.id);
+  const firstLineId = realLineIds[0] ?? null;
+
+  /** Map agent / fixture citation ids onto real transcript line ids. */
+  function resolveLineId(candidate: string | null | undefined): string | null {
+    if (candidate && realLineIds.includes(candidate)) return candidate;
+    return firstLineId;
+  }
+
   for (const teamId of opts.round.team_ids) {
     const card: JudgeCard = {
       id: randomUUID(),
@@ -121,9 +130,14 @@ function buildFromAgent(opts: {
     cards.push(card);
 
     for (const s of opts.judged.scores) {
-      if (!opts.scored.includes(s.item as AppeItemKey) && opts.scored.length) {
-        // Keep agent items that match scored set when possible
-      }
+      const evidenceIds = [
+        ...new Set(
+          s.evidence
+            .map((e) => resolveLineId(e.line_id))
+            .filter((id): id is string => Boolean(id)),
+        ),
+      ];
+      if (evidenceIds.length === 0) continue;
       scores.push({
         id: randomUUID(),
         card_id: card.id,
@@ -133,7 +147,7 @@ function buildFromAgent(opts: {
           s.comment ??
           APPE_SCORE_ITEMS.find((i) => i.key === s.item)?.question ??
           null,
-        evidence_line_ids: s.evidence.map((e) => e.line_id),
+        evidence_line_ids: evidenceIds.slice(0, 3),
         created_at: at,
       });
     }
@@ -142,13 +156,18 @@ function buildFromAgent(opts: {
   const displayScores = filterDisplayableScores(scores, true);
 
   for (const sf of opts.judged.speaker_feedback) {
-    const quote = opts.lines.find((l) => sf.citation_ids.includes(l.id));
+    const quoteId =
+      resolveLineId(sf.citation_ids.find((id) => realLineIds.includes(id))) ??
+      firstLineId;
+    const personId =
+      opts.lines.find((l) => l.id === quoteId)?.speaker_person_id ??
+      sf.speaker_id;
     const fix: FeedbackItem = {
       id: randomUUID(),
       round_id: opts.round.id,
-      person_id: sf.speaker_id,
+      person_id: personId,
       kind: "fix",
-      quote_line_id: quote?.id ?? null,
+      quote_line_id: quoteId,
       scoring_item: "presentation_b",
       reasoning: sf.why_cost_points,
       better_version: sf.better_version,
@@ -158,9 +177,9 @@ function buildFromAgent(opts: {
     const worked: FeedbackItem = {
       id: randomUUID(),
       round_id: opts.round.id,
-      person_id: sf.speaker_id,
+      person_id: personId,
       kind: "worked",
-      quote_line_id: quote?.id ?? null,
+      quote_line_id: quoteId,
       scoring_item: "presentation_a",
       reasoning: sf.worked,
       better_version: null,
@@ -172,7 +191,7 @@ function buildFromAgent(opts: {
       id: randomUUID(),
       feedback_item_id: fix.id,
       person_id: fix.person_id,
-      transcript_ref: quote?.id ?? null,
+      transcript_ref: quoteId,
       score_before: 6,
       score_after: null,
       open: true,
@@ -181,7 +200,7 @@ function buildFromAgent(opts: {
   }
 
   if (feedback.length === 0) {
-    // Fallback personal feedback from stub path when agent gave none
+    // Fallback personal feedback when the agent gave none
     const speakers = [
       ...new Set(
         opts.lines
@@ -189,15 +208,23 @@ function buildFromAgent(opts: {
           .filter((id): id is string => Boolean(id)),
       ),
     ];
-    const people = speakers.length ? speakers : [];
+    const people =
+      speakers.length > 0
+        ? speakers
+        : // Still produce one fix citing the first line so the bank and redos work.
+          [opts.lines[0]?.speaker_person_id ?? "speaker-unknown"];
     for (const personId of people) {
-      const quote = opts.lines.find((l) => l.speaker_person_id === personId);
+      const quote =
+        opts.lines.find((l) => l.speaker_person_id === personId) ??
+        opts.lines[0] ??
+        null;
+      if (!quote) continue;
       const fix: FeedbackItem = {
         id: randomUUID(),
         round_id: opts.round.id,
         person_id: personId,
         kind: "fix",
-        quote_line_id: quote?.id ?? null,
+        quote_line_id: quote.id,
         scoring_item: "presentation_b",
         reasoning:
           "The moral tension was named late; judges heard a policy answer before the ethical stake.",
@@ -211,7 +238,7 @@ function buildFromAgent(opts: {
         id: randomUUID(),
         feedback_item_id: fix.id,
         person_id: fix.person_id,
-        transcript_ref: quote?.id ?? null,
+        transcript_ref: quote.id,
         score_before: 6,
         score_after: null,
         open: true,
