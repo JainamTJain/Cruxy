@@ -19,14 +19,9 @@ export async function GET(_req: Request, { params }: Params) {
     return NextResponse.json({ error: "Round not found" }, { status: 404 });
   }
 
-  const cases = await listCases();
-  const caseRow = cases.find((c) => c.id === round.case_id) ?? null;
-  const seats = await ensureCruxyJudgeQa({
-    roundId,
-    caseTitle: caseRow?.title ?? null,
-    caseNumber: caseRow?.number ?? null,
-    personId: session.personId,
-  });
+  // Real data only: list seats Cruxy judge mode already wrote.
+  // Do not invent questions on read; empty until Cruxy is judging.
+  const seats = await listCruxyJudgeQa(round.id);
 
   return NextResponse.json({
     seats: seats.map((s) => ({

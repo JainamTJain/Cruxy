@@ -32,8 +32,12 @@ export async function ensureCruxyJudgeQa(opts: {
     personId: opts.personId,
   });
 
-  const saved: CruxyJudgeQaRow[] = [];
+  // Real data only: if Cruxy did not return seats, leave empty (no invented Q&A).
+  if (!generated.length) return existing;
+
+  const saved: CruxyJudgeQaRow[] = [...existing];
   for (const g of generated) {
+    if (saved.some((s) => s.seat_index === g.seat_index)) continue;
     saved.push(
       await upsertCruxyJudgeQa({
         round_id: opts.roundId,
@@ -44,7 +48,7 @@ export async function ensureCruxyJudgeQa(opts: {
       }),
     );
   }
-  return saved;
+  return saved.sort((a, b) => a.seat_index - b.seat_index);
 }
 
 async function generateSeats(opts: {
@@ -56,8 +60,6 @@ async function generateSeats(opts: {
 }): Promise<
   { seat_index: number; question: string; follow_up: string }[]
 > {
-  const fallback = fallbackSeats(opts.seats, opts.caseTitle);
-
   const result = await callCruxy({
     feature: "cruxy_judge_qa",
     tier: "small",
@@ -81,25 +83,22 @@ async function generateSeats(opts: {
     ],
   });
 
-  if (!result.ok || result.stub) return fallback;
+  if (!result.ok || result.stub) return [];
 
   try {
     const parsed = JSON.parse(result.text) as {
       seats?: { seat_index?: number; question?: string; follow_up?: string }[];
     };
-    const seats = (parsed.seats ?? [])
+    return (parsed.seats ?? [])
       .map((s, i) => ({
         seat_index: Number(s.seat_index) || i + 1,
-        question: clean(s.question) || fallback[i]?.question || "What is your view?",
-        follow_up:
-          clean(s.follow_up) ||
-          fallback[i]?.follow_up ||
-          "What would the other side say?",
+        question: clean(s.question),
+        follow_up: clean(s.follow_up),
       }))
+      .filter((s) => s.question && s.follow_up)
       .slice(0, opts.seats);
-    return seats.length ? seats : fallback;
   } catch {
-    return fallback;
+    return [];
   }
 }
 
@@ -108,31 +107,4 @@ function clean(s: string | undefined): string {
     .replace(/·/g, ",")
     .replace(/\u2014|\u2013/g, "-")
     .trim();
-}
-
-function fallbackSeats(
-  seats: number,
-  caseTitle: string,
-): { seat_index: number; question: string; follow_up: string }[] {
-  const bank = [
-    {
-      question: `What is your view on ${caseTitle}, and what are your main reasons?`,
-      follow_up: "Which stakeholder did you leave out, and why does that matter?",
-    },
-    {
-      question:
-        "Where would someone who disagrees press hardest on your claim?",
-      follow_up: "How do you answer that without talking past them?",
-    },
-    {
-      question:
-        "If one fact in the case changed, would your conclusion flip? Which fact?",
-      follow_up: "Why does your principle still hold after that change?",
-    },
-  ];
-  return Array.from({ length: seats }, (_, i) => ({
-    seat_index: i + 1,
-    question: bank[i % bank.length]!.question,
-    follow_up: bank[i % bank.length]!.follow_up,
-  }));
 }

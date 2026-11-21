@@ -42,7 +42,9 @@ export async function GET(req: Request) {
       analyses: [],
       empty: humanCards === 0,
       emptyMessage:
-        "No human judge cards yet. Cruxy is grounded in the APPE Guide to Scoring until real cards arrive.",
+        humanCards === 0
+          ? "No human judge cards yet. Cruxy is grounded in the APPE Guide to Scoring until real cards arrive."
+          : "Open a round's calibration link to see each card's analysis. No invented scores.",
     });
   }
 
