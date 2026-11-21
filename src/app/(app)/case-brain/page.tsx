@@ -14,13 +14,15 @@ export default async function CaseBrainIndexPage() {
   return (
     <main className="animate-fade-up space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-semibold text-ink">
+        <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-muted">
+          Cases · {myTeam?.name ?? "your team"}
+        </p>
+        <h1 className="font-display text-[44px] font-extrabold tracking-[-0.02em] text-ink">
           Case brain
         </h1>
-        <p className="mt-1 text-sm text-muted">
-          Per-team claim maps, Truth Sources, Inspired-by queues and consistency
-          checks
-          {myTeam ? ` · viewing as ${myTeam.name}` : ""}.
+        <p className="mt-1 text-sm text-[#3B404A]">
+          Claim maps, Truth Sources, Inspired-by queues and one pagers for every
+          active case.
         </p>
       </div>
 
@@ -29,14 +31,14 @@ export default async function CaseBrainIndexPage() {
           <li key={c.id}>
             <Link
               href={`/case-brain/${c.id}`}
-              className="block rounded-2xl border border-ink/10 bg-white/70 p-4 transition hover:border-cardinal/40"
+              className="flex items-end gap-4 rounded-[20px] bg-white p-5 transition hover:ring-2 hover:ring-cardinal/30"
             >
-              <p className="font-mono text-xs text-muted">
-                Case {String(c.number).padStart(2, "0")}
-              </p>
-              <p className="font-display text-lg font-semibold text-ink">
+              <span className="font-display text-5xl font-extrabold leading-none text-cardinal">
+                {String(c.number).padStart(2, "0")}
+              </span>
+              <span className="pb-1 font-display text-xl font-extrabold text-ink">
                 {c.title}
-              </p>
+              </span>
             </Link>
           </li>
         ))}

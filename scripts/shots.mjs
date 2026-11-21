@@ -8,14 +8,16 @@ import { join } from "node:path";
 const BASE = process.env.SHOTS_BASE ?? "http://localhost:3000";
 const OUT = ".shots";
 const STARTER = "482913"; // sample-data starter only
-// Case 1 stable sample-data id (Workstream B seed)
+// Case 9 (GEM in the Rough) — CaseBrain.html / OnePager.html reference
+const CASE9 = "c0000000-0000-4000-8000-000000000009";
+const TEAM3 = "33333333-3333-3333-3333-333333333333";
 const CASE1 = "c0000000-0000-4000-8000-000000000001";
 const PAIRS = [
   ["/sign-in", "Main.html", false],
   ["/home", "Home.html", true],
   ["/revision/roadmap", "Roadmap.html", true],
-  [`/case-brain/${CASE1}`, "CaseBrain.html", true],
-  ["/revision/one-pagers", "OnePager.html", true],
+  [`/case-brain/${CASE9}`, "CaseBrain.html", true],
+  [`/revision/one-pagers?caseId=${CASE9}&teamId=${TEAM3}`, "OnePager.html", true],
   ["/revision/questions", "Roadmap.html", true],
   ["/library", "Reading.html", true],
   ["/practice", "Practice.html", true],
@@ -51,7 +53,7 @@ for (const [w, h, tag] of [[1440, 1000, "desktop"], [390, 844, "phone"]]) {
   });
   for (const [route, ref, needsAuth] of PAIRS) {
     if (needsAuth && !(await ctx.cookies()).length) await signIn(ctx);
-    const name = route.replace(/\//g, "_").replace(/^_/, "") || "root";
+    const name = route.replace(/\//g, "_").replace(/^_/, "").replace(/[?&=]/g, "_") || "root";
     try {
       await page.goto(BASE + route, { waitUntil: "networkidle" });
       // One pagers default to Team 1; seeded content is Team 3.

@@ -1,102 +1,172 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { OnePagerDocument } from "@/components/case-brain/one-pager-document";
 import type { OnePager } from "@/lib/revision/types";
 import type { CaseRow, Team } from "@/lib/types";
 
 type Meta = { cases: CaseRow[]; teams: Team[] };
 
-export default function OnePagersPage() {
+type BrainLite = {
+  case: CaseRow | null;
+  people: { id: string; name: string; team_id: string | null }[];
+  brain: {
+    case_roles: { role: string; person_id: string }[];
+    team_id: string;
+  };
+  viewer: { personId: string; teamId: string };
+};
+
+function OnePagersInner() {
+  const search = useSearchParams();
   const [meta, setMeta] = useState<Meta | null>(null);
-  const [teamId, setTeamId] = useState("");
-  const [caseId, setCaseId] = useState("");
+  const [teamId, setTeamId] = useState(search.get("teamId") ?? "");
+  const [caseId, setCaseId] = useState(search.get("caseId") ?? "");
   const [page, setPage] = useState<OnePager | null>(null);
-  const [diff, setDiff] = useState<
-    { path: string; before: string; after: string }[]
-  >([]);
+  const [brain, setBrain] = useState<BrainLite | null>(null);
   const [status, setStatus] = useState("");
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     void (async () => {
       const res = await fetch("/api/revision/one-pagers");
       const data = (await res.json()) as Meta;
       setMeta(data);
-      if (data.teams[0]) setTeamId(data.teams[0].id);
-      if (data.cases[0]) setCaseId(data.cases[0].id);
+      if (!teamId && data.teams.find((t) => t.name === "Team 3")) {
+        setTeamId(data.teams.find((t) => t.name === "Team 3")!.id);
+      } else if (!teamId && data.teams[0]) {
+        setTeamId(data.teams[0].id);
+      }
+      // Prefer Case 9 (GEM) when no case chosen — matches the reference
+      if (!caseId) {
+        const gem = data.cases.find((c) => c.number === 9);
+        setCaseId(gem?.id ?? data.cases[0]?.id ?? "");
+      }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function load() {
+  async function loadPager() {
     if (!teamId || !caseId) return;
     const res = await fetch(
       `/api/revision/one-pagers?teamId=${teamId}&caseId=${caseId}`,
     );
-    const data = (await res.json()) as {
-      onePager: OnePager | null;
-      diff: typeof diff;
-    };
+    const data = (await res.json()) as { onePager: OnePager | null };
     setPage(data.onePager);
-    setDiff(data.diff);
+  }
+
+  async function loadBrain() {
+    if (!caseId || !teamId) return;
+    const res = await fetch(
+      `/api/case-brain/${caseId}?teamId=${encodeURIComponent(teamId)}`,
+    );
+    if (!res.ok) return;
+    const data = (await res.json()) as BrainLite;
+    setBrain(data);
   }
 
   useEffect(() => {
-    if (teamId && caseId) void load();
+    if (teamId && caseId) {
+      void loadPager();
+      void loadBrain();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId, caseId]);
 
+  const roles = useMemo(() => {
+    const people = brain?.people ?? [];
+    const name = (role: string) => {
+      const id = brain?.brain.case_roles.find((r) => r.role === role)?.person_id;
+      return people.find((p) => p.id === id)?.name ?? "—";
+    };
+    return {
+      lead1: name("lead_1"),
+      lead2: name("lead_2"),
+      counter: name("counter_arguer"),
+      supporter: name("supporter"),
+    };
+  }, [brain]);
+
+  const team = meta?.teams.find((t) => t.id === teamId) ?? null;
+  const caseRow =
+    meta?.cases.find((c) => c.id === caseId) ?? brain?.case ?? null;
+  const teamSize =
+    brain?.people.filter((p) => p.team_id === teamId).length ?? 4;
+  const canSign = Boolean(
+    page && brain && brain.viewer.teamId === page.team_id,
+  );
+
   async function draft() {
+    if (!teamId || !caseId) return;
+    setBusy(true);
     setStatus("Drafting…");
-    const res = await fetch("/api/revision/one-pagers", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "draft", teamId, caseId }),
-    });
-    const data = (await res.json()) as { onePager: OnePager };
-    setPage(data.onePager);
-    setStatus(`Drafted v${data.onePager.version}`);
-    await load();
+    try {
+      const res = await fetch("/api/revision/one-pagers", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "draft", teamId, caseId }),
+      });
+      const data = (await res.json()) as { onePager: OnePager; error?: string };
+      if (!res.ok) {
+        setStatus(data.error ?? "Draft failed");
+        return;
+      }
+      setPage(data.onePager);
+      setStatus(`Drafted v${data.onePager.version}`);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function signOff() {
     if (!page) return;
-    await fetch("/api/revision/one-pagers", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "signoff", onePagerId: page.id }),
-    });
-    setStatus("Signed off");
-    await load();
+    setBusy(true);
+    try {
+      await fetch("/api/revision/one-pagers", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "signoff", onePagerId: page.id }),
+      });
+      setStatus(`Signed off v${page.version}`);
+      await loadPager();
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function exportDrive() {
     if (!page) return;
-    const res = await fetch("/api/revision/one-pagers", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "export", onePagerId: page.id }),
-    });
-    const data = (await res.json()) as { drive_doc_id: string; stub: boolean };
-    setStatus(
-      data.stub
-        ? `Drive export stub: ${data.drive_doc_id} (needs DRIVE_ROOT_FOLDER_ID)`
-        : `Exported ${data.drive_doc_id}`,
-    );
+    setBusy(true);
+    try {
+      const res = await fetch("/api/revision/one-pagers", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "export", onePagerId: page.id }),
+      });
+      const data = (await res.json()) as {
+        drive_doc_id: string;
+        stub: boolean;
+      };
+      setStatus(
+        data.stub
+          ? `Drive export ready as stub ${data.drive_doc_id}`
+          : `Saved to Drive as ${data.drive_doc_id}`,
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function exportPdf() {
+    window.print();
   }
 
   return (
-    <main className="animate-fade-up space-y-6">
-      <div>
-        <h1 className="font-display text-3xl font-semibold">One pagers</h1>
-        <p className="mt-1 text-sm text-muted">
-          Visual printable page from your claim map. Cruxy drafts; the team edits and
-          signs off.
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-3">
+    <div className="-mx-2 space-y-4 md:-mx-4">
+      <div className="flex flex-wrap gap-3 print:hidden">
         <select
-          className="rounded-xl border border-ink/15 bg-white/80 px-3 py-2 text-sm"
+          className="rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm"
           value={teamId}
           onChange={(e) => setTeamId(e.target.value)}
         >
@@ -107,7 +177,7 @@ export default function OnePagersPage() {
           ))}
         </select>
         <select
-          className="rounded-xl border border-ink/15 bg-white/80 px-3 py-2 text-sm"
+          className="rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm"
           value={caseId}
           onChange={(e) => setCaseId(e.target.value)}
         >
@@ -117,100 +187,49 @@ export default function OnePagersPage() {
             </option>
           ))}
         </select>
-        <Button type="button" onClick={() => void draft()}>
-          Draft / re-draft
-        </Button>
-        <Button type="button" variant="secondary" onClick={() => void signOff()}>
-          Sign off
-        </Button>
-        <Button type="button" variant="ghost" onClick={() => void exportDrive()}>
-          Export to Drive
-        </Button>
       </div>
-      {status ? <p className="text-xs text-muted">{status}</p> : null}
 
       {page ? (
-        <div className="space-y-6 print:bg-white">
-          <div className="rounded-2xl border border-ink/10 bg-white/80 p-5">
-            <p className="text-xs text-muted">
-              v{page.version} · {page.origin_tag} ·{" "}
-              {page.body.empty_rows.length
-                ? `${page.body.empty_rows.length} empty rows`
-                : "complete"}{" "}
-              · signed by {page.signed_off_by.length}
-            </p>
-            <div className="mt-4 space-y-4">
-              {page.body.claims.map((c, i) => (
-                <div key={i}>
-                  <h2 className="font-display text-lg font-semibold">
-                    Claim {i + 1}
-                  </h2>
-                  <p className="text-sm">{c.text || <em className="text-muted">empty</em>}</p>
-                  <p className="mt-1 text-xs text-muted">Because… {c.logic_line || "—"}</p>
-                  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-                    {c.supports.map((s, j) => (
-                      <li key={j}>{s || <em className="text-muted">empty support</em>}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-              {page.body.counterclaim ? (
-                <div>
-                  <h2 className="font-display text-lg font-semibold">Counterclaim</h2>
-                  <p className="text-sm">{page.body.counterclaim.text}</p>
-                  <p className="mt-2 text-xs">
-                    Concede: {page.body.counterclaim.concede}
-                  </p>
-                  <p className="text-xs">
-                    Distinguish: {page.body.counterclaim.distinguish}
-                  </p>
-                  <p className="text-xs">Rebut: {page.body.counterclaim.rebut}</p>
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          <section>
-            <h2 className="font-display text-xl font-semibold">Visuals</h2>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {page.body.visuals.map((v) => (
-                <div
-                  key={v.kind}
-                  className="rounded-2xl border border-ink/10 bg-mist/40 p-4"
-                >
-                  <p className="text-xs uppercase tracking-wide text-muted">
-                    {v.kind.replace(/_/g, " ")}
-                  </p>
-                  <h3 className="font-display font-semibold">{v.title}</h3>
-                  <pre className="mt-2 overflow-x-auto whitespace-pre-wrap font-mono text-[11px] text-ink/80">
-                    {JSON.stringify(v.payload, null, 2)}
-                  </pre>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {diff.length ? (
-            <section>
-              <h2 className="font-display text-xl font-semibold">Diff since last</h2>
-              <ul className="mt-2 space-y-2 text-sm">
-                {diff.map((d) => (
-                  <li key={d.path} className="rounded-xl bg-white/70 px-3 py-2">
-                    <span className="font-mono text-xs text-muted">{d.path}</span>
-                    <div>
-                      <span className="line-through text-muted">{d.before || "∅"}</span>
-                      {" → "}
-                      <span className="text-cardinal">{d.after || "∅"}</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-        </div>
+        <OnePagerDocument
+          page={page}
+          caseRow={caseRow}
+          team={team}
+          roles={roles}
+          teamSize={teamSize}
+          canSign={canSign}
+          busy={busy}
+          status={status}
+          onSignOff={() => void signOff()}
+          onExportPdf={exportPdf}
+          onExportDrive={() => void exportDrive()}
+          onRedraft={() => void draft()}
+        />
       ) : (
-        <p className="text-sm text-muted">No one pager yet — draft one.</p>
+        <div className="rounded-[20px] bg-white p-8">
+          <p className="text-sm text-muted">
+            No one pager yet for this team and case.
+          </p>
+          <button
+            type="button"
+            disabled={busy || !teamId || !caseId}
+            onClick={() => void draft()}
+            className="mt-4 rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            Ask Cruxy to draft
+          </button>
+          {status ? <p className="mt-2 text-xs text-muted">{status}</p> : null}
+        </div>
       )}
-    </main>
+    </div>
+  );
+}
+
+export default function OnePagersPage() {
+  return (
+    <Suspense
+      fallback={<p className="text-sm text-muted">Loading one pager…</p>}
+    >
+      <OnePagersInner />
+    </Suspense>
   );
 }

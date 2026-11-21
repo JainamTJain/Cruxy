@@ -139,21 +139,21 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-111 Case roles: Lead 1, Lead 2, counter-arguer, supporter, shown at the top and editable by any team member (see Assignments). · [src/lib/seed/build-content.ts, supabase/seed/06_flashcards_roles_proposals.sql]
 - [x] F-112 **Likely opposing positions.** For each case, Cruxy builds the 3 or 4 positions other universities are most likely to present, each with its strongest support, its weak point, and two commentary angles. Teams add positions they hear at competitions. This is what the commenter prepares from. · [src/lib/seed/build-content.ts, supabase/seed/05_opposing_and_one_pagers.sql]
 - [x] F-113 Proposals come from four places: practice transcripts, research, the reading room, and other teams' edits ("Inspired by Team 1"). · [src/lib/seed/build-content.ts (Inspired by Team 3 proposals)]
-- [ ] F-114 Each proposal shows the idea, its origin tag, its source, and a one line Cruxy note only when there's a problem (unverified, contradicts a Truth Source, weak support). No note means it passed the acceptable, relevant, sufficient check.
-- [ ] F-115 A member decides with ✅, ❌ or edit, and must write a reason (one line minimum). Decisions are by anyone on the team.
-- [ ] F-116 Every team sees every other team's decisions and reasons next to the same idea, so disagreements are visible and useful.
-- [ ] F-117 Full history per item: who proposed, who decided, when, why, and every edit. Anything can be reopened.
-- [ ] F-118 **Socratic before borrowing.** Before a team decides on an "Inspired by Team N" proposal, Cruxy asks one question first ("Does this fit your Claim 2, or does it pull against your principle in Case 12?"), so teams think it through rather than copy.
-- [ ] F-119 A robustness bar per claim: supports backed, counterclaims answered, moderator questions answered, unverified facts open.
-- [ ] F-120 Consistency check across cases: Cruxy flags when a team's principle in one case clashes with another case (for example, least restrictive tool in Case 12 versus Case 13), using the cross-case principles table.
-- [ ] F-121 Change the facts check: Cruxy lists the single facts that, if changed, would flip each claim, so the team prepares those answers.
+- [x] F-114 Each proposal shows the idea, its origin tag, its source, and a one line Cruxy note only when there's a problem (unverified, contradicts a Truth Source, weak support). No note means it passed the acceptable, relevant, sufficient check. [src/components/case-brain/case-brain-client.tsx]
+- [x] F-115 A member decides with ✅, ❌ or edit, and must write a reason (one line minimum). Decisions are by anyone on the team. [src/app/api/case-brain/decisions/route.ts]
+- [x] F-116 Every team sees every other team's decisions and reasons next to the same idea, so disagreements are visible and useful. [src/components/case-brain/case-brain-client.tsx]
+- [x] F-117 Full history per item: who proposed, who decided, when, why, and every edit. Anything can be reopened. [src/components/case-brain/case-brain-client.tsx]
+- [x] F-118 **Socratic before borrowing.** Before a team decides on an "Inspired by Team N" proposal, Cruxy asks one question first ("Does this fit your Claim 2, or does it pull against your principle in Case 12?"), so teams think it through rather than copy. [src/components/case-brain/case-brain-client.tsx]
+- [x] F-119 A robustness bar per claim: supports backed, counterclaims answered, moderator questions answered, unverified facts open. [src/components/case-brain/claim-robustness.tsx]
+- [x] F-120 Consistency check across cases: Cruxy flags when a team's principle in one case clashes with another case (for example, least restrictive tool in Case 12 versus Case 13), using the cross-case principles table. [src/components/case-brain/case-brain-client.tsx]
+- [x] F-121 Change the facts check: Cruxy lists the single facts that, if changed, would flip each claim, so the team prepares those answers. [src/components/case-brain/case-brain-client.tsx]
 
 ## Revision
 
 - [x] F-122 Cruxy drafts each team's one pager per case from its claim map, in the 2 claims, 3 supports, counterclaim format. The team edits it; Cruxy only re-drafts on request. · [src/lib/seed/build-content.ts, supabase/seed/05_opposing_and_one_pagers.sql]
-- [ ] F-123 Shown as a printable page and exported to the Drive as a Google Doc and PDF.
-- [ ] F-124 A diff view shows what changed since the last version and who changed it.
-- [ ] F-125 **Visual one pagers.** One pagers are built to be seen, not just read: the claim map as connected boxes, a values-in-tension scale, a stakeholder grid, a timeline of the case facts, a framework strip with one line each, and a table of likely questions with our one line answers. Cruxy picks the visual for each part and the team edits it. There is no limit on how much Cruxy drafts; the team signs it off.
+- [x] F-123 Shown as a printable page and exported to the Drive as a Google Doc and PDF. [src/app/(app)/revision/one-pagers/page.tsx]
+- [x] F-124 A diff view shows what changed since the last version and who changed it. [src/app/api/revision/one-pagers/route.ts]
+- [x] F-125 **Visual one pagers.** One pagers are built to be seen, not just read: the claim map as connected boxes, a values-in-tension scale, a stakeholder grid, a timeline of the case facts, a framework strip with one line each, and a table of likely questions with our one line answers. Cruxy picks the visual for each part and the team edits it. There is no limit on how much Cruxy drafts; the team signs it off. [src/components/case-brain/one-pager-document.tsx]
 - [x] F-126 Generated from readings, Truth Sources and the case card: facts with page numbers, claims and their logic lines, frameworks in one sentence, counterclaim responses, and change the facts answers. · [src/lib/seed/build-content.ts, supabase/seed/06_flashcards_roles_proposals.sql]
 - [x] F-127 Assigned by role: leads get their cases' decks automatically. Anyone else can add any deck, and their profile shows "studying Case 9 (not assigned)". · [src/lib/seed/build-content.ts deck_opt_ins for leads]
 - [ ] F-128 Spaced repetition: cards come back sooner when missed (SM-2 or FSRS scheduling), and answers can be typed or spoken.
