@@ -142,6 +142,6 @@ export function doNextActions(
   return open.slice(0, limit).map((s) => {
     const title = caseTitles.get(s.case_id) ?? "a case";
     const overdue = s.due && s.due < today ? " (overdue)" : "";
-    return `${labels[s.stage]} — ${title}${overdue}`;
+    return `${labels[s.stage]}: ${title}${overdue}`;
   });
 }
