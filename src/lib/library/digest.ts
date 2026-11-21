@@ -1,3 +1,4 @@
+import { looksLikeReadableText } from "@/lib/library/text-quality";
 import { randomUUID } from "crypto";
 import { runLibrarianTag } from "@/lib/cruxy/agents/librarian";
 import type { LibrarianTagOutput } from "@/lib/cruxy/schemas/librarian";
@@ -299,17 +300,26 @@ export async function splitAndEmbedPassages(
   const bodies = splitPassageBodies(text, opts);
   let aiCalls = 0;
   const passages: Passage[] = [];
-  for (const body of bodies) {
-    if (opts.skipEmbed) {
-      passages.push({ ...body, embedding: stubEmbed(body.text || "empty") });
-      continue;
+  // Embed 8 passages at a time so long files finish inside one sync run.
+  const BATCH = 8;
+  for (let i = 0; i < bodies.length; i += BATCH) {
+    const batch = bodies.slice(i, i + BATCH);
+    const results = await Promise.all(
+      batch.map(async (body) => {
+        if (opts.skipEmbed || !looksLikeReadableText(body.text)) {
+          return { body, embedding: stubEmbed(body.text || "empty"), calls: 0 };
+        }
+        const emb = await embedPassageText(body.text, {
+          personId: opts.personId ?? opts.createdBy,
+          feature: "passage_embed",
+        });
+        return { body, embedding: emb.embedding, calls: emb.aiCalls };
+      }),
+    );
+    for (const r of results) {
+      aiCalls += r.calls;
+      passages.push({ ...r.body, embedding: r.embedding });
     }
-    const emb = await embedPassageText(body.text, {
-      personId: opts.personId ?? opts.createdBy,
-      feature: "passage_embed",
-    });
-    aiCalls += emb.aiCalls;
-    passages.push({ ...body, embedding: emb.embedding });
   }
   return { passages, aiCalls };
 }

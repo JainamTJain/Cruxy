@@ -301,6 +301,8 @@ export async function listDriveFiles(): Promise<{
 
   const files: DriveListedFile[] = [];
   const queue: { id: string; path: string }[] = [{ id: folderId, path: "" }];
+  const seenFolders = new Set<string>([folderId]);
+  const seenFiles = new Set<string>();
 
   try {
     while (queue.length) {
@@ -326,16 +328,30 @@ export async function listDriveFiles(): Promise<{
             continue;
           }
           const path = `${folder.path}/${f.name}`;
-          if (f.mimeType === "application/vnd.google-apps.folder") {
-            queue.push({ id: f.id, path });
+          // Shortcuts: follow them to their target folder or file.
+          let targetId = f.id;
+          let targetMime = f.mimeType;
+          if (f.mimeType === "application/vnd.google-apps.shortcut") {
+            const sc = f.shortcutDetails;
+            if (!sc?.targetId || !sc.targetMimeType) continue;
+            targetId = sc.targetId;
+            targetMime = sc.targetMimeType;
+          }
+          if (targetMime === "application/vnd.google-apps.folder") {
+            if (!seenFolders.has(targetId)) {
+              seenFolders.add(targetId);
+              queue.push({ id: targetId, path });
+            }
             continue;
           }
+          if (seenFiles.has(targetId)) continue;
+          seenFiles.add(targetId);
           const modified = f.modifiedTime ?? new Date().toISOString();
           files.push({
-            drive_id: f.id,
+            drive_id: targetId,
             name: f.name,
             path,
-            mime: f.mimeType,
+            mime: targetMime,
             modified_at: modified,
             checksum:
               f.md5Checksum ?? checksumOf(`${f.id}|${modified}|${f.name}`),
@@ -353,6 +369,22 @@ export async function listDriveFiles(): Promise<{
   }
 
   return { files, stub: false, notes: null };
+}
+
+/** Real PDF text with unpdf (pure JS, runs on Vercel); falls back to the old scrape. */
+async function extractPdfText(
+  buf: Buffer,
+): Promise<{ text: string; scanned: boolean }> {
+  try {
+    const { extractText, getDocumentProxy } = await import("unpdf");
+    const pdf = await getDocumentProxy(new Uint8Array(buf));
+    const { text } = await extractText(pdf, { mergePages: true });
+    const clean = (Array.isArray(text) ? text.join("\n\n") : text).trim();
+    if (clean.length < 40) return { text: "", scanned: true };
+    return { text: clean, scanned: false };
+  } catch {
+    return extractPrintableFromPdf(buf);
+  }
 }
 
 function extractPrintableFromPdf(buf: Buffer): {
@@ -425,7 +457,7 @@ export async function extractDriveText(
     const buf = Buffer.from(res.data as ArrayBuffer);
 
     if (listed.mime === "application/pdf") {
-      const extracted = extractPrintableFromPdf(buf);
+      const extracted = await extractPdfText(buf);
       if (extracted.scanned) {
         return {
           text: `[Scanned PDF flagged for Jainam: ${listed.name}]`,
@@ -436,11 +468,27 @@ export async function extractDriveText(
       return { text: extracted.text, scannedPdf: false, stub: false };
     }
 
-    // Plain text / csv / markdown / docx-ish: prefer utf8 printable
-    const text = buf.toString("utf8");
-    const printable = text.replace(/[^\x20-\x7E\n\r\t]/g, "");
+    if (
+      listed.mime ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      /\.docx$/i.test(listed.name)
+    ) {
+      const mammoth = await import("mammoth");
+      const out = await mammoth.extractRawText({ buffer: buf });
+      return { text: out.value ?? "", scannedPdf: false, stub: false };
+    }
+
+    if (
+      listed.mime.startsWith("text/") ||
+      /\.(txt|md|csv|tsv|json)$/i.test(listed.name)
+    ) {
+      return { text: buf.toString("utf8"), scannedPdf: false, stub: false };
+    }
+
+    // Other binaries (images, slides, spreadsheets uploaded as files, archives):
+    // never feed raw bytes to the library.
     return {
-      text: printable.trim().length > 20 ? printable : text,
+      text: `[Not readable as text yet: ${listed.name} (${listed.mime})]`,
       scannedPdf: false,
       stub: false,
     };

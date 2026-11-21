@@ -46,7 +46,7 @@ export async function embedPassageText(
 ): Promise<{ embedding: number[]; aiCalls: number; stub: boolean }> {
   const result = await embedCruxy({
     feature: opts?.feature ?? "passage_embed",
-    value: text.slice(0, 8000),
+    value: text.slice(0, 6000),
     personId: opts?.personId ?? null,
   });
   if (!result.ok || result.stub || result.embedding.length === 0) {
