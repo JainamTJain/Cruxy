@@ -39,7 +39,13 @@ type Overview = {
     alert80: boolean;
     atCap: boolean;
   } | null;
-  books: { id: string; title: string; chapter: string | null; case_label: string | null }[] | null;
+  books: {
+    id: string;
+    title: string;
+    chapter: string | null;
+    case_id: string | null;
+    status: string;
+  }[] | null;
   driveSortQueue: { id: string; filename: string; hint: string; confidence: number; status: string }[] | null;
   calibration: { id: string; label: string; gap: number; judge_name: string | null; human_cards: number }[] | null;
   activity: {
@@ -277,12 +283,16 @@ export default function AdminPage() {
                 <li key={b.id}>
                   {b.title}
                   {b.chapter ? ` · ${b.chapter}` : ""}
-                  {b.case_label ? (
-                    <span className="text-muted"> · {b.case_label}</span>
-                  ) : null}
+                  <span className="text-muted"> · {b.status}</span>
                 </li>
               ))}
             </ul>
+            <Link
+              href="/admin/books"
+              className="mt-3 inline-block text-sm text-cardinal underline"
+            >
+              Open book requests
+            </Link>
           </div>
           <div className="rounded-2xl border border-cardinal/20 bg-white/70 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-cardinal">
@@ -291,6 +301,12 @@ export default function AdminPage() {
             <h2 className="mt-1 font-display text-xl font-semibold">
               Drive sorting queue
             </h2>
+            <Link
+              href="/library/sorting"
+              className="mt-1 block text-xs text-muted underline"
+            >
+              Full library sorting
+            </Link>
             <ul className="mt-3 space-y-2 text-sm">
               {(data.driveSortQueue ?? [])
                 .filter((d) => d.status === "pending")
@@ -350,6 +366,12 @@ export default function AdminPage() {
             className="rounded-xl bg-cardinal px-4 py-2 text-sm text-white"
           >
             Passcodes
+          </Link>
+          <Link
+            href="/admin/books"
+            className="rounded-xl border border-ink/15 bg-white/70 px-4 py-2 text-sm"
+          >
+            Book requests
           </Link>
           <Link
             href="/admin/working"

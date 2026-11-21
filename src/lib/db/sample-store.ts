@@ -29,7 +29,6 @@ import type {
   ActivityLogEntry,
   AiCall,
   AuthCode,
-  BookRequest,
   CalibrationRow,
   CaseRow,
   Competition,
@@ -41,6 +40,16 @@ import type {
   SpendCaps,
   Team,
 } from "@/lib/types";
+import type {
+  BookRequest,
+  Comment,
+  Flashcard,
+  Highlight,
+  LibraryFile,
+  Passage,
+  ResearchRun,
+  SyncRun,
+} from "@/lib/library/types";
 import { hashPasscode } from "@/lib/crypto/passcodes";
 import { nowIso } from "@/lib/utils";
 
@@ -59,13 +68,21 @@ export interface SampleStore {
   readiness: ReadinessCell[];
   program_totals: ProgramTotals;
   spend_caps: SpendCaps;
-  book_requests: BookRequest[];
   drive_sort_queue: DriveSortItem[];
   calibration: CalibrationRow[];
   competition_logs: CompetitionLogEntry[];
   feature_useful: { feature: string; person_id: string; at: string }[];
   last_visits: Record<string, string>;
-  /** Track 2 Case brain */
+  /** Track 1 Library */
+  files: LibraryFile[];
+  passages: Passage[];
+  highlights: Highlight[];
+  comments: Comment[];
+  flashcards: Flashcard[];
+  research_runs: ResearchRun[];
+  book_requests: BookRequest[];
+  sync_runs: SyncRun[];
+  /** Track 2 Case brain (proposals shared with Library research/reading) */
   claims: Claim[];
   supports: Support[];
   backings: Backing[];
@@ -111,6 +128,29 @@ function emptyCaseBrainFields(): Pick<
     item_history: [],
     team_principles: [],
     change_the_facts: [],
+  };
+}
+
+function emptyLibraryFields(): Pick<
+  SampleStore,
+  | "files"
+  | "passages"
+  | "highlights"
+  | "comments"
+  | "flashcards"
+  | "research_runs"
+  | "book_requests"
+  | "sync_runs"
+> {
+  return {
+    files: [],
+    passages: [],
+    highlights: [],
+    comments: [],
+    flashcards: [],
+    research_runs: [],
+    book_requests: [],
+    sync_runs: [],
   };
 }
 
@@ -433,28 +473,6 @@ export async function buildSeedStore(): Promise<SampleStore> {
       updated_at: nowIso(),
       updated_by: null,
     },
-    book_requests: [
-      {
-        id: randomUUID(),
-        title: "Who Owns Antiquity?",
-        reason: "Case 9 context",
-        chapter: "ch. 3",
-        case_label: "Case 9",
-        status: "open",
-        created_at: daysAgo(3),
-        created_by: jainam?.id ?? null,
-      },
-      {
-        id: randomUUID(),
-        title: "The Harm in Hate Speech",
-        reason: "Case 13",
-        chapter: null,
-        case_label: "Case 13",
-        status: "open",
-        created_at: daysAgo(5),
-        created_by: jainam?.id ?? null,
-      },
-    ],
     drive_sort_queue: [
       {
         id: randomUUID(),
@@ -488,6 +506,29 @@ export async function buildSeedStore(): Promise<SampleStore> {
     competition_logs: [],
     feature_useful: [],
     last_visits: {},
+    ...emptyLibraryFields(),
+    book_requests: [
+      {
+        id: randomUUID(),
+        title: "Who Owns Antiquity?",
+        reason: "Case 9 context",
+        chapter: "ch. 3",
+        case_id: cases.find((c) => c.number === 9)?.id ?? null,
+        status: "open",
+        created_at: daysAgo(3),
+        created_by: jainam?.id ?? null,
+      },
+      {
+        id: randomUUID(),
+        title: "The Harm in Hate Speech",
+        reason: "Case 13",
+        chapter: null,
+        case_id: cases.find((c) => c.number === 13)?.id ?? null,
+        status: "open",
+        created_at: daysAgo(5),
+        created_by: jainam?.id ?? null,
+      },
+    ],
     ...emptyCaseBrainFields(),
     seeded_at: nowIso(),
     last_tech_reauth_at: null,
@@ -529,6 +570,15 @@ function migrateStore(raw: SampleStore): SampleStore {
   if (!raw.last_visits) raw.last_visits = {};
 
   const brain = emptyCaseBrainFields();
+  const library = emptyLibraryFields();
+  raw.files = raw.files ?? library.files;
+  raw.passages = raw.passages ?? library.passages;
+  raw.highlights = raw.highlights ?? library.highlights;
+  raw.comments = raw.comments ?? library.comments;
+  raw.flashcards = raw.flashcards ?? library.flashcards;
+  raw.research_runs = raw.research_runs ?? library.research_runs;
+  raw.book_requests = raw.book_requests ?? library.book_requests;
+  raw.sync_runs = raw.sync_runs ?? library.sync_runs;
   raw.claims = raw.claims ?? brain.claims;
   raw.supports = raw.supports ?? brain.supports;
   raw.backings = raw.backings ?? brain.backings;

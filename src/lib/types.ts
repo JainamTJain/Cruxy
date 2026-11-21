@@ -128,16 +128,7 @@ export interface SpendCaps {
   updated_by: string | null;
 }
 
-export interface BookRequest {
-  id: string;
-  title: string;
-  reason: string | null;
-  chapter: string | null;
-  case_label: string | null;
-  status: "open" | "uploaded" | "sorted" | "rejected";
-  created_at: string;
-  created_by: string | null;
-}
+/** Book requests live in `@/lib/library/types` (Track 1). */
 
 export interface DriveSortItem {
   id: string;

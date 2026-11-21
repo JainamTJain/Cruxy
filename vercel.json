@@ -1,6 +1,14 @@
 {
   "crons": [
     {
+      "path": "/api/cron/drive-sync",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/research",
+      "schedule": "30 7 * * *"
+    },
+    {
       "path": "/api/cron/weekly-summary",
       "schedule": "0 2 * * 1"
     }

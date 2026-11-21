@@ -9,7 +9,6 @@ import type {
   ActivityLogEntry,
   AiCall,
   AuthCode,
-  BookRequest,
   CalibrationRow,
   CaseRow,
   Competition,
@@ -24,6 +23,7 @@ import type {
   Team,
   WeeklyEmailPreview,
 } from "@/lib/types";
+import type { BookRequest } from "@/lib/library/types";
 import { nowIso } from "@/lib/utils";
 import {
   MONTHLY_CAP_USD_DEFAULT,
