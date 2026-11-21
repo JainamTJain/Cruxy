@@ -21,6 +21,10 @@ export {
 export { adminDeletePersonPrivateData } from "@/lib/ops/privacy-delete";
 export { runSeasonEndExport } from "@/lib/ops/season-export";
 export { runSupabaseKeepalive } from "@/lib/ops/keepalive";
-export { runWeeklyLogicalBackup, BACKUP_TABLES } from "@/lib/ops/backup";
+export {
+  runWeeklyLogicalBackup,
+  getBackupStatus,
+  BACKUP_TABLES,
+} from "@/lib/ops/backup";
 export { checkAndSendSpendAlert } from "@/lib/ops/spend-alert";
 export { sendOpsEmail } from "@/lib/ops/email";
