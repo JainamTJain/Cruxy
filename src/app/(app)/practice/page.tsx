@@ -132,7 +132,7 @@ export default function PracticePage() {
       <div>
         <h1 className="font-display text-3xl font-semibold">Practice</h1>
         <p className="mt-1 text-sm text-muted">
-          Start alone or with a team — no admin needed. Admins also set up group days.
+          Start alone or with a team. No admin needed. Admins also set up group days.
         </p>
       </div>
 
