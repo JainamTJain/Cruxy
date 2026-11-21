@@ -19,6 +19,8 @@ type DueItem = {
     correct_streak?: number;
     pinned?: boolean;
   } | null;
+  underAttack?: boolean;
+  mastery?: number | null;
 };
 
 type DeckMeta = {
@@ -26,6 +28,7 @@ type DeckMeta = {
   cramMode: boolean;
   daysToCompetition: number | null;
   totalInRotation: number;
+  openAttackCount: number;
 };
 
 export default function FlashcardsPage() {
@@ -42,6 +45,7 @@ export default function FlashcardsPage() {
     cramMode: false,
     daysToCompetition: null,
     totalInRotation: 0,
+    openAttackCount: 0,
   });
   const [sessionStreak, setSessionStreak] = useState(0);
   const [swipeHint, setSwipeHint] = useState(true);
@@ -56,6 +60,7 @@ export default function FlashcardsPage() {
       cramMode?: boolean;
       daysToCompetition?: number | null;
       totalInRotation?: number;
+      openAttackCount?: number;
     };
     setItems(data.cards);
     setStudying(data.studying);
@@ -65,6 +70,7 @@ export default function FlashcardsPage() {
       cramMode: Boolean(data.cramMode),
       daysToCompetition: data.daysToCompetition ?? null,
       totalInRotation: data.totalInRotation ?? data.cards.length,
+      openAttackCount: data.openAttackCount ?? 0,
     });
     setIdx(0);
     setFlipped(false);
@@ -80,8 +86,12 @@ export default function FlashcardsPage() {
     void refresh();
   }, [refresh]);
 
-  const card = items[idx]?.card;
-  const state = items[idx]?.state;
+  const currentItem = items[idx];
+  const card = currentItem?.card;
+  const state = currentItem?.state;
+  const underAttack = Boolean(currentItem?.underAttack);
+  const mastery =
+    currentItem?.mastery != null ? currentItem.mastery : null;
   const doneCount = Math.max(0, initialCount - items.length);
   const progressPct =
     meta.dailyTarget === 0
@@ -145,12 +155,18 @@ export default function FlashcardsPage() {
       if (res.ok) {
         const data = (await res.json()) as {
           state?: { correct_streak?: number };
+          mastery?: { mastery?: number } | null;
         };
         const streak =
           kind === "got"
             ? (data.state?.correct_streak ?? sessionStreak + 1)
             : 0;
         applyStreakMood(streak, kind === "missed");
+        if (kind === "missed" && data.mastery?.mastery != null) {
+          setBubble(
+            `Node mastery now ${Math.round(data.mastery.mastery * 100)}%. Drill this claim again soon.`,
+          );
+        }
       }
       advanceAfter(idx);
     } finally {
@@ -256,6 +272,12 @@ export default function FlashcardsPage() {
               : ""}
           </span>
         ) : null}
+        {meta.openAttackCount > 0 ? (
+          <span className="text-[11px] text-muted">
+            {meta.openAttackCount} open attack
+            {meta.openAttackCount === 1 ? "" : "s"} on your lead nodes
+          </span>
+        ) : null}
         <div className="h-1.5 overflow-hidden rounded-full bg-[#E3E5E9]">
           <div
             className="h-1.5 rounded-full bg-ink transition-[width] duration-300"
@@ -286,19 +308,32 @@ export default function FlashcardsPage() {
               }`}
             >
               <div className="flash-face flash-front absolute inset-0 flex flex-col gap-2.5 rounded-[20px] bg-ink p-[22px] text-white">
-                <span className="text-[11px] font-bold tracking-[0.1em] text-gold">
-                  {card.source_kind === "truth"
-                    ? "TRUTH SOURCE"
-                    : card.source_kind === "reading"
-                      ? "FROM READING"
-                      : "CARD"}
-                </span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] font-bold tracking-[0.1em] text-gold">
+                    {card.source_kind === "truth"
+                      ? "TRUTH SOURCE"
+                      : card.source_kind === "reading"
+                        ? "FROM READING"
+                        : "CARD"}
+                  </span>
+                  {underAttack ? (
+                    <span className="rounded-md bg-cardinal px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-white">
+                      OPEN ATTACK
+                    </span>
+                  ) : null}
+                </div>
                 <p className="font-display m-0 flex-1 text-2xl font-semibold leading-tight">
                   {card.front}
                 </p>
-                <span className="text-[11px] font-medium text-[#9AA0AA]">
-                  Tap or swipe to flip
-                </span>
+                {mastery != null ? (
+                  <span className="text-[11px] font-medium text-[#9AA0AA]">
+                    Node mastery {Math.round(mastery * 100)}%
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-medium text-[#9AA0AA]">
+                    Tap or swipe to flip
+                  </span>
+                )}
               </div>
               <div className="flash-face flash-back absolute inset-0 flex flex-col gap-2.5 rounded-[20px] border-2 border-ink bg-white p-[22px]">
                 <span className="text-[11px] font-bold tracking-[0.1em] text-muted">

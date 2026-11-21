@@ -14,6 +14,7 @@ export {
   type RecordEdgeInput,
 } from "@/lib/graph/recordEdge";
 
+export { listOpenAttackClaimIds } from "@/lib/graph/arg-edges";
 export {
   backfillArgEdges,
   backfillNodeEmbeddings,

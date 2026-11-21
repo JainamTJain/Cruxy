@@ -132,6 +132,18 @@ export interface CardFsrsState {
   created_at: string;
 }
 
+/** Per-person mastery of a claim-map node (from linked card reviews). */
+export interface NodeMastery {
+  id: string;
+  person_id: string;
+  claim_id: string;
+  mastery: number;
+  review_count: number;
+  last_grade: number | null;
+  updated_at: string;
+  created_at: string;
+}
+
 export interface CardReview {
   id: string;
   person_id: string;
