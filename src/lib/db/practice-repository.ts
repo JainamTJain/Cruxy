@@ -151,6 +151,7 @@ export async function createSession(
   await updateStore((s) => {
     s.practice_sessions.push(session);
     s.practice_rounds.push(...rounds);
+    s.session_admin_codes[session.id] = plainCode;
     for (const round of rounds) {
       if (round.case_id) {
         const caseRow = s.cases.find((c) => c.id === round.case_id);

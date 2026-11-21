@@ -55,7 +55,11 @@ export async function runCruxyJudge(opts: {
       { role: "system", content: JUDGE_SYSTEM },
       {
         role: "user",
-        content: `Score this round for teams ${opts.round.team_ids.join(", ")}.\nItems: ${scored.join(", ")}\nTranscript:\n${transcriptBlock}`,
+        content: `Return JSON only with keys scores (array of {teamId,item,score,evidenceLineIds,comment}), feedback (array of {personId,kind,quoteLineId,scoringItem,reasoning,betterVersion}), headline, socraticFollowups.
+Score this round for teams ${opts.round.team_ids.join(", ")}.
+Items: ${scored.join(", ")}
+Transcript:
+${transcriptBlock}`,
       },
     ],
   });
@@ -65,6 +69,11 @@ export async function runCruxyJudge(opts: {
     return emptyOutput(opts.round.id);
   }
 
+  const parsed = tryParseJudgeJson(result.text, opts);
+  if (parsed) {
+    return { ...parsed, stub: result.stub };
+  }
+
   // Structured stub when gateway stubs or live JSON isn't wired yet
   return buildStubJudgment({
     round: opts.round,
@@ -72,6 +81,118 @@ export async function runCruxyJudge(opts: {
     scored,
     stub: result.stub,
   });
+}
+
+function tryParseJudgeJson(
+  text: string,
+  opts: { round: PracticeRound; lines: TranscriptLine[] },
+): CruxyJudgeOutput | null {
+  try {
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start < 0 || end <= start) return null;
+    const raw = JSON.parse(text.slice(start, end + 1)) as {
+      scores?: {
+        teamId: string;
+        item: string;
+        score: number;
+        evidenceLineIds?: string[];
+        comment?: string;
+      }[];
+      feedback?: {
+        personId: string;
+        kind: "worked" | "fix";
+        quoteLineId?: string;
+        scoringItem?: string;
+        reasoning?: string;
+        betterVersion?: string;
+      }[];
+      headline?: string;
+      socraticFollowups?: string[];
+    };
+    if (!raw.scores?.length) return null;
+    const at = nowIso();
+    const cards: JudgeCard[] = [];
+    const scores: CardScore[] = [];
+    const teamIds = [...new Set(raw.scores.map((s) => s.teamId))];
+    for (const teamId of teamIds) {
+      const card: JudgeCard = {
+        id: randomUUID(),
+        round_id: opts.round.id,
+        judge_id: null,
+        cruxy: true,
+        team_id: teamId,
+        spirit: 4,
+        spirit_comment: null,
+        overall_comment: raw.headline ?? null,
+        moments: [],
+        predictions: null,
+        calibration_note: null,
+        calibration_use: null,
+        created_at: at,
+        created_by: null,
+      };
+      cards.push(card);
+      for (const s of raw.scores.filter((x) => x.teamId === teamId)) {
+        const evidence = (s.evidenceLineIds ?? []).filter((id) =>
+          opts.lines.some((l) => l.id === id),
+        );
+        if (evidence.length === 0) continue;
+        scores.push({
+          id: randomUUID(),
+          card_id: card.id,
+          item: s.item,
+          score: s.score,
+          comment: s.comment ?? null,
+          evidence_line_ids: evidence.slice(0, 3),
+          created_at: at,
+        });
+      }
+    }
+    const feedback: FeedbackItem[] = (raw.feedback ?? []).map((f) => ({
+      id: randomUUID(),
+      round_id: opts.round.id,
+      person_id: f.personId,
+      kind: f.kind,
+      quote_line_id: f.quoteLineId ?? null,
+      scoring_item: f.scoringItem ?? null,
+      reasoning: f.reasoning ?? "",
+      better_version: f.betterVersion ?? null,
+      audience_heard: null,
+      created_at: at,
+    }));
+    const redos: RedoRow[] = feedback
+      .filter((f) => f.kind === "fix")
+      .map((f) => ({
+        id: randomUUID(),
+        feedback_item_id: f.id,
+        person_id: f.person_id,
+        transcript_ref: f.quote_line_id,
+        score_before: 5,
+        score_after: null,
+        open: true,
+        created_at: at,
+      }));
+    return {
+      cards,
+      scores: filterDisplayableScores(scores, true),
+      feedback,
+      redos,
+      report: {
+        id: randomUUID(),
+        round_id: opts.round.id,
+        headline:
+          raw.headline ??
+          "Biggest fix: name the moral tension in the first 30 seconds.",
+        socratic_followups: raw.socraticFollowups ?? [],
+        proposal_ids: [],
+        created_at: at,
+      },
+      stub: false,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function emptyOutput(roundId: string): CruxyJudgeOutput {
