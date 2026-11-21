@@ -428,7 +428,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-364 Assistant, drills, flashcards · Mostly small model · About $1 to $3
 - [ ] F-365 Hosting, database, email · Vercel and Supabase free tiers; a free email service tier for the weekly summary · $0 at this size
 - [ ] F-366 **Caps (enforced in the one AI gateway function)**
-- [ ] F-367 Monthly hard cap: $30. At 80% Jainam gets an alert; at 100% everything except reading and flashcard review pauses.
+- [x] F-367 Monthly hard cap: $30. At 80% Jainam gets an alert; at 100% everything except reading and flashcard review pauses. [80% email: `src/lib/ops/spend-alert.ts` + daily cleanup cron; 100% refuse already in `callCruxy`]
 - [ ] F-368 Per round cap: $0.75. Per research night: $0.25. Per person per day for the assistant: $0.20.
 - [ ] F-369 Every call is logged in ai_calls; the admin console shows spend by feature and by person.
 - [ ] F-370 **What keeps it cheap:** digest once and only re-digest changed files; search before sending context; cache the fixed prompt prefix; batch overnight work; delete audio after transcription; never send a whole library.
@@ -454,11 +454,11 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 ## Privacy and security
 
 - [ ] F-386 **Consent before recording.** Nobody is recorded without stored consent; a session with a text only member shows that on every screen, and their own device never records.
-- [ ] F-387 **Audio is temporary.** Chunks are deleted right after the transcript is saved; a nightly job deletes any audio older than 24 hours as a backstop.
-- [ ] F-388 **Voice samples** are used only to label speakers, stored privately, and deleted on withdrawal or at season end.
+- [x] F-387 **Audio is temporary.** Chunks are deleted right after the transcript is saved; a nightly job deletes any audio older than 24 hours as a backstop. [`src/lib/ops/audio-cleanup.ts`, `src/app/api/cron/cleanup`]
+- [x] F-388 **Voice samples** are used only to label speakers, stored privately, and deleted on withdrawal or at season end. [`src/lib/ops/voice-samples.ts`]
 - [ ] F-389 **No training.** Transcripts go only to paid service tiers that don't train on customer data.
 - [ ] F-390 **Codes and keys.** Session codes stored as hashes; personal passcodes stored as a hash plus an encrypted copy only the technical admin can view, which people are told before they choose one; API keys only in Vercel environment variables; nothing secret in the repo, prompts or client code.
-- [ ] F-391 **Brute force limits** on sign in, session codes and the judging portal; failures go to the activity log.
+- [x] F-391 **Brute force limits** on sign in, session codes and the judging portal; failures go to the activity log. [`src/lib/ops/brute-force.ts` for session codes and judging portal; sign in already in Track 0]
 - [ ] F-392 **Guest judges** see only their round's scoring card, and their link expires when the session ends.
-- [ ] F-393 **Deletion on request.** Admins can delete a person's transcript lines, voice sample and comments in one action; aggregate scores remain anonymous.
-- [ ] F-394 **Season end.** An export of everything to the Drive, then deletion of transcripts older than the season unless the admins keep them.
+- [x] F-393 **Deletion on request.** Admins can delete a person's transcript lines, voice sample and comments in one action; aggregate scores remain anonymous. [`src/lib/ops/privacy-delete.ts`]
+- [x] F-394 **Season end.** An export of everything to the Drive, then deletion of transcripts older than the season unless the admins keep them. [`src/lib/ops/season-export.ts` — downloadable archive; Drive SA is read-only]
