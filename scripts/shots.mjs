@@ -8,8 +8,9 @@ import { createHash } from "node:crypto";
 
 const BASE = process.env.SHOTS_BASE ?? "http://localhost:3000";
 const OUT = ".shots";
-const STARTER = "482913"; // sample-data starter only
-// Case 1 stable sample-data id (Workstream B seed)
+const MEMBER_STARTER = "482913";
+const COACH_STARTER = "719304";
+const PERSONAL = "159753";
 const CASE1 = "c0000000-0000-4000-8000-000000000001";
 
 function seedUuid(key) {
@@ -27,57 +28,92 @@ const ROUND_REPORT = seedUuid("practice:round:case9:report");
 
 const PAIRS = [
   ["/sign-in", "Main.html", false],
-  ["/home", "Home.html", true],
-  ["/revision/roadmap", "Roadmap.html", true],
-  [`/case-brain/${CASE1}`, "CaseBrain.html", true],
-  ["/revision/one-pagers", "OnePager.html", true],
-  ["/revision/questions", "Roadmap.html", true],
-  ["/library", "Reading.html", true],
-  [`/practice/sessions/${SESSION}`, "Session.html", true, "jainam-admin"],
-  [`/practice/rounds/${ROUND_LIVE}`, "Practice.html", true],
-  [`/practice/rounds/${ROUND_REPORT}/report`, "Feedback.html", true],
-  ["/practice/drills/thesis", "DrillPhone.html", true],
-  ["/team", "TeamBoard.html", true],
-  ["/admin", "Admin.html", true],
-  ["/revision/flashcards", "FlashPhone.html", true],
+  ["/home", "Home.html", true, "katie"],
+  ["/revision/roadmap", "Roadmap.html", true, "katie"],
+  [`/case-brain/${CASE1}`, "CaseBrain.html", true, "katie"],
+  ["/revision/one-pagers", "OnePager.html", true, "katie"],
+  ["/revision/questions", "Roadmap.html", true, "katie"],
+  ["/library", "Reading.html", true, "katie"],
+  [`/practice/sessions/${SESSION}`, "Session.html", true, "drb-admin"],
+  [`/practice/rounds/${ROUND_LIVE}`, "Practice.html", true, "katie"],
+  [`/practice/rounds/${ROUND_REPORT}/report`, "Feedback.html", true, "katie"],
+  ["/practice/drills/thesis", "DrillPhone.html", true, "katie"],
+  ["/team", "TeamBoard.html", true, "katie"],
+  ["/admin", "Admin.html", true, "drb-admin"],
+  ["/revision/flashcards", "FlashPhone.html", true, "katie"],
   ["/judging?demo=1", "JudgePhone.html", false],
 ];
 
 mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch();
 
-async function signIn(ctx, mode = "katie") {
-  const people = (await (await ctx.request.get(`${BASE}/api/auth/people`)).json()).people;
+async function ensureSignedIn(ctx, mode = "katie") {
+  const me = await (await ctx.request.get(`${BASE}/api/auth/me`)).json();
+  const wantAdmin = mode === "drb-admin";
+  const wantName = mode === "drb-admin" ? "Dr. B" : "Katie";
+  if (
+    me.authenticated &&
+    me.session?.name?.startsWith(wantName.split(" ")[0]) &&
+    Boolean(me.session?.adminView) === wantAdmin
+  ) {
+    return;
+  }
+
+  await ctx.clearCookies();
+  const people = (await (await ctx.request.get(`${BASE}/api/auth/people`)).json())
+    .people;
   const person =
-    mode === "jainam-admin"
-      ? people.find((p) => p.name.startsWith("Jainam"))
+    mode === "drb-admin"
+      ? people.find((p) => p.name === "Dr. B" || p.name.startsWith("Dr"))
       : people.find((p) => p.name.startsWith("Katie"));
+  if (!person) throw new Error(`No person for mode ${mode}`);
+
   const j = { "content-type": "application/json" };
-  const r = await ctx.request.post(`${BASE}/api/auth/sign-in`, {
-    data: { personId: person.id, code: STARTER },
+  const starter = mode === "drb-admin" ? COACH_STARTER : MEMBER_STARTER;
+
+  let r = await ctx.request.post(`${BASE}/api/auth/sign-in`, {
+    data: { personId: person.id, code: PERSONAL },
     headers: j,
   });
-  if (r.ok()) {
-    await ctx.request.post(`${BASE}/api/auth/consent`, {
-      data: { recordingOk: true },
+  if (!r.ok()) {
+    r = await ctx.request.post(`${BASE}/api/auth/sign-in`, {
+      data: { personId: person.id, code: starter },
       headers: j,
     });
-    await ctx.request.post(`${BASE}/api/auth/choose-passcode`, {
-      data: { code: "159753", confirm: "159753" },
-      headers: j,
-    });
-  } else {
-    await ctx.request.post(`${BASE}/api/auth/sign-in`, {
-      data: { personId: person.id, code: "159753" },
-      headers: j,
-    });
+    if (!r.ok()) {
+      const err = await r.text();
+      throw new Error(`sign-in failed for ${person.name}: ${err}`);
+    }
+    const body = await r.json();
+    if (body.mustConsent) {
+      await ctx.request.post(`${BASE}/api/auth/consent`, {
+        data: { recordingOk: true },
+        headers: j,
+      });
+    }
+    if (body.mustChoosePasscode) {
+      await ctx.request.post(`${BASE}/api/auth/choose-passcode`, {
+        data: { code: PERSONAL, confirm: PERSONAL },
+        headers: j,
+      });
+    }
   }
-  if (mode === "jainam-admin") {
-    await ctx.request.post(`${BASE}/api/auth/admin-view`, {
+
+  if (wantAdmin) {
+    const av = await ctx.request.post(`${BASE}/api/auth/admin-view`, {
       data: { adminView: true },
       headers: j,
     });
+    if (!av.ok()) {
+      throw new Error(`admin-view failed: ${await av.text()}`);
+    }
   }
+
+  const check = await (await ctx.request.get(`${BASE}/api/auth/me`)).json();
+  if (!check.authenticated) {
+    throw new Error(`still unauthenticated after sign-in (${mode})`);
+  }
+  console.log("signed in", check.session?.name, "admin", check.session?.adminView);
 }
 
 for (const [w, h, tag] of [
@@ -90,18 +126,32 @@ for (const [w, h, tag] of [
     const f = join("public", new URL(route.request().url()).pathname);
     return existsSync(f) ? route.fulfill({ path: f }) : route.continue();
   });
+
+  let lastAuth = null;
   for (const [route, ref, needsAuth, authMode] of PAIRS) {
     if (needsAuth) {
-      await ctx.clearCookies();
-      await signIn(ctx, authMode ?? "katie");
+      if (lastAuth !== authMode) {
+        await ensureSignedIn(ctx, authMode ?? "katie");
+        lastAuth = authMode ?? "katie";
+      }
     }
-    const name = route
-      .replace(/\?.*/, "")
-      .replace(/\//g, "_")
-      .replace(/^_/, "") || "root";
+    const name =
+      route.replace(/\?.*/, "").replace(/\//g, "_").replace(/^_/, "") || "root";
     try {
-      await page.goto(BASE + route, { waitUntil: "networkidle", timeout: 60000 });
-      // One pagers default to Team 1; seeded content is Team 3.
+      await page.goto(BASE + route, {
+        waitUntil: "networkidle",
+        timeout: 60000,
+      });
+      // Wait past client redirects to sign-in
+      await page.waitForTimeout(400);
+      if (page.url().includes("/sign-in") && needsAuth) {
+        await ensureSignedIn(ctx, authMode ?? "katie");
+        lastAuth = authMode ?? "katie";
+        await page.goto(BASE + route, {
+          waitUntil: "networkidle",
+          timeout: 60000,
+        });
+      }
       if (route.includes("one-pagers")) {
         const teamSelect = page.locator("select").first();
         if (await teamSelect.count()) {
@@ -120,8 +170,8 @@ for (const [w, h, tag] of [
           }
         }
       }
-      if (route.includes("judging")) {
-        await page.waitForTimeout(800);
+      if (route.includes("judging") || route.includes("practice")) {
+        await page.waitForTimeout(600);
       }
       await page.screenshot({
         path: join(OUT, `${tag}-${name}-app.png`),
@@ -133,9 +183,9 @@ for (const [w, h, tag] of [
         path: join(OUT, `${tag}-${name}-ref.png`),
         fullPage: true,
       });
-      console.log("ok", tag, route);
+      console.log("ok", tag, route, "→", page.url().replace(BASE, ""));
     } catch (e) {
-      console.log("ERR", tag, route, String(e).slice(0, 160));
+      console.log("ERR", tag, route, String(e).slice(0, 200));
     }
   }
   await ctx.close();

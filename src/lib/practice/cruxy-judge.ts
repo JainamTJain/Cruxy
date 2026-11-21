@@ -27,7 +27,8 @@ export type CruxyJudgeOutput = {
 
 /**
  * Score every team in the round when no human judge is present (or alongside humans).
- * Uses callCruxy; stubs structured scores when the AI gateway is unavailable.
+ * Prefers Workstream H's Judge agent when present; otherwise callCruxy + structured stub.
+ * Prompts live in `src/lib/cruxy/prompts/` (H) — this file does not own them.
  */
 export async function runCruxyJudge(opts: {
   round: PracticeRound;
@@ -38,6 +39,30 @@ export async function runCruxyJudge(opts: {
     hasCommentingTeam: Boolean(opts.round.sides.commenting),
     hasJudgesQa: opts.round.mode === "full_round" || opts.round.mode === "judges_qa_drill",
   });
+
+  // Workstream H owns the Judge agent + citation validator.
+  try {
+    const agentPath = "@/lib/cruxy/agents/judge";
+    const mod = (await import(agentPath)) as {
+      runJudgeAgent?: (input: {
+        round: PracticeRound;
+        lines: TranscriptLine[];
+        items: AppeItemKey[];
+        personId?: string | null;
+      }) => Promise<CruxyJudgeOutput | null>;
+    };
+    if (typeof mod.runJudgeAgent === "function") {
+      const fromH = await mod.runJudgeAgent({
+        round: opts.round,
+        lines: opts.lines,
+        items: scored,
+        personId: opts.personId,
+      });
+      if (fromH) return fromH;
+    }
+  } catch {
+    // Agent not merged yet — fall through.
+  }
 
   const transcriptBlock = opts.lines
     .map(

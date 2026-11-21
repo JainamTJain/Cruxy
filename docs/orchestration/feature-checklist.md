@@ -224,83 +224,83 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Sessions
 
-- [ ] F-184 Date, time, place or online.
-- [ ] F-185 The day's split: one or more rounds, each with a case, the teams in it, who presents and who comments, and timings (defaults follow the regional rules: presentation 7 to 12 minutes, commentary 5 to 8, Q&A 10 to 15; edit per round).
-- [ ] F-186 Who moderates: a person (named) or the Cruxy moderator.
-- [ ] F-187 Who judges: any number of human judges, the Cruxy judge, or both. When no human judge is present, Cruxy judges every team in the round.
-- [ ] F-188 Crux creates a session code. Only admins see it.
+- [x] F-184 Date, time, place or online. [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] F-185 The day's split: one or more rounds, each with a case, the teams in it, who presents and who comments, and timings (defaults follow the regional rules: presentation 7 to 12 minutes, commentary 5 to 8, Q&A 10 to 15; edit per round). [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] F-186 Who moderates: a person (named) or the Cruxy moderator. [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] F-187 Who judges: any number of human judges, the Cruxy judge, or both. When no human judge is present, Cruxy judges every team in the round. [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] F-188 Crux creates a session code. Only admins see it. [src/app/(app)/practice/sessions/[id]/session-client.tsx]
 - [ ] F-189 Members see today's sessions on their home screen and tap Join; Crux sends them to the presenter, commenter, observer or moderator screen for their round.
 - [ ] F-190 Online members join from a link and record from their own device.
-- [ ] F-191 The admin's session screen shows who joined, attendance, the round clock, and a "Next round" button.
-- [ ] F-192 **Judging portal (replaces the QR-only flow)**
-- [ ] F-193 When a round starts, Crux asks the admin: who is judging? In person, Cruxy judge, or both.
-- [ ] F-194 In person, then: someone already in Crux, or someone new?
-- [ ] F-195 Someone in Crux (a member or a returning judge) opens the Judging portal, enters the session code the admin reads to them, and lands on the scoring card for that round.
-- [ ] F-196 Someone new scans a QR code on the admin's screen, types their name and judging background, and lands on the same scoring card. No account needed.
-- [ ] F-197 Behind the scenes both paths attach the card to the right session, round and teams; the admin sees each judge's card arrive.
-- [ ] F-198 **Practice outside admin sessions (no admin needed)**
-- [ ] F-199 Any member can start a practice from the Practice page at any time: solo, with their own team, or with another team.
+- [x] F-191 The admin's session screen shows who joined, attendance, the round clock, and a "Next round" button. [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] F-192 **Judging portal (replaces the QR-only flow)** [src/app/judging/page.tsx]
+- [x] F-193 When a round starts, Crux asks the admin: who is judging? In person, Cruxy judge, or both. [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] F-194 In person, then: someone already in Crux, or someone new? [src/app/(app)/practice/sessions/[id]/session-client.tsx]
+- [x] F-195 Someone in Crux (a member or a returning judge) opens the Judging portal, enters the session code the admin reads to them, and lands on the scoring card for that round. [src/app/judging/page.tsx]
+- [x] F-196 Someone new scans a QR code on the admin's screen, types their name and judging background, and lands on the same scoring card. No account needed. [src/app/judging/page.tsx]
+- [x] F-197 Behind the scenes both paths attach the card to the right session, round and teams; the admin sees each judge's card arrive. [src/app/api/practice/judging/enter/route.ts]
+- [x] F-198 **Practice outside admin sessions (no admin needed)** [src/app/(app)/practice/page.tsx]
+- [x] F-199 Any member can start a practice from the Practice page at any time: solo, with their own team, or with another team. [src/app/(app)/practice/page.tsx]
 - [ ] F-200 Invite another team (or named people from it); they get a notice on their home screen and accept in one tap. Online members join from a link.
-- [ ] F-201 The starter picks the case, mode and timings, and who moderates and judges: a member from any team through the Judging portal, the Cruxy moderator, the Cruxy opponent team, the Cruxy judge, or none.
-- [ ] F-202 Attendance is logged from who joined; no admin confirmation is needed.
-- [ ] F-203 Recordings, transcripts, reports, redos, Truth Source proposals and roadmap progress work exactly as in admin sessions.
+- [x] F-201 The starter picks the case, mode and timings, and who moderates and judges: a member from any team through the Judging portal, the Cruxy moderator, the Cruxy opponent team, the Cruxy judge, or none. [src/app/(app)/practice/page.tsx]
+- [x] F-202 Attendance is logged from who joined; no admin confirmation is needed. [src/app/api/practice/attendance/route.ts]
+- [x] F-203 Recordings, transcripts, reports, redos, Truth Source proposals and roadmap progress work exactly as in admin sessions. [src/lib/practice/pipeline.ts]
 - [ ] F-204 Admins see these practices on the program map and in the activity log, but they don't have to set them up or approve them.
 
 ## Practice and recording
 
-- [ ] F-205 Mode · What happens · Who plays the other side
-- [ ] F-206 Full round · Presentation, commentary, response, judges' Q&A, timed to the round's settings · Another team, or Cruxy as the other team
+- [x] F-205 Mode · What happens · Who plays the other side [src/app/(app)/practice/page.tsx]
+- [x] F-206 Full round · Presentation, commentary, response, judges' Q&A, timed to the round's settings · Another team, or Cruxy as the other team [src/app/(app)/practice/rounds/[id]/page.tsx]
 - [ ] F-207 Moderator drill · Random bank questions read aloud; answer out loud within a set time · Cruxy moderator
 - [ ] F-208 Commentary drill · Cruxy presents a case position for 7 to 12 minutes; you deliver commentary on it · Cruxy as the presenting team
 - [ ] F-209 Judges' Q&A drill · Rapid follow ups, pushback and change the facts questions on your own claims · Cruxy judge panel
-- [ ] F-210 Solo speech · Deliver your part (a claim, the intro, the counterclaim) and get it scored · None
+- [x] F-210 Solo speech · Deliver your part (a claim, the intro, the counterclaim) and get it scored · None [src/app/(app)/practice/page.tsx]
 - [ ] F-211 Free record · Record any discussion; Cruxy pulls out ideas for Truth Sources · None
 - [ ] F-212 **Conferral drill:** an unseen question, 60 seconds to confer with scratch paper only (as the rules allow), then answer. Crux times it and checks who spoke.
-- [ ] F-213 **Thesis in 30 seconds:** a fresh wording of a case question; answer in one sentence. Times are tracked against your own past times.
+- [x] F-213 **Thesis in 30 seconds:** a fresh wording of a case question; answer in one sentence. Times are tracked against your own past times. [src/app/(app)/practice/drills/thesis/page.tsx]
 - [ ] F-214 **Q&A routing:** each team sets who takes which kind of judge question (facts, framework pushback, change the facts, practical). Reports check whether the right person answered.
-- [ ] F-215 Every screen works on a phone browser; Crux can be added to the home screen like an app.
+- [x] F-215 Every screen works on a phone browser; Crux can be added to the home screen like an app. [src/app/(app)/practice/drills/thesis/page.tsx]
 - [ ] F-216 Recording is tested on iPhone Safari and Android Chrome before release.
 - [ ] F-217 Captions: live captions during practice, and everything Cruxy says aloud also appears as text.
 - [ ] F-218 One device in the room: one microphone; speakers labelled from voice samples and round roles; an admin confirms labels on one screen after.
 - [ ] F-219 Everyone on their own device: each device records its owner, so labels are exact; best for online sessions.
 - [ ] F-220 Mixed is allowed; Crux lines recordings up by timestamps.
-- [ ] F-221 Browser records in 30 second chunks and uploads each chunk as it goes, so a crash loses at most 30 seconds.
+- [x] F-221 Browser records in 30 second chunks and uploads each chunk as it goes, so a crash loses at most 30 seconds. [src/components/practice/chunked-recorder.tsx]
 - [ ] F-222 Optional free live captions in Chrome from the browser's speech recognition (rough, on screen only).
-- [ ] F-223 At the end, the full audio goes to the transcription service with speaker labels and word timestamps.
-- [ ] F-224 Speakers are matched to people; the transcript is stored with every line timestamped.
-- [ ] F-225 The audio file is deleted immediately after the transcript is saved. Only text remains.
+- [x] F-223 At the end, the full audio goes to the transcription service with speaker labels and word timestamps. [src/lib/practice/pipeline.ts]
+- [x] F-224 Speakers are matched to people; the transcript is stored with every line timestamped. [src/lib/practice/pipeline.ts]
+- [x] F-225 The audio file is deleted immediately after the transcript is saved. Only text remains. [src/lib/practice/recording.ts]
 - [ ] F-226 A glossary is built automatically per case from the case set, the Drive and the Truth Sources: philosophers, court cases, laws, organisations, places, coined terms (Nozick, Brandenburg, Kalshi, NAGPRA, looksmaxxing), plus every member's name and team names.
 - [ ] F-227 Each round sends that case's glossary and the names of the people present to the transcription service as key terms.
 - [ ] F-228 A correction pass then fixes glossary words from context, marks every correction, and flags uncertain words for a quick check. It never changes meaning.
 - [ ] F-229 When anyone fixes a word in a transcript, the correct term and the misheard form are added to the glossary, so the next transcript gets it right.
 - [ ] F-230 Unusual names get a pronunciation note taken from each person's voice sample.
 - [ ] F-231 Quality check: Jainam sees an accuracy estimate on glossary terms per round, and a short test clip per case is re-run whenever the glossary changes.
-- [ ] F-232 Phase strip with the round clock; a hard stop at time ("that's time"), as at the regional.
-- [ ] F-233 A red recording bar on every participant's screen while recording.
+- [x] F-232 Phase strip with the round clock; a hard stop at time ("that's time"), as at the regional. [src/app/(app)/practice/rounds/[id]/page.tsx]
+- [x] F-233 A red recording bar on every participant's screen while recording. [src/app/(app)/practice/rounds/[id]/page.tsx]
 - [ ] F-234 Talk analytics per person: talk time, words per minute, filler words, time to first answer, and interruptions.
 
 ## Judging and calibration
 
 - [x] F-235 **The scoring card: a copy of the one in your Drive (same for humans and Cruxy)** · [src/lib/seed/scoring-card.ts, supabase/migrations/00009_workstream_b_content.sql]
 - [ ] F-236 **Built from the Drive.** The Librarian reads the APPE IEB Fillable Scoring Sheet (August 2020) in the Drive's Training Documents folder and builds the card from it: the same items, the same question wording, the same order, the same 1 to 10 scales and the same totals. The score bands and the Guide to Scoring from the same folder sit beside the card as a judge's guide. If a newer sheet appears in the Drive, Crux shows Jainam the differences and switches after he confirms.
-- [ ] F-237 **Laid out like the paper sheet.** One card per judge per round, with a column for each team, so the judge scores both teams side by side, as on the original:
+- [x] F-237 **Laid out like the paper sheet.** One card per judge per round, with a column for each team, so the judge scores both teams side by side, as on the original: [src/components/practice/judge-phone-card.tsx]
 - [x] F-238 Presentation A · Was the presentation clear and systematic? · 1 to 10 · 1 to 10 · [src/lib/seed/scoring-card.ts]
-- [ ] F-239 Presentation B · Did the presentation clearly identify and thoroughly discuss the central moral dimensions of the case? · 1 to 10 · 1 to 10
-- [ ] F-240 Presentation C · Did the presentation show awareness of and thoughtful consideration for different viewpoints, especially those that would weigh heavily for those who disagree? · 1 to 10 · 1 to 10
-- [ ] F-241 Presentation total · A + B + C · 3 to 30 · 3 to 30
-- [ ] F-242 Commentary · The team's commentary on the other team's presentation · 1 to 10 · 1 to 10
-- [ ] F-243 Response to commentary · The team's response to the other team's commentary · 1 to 10 · 1 to 10
-- [ ] F-244 Response to judges · The team's answers to the judges' questions · 1 to 10 · 1 to 10
-- [ ] F-245 Team total · All of the above · up to 60 · up to 60
-- [ ] F-246 **Spirit points (1 to 5)** go on a separate feedback sheet, as in the APPE materials, with its own comment box.
-- [ ] F-247 **Comments and moments.** A comment box per item and an overall comment, as on the sheet; humans can also tap "mark this moment", which pins a note to the transcript time.
-- [ ] F-248 **Rounds with one presenting team** (solo or a team against Cruxy) show only the columns and items that apply, with the rest marked "not scored this round".
-- [ ] F-249 **The Cruxy judge fills the identical card**, adding 1 to 3 quoted lines as evidence for each score.
-- [ ] F-250 Scores every item with 1 to 3 quoted lines and their timestamps as evidence; any score without evidence is not shown.
+- [x] F-239 Presentation B · Did the presentation clearly identify and thoroughly discuss the central moral dimensions of the case? · 1 to 10 · 1 to 10 [src/lib/practice/types.ts]
+- [x] F-240 Presentation C · Did the presentation show awareness of and thoughtful consideration for different viewpoints, especially those that would weigh heavily for those who disagree? · 1 to 10 · 1 to 10 [src/lib/practice/types.ts]
+- [x] F-241 Presentation total · A + B + C · 3 to 30 · 3 to 30 [src/lib/practice/appe-card.ts]
+- [x] F-242 Commentary · The team's commentary on the other team's presentation · 1 to 10 · 1 to 10 [src/lib/practice/types.ts]
+- [x] F-243 Response to commentary · The team's response to the other team's commentary · 1 to 10 · 1 to 10 [src/lib/practice/types.ts]
+- [x] F-244 Response to judges · The team's answers to the judges' questions · 1 to 10 · 1 to 10 [src/lib/practice/types.ts]
+- [x] F-245 Team total · All of the above · up to 60 · up to 60 [src/lib/practice/appe-card.ts]
+- [x] F-246 **Spirit points (1 to 5)** go on a separate feedback sheet, as in the APPE materials, with its own comment box. [src/components/practice/judge-phone-card.tsx]
+- [x] F-247 **Comments and moments.** A comment box per item and an overall comment, as on the sheet; humans can also tap "mark this moment", which pins a note to the transcript time. [src/components/practice/judge-phone-card.tsx]
+- [x] F-248 **Rounds with one presenting team** (solo or a team against Cruxy) show only the columns and items that apply, with the rest marked "not scored this round". [src/lib/practice/appe-card.ts]
+- [x] F-249 **The Cruxy judge fills the identical card**, adding 1 to 3 quoted lines as evidence for each score. [src/lib/practice/cruxy-judge.ts]
+- [x] F-250 Scores every item with 1 to 3 quoted lines and their timestamps as evidence; any score without evidence is not shown. [src/lib/practice/cruxy-judge.ts]
 - [ ] F-251 Asks judges' Q&A questions out loud in Cruxy judge mode, one question and one follow up per judge seat, as the rules describe.
 - [ ] F-252 Before any human cards exist, it is grounded in the APPE Guide to Scoring, the score bands, the judges' question guide, your Nationals notes and Dr. B's practice guidance from the Drive.
-- [ ] F-253 **Peer judging of recordings.** Any member can judge another team's recorded round later, on the same card, from its transcript. Peer cards count as judged rounds for the speakers and go through the same analysis before they tune Cruxy.
-- [ ] F-254 **Predict your score first.** Before a speaker opens their report, they guess their own score on each item. The gap between guess and score is tracked over time as a skill of its own.
+- [x] F-253 **Peer judging of recordings.** Any member can judge another team's recorded round later, on the same card, from its transcript. Peer cards count as judged rounds for the speakers and go through the same analysis before they tune Cruxy. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] F-254 **Predict your score first.** Before a speaker opens their report, they guess their own score on each item. The gap between guess and score is tracked over time as a skill of its own. [src/components/practice/appe-scoring-card.tsx]
 - [ ] F-255 **No fixed weights.** A judge's background (past APPE judge, faculty, debater, team member) is only a starting guess, and each card's influence is decided afresh from evidence.
 - [ ] F-256 **Analyse the card first.** Before using a card, Cruxy checks it against the transcript and writes a short note:
 - [ ] F-257 **Evidence:** do the judge's comments point to things that were actually said, and do the scores match the comments?
@@ -315,21 +315,21 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Feedback reports and the bank
 
-- [ ] F-266 **Headline:** the round's result and the single biggest fix, in one sentence.
-- [ ] F-267 **Scorecard:** each item with Cruxy's score and every human judge's score side by side, and one line of reasoning per item linked to its timestamp.
-- [ ] F-268 **Each person, in their own section** (visible to everyone):
-- [ ] F-269 What worked: one or two quoted moments and why they scored.
-- [ ] F-270 The one thing to fix: the quote and timestamp; the scoring item it cost; why, in two or three sentences of reasoning a judge would recognise; and what the audience likely heard.
-- [ ] F-271 The better version: the same moment rewritten in their own style, under 40 words.
-- [ ] F-272 Redo now: a 60 to 90 second re-take of that moment, recorded on the spot and re-scored. It stays open until it scores higher, and it returns in their drills over the next week.
-- [ ] F-273 Talk analytics: talk time, pace, filler words, time to first answer.
-- [ ] F-274 **Transcript:** full, speaker labelled, with every feedback point pinned to its line.
-- [ ] F-275 **Socratic follow ups:** two or three questions to answer before the next round.
+- [x] F-266 **Headline:** the round's result and the single biggest fix, in one sentence. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] F-267 **Scorecard:** each item with Cruxy's score and every human judge's score side by side, and one line of reasoning per item linked to its timestamp. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] F-268 **Each person, in their own section** (visible to everyone): [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] F-269 What worked: one or two quoted moments and why they scored. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] F-270 The one thing to fix: the quote and timestamp; the scoring item it cost; why, in two or three sentences of reasoning a judge would recognise; and what the audience likely heard. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] F-271 The better version: the same moment rewritten in their own style, under 40 words. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] F-272 Redo now: a 60 to 90 second re-take of that moment, recorded on the spot and re-scored. It stays open until it scores higher, and it returns in their drills over the next week. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] F-273 Talk analytics: talk time, pace, filler words, time to first answer. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] F-274 **Transcript:** full, speaker labelled, with every feedback point pinned to its line. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] F-275 **Socratic follow ups:** two or three questions to answer before the next round. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
 - [ ] F-276 **New ideas:** ideas raised in the round, already sent to the team's Truth Sources queue.
-- [ ] F-277 Each person has a skills chart (answer first, explain frameworks, engage objections, stay under time, commentary focus) that updates after every scored redo and round.
+- [x] F-277 Each person has a skills chart (answer first, explain frameworks, engage objections, stay under time, commentary focus) that updates after every scored redo and round. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
 - [ ] F-278 A skill that doesn't improve on the person's own recent average for two rounds becomes a roadmap task with a specific drill.
-- [ ] F-279 Cruxy proposes a bank entry when the same issue appears in two or more rounds, or a human judge writes it; an admin or any member adds it with one tap.
-- [ ] F-280 Every entry has: the lesson in one line; a vivid real example (quoted line, speaker, team, case, timestamp); why it cost points (the scoring item and any judge comment); the improved version; a linked drill to practise it; and how often it has been seen.
+- [x] F-279 Cruxy proposes a bank entry when the same issue appears in two or more rounds, or a human judge writes it; an admin or any member adds it with one tap. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
+- [x] F-280 Every entry has: the lesson in one line; a vivid real example (quoted line, speaker, team, case, timestamp); why it cost points (the scoring item and any judge comment); the improved version; a linked drill to practise it; and how often it has been seen. [src/app/api/practice/bank/route.ts]
 - [ ] F-281 Members can mark "I do this" to add the drill to their own roadmap.
 
 ## Program map, admin console and weekly summary
@@ -341,7 +341,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-286 Days to the next competition, and your own top three next actions.
 - [ ] F-287 Area · Jainam · Dr. B
 - [ ] F-288 Teams and people: add, move, remove · Yes · Yes
-- [ ] F-289 Sessions: create, run, see codes, take attendance · Yes · Yes
+- [x] F-289 Sessions: create, run, see codes, take attendance · Yes · Yes [src/app/(app)/practice/sessions/[id]/session-client.tsx]
 - [ ] F-290 Moderator questions: add, edit · Yes · Yes
 - [ ] F-291 Consent status per person · Yes · Yes
 - [ ] F-292 Program analytics: readiness, attendance, score trends per person and team · Yes · Yes

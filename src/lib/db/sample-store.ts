@@ -741,6 +741,14 @@ export async function readStore(): Promise<SampleStore> {
       Object.assign(store, fixtures);
       store.glossary = store.glossary ?? [];
       store.speaker_confirms = store.speaker_confirms ?? [];
+      // Fixture practice day assumes voice consent for seated members.
+      for (const p of store.people) {
+        if (p.role === "member" || p.role === "tech_admin") {
+          p.recording_ok = true;
+          p.consent_version = p.consent_version ?? "2026-11-21-v1";
+          p.consent_at = p.consent_at ?? "2026-11-01T00:00:00.000Z";
+        }
+      }
       await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2));
     }
     return store;
