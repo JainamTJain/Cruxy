@@ -37,7 +37,7 @@ export async function POST(req: Request) {
 
   const result = await callCruxy({
     feature: "reading",
-    model: "small",
+    tier: "small",
     personId: auth.session.personId,
     messages: [
       {

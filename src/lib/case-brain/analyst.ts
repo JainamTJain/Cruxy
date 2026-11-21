@@ -76,7 +76,7 @@ export async function analystNoteForProposal(input: {
   // Optionally enrich via gateway; stub path keeps deterministic note
   const result = await callCruxy({
     feature: "analyst_proposal",
-    model: "analyst-small",
+    tier: "strong",
     personId: input.personId ?? null,
     messages: [
       {
@@ -157,7 +157,7 @@ export async function draftOpposingPositions(input: {
 
   await callCruxy({
     feature: "analyst_opposing",
-    model: "analyst-small",
+    tier: "strong",
     personId: input.personId ?? null,
     messages: [
       {
@@ -177,7 +177,7 @@ export async function draftChangeTheFacts(input: {
 }): Promise<Array<{ fact: string; why_flips: string }>> {
   await callCruxy({
     feature: "analyst_change_facts",
-    model: "analyst-small",
+    tier: "strong",
     personId: input.personId ?? null,
     messages: [
       {

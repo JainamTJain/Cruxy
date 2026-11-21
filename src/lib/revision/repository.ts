@@ -339,7 +339,7 @@ export async function draftOnePager(args: {
   // Call coach agent (stub ok)
   await callCruxy({
     feature: "one_pager_draft",
-    model: "small",
+    tier: "small",
     messages: [
       {
         role: "user",
@@ -519,7 +519,7 @@ export async function pasteModeratorQuestions(args: {
 
   await callCruxy({
     feature: "moderator_paste_split",
-    model: "small",
+    tier: "small",
     messages: [{ role: "user", content: args.raw.slice(0, 2000) }],
     personId: args.personId,
   });
@@ -682,7 +682,7 @@ export async function startSocraticDrill(args: {
 
   await callCruxy({
     feature: "socratic_drill",
-    model: "strong",
+    tier: "strong",
     messages: [{ role: "user", content: question }],
     personId: args.personId,
   });
@@ -768,7 +768,7 @@ export async function languageSuggestions(args: {
 
   await callCruxy({
     feature: "language_analogies",
-    model: "small",
+    tier: "small",
     messages: [
       {
         role: "user",

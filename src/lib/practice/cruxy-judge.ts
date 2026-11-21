@@ -48,7 +48,7 @@ export async function runCruxyJudge(opts: {
 
   const result = await callCruxy({
     feature: "judge_round",
-    model: "strong",
+    tier: "strong",
     personId: opts.personId ?? null,
     estimatedCostUsd: 0.4,
     messages: [

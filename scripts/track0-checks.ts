@@ -87,7 +87,7 @@ async function main() {
   assert(spent >= 30, "monthly spend at cap");
   const refused = await callCruxy({
     feature: "assistant",
-    model: "test",
+    tier: "small",
     messages: [{ role: "user", content: "hello" }],
     personId: serena!.id,
   });
@@ -95,7 +95,7 @@ async function main() {
 
   const exempt = await callCruxy({
     feature: "flashcard_review",
-    model: "test",
+    tier: "small",
     messages: [{ role: "user", content: "review" }],
     personId: serena!.id,
   });

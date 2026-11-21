@@ -126,7 +126,7 @@ export async function librarianTag(input: {
 
   const result = await callCruxy({
     feature: "librarian_tag",
-    model: "small",
+    tier: "small",
     personId: input.personId ?? null,
     messages: [
       {
