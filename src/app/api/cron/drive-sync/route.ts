@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 /**
- * Vercel cron: daily Drive sync (Hobby limit).
+ * Vercel cron: hourly Drive sync (Pro plan). Unchanged files are skipped, so most runs are quick.
  * Protect with CRON_SECRET Bearer, or Vercel cron user-agent when unset.
  * Trigger from Vercel → Cron Jobs → Run.
  */

@@ -104,8 +104,10 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
   const teams = await listTeams();
   const actorId = await resolveActorId(opts.personId);
 
-  // Stop safely before Vercel's 300 s limit; unchanged-file skipping makes the next run resume.
-  const budgetMs = opts.budgetMs ?? 240_000;
+  // Stop starting new files after 150 s: one large file can take over a minute to
+  // digest, and Vercel kills the function at 300 s before the run is recorded.
+  // Unchanged-file skipping makes the next run resume.
+  const budgetMs = opts.budgetMs ?? 150_000;
   const startedMs = Date.now();
   let stoppedEarly = false;
 
