@@ -64,7 +64,7 @@ export function VersionConfirm({
           <strong>Claim map v{version}.</strong> {confirmedCount} of {teamSize}{" "}
           confirmed
           {unconfirmedNames.length
-            ? ` · still on an older version: ${unconfirmedNames.join(", ")}`
+            ? `. Still on an older version: ${unconfirmedNames.join(", ")}`
             : ""}
           .
         </p>

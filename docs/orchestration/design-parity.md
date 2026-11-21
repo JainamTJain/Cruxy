@@ -934,44 +934,44 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## TeamBoard.html
 
-- [ ] D-0879 Crux: team board and chat
-- [ ] D-0880 crux
-- [ ] D-0881 Program map
-- [ ] D-0882 My roadmap
-- [ ] D-0883 Cases
-- [ ] D-0884 Reading room
-- [ ] D-0885 Practice
-- [ ] D-0886 Reports
-- [ ] D-0887 Team
-- [ ] D-0888 [image] /cruxy/cruxy-lamp.png
-- [ ] D-0889 Ask Cruxy
-- [ ] D-0890 Team 3 · sample data
-- [ ] D-0891 Who's on what
-- [ ] D-0892 Assign
-- [ ] D-0893 Roles and versions, 12 cases
-- [ ] D-0894 Case
-- [ ] D-0895 Lead 1
-- [ ] D-0896 Lead 2
-- [ ] D-0897 Counter
-- [ ] D-0898 Supporter
-- [ ] D-0899 On the same page
-- [ ] D-0900 Team 3 chat
-- [ ] D-0901 readable by all teams
-- [ ] D-0902 CRUXY · CASE 9 IS NOW v7
-- [ ] D-0903 Claim 2 changed:
-- [ ] D-0904 "return it now"
-- [ ] D-0905 → "return it with a partnership, now". Reason (Katie): Team 1's Louvre point.
-- [ ] D-0906 I've got v7
-- [ ] D-0907 3 of 4 confirmed
-- [ ] D-0908 Nick
-- [ ] D-0909 Can someone own the Case 13 counterclaim row by Monday?
-- [ ] D-0910 Daniel
-- [ ] D-0911 On it. Also: the Panthers example shows why the law must stay narrow.
-- [ ] D-0912 Marked as idea → sent to Case 13 queue
-- [ ] D-0913 ROLE CHANGE
-- [ ] D-0914 Katie made Jainam Lead 1 on Case 9.
-- [ ] D-0915 Message
-- [ ] D-0916 [input] Write to Team 3
+- [x] D-0879 Crux: team board and chat [src/app/(app)/team/page.tsx]
+- [x] D-0880 crux [src/components/app-shell.tsx]
+- [x] D-0881 Program map [src/components/app-shell.tsx]
+- [x] D-0882 My roadmap [src/components/app-shell.tsx]
+- [x] D-0883 Cases [src/components/app-shell.tsx]
+- [x] D-0884 Reading room [src/components/app-shell.tsx]
+- [x] D-0885 Practice [src/components/app-shell.tsx]
+- [x] D-0886 Reports [src/components/app-shell.tsx]
+- [x] D-0887 Team [src/components/app-shell.tsx]
+- [x] D-0888 [image] /cruxy/cruxy-lamp.png [src/components/app-shell.tsx]
+- [x] D-0889 Ask Cruxy [src/components/app-shell.tsx]
+- [x] D-0890 Team 3 · sample data [src/app/(app)/team/page.tsx] (shows Team 3; no "sample data" label per Wave 2 rules)
+- [x] D-0891 Who's on what [src/app/(app)/team/page.tsx]
+- [x] D-0892 Assign [src/app/(app)/team/page.tsx]
+- [x] D-0893 Roles and versions, 12 cases [src/app/(app)/team/page.tsx]
+- [x] D-0894 Case [src/app/(app)/team/page.tsx]
+- [x] D-0895 Lead 1 [src/app/(app)/team/page.tsx]
+- [x] D-0896 Lead 2 [src/app/(app)/team/page.tsx]
+- [x] D-0897 Counter [src/app/(app)/team/page.tsx]
+- [x] D-0898 Supporter [src/app/(app)/team/page.tsx]
+- [x] D-0899 On the same page [src/app/(app)/team/page.tsx]
+- [x] D-0900 Team 3 chat [src/app/(app)/team/page.tsx]
+- [x] D-0901 readable by all teams [src/app/(app)/team/page.tsx]
+- [x] D-0902 CRUXY · CASE 9 IS NOW v7 [src/app/(app)/team/page.tsx]
+- [x] D-0903 Claim 2 changed: [src/app/(app)/team/page.tsx]
+- [x] D-0904 "return it now" [src/app/(app)/team/page.tsx]
+- [x] D-0905 → "return it with a partnership, now". Reason (Katie): Team 1's Louvre point. [src/app/(app)/team/page.tsx]
+- [x] D-0906 I've got v7 [src/app/(app)/team/page.tsx]
+- [x] D-0907 3 of 4 confirmed [src/app/(app)/team/page.tsx]
+- [x] D-0908 Nick [src/app/(app)/team/page.tsx]
+- [x] D-0909 Can someone own the Case 13 counterclaim row by Monday? [src/app/(app)/team/page.tsx]
+- [x] D-0910 Daniel [src/app/(app)/team/page.tsx]
+- [x] D-0911 On it. Also: the Panthers example shows why the law must stay narrow. [src/app/(app)/team/page.tsx]
+- [x] D-0912 Marked as idea → sent to Case 13 queue [src/app/(app)/team/page.tsx]
+- [x] D-0913 ROLE CHANGE [src/app/(app)/team/page.tsx]
+- [x] D-0914 Katie made Jainam Lead 1 on Case 9. [src/app/(app)/team/page.tsx]
+- [x] D-0915 Message [src/app/(app)/team/page.tsx]
+- [x] D-0916 [input] Write to Team 3 [src/app/(app)/team/page.tsx]
 
 ## TodayPhone.html
 

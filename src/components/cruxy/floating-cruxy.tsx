@@ -87,6 +87,7 @@ export function FloatingCruxy() {
     mood,
     hideFigure,
     recordingOrTimed,
+    floatMotion,
     bubble,
     setDrawerOpen,
     sleep,
@@ -193,7 +194,9 @@ export function FloatingCruxy() {
     [pos, setDrawerOpen],
   );
 
-  if (!awake || hideFigure || recordingOrTimed) return null;
+  if ((!awake && floatMotion !== "exit") || hideFigure || recordingOrTimed) {
+    return null;
+  }
 
   const phone = vw < 640;
   const size = figureFor(vw);
@@ -201,7 +204,11 @@ export function FloatingCruxy() {
 
   return (
     <div
-      className="fixed z-40 touch-none"
+      className={cn(
+        "fixed z-40 touch-none",
+        floatMotion === "enter" && "animate-float-pop-in",
+        floatMotion === "exit" && "animate-float-swirl-out",
+      )}
       style={{ left: pos.x, top: pos.y, width: size }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

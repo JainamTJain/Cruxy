@@ -97,3 +97,32 @@ Applied on the live project: 00001 to 00012 and 00018 (00013 and 00015 were reje
   - Security headers (CSP, frame-ancestors, referrer policy).
   - A PWA manifest with the lamp as the icon so phones can add Crux to the home screen.
   - The 80 percent spend alert by email to Jainam through Resend (`EMAIL_API_KEY`; sender `onboarding@resend.dev` until a domain is verified).
+
+## Wave 4: Jainam's requests at 1:15 p.m. (every owner, in your own files only)
+
+Jainam's priorities, in his order: **1. innovation, 2. design, 3. everything working end to end.**
+
+- **Everyone:**
+  - Remove every middle dot ("·") separator from the UI on your screens. Use line breaks, commas, spacing or small labels instead (see AGENTS.md rule 11).
+  - Remove any visible "sample" wording.
+  - Empty states must be honest and inviting; never invent records attributed to real people.
+- **J (sign-in landing, Genie, lamp, shell):**
+  - The landing page (/sign-in) features the Genie rising out of the lamp beside the "crux" wordmark.
+  - Bring the Genie's blue into the brand: the "crux" wordmark or its frame in the Genie blue (sample it from public/cruxy/cruxy-curious.png; around #2F7FE0 to #3BA0F0) with blue borders, while cardinal stays the USC colour.
+  - When Cruxy isn't used it goes back into the lamp, with a smoke or swirl animation. Tapping the lamp makes the Genie pop out with a playful animation (respect prefers-reduced-motion).
+  - Also sweep the shell, drawer and sign-in screens.
+- **F (revision):** make flashcards feel alive.
+  - A flip animation on tap, and swipe on phone (react-swipeable, as in zsh-eng/spaced).
+  - Three clear answers:
+    - "Got it" (FSRS Good or Easy)
+    - "Missed it" (Again)
+    - "Keep in my deck" (pin: always stays in that person's rotation)
+  - Each person's deck is ordered by their own FSRS state. As the competition date nears, the daily target rises automatically (cram mode in the last 7 days for cases they're leading).
+  - Genie moods on streaks.
+  - Also make the Drive status honest on home: "Drive not synced yet" with a Sync now button for the tech admin instead of a bare 0.
+- **H (Cruxy's brain):** team doc import.
+  - Each team can import its own working docs: a Google Doc or Drive file link the service account can read, or a pasted doc.
+  - The Librarian splits it into ideas, which go into that team's Truth Sources queue as proposals (origin "team doc", with the doc and passage cited).
+  - Strong ideas are offered to the other teams as "Inspired by Team N" recommendations through the existing proposals flow.
+  - Re-importing the same doc only adds what changed.
+- **D (practice):** make sure a full round works end to end in production: record, transcribe (AssemblyAI), the Cruxy judge (strong tier) grading with quoted evidence, the feedback report, and the bank. Home's "practice rounds graded" counter must move after a real round.
