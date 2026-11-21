@@ -94,7 +94,7 @@ export default function SignInPage() {
         </div>
         <div>
           <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-white/70">
-            Built so far · sample data
+            Built so far
           </p>
           <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
             {built.map(([n, label]) => (
@@ -133,7 +133,7 @@ export default function SignInPage() {
             <div className="mb-4 flex items-center justify-between">
               <p className="text-[15px] font-semibold">Passcode</p>
               <p className="text-xs text-muted">
-                First time? Use the member code Jainam gave you.
+                First time? Use the starter code Jainam gave you.
               </p>
             </div>
             <Keypad
