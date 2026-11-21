@@ -174,26 +174,47 @@ function parseServiceAccount(): ServiceAccount {
       `GOOGLE_SERVICE_ACCOUNT_JSON is missing. Add the JSON key for ${DRIVE_READER_EMAIL} in Vercel.`,
     );
   }
-  try {
-    // Vercel env paste often stores private_key newlines as the two chars \n.
-    let jsonText = raw;
-    if (!raw.includes('\n') && raw.includes('\\n')) {
-      jsonText = raw.replace(/\\n/g, '\n');
-    }
-    const parsed = JSON.parse(jsonText) as ServiceAccount;
-    if (!parsed.client_email || !parsed.private_key) {
-      throw new Error("missing fields");
-    }
-    if (parsed.private_key.includes('\\n')) {
-      parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
-    }
-    return parsed;
-  } catch {
+  const parsed = tryParseServiceAccount(raw);
+  if (!parsed) {
     throw new DriveAccessError(
       "auth",
-      "GOOGLE_SERVICE_ACCOUNT_JSON could not be parsed. Paste the full service account JSON as one line or with real newlines in private_key.",
+      "GOOGLE_SERVICE_ACCOUNT_JSON could not be parsed. Paste the whole downloaded key file (from { to }) as the value.",
     );
   }
+  return parsed;
+}
+
+/**
+ * Accepts the key the ways it usually gets pasted into Vercel: the file as is
+ * (one line or many), wrapped in quotes, base64, or with its \n escapes already
+ * turned into real line breaks. Parse first, then fix private_key newlines.
+ */
+function tryParseServiceAccount(raw: string): ServiceAccount | null {
+  const candidates: string[] = [raw];
+  if (/^['"].*['"]$/s.test(raw)) candidates.push(raw.slice(1, -1));
+  if (!raw.trimStart().startsWith("{")) {
+    try {
+      candidates.push(Buffer.from(raw, "base64").toString("utf8"));
+    } catch {
+      /* not base64 */
+    }
+  }
+  // Real line breaks inside the private_key string make JSON invalid: escape them.
+  for (const c of [...candidates]) {
+    if (!c.includes("\n")) continue;
+    candidates.push(c.replace(/\r?\n/g, "\\n"));
+  }
+  for (const text of candidates) {
+    try {
+      const parsed = JSON.parse(text) as ServiceAccount;
+      if (!parsed?.client_email || !parsed?.private_key) continue;
+      parsed.private_key = parsed.private_key.replace(/\\n/g, "\n");
+      return parsed;
+    } catch {
+      /* try the next form */
+    }
+  }
+  return null;
 }
 
 function getFolderId(): string {
