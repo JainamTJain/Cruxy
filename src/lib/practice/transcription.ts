@@ -23,16 +23,24 @@ function assemblyAiKey(): string | null {
 
 /**
  * Transcribe audio with speaker labels via AssemblyAI.
- * When the key is missing, returns a deterministic stub transcript (sample-data path).
+ * When the key is missing, returns a deterministic stub transcript.
  * Never logs the API key.
+ *
+ * Current API (docs/research/apis.md): universal-3-5-pro + keyterms_prompt.
  */
 export async function transcribeWithSpeakerLabels(opts: {
   audio: Buffer;
   keyTerms: string[];
   roundId: string;
+  speakersExpected?: number;
+  /** When true, fail instead of falling back to a stub (smoke / live path). */
+  requireLive?: boolean;
 }): Promise<TranscribeResult> {
   const key = assemblyAiKey();
   if (!key) {
+    if (opts.requireLive) {
+      throw new Error("ASSEMBLYAI_API_KEY required for live transcription");
+    }
     return stubTranscript(opts.roundId, opts.keyTerms);
   }
 
@@ -47,10 +55,22 @@ export async function transcribeWithSpeakerLabels(opts: {
       body,
     });
     if (!uploadRes.ok) {
-      // Fall back to stub rather than failing the whole practice loop in sample mode.
+      if (opts.requireLive) {
+        throw new Error(`AssemblyAI upload failed (${uploadRes.status})`);
+      }
       return stubTranscript(opts.roundId, opts.keyTerms);
     }
     const uploadJson = (await uploadRes.json()) as { upload_url: string };
+
+    const createBody: Record<string, unknown> = {
+      audio_url: uploadJson.upload_url,
+      speaker_labels: true,
+      speech_models: ["universal-3-5-pro", "universal-2"],
+      keyterms_prompt: opts.keyTerms.slice(0, 100),
+    };
+    if (opts.speakersExpected && opts.speakersExpected > 0) {
+      createBody.speakers_expected = opts.speakersExpected;
+    }
 
     const createRes = await fetch("https://api.assemblyai.com/v2/transcript", {
       method: "POST",
@@ -58,20 +78,20 @@ export async function transcribeWithSpeakerLabels(opts: {
         authorization: key,
         "content-type": "application/json",
       },
-      body: JSON.stringify({
-        audio_url: uploadJson.upload_url,
-        speaker_labels: true,
-        word_boost: opts.keyTerms.slice(0, 100),
-        boost_param: "high",
-      }),
+      body: JSON.stringify(createBody),
     });
     if (!createRes.ok) {
+      if (opts.requireLive) {
+        throw new Error(`AssemblyAI create failed (${createRes.status})`);
+      }
       return stubTranscript(opts.roundId, opts.keyTerms);
     }
     const created = (await createRes.json()) as { id: string };
     const transcript = await pollTranscript(key, created.id);
-    // Tiny / non-audio blobs (e.g. chunk checks) can complete with zero utterances.
     if (!transcript.length) {
+      if (opts.requireLive) {
+        throw new Error("AssemblyAI returned no utterances");
+      }
       return stubTranscript(opts.roundId, opts.keyTerms);
     }
     return {
@@ -79,7 +99,8 @@ export async function transcribeWithSpeakerLabels(opts: {
       utterances: transcript,
       stub: false,
     };
-  } catch {
+  } catch (err) {
+    if (opts.requireLive) throw err;
     return stubTranscript(opts.roundId, opts.keyTerms);
   }
 }
@@ -87,7 +108,7 @@ export async function transcribeWithSpeakerLabels(opts: {
 async function pollTranscript(
   key: string,
   id: string,
-  attempts = 40,
+  attempts = 60,
 ): Promise<TranscriptUtterance[]> {
   for (let i = 0; i < attempts; i++) {
     const res = await fetch(`https://api.assemblyai.com/v2/transcript/${id}`, {
@@ -113,7 +134,6 @@ async function pollTranscript(
           text: u.text,
         }));
       }
-      // Fallback: group words by speaker
       const words = data.words ?? [];
       const out: TranscriptUtterance[] = [];
       let cur: TranscriptUtterance | null = null;

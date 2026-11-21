@@ -270,7 +270,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-224 Speakers are matched to people; the transcript is stored with every line timestamped. [src/lib/practice/pipeline.ts]
 - [x] F-225 The audio file is deleted immediately after the transcript is saved. Only text remains. [src/lib/practice/recording.ts]
 - [ ] F-226 A glossary is built automatically per case from the case set, the Drive and the Truth Sources: philosophers, court cases, laws, organisations, places, coined terms (Nozick, Brandenburg, Kalshi, NAGPRA, looksmaxxing), plus every member's name and team names. (implemented: `src/lib/practice/glossary.ts`; owner D to verify)
-- [ ] F-227 Each round sends that case's glossary and the names of the people present to the transcription service as key terms. (implemented: `src/lib/practice/glossary.ts`, `src/lib/practice/pipeline.ts`; owner D to verify)
+- [x] F-227 Each round sends that case's glossary and the names of the people present to the transcription service as key terms. [src/lib/practice/transcription.ts]
 - [ ] F-228 A correction pass then fixes glossary words from context, marks every correction, and flags uncertain words for a quick check. It never changes meaning.
 - [ ] F-229 When anyone fixes a word in a transcript, the correct term and the misheard form are added to the glossary, so the next transcript gets it right.
 - [ ] F-230 Unusual names get a pronunciation note taken from each person's voice sample.

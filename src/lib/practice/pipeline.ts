@@ -22,29 +22,23 @@ import {
   utterancesToLines,
 } from "@/lib/practice/transcription";
 import { runCruxyJudge } from "@/lib/practice/cruxy-judge";
-import { filterCitedFeedback } from "@/lib/practice/feedback";
-import { getPersonById, listTeams, logActivity } from "@/lib/db/repository";
+import {
+  filterCitedFeedback,
+  proposeBankEntry,
+} from "@/lib/practice/feedback";
+import {
+  getPersonById,
+  listTeams,
+  logActivity,
+} from "@/lib/db/repository";
+import { saveBankEntry } from "@/lib/db/practice-repository";
 import { nowIso } from "@/lib/utils";
 
-/** Prefer Workstream H citation validator when present. */
+/** Cite-or-quiet: keep only feedback that links to a real transcript line. */
 async function citeOrQuietFeedback<T extends { quote_line_id: string | null }>(
   feedback: T[],
   lines: { id: string; text: string }[],
 ): Promise<T[]> {
-  try {
-    const citationsPath = "@/lib/cruxy/citations";
-    const citations = (await import(citationsPath)) as {
-      filterCitedOutputs?: <U extends { quote_line_id: string | null }>(
-        items: U[],
-        lines: { id: string; text: string }[],
-      ) => U[];
-    };
-    if (typeof citations.filterCitedOutputs === "function") {
-      return citations.filterCitedOutputs(feedback, lines);
-    }
-  } catch {
-    // H not merged yet.
-  }
   return filterCitedFeedback(
     feedback as unknown as Parameters<typeof filterCitedFeedback>[0],
     lines as unknown as Parameters<typeof filterCitedFeedback>[1],
@@ -58,11 +52,14 @@ async function citeOrQuietFeedback<T extends { quote_line_id: string | null }>(
  * 3. Save transcript
  * 4. Delete audio immediately
  * 5. If no human judges (or cruxy requested), run Cruxy judge for every team
+ * 6. Seed "Things to take care of" bank from fix feedback
  */
 export async function finalizeRound(opts: {
   roundId: string;
   personId?: string | null;
   forceCruxy?: boolean;
+  /** Fail instead of stubbing when AssemblyAI / Cruxy keys should be live. */
+  requireLive?: boolean;
 }) {
   const round = await getRoundById(opts.roundId);
   if (!round) throw new Error("Round not found");
@@ -108,6 +105,8 @@ export async function finalizeRound(opts: {
     audio,
     keyTerms,
     roundId: opts.roundId,
+    speakersExpected: Math.max(presentIds.length, 2),
+    requireLive: opts.requireLive,
   });
 
   const speakerMap = matchSpeakersByRole(transcript.utterances, presentIds);
@@ -179,6 +178,22 @@ export async function finalizeRound(opts: {
     // Cite-or-quiet on feedback (H citation validator when available)
     judgment.feedback = await citeOrQuietFeedback(judgment.feedback, lines);
     await saveJudgmentBundle(judgment);
+
+    // Bank: one "Things to take care of" entry per fix that still has a citation.
+    let bankAdded = 0;
+    for (const f of judgment.feedback.filter((x) => x.kind === "fix")) {
+      const entry = proposeBankEntry({
+        lesson: f.reasoning.slice(0, 200) || "Answer the moral tension first.",
+        exampleLineId: f.quote_line_id,
+        why: f.reasoning,
+        improved: f.better_version ?? "",
+        caseId: round.case_id,
+        createdBy: opts.personId ?? null,
+      });
+      await saveBankEntry(entry);
+      bankAdded += 1;
+    }
+
     await logActivity({
       person_id: opts.personId ?? null,
       action: "cruxy_judge_completed",
@@ -187,6 +202,7 @@ export async function finalizeRound(opts: {
         teams: teams.length,
         cards: judgment.cards.length,
         stub: judgment.stub,
+        bankAdded,
       },
     });
   }

@@ -82,7 +82,7 @@ export default function ThesisDrillPage() {
 
         <div className="flex flex-col gap-1">
           <span className="text-xs font-bold tracking-[0.1em] text-gold">
-            THESIS IN 30 SECONDS · CASE 5
+            THESIS IN 30 SECONDS, CASE 5
           </span>
           <span className="text-[13px] text-[#8C929D]">
             A wording you haven&apos;t seen. One sentence.
@@ -124,7 +124,7 @@ export default function ThesisDrillPage() {
           <div className="flex justify-between text-[13px]">
             <strong>Your time to a thesis</strong>
             <span className="text-[#8C929D]">
-              best 0:{String(best).padStart(2, "0")} · last 0:
+              best 0:{String(best).padStart(2, "0")}, last 0:
               {String(last).padStart(2, "0")}
             </span>
           </div>

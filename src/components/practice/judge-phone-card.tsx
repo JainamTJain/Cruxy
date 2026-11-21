@@ -98,8 +98,8 @@ export function JudgePhoneCard({
     <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col bg-white text-ink">
       <div className="flex flex-col gap-1 bg-cardinal px-[18px] pb-3.5 pt-[18px] text-white">
         <span className="text-[11px] font-bold tracking-[0.1em]">
-          JUDGING · {roundLabel}
-          {caseNumber != null ? ` · CASE ${caseNumber}` : ""}
+          JUDGING, {roundLabel}
+          {caseNumber != null ? `, CASE ${caseNumber}` : ""}
         </span>
         <span className="font-display text-2xl font-extrabold">{judgeName}</span>
         <span className="text-xs text-[#F3D0D6]">
@@ -127,7 +127,7 @@ export function JudgePhoneCard({
                   : "h-12 bg-white text-sm font-semibold text-muted"
               }
             >
-              {t.name} · {t.role === "presenting" ? "presenting" : "commenting"}
+              {t.name}, {t.role === "presenting" ? "presenting" : "commenting"}
             </button>
           );
         })}
@@ -195,7 +195,7 @@ export function JudgePhoneCard({
         <div className="flex flex-col gap-2 border-t border-[#ECEEF1] py-3">
           <strong className="text-sm">Spirit points</strong>
           <span className="text-[13px] text-[#3B404A]">
-            Separate feedback sheet · 1 to 5
+            Separate feedback sheet, 1 to 5
           </span>
           <div className="flex gap-1">
             {[1, 2, 3, 4, 5].map((n) => (
