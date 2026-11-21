@@ -5,115 +5,115 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## Admin.html
 
-- [ ] D-0001 Crux: admin console
-- [ ] D-0002 crux
-- [ ] D-0003 ADMIN
-- [ ] D-0004 Sessions
-- [ ] D-0005 People and teams
-- [ ] D-0006 Program analytics
-- [ ] D-0007 Question bank
-- [ ] D-0008 Back to member view
+- [x] D-0001 Crux: admin console [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0002 crux [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0003 ADMIN [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0004 Sessions [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0005 People and teams [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0006 Program analytics [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0007 Question bank [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0008 Back to member view [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0009 Admin console · sample data
-- [ ] D-0010 Running the program
-- [ ] D-0011 Dr. B sees everything here except the panels marked
-- [ ] D-0012 ONLY JAINAM
-- [ ] D-0013 Team 1 ready
-- [ ] D-0014 51%
-- [ ] D-0015 +9 this week
-- [ ] D-0016 Team 2 ready
-- [ ] D-0017 54%
-- [ ] D-0018 +6 this week
-- [ ] D-0019 Team 3 ready
-- [ ] D-0020 52%
-- [ ] D-0021 +11 this week
-- [ ] D-0022 Attendance
-- [ ] D-0023 86%
-- [ ] D-0024 last 3 sessions
-- [ ] D-0025 Team 1
-- [ ] D-0026 5
-- [ ] D-0027 Serena
-- [ ] D-0028 recorded ✓ voice ✓
-- [ ] D-0029 Ivan
-- [ ] D-0030 Ashton
-- [ ] D-0031 Stolei
-- [ ] D-0032 hasn't signed in
-- [ ] D-0033 Tri
-- [ ] D-0034 Team 2
-- [ ] D-0035 Lehar
-- [ ] D-0036 Camerin
-- [ ] D-0037 Jade
-- [ ] D-0038 text only
-- [ ] D-0039 Bethany
-- [ ] D-0040 Quixote
-- [ ] D-0041 Team 3
-- [ ] D-0042 4
-- [ ] D-0043 Nick
-- [ ] D-0044 Daniel
-- [ ] D-0045 Katie
-- [ ] D-0046 Jainam
-- [ ] D-0047 Add or move a person
-- [ ] D-0048 Spend this month
-- [ ] D-0049 $11.40 / $30
-- [ ] D-0050 Transcription
-- [ ] D-0051 $0.00 · free credit
-- [ ] D-0052 Judging and reports
-- [ ] D-0053 $6.80
-- [ ] D-0054 Research
-- [ ] D-0055 $2.90
-- [ ] D-0056 Assistant and drills
-- [ ] D-0057 $1.70
-- [ ] D-0058 Caps
-- [ ] D-0059 Pause research
-- [ ] D-0060 Books Cruxy asked for
+- [x] D-0010 Running the program [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0011 Dr. B sees everything here except the panels marked [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0012 ONLY JAINAM [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0013 Team 1 ready [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0014 51% [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0015 +9 this week [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0016 Team 2 ready [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0017 54% [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0018 +6 this week [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0019 Team 3 ready [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0020 52% [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0021 +11 this week [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0022 Attendance [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0023 86% [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0024 last 3 sessions [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0025 Team 1 [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0026 5 [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0027 Serena [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0028 recorded ✓ voice ✓ [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0029 Ivan [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0030 Ashton [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0031 Stolei [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0032 hasn't signed in [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0033 Tri [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0034 Team 2 [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0035 Lehar [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0036 Camerin [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0037 Jade [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0038 text only [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0039 Bethany [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0040 Quixote [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0041 Team 3 [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0042 4 [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0043 Nick [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0044 Daniel [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0045 Katie [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0046 Jainam [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0047 Add or move a person [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0048 Spend this month [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0049 $11.40 / $30 [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0050 Transcription [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0051 $0.00 · free credit [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0052 Judging and reports [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0053 $6.80 [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0054 Research [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0055 $2.90 [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0056 Assistant and drills [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0057 $1.70 [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0058 Caps [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0059 Pause research [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0060 Books Cruxy asked for [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0061 Who Owns Antiquity?
 - [ ] D-0062 · Case 9 · ch. 3
 - [ ] D-0063 Upload
 - [ ] D-0064 The Harm in Hate Speech
 - [ ] D-0065 · Case 13
-- [ ] D-0066 Drive sorting queue
+- [x] D-0066 Drive sorting queue [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0067 "notes final v2.docx" · Case 10 or 11?
 - [ ] D-0068 Sort
-- [ ] D-0069 Calibration
-- [ ] D-0070 Human cards so far
-- [ ] D-0071 9
+- [x] D-0069 Calibration [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0070 Human cards so far [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0071 9 [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0072 Cruxy vs judges, Presentation A
 - [ ] D-0073 −0.6
 - [ ] D-0074 Cruxy vs judges, Response to judges
 - [ ] D-0075 −1.1
 - [ ] D-0076 Most weighted judge
 - [ ] D-0077 Prof. [name]
-- [ ] D-0078 Members never see weights or gaps.
-- [ ] D-0079 Passcodes
-- [ ] D-0080 Starter code for new members: set
-- [ ] D-0081 Change starter code
-- [ ] D-0082 Person
-- [ ] D-0083 Team
-- [ ] D-0084 Passcode
-- [ ] D-0085 Chosen
-- [ ] D-0086 Last sign in
-- [ ] D-0087 Actions
-- [ ] D-0088 ••••••
+- [x] D-0078 Members never see weights or gaps. [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0079 Passcodes [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0080 Starter code for new members: set [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0081 Change starter code [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0082 Person [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0083 Team [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0084 Passcode [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0085 Chosen [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0086 Last sign in [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0087 Actions [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0088 •••••• [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0089 Nov 18
 - [ ] D-0090 today 09:40
-- [ ] D-0091 Show
-- [ ] D-0092 Reset
+- [x] D-0091 Show [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0092 Reset [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0093 48 17 05
 - [ ] D-0094 sample · hides in 18s
 - [ ] D-0095 Nov 19
 - [ ] D-0096 yesterday
-- [ ] D-0097 Hide
-- [ ] D-0098 Hasn't chosen one yet
-- [ ] D-0099 never
-- [ ] D-0100 Send starter code
+- [x] D-0097 Hide [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0098 Hasn't chosen one yet [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0099 never [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0100 Send starter code [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0101 Nov 17
 - [ ] D-0102 today 09:12
-- [ ] D-0103 Dr. B
-- [ ] D-0104 Admin
+- [x] D-0103 Dr. B [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0104 Admin [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0105 Nov 16
 - [ ] D-0106 today 08:30
 - [ ] D-0107 Showing 5 of 14 · sample. The first Show in 10 minutes asks for your own passcode. Every Show and Reset goes in the activity log. Your own passcode is never listed. Everyone was told you can see theirs when they chose it.
-- [ ] D-0108 Activity log
-- [ ] D-0109 Dr. B: read only
+- [x] D-0108 Activity log [`src/app/(app)/admin/admin-console.tsx`]
+- [x] D-0109 Dr. B: read only [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0110 09:44
 - [ ] D-0111 Showed Lehar's passcode (she forgot it)
 - [ ] D-0112 09:41
@@ -125,9 +125,9 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0118 08:02
 - [ ] D-0119 unknown
 - [ ] D-0120 5 wrong codes on "Tri" · locked 10 min
-- [ ] D-0121 Weekly summary
+- [x] D-0121 Weekly summary [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] D-0122 Dr. B opted in. Next email Sunday 6 pm: attendance, scores by team, biggest improvements, cases at risk, open disagreements.
-- [ ] D-0123 Preview this week's email
+- [x] D-0123 Preview this week's email [`src/app/(app)/admin/admin-console.tsx`]
 
 ## CaseBrain.html
 

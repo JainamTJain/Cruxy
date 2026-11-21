@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 
 type SpendData = {
   spent: number;
@@ -18,8 +17,24 @@ type SpendData = {
   byFeature: { feature: string; cost_usd: number; calls: number }[];
   byPerson: { name: string; cost_usd: number; calls: number }[];
   canEdit: boolean;
-  error?: string;
 };
+
+function bucketLabel(feature: string): string {
+  const f = feature.toLowerCase();
+  if (f.includes("transcri") || f.includes("assembly")) return "Transcription";
+  if (
+    f.includes("judge") ||
+    f.includes("report") ||
+    f.includes("feedback") ||
+    f.includes("calib")
+  ) {
+    return "Judging and reports";
+  }
+  if (f.includes("research") || f.includes("librarian") || f.includes("digest")) {
+    return "Research";
+  }
+  return "Assistant and drills";
+}
 
 export default function SpendPage() {
   const [data, setData] = useState<SpendData | null>(null);
@@ -40,6 +55,25 @@ export default function SpendPage() {
     void load();
   }, []);
 
+  const grouped = useMemo(() => {
+    if (!data) return [];
+    const buckets: Record<string, number> = {
+      Transcription: 0,
+      "Judging and reports": 0,
+      Research: 0,
+      "Assistant and drills": 0,
+    };
+    for (const row of data.byFeature) {
+      buckets[bucketLabel(row.feature)] =
+        (buckets[bucketLabel(row.feature)] ?? 0) + row.cost_usd;
+    }
+    return Object.entries(buckets).map(([label, cost_usd]) => ({
+      label,
+      cost_usd,
+      note: label === "Transcription" && cost_usd === 0 ? "free credit" : undefined,
+    }));
+  }, [data]);
+
   async function saveCaps(patch: Record<string, number | boolean>) {
     const res = await fetch("/api/admin/spend", {
       method: "PATCH",
@@ -58,6 +92,9 @@ export default function SpendPage() {
   if (error) {
     return (
       <main className="animate-fade-up space-y-3">
+        <p className="text-xs font-bold tracking-[0.08em] text-[#8A6500]">
+          ONLY JAINAM
+        </p>
         <p className="text-sm text-cardinal">{error}</p>
         <Link href="/admin" className="text-sm underline">
           Back to admin
@@ -67,98 +104,129 @@ export default function SpendPage() {
   }
   if (!data) return <p className="text-sm text-muted">Loading spend…</p>;
 
+  const pct = Math.min(
+    100,
+    Math.round((data.spent / (data.caps.monthly_usd || 30)) * 100),
+  );
+
   return (
-    <main className="animate-fade-up space-y-8">
+    <main className="animate-fade-up flex flex-col gap-5">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-cardinal">
-          Only Jainam
-        </p>
-        <h1 className="font-display text-3xl font-semibold">Spend dashboard</h1>
-        <p className="mt-1 text-sm text-muted">
-          Ledger from <span className="font-mono">ai_calls</span>. Totals must match.
+        <span className="rounded-md bg-[#FFF3C4] px-1.5 py-0.5 text-[11px] font-bold tracking-[0.08em] text-[#8A6500]">
+          ONLY JAINAM
+        </span>
+        <h1 className="font-display mt-2 text-[40px] font-extrabold leading-none tracking-[-0.02em]">
+          Spend this month
+        </h1>
+        <p className="mt-2 text-sm text-muted">
+          Ledger from ai_calls against the $30 hard cap. Never shows keys.
         </p>
       </div>
 
-      <section className="rounded-2xl border border-ink/10 bg-white/60 p-4">
-        <p className="font-mono text-3xl">
-          ${data.spent.toFixed(2)}{" "}
-          <span className="text-lg text-muted">/ ${data.caps.monthly_usd}</span>
-        </p>
-        <p className="mt-2 text-sm">
+      <section className="flex flex-col gap-3 rounded-[20px] bg-white p-5">
+        <div className="flex items-baseline justify-between gap-2">
+          <strong>Spend this month</strong>
+          <span className="font-mono text-lg font-semibold">
+            ${data.spent.toFixed(2)} / ${data.caps.monthly_usd}
+          </span>
+        </div>
+        <div className="h-2.5 rounded-full bg-[#ECEEF1]">
+          <div className="h-2.5 rounded-full bg-ink" style={{ width: `${pct}%` }} />
+        </div>
+        <p className="text-sm">
           Feature ledger sum: ${data.ledgerTotal.toFixed(2)} ·{" "}
           {data.matchesLedger ? (
-            <span className="text-[#1F6F4A]">matches ai_calls</span>
+            <span className="font-bold text-[#0B5E53]">matches ai_calls</span>
           ) : (
-            <span className="text-cardinal">mismatch — investigate</span>
+            <span className="font-bold text-cardinal">mismatch</span>
           )}
         </p>
-        {data.spent / data.caps.monthly_usd >= 0.8 ? (
-          <p className="mt-2 text-sm text-cardinal">At or above 80% — alert Jainam.</p>
+        {pct >= 80 ? (
+          <p className="text-sm font-bold text-cardinal">At or above 80% — watch the cap.</p>
         ) : null}
+        <div className="grid grid-cols-[1fr_auto] gap-1.5 text-[13px]">
+          {grouped.map((f) => (
+            <div key={f.label} className="contents">
+              <span>{f.label}</span>
+              <span className="font-mono">
+                ${f.cost_usd.toFixed(2)}
+                {f.note ? ` · ${f.note}` : ""}
+              </span>
+            </div>
+          ))}
+        </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <div>
-          <h2 className="font-display text-lg font-semibold">By feature</h2>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-[20px] bg-white p-5">
+          <h2 className="font-display text-lg font-semibold">By feature (raw)</h2>
           <ul className="mt-3 space-y-2 text-sm">
-            {data.byFeature.map((f) => (
-              <li
-                key={f.feature}
-                className="flex justify-between rounded-xl border border-ink/5 bg-white/50 px-3 py-2"
-              >
-                <span>
-                  {f.feature}{" "}
-                  <span className="text-xs text-muted">{f.calls} calls</span>
-                </span>
-                <span className="font-mono">${f.cost_usd.toFixed(2)}</span>
-              </li>
-            ))}
+            {data.byFeature.length === 0 ? (
+              <li className="text-muted">No calls this month.</li>
+            ) : (
+              data.byFeature.map((f) => (
+                <li
+                  key={f.feature}
+                  className="flex justify-between rounded-[10px] bg-[#F7F8FA] px-3 py-2"
+                >
+                  <span>
+                    {f.feature}{" "}
+                    <span className="text-xs text-muted">{f.calls} calls</span>
+                  </span>
+                  <span className="font-mono">${f.cost_usd.toFixed(2)}</span>
+                </li>
+              ))
+            )}
           </ul>
         </div>
-        <div>
+        <div className="rounded-[20px] bg-white p-5">
           <h2 className="font-display text-lg font-semibold">By person</h2>
           <ul className="mt-3 space-y-2 text-sm">
-            {data.byPerson.map((p) => (
-              <li
-                key={p.name + p.cost_usd}
-                className="flex justify-between rounded-xl border border-ink/5 bg-white/50 px-3 py-2"
-              >
-                <span>
-                  {p.name}{" "}
-                  <span className="text-xs text-muted">{p.calls} calls</span>
-                </span>
-                <span className="font-mono">${p.cost_usd.toFixed(2)}</span>
-              </li>
-            ))}
+            {data.byPerson.length === 0 ? (
+              <li className="text-muted">No calls this month.</li>
+            ) : (
+              data.byPerson.map((p) => (
+                <li
+                  key={p.name + p.cost_usd}
+                  className="flex justify-between rounded-[10px] bg-[#F7F8FA] px-3 py-2"
+                >
+                  <span>
+                    {p.name}{" "}
+                    <span className="text-xs text-muted">{p.calls} calls</span>
+                  </span>
+                  <span className="font-mono">${p.cost_usd.toFixed(2)}</span>
+                </li>
+              ))
+            )}
           </ul>
         </div>
       </section>
 
       {data.canEdit ? (
-        <section className="rounded-2xl border border-cardinal/20 bg-white/70 p-4 space-y-3">
-          <h2 className="font-display text-lg font-semibold">Caps</h2>
+        <section className="flex flex-col gap-3 rounded-[20px] bg-white p-5">
+          <strong>Caps</strong>
           <p className="text-sm text-muted">
             Monthly ${data.caps.monthly_usd} · per round ${data.caps.per_round_usd} ·
             research night ${data.caps.per_research_night_usd} · assistant/day $
             {data.caps.per_person_assistant_day_usd}
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant={data.caps.research_paused ? "gold" : "outline"}
+            <button
+              type="button"
+              className="h-[38px] rounded-[10px] border border-mist bg-white px-3 text-[13px] font-semibold"
               onClick={() =>
                 void saveCaps({ research_paused: !data.caps.research_paused })
               }
             >
               {data.caps.research_paused ? "Resume research" : "Pause research"}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
+            </button>
+            <button
+              type="button"
+              className="h-[38px] rounded-[10px] border border-mist bg-white px-3 text-[13px] font-semibold"
               onClick={() => void saveCaps({ monthly_usd: 30 })}
             >
               Reset monthly to $30
-            </Button>
+            </button>
           </div>
           {msg ? <p className="text-sm text-muted">{msg}</p> : null}
         </section>

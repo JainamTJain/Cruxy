@@ -21,8 +21,8 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Who uses it
 
-- [ ] F-014 Technical admin · Jainam · Everything below, plus everyone's passcodes (see and reset), spend caps, API keys, feeding books, the full activity log
-- [ ] F-015 Coach admin · Dr. B · See everything, create and run sessions, take attendance, see session codes, add moderator questions, get the weekly summary if she agrees · Change passcodes or spend caps, feed books
+- [x] F-014 Technical admin · Jainam · Everything below, plus everyone's passcodes (see and reset), spend caps, API keys, feeding books, the full activity log [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-015 Coach admin · Dr. B · See everything, create and run sessions, take attendance, see session codes, add moderator questions, get the weekly summary if she agrees · Change passcodes or spend caps, feed books [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] F-016 Member · Team 1: Serena, Ivan, Ashton, Stolei, Tri. Team 2: Lehar, Camerin, Jade, Bethany, Quixote. Team 3: Nick, Daniel, Katie, Jainam · Everything for their own team; read, comment on and borrow from every other team · Edit another team's Truth Sources, see session codes
 - [ ] F-017 Judge · Guests or members, per session · Score the session they were let into · See anything else
 - [ ] F-018 Team membership is set only by admins and can change at any time; history keeps the old team on old records.
@@ -77,10 +77,10 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-058 The screen says plainly, before they choose: "Jainam, as technical admin, can see your passcode so he can help if you forget it. Don't reuse a code you use anywhere else."
 - [x] F-059 After that, the shared member code no longer signs that name in. People can change their passcode any time in Settings by entering the current one. [`attemptSignIn` rejects starter after personal]
 - [ ] F-060 Forgot it? The keypad shows "Forgot your passcode? Ask Jainam." He can tell them, or reset it, which gives them a new one-time code and asks them to choose again.
-- [ ] F-061 In the admin console, a Passcodes panel lists everyone by team: passcode hidden as dots, when it was set, and last sign in.
-- [ ] F-062 Show reveals one passcode for 20 seconds. The first reveal in 10 minutes asks Jainam to re-enter his own passcode.
-- [ ] F-063 Reset gives that person a new one-time code and signs them out everywhere. The panel also changes the shared starter code for new members.
-- [ ] F-064 Every reveal and reset goes in the activity log. Dr. B and members can't open the panel, and Jainam's own passcode never appears in it.
+- [x] F-061 In the admin console, a Passcodes panel lists everyone by team: passcode hidden as dots, when it was set, and last sign in. [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-062 Show reveals one passcode for 20 seconds. The first reveal in 10 minutes asks Jainam to re-enter his own passcode. [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-063 Reset gives that person a new one-time code and signs them out everywhere. The panel also changes the shared starter code for new members. [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-064 Every reveal and reset goes in the activity log. Dr. B and members can't open the panel, and Jainam's own passcode never appears in it. [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] F-065 **Consent (first sign in only, re-shown if the wording changes)**
 - [ ] F-066 One screen, plain words: what is recorded, when, why, who sees it, where it goes, how long it stays, and what Cruxy is.
 - [ ] F-067 Two choices: "I agree to be recorded in practice" or "Not now: text only". Agreeing includes a 20 second voice sample, recorded right there, so transcripts can label who spoke.
@@ -339,17 +339,17 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-284 Running totals that grow: Drive files digested, passages cited, ideas accepted, sources verified, questions in the bank, rounds graded, redo improvements.
 - [ ] F-285 What changed since your last visit, across all teams, newest first.
 - [ ] F-286 Days to the next competition, and your own top three next actions.
-- [ ] F-287 Area · Jainam · Dr. B
-- [ ] F-288 Teams and people: add, move, remove · Yes · Yes
-- [ ] F-289 Sessions: create, run, see codes, take attendance · Yes · Yes
-- [ ] F-290 Moderator questions: add, edit · Yes · Yes
-- [ ] F-291 Consent status per person · Yes · Yes
-- [ ] F-292 Program analytics: readiness, attendance, score trends per person and team · Yes · Yes
-- [ ] F-293 Passcodes (Jainam only): see or reset anyone's passcode, change the shared starter code · Yes · No
-- [ ] F-294 Spend: caps, ledger by feature, pause research · Yes · No
-- [ ] F-295 Book requests and the Drive sorting queue · Yes · No
-- [ ] F-296 Calibration view: judge weights, Cruxy score gaps · Yes · No
-- [ ] F-297 Activity log: every sign in, edit, decision, recording, failed passcode · Yes · Read only
+- [x] F-287 Area · Jainam · Dr. B [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-288 Teams and people: add, move, remove · Yes · Yes [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-289 Sessions: create, run, see codes, take attendance · Yes · Yes [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-290 Moderator questions: add, edit · Yes · Yes [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-291 Consent status per person · Yes · Yes [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-292 Program analytics: readiness, attendance, score trends per person and team · Yes · Yes [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-293 Passcodes (Jainam only): see or reset anyone's passcode, change the shared starter code · Yes · No [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-294 Spend: caps, ledger by feature, pause research · Yes · No [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-295 Book requests and the Drive sorting queue · Yes · No [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-296 Calibration view: judge weights, Cruxy score gaps · Yes · No [`src/app/(app)/admin/admin-console.tsx`]
+- [x] F-297 Activity log: every sign in, edit, decision, recording, failed passcode · Yes · Read only [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] F-298 **Weekly summary for Dr. B (Sunday 6 pm, only if she opted in)**
 - [ ] F-299 One email: attendance by person, rounds and scores by team, biggest improvements, cases at risk (low readiness near a deadline), open disagreements between teams' Truth Sources, and Things to take care of added that week.
 - [ ] F-300 Each line links into Crux. Jainam gets the same email plus spend and errors.
@@ -400,7 +400,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-339 Opponent · Write and read the other team's presentation or commentary · Strong · Practice
 - [ ] F-340 Judge · Score cards with evidence, ask Q&A questions, write reports and redos · Strong · After each round
 - [ ] F-341 Assistant · The chat drawer · Small by default, strong when asked to reason · On demand
-- [ ] F-342 **Model routing.** Call every model through one gateway (the Vercel AI SDK with AI Gateway, or OpenRouter) so models can be swapped from an admin setting without code changes. Use paid tiers that don't train on your data for anything containing transcripts.
+- [x] F-342 **Model routing.** Call every model through one gateway (the Vercel AI SDK with AI Gateway, or OpenRouter) so models can be swapped from an admin setting without code changes. Use paid tiers that don't train on your data for anything containing transcripts. [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] F-343 **Context packing (the main cost and quality lever)**
 - [ ] F-344 Never send the whole library. Each call gets: the Cruxy rules, the case card, the relevant claim map nodes, and the top 8 to 12 passages by search, about 6,000 to 12,000 tokens.
 - [ ] F-345 The Cruxy rules and case card are a fixed prefix, so prompt caching applies.
@@ -430,7 +430,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-366 **Caps (enforced in the one AI gateway function)**
 - [ ] F-367 Monthly hard cap: $30. At 80% Jainam gets an alert; at 100% everything except reading and flashcard review pauses.
 - [ ] F-368 Per round cap: $0.75. Per research night: $0.25. Per person per day for the assistant: $0.20.
-- [ ] F-369 Every call is logged in ai_calls; the admin console shows spend by feature and by person.
+- [x] F-369 Every call is logged in ai_calls; the admin console shows spend by feature and by person. [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] F-370 **What keeps it cheap:** digest once and only re-digest changed files; search before sending context; cache the fixed prompt prefix; batch overnight work; delete audio after transcription; never send a whole library.
 
 ## Stack, services and repos
@@ -440,7 +440,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-373 Database, files, search · Supabase: Postgres with pgvector, Storage for audio chunks, row level security, scheduled functions · One service for data, files and search
 - [ ] F-374 Drive · Google Drive API, read only, through the service account crux-drive-reader (Google Cloud project crux-ethics-bowl-jainam-jain), which the Ethics Bowl folder is shared with · Base library
 - [ ] F-375 Transcription · AssemblyAI Universal-3.5 Pro (speaker labels, key terms, word timestamps); Universal-2 for solo drills · Cheapest with labels
-- [ ] F-376 Models · Through the Vercel AI SDK and AI Gateway, or OpenRouter · Swap models without code changes
+- [x] F-376 Models · Through the Vercel AI SDK and AI Gateway, or OpenRouter · Swap models without code changes [`src/app/(app)/admin/admin-console.tsx`]
 - [ ] F-377 Embeddings · A small embedding model through the same gateway, or Supabase's built-in embedding function · Cheap search
 - [ ] F-378 In browser · MediaRecorder for audio, SpeechSynthesis to read questions aloud, SpeechRecognition for rough live captions · Free
 - [ ] F-379 Email · A transactional email service's free tier (for example Resend) · Weekly summary
