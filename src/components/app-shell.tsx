@@ -32,6 +32,7 @@ type Me = {
 const SIDE_NAV: { href: string; label: string; match?: string }[] = [
   { href: "/home", label: "Program map" },
   { href: "/revision/roadmap", label: "My roadmap" },
+  { href: "/mastery", label: "Mastery map" },
   { href: "/case-brain", label: "Cases" },
   { href: "/library", label: "Reading room" },
   { href: "/practice", label: "Practice" },
