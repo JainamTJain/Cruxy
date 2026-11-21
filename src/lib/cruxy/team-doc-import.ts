@@ -414,6 +414,10 @@ export async function importTeamDoc(
           citation_ids: [],
           strength: i === 0 ? ("strong" as const) : ("normal" as const),
         })),
+        frameworks: [],
+        facts: [],
+        moderator_questions: [],
+        coach_decisions: [],
       };
     },
   });

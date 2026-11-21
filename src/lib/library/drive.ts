@@ -175,15 +175,23 @@ function parseServiceAccount(): ServiceAccount {
     );
   }
   try {
-    const parsed = JSON.parse(raw) as ServiceAccount;
+    // Vercel env paste often stores private_key newlines as the two chars \n.
+    let jsonText = raw;
+    if (!raw.includes('\n') && raw.includes('\\n')) {
+      jsonText = raw.replace(/\\n/g, '\n');
+    }
+    const parsed = JSON.parse(jsonText) as ServiceAccount;
     if (!parsed.client_email || !parsed.private_key) {
       throw new Error("missing fields");
+    }
+    if (parsed.private_key.includes('\\n')) {
+      parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
     }
     return parsed;
   } catch {
     throw new DriveAccessError(
       "auth",
-      "GOOGLE_SERVICE_ACCOUNT_JSON could not be parsed. Paste the full service account JSON.",
+      "GOOGLE_SERVICE_ACCOUNT_JSON could not be parsed. Paste the full service account JSON as one line or with real newlines in private_key.",
     );
   }
 }

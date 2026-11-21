@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useCruxy } from "@/components/cruxy/cruxy-context";
 
 type FileCard = {
@@ -29,6 +29,9 @@ export default function LibraryPage() {
   const [files, setFiles] = useState<FileCard[]>([]);
   const [drive, setDrive] = useState<DriveStatus | null>(null);
   const [canSync, setCanSync] = useState(false);
+  const [connectSteps, setConnectSteps] = useState<string[]>([]);
+  const [writeEnabled, setWriteEnabled] = useState(false);
+  const [writeMessage, setWriteMessage] = useState<string | null>(null);
   const [latest, setLatest] = useState<{
     files_processed: number;
     files_skipped_unchanged: number;
@@ -39,6 +42,7 @@ export default function LibraryPage() {
   } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
     const [filesRes, syncRes] = await Promise.all([
@@ -54,10 +58,16 @@ export default function LibraryPage() {
         drive: DriveStatus;
         latest: typeof latest;
         canSync?: boolean;
+        connectSteps?: string[];
+        writeEnabled?: boolean;
+        writeMessage?: string;
       };
       setDrive(data.drive);
       setLatest(data.latest);
       setCanSync(Boolean(data.canSync));
+      setConnectSteps(data.connectSteps ?? []);
+      setWriteEnabled(Boolean(data.writeEnabled));
+      setWriteMessage(data.writeMessage ?? null);
     }
   }, []);
 
@@ -89,11 +99,41 @@ export default function LibraryPage() {
     await refresh();
   }
 
-  // Prefer Case 9 / GEM file for the Reading room entry point
+  async function uploadFile(file: File) {
+    setBusy(true);
+    setMessage(null);
+    const body = new FormData();
+    body.append("file", file);
+    const res = await fetch("/api/library/upload", {
+      method: "POST",
+      body,
+    });
+    const data = (await res.json()) as {
+      ok?: boolean;
+      message?: string;
+      error?: string;
+      hint?: string;
+    };
+    setBusy(false);
+    if (!res.ok || data.ok === false) {
+      setMessage(
+        [data.error ?? data.message ?? "Upload failed", data.hint]
+          .filter(Boolean)
+          .join(" "),
+      );
+      return;
+    }
+    setMessage(data.message ?? "Uploaded");
+    setMood("happy");
+    await refresh();
+  }
+
   const featured =
     files.find((f) => f.case_numbers.includes(9)) ??
     files.find((f) => /GEM|case set|Rosetta/i.test(f.name)) ??
     files[0];
+
+  const emptyDrive = files.length === 0;
 
   return (
     <main className="animate-fade-up flex flex-col gap-7">
@@ -130,26 +170,86 @@ export default function LibraryPage() {
               disabled={busy}
               className="rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
             >
-              {busy ? "Syncing…" : "Sync now"}
+              {busy ? "Working…" : "Sync now"}
             </button>
+          ) : null}
+          {canSync ? (
+            <>
+              <input
+                ref={fileInput}
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void uploadFile(f);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => fileInput.current?.click()}
+                className="rounded-xl border border-[#E3E5E9] bg-white px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
+                title={writeMessage ?? undefined}
+              >
+                Upload to Drive
+              </button>
+            </>
           ) : null}
         </div>
       </div>
 
-      {drive && !drive.configured ? (
-        <p className="rounded-2xl border border-gold/40 bg-gold/10 px-4 py-3 text-sm">
-          {drive.stubReason ?? "Drive stub mode."} Share the folder with{" "}
-          <code className="font-mono text-xs">
-            {drive.serviceAccountEmail ?? "crux-drive-reader@…"}
-          </code>{" "}
-          as Viewer.
-        </p>
+      {emptyDrive || (drive && !drive.configured) ? (
+        <section className="rounded-2xl border border-gold/40 bg-gold/10 px-4 py-4 text-sm">
+          <h2 className="font-display m-0 text-lg font-extrabold">
+            {emptyDrive && drive?.configured
+              ? "Drive connected, nothing digested yet"
+              : "Connect the Ethics Bowl Drive (once)"}
+          </h2>
+          <p className="mt-2 text-ink/80">
+            There is no Google sign-in in Crux. Jainam shares the folder with the
+            service account, then the tech admin taps Sync now.
+          </p>
+          {drive?.stubReason ? (
+            <p className="mt-2 text-cardinal">{drive.stubReason}</p>
+          ) : null}
+          <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-ink/90">
+            {(connectSteps.length
+              ? connectSteps
+              : [
+                  `Share the Ethics Bowl folder with ${drive?.serviceAccountEmail ?? "the service account"} as Viewer.`,
+                  "Confirm Vercel has GOOGLE_SERVICE_ACCOUNT_JSON and DRIVE_ROOT_FOLDER_ID.",
+                  "Sign in as tech admin and tap Sync now on this page.",
+                ]
+            ).map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+          {canSync ? (
+            <button
+              type="button"
+              onClick={() => void syncNow()}
+              disabled={busy}
+              className="mt-4 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {busy ? "Syncing…" : "Sync now"}
+            </button>
+          ) : (
+            <p className="mt-3 text-xs text-muted">
+              Sync now is tech admin only. Ask Jainam to run it after sharing.
+            </p>
+          )}
+        </section>
+      ) : null}
+
+      {writeMessage && canSync ? (
+        <p className="text-xs text-muted">{writeMessage}</p>
       ) : null}
 
       {message ? (
         <p
           className={`rounded-2xl px-4 py-3 text-sm ${
-            /failed|not visible|missing|could not/i.test(message)
+            /failed|not visible|missing|could not|refused/i.test(message)
               ? "border border-cardinal/30 bg-cardinal/10 text-cardinal"
               : "bg-white text-ink/80"
           }`}
@@ -167,6 +267,7 @@ export default function LibraryPage() {
             ? `, ${new Date(latest.finished_at).toLocaleString()}`
             : ""}
           {latest.notes ? `, ${latest.notes}` : ""}
+          {writeEnabled ? ", writeback on" : ""}
         </p>
       ) : null}
 
@@ -193,10 +294,7 @@ export default function LibraryPage() {
       <ul className="space-y-3">
         {files.length === 0 ? (
           <li className="rounded-2xl bg-white px-4 py-6 text-sm text-muted">
-            No files yet.
-            {canSync
-              ? " Tap Sync now to pull the Drive."
-              : " Ask Jainam to Sync now (tech admin)."}
+            No files yet. Follow the connect steps above, then Sync now.
           </li>
         ) : (
           files.map((f) => (

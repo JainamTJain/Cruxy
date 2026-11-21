@@ -4,8 +4,11 @@ import {
   answerQuestion,
   bestTeamAnswer,
   confirmModeratorQuestions,
+  generateCruxyModeratorQuestions,
+  listAnswersForQuestion,
   listQuestions,
   pasteModeratorQuestions,
+  robustnessMeterForCase,
   serveQuestion,
 } from "@/lib/revision/repository";
 
@@ -14,6 +17,7 @@ export async function GET(req: Request) {
   if ("error" in auth) return auth.error;
   const url = new URL(req.url);
   const caseId = url.searchParams.get("caseId") ?? undefined;
+  const teamId = url.searchParams.get("teamId") ?? undefined;
   const status = url.searchParams.get("status") as
     | "pending_confirm"
     | "active"
@@ -23,7 +27,31 @@ export async function GET(req: Request) {
     caseId,
     status: status ?? undefined,
   });
-  return NextResponse.json({ questions });
+
+  if (!caseId || !teamId) {
+    return NextResponse.json({ questions });
+  }
+
+  const bestByQuestion: Record<string, Awaited<ReturnType<typeof bestTeamAnswer>>> =
+    {};
+  const answersByQuestion: Record<
+    string,
+    Awaited<ReturnType<typeof listAnswersForQuestion>>
+  > = {};
+
+  for (const q of questions) {
+  bestByQuestion[q.id] = await bestTeamAnswer(q.id, teamId);
+    answersByQuestion[q.id] = await listAnswersForQuestion(q.id, teamId);
+  }
+
+  const robustness = await robustnessMeterForCase(caseId, teamId);
+
+  return NextResponse.json({
+    questions,
+    bestByQuestion,
+    answersByQuestion,
+    robustness,
+  });
 }
 
 export async function POST(req: Request) {
@@ -33,6 +61,7 @@ export async function POST(req: Request) {
     action: string;
     raw?: string;
     caseId?: string | null;
+    teamId?: string;
     questionIds?: string[];
     rejectIds?: string[];
     sessionKey?: string;
@@ -41,11 +70,9 @@ export async function POST(req: Request) {
     text?: string;
     mode?: "typed" | "spoken";
     score?: number;
-    teamId?: string;
   };
 
   if (body.action === "paste") {
-    // Spec: Dr. B adds freely; members can add too. Any signed-in user.
     if (!body.raw?.trim()) {
       return NextResponse.json({ error: "raw text required" }, { status: 400 });
     }
@@ -58,6 +85,21 @@ export async function POST(req: Request) {
       caseId: body.caseId ?? null,
       personId: auth.session.personId,
       origin,
+    });
+    return NextResponse.json({ questions, pending: true });
+  }
+
+  if (body.action === "generate_cruxy") {
+    if (!body.caseId || !body.teamId) {
+      return NextResponse.json(
+        { error: "caseId and teamId required" },
+        { status: 400 },
+      );
+    }
+    const questions = await generateCruxyModeratorQuestions({
+      personId: auth.session.personId,
+      teamId: body.teamId,
+      caseId: body.caseId,
     });
     return NextResponse.json({ questions, pending: true });
   }

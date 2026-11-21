@@ -149,11 +149,11 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
     // Teams 1 and 2 get content from their own Drive docs when the path names a team.
     if (digested.ideas.length > 0) {
       await librarianIdeasToProposals({
-        ideas: digested.ideas.map((text) => ({
-          text,
-          kind: "other" as const,
-          citation_ids: [],
-          strength: "normal" as const,
+        ideas: digested.ideas.map((idea) => ({
+          text: idea.who ? `${idea.who}: ${idea.text}` : idea.text,
+          kind: idea.kind,
+          citation_ids: idea.citation_ids ?? [],
+          strength: idea.strength ?? "normal",
         })),
         fileId: digested.file.id,
         fileType: digested.file.type,

@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
-import { callCruxy } from "@/lib/cruxy/callCruxy";
 import { runLibrarianTag } from "@/lib/cruxy/agents/librarian";
+import type { LibrarianTagOutput } from "@/lib/cruxy/schemas/librarian";
+import { normalizeFiveLineCard } from "@/lib/library/file-card";
 import { checksumOf, embedPassageText, stubEmbed } from "@/lib/library/embeddings";
 import type { CaseRow } from "@/lib/types";
 import {
@@ -12,6 +13,8 @@ import {
   type Passage,
 } from "@/lib/library/types";
 import { nowIso } from "@/lib/utils";
+
+export type DigestedIdea = LibrarianTagOutput["ideas"][number];
 
 const FILE_TYPES: LibraryFileType[] = [
   "case_set",
@@ -27,7 +30,7 @@ export type DigestResult = {
   file: LibraryFile;
   passages: Passage[];
   aiCalls: number;
-  ideas: string[];
+  ideas: DigestedIdea[];
 };
 
 /** Heuristic Librarian when AI key is missing or response is unusable. */
@@ -40,7 +43,7 @@ export function heuristicTag(
   type: LibraryFileType;
   confidence: number;
   card: string;
-  ideas: string[];
+  ideas: DigestedIdea[];
 } {
   const lower = `${listed.name} ${listed.path} ${text}`.toLowerCase();
   let type: LibraryFileType = "general";
@@ -80,19 +83,40 @@ export function heuristicTag(
     .split(/\n+/)
     .map((l) => l.trim())
     .filter(Boolean);
-  const card = [
-    `What: ${listed.name}`,
-    `Case(s): ${case_numbers.length ? case_numbers.join(", ") : "general"}`,
-    `Type: ${type}`,
-    `New: ${lines[1]?.slice(0, 120) ?? "See passages."}`,
-    `Open: ${type === "practice_transcript" ? "Ideas for Truth Sources?" : "Any gaps vs claim maps?"}`,
-  ].join("\n");
+  const card = normalizeFiveLineCard({
+    name: listed.name,
+    caseNumbers: case_numbers,
+    type,
+    newLine: lines[1]?.slice(0, 120) ?? "See passages.",
+    openLine:
+      type === "practice_transcript"
+        ? "Ideas for Truth Sources?"
+        : "Any gaps vs claim maps?",
+  });
 
-  const ideas: string[] = [];
+  const ideas: DigestedIdea[] = [];
   if (type === "practice_transcript") {
     for (const line of lines) {
-      if (/idea\s*[—:-]/i.test(line) || /idea raised/i.test(line)) {
-        ideas.push(line.replace(/^\[.*?\]\s*/, "").slice(0, 280));
+      if (/idea\s*[-:—]/i.test(line) || /idea raised/i.test(line)) {
+        const cleaned = line.replace(/^\[.*?\]\s*/, "").slice(0, 280);
+        const who =
+          cleaned.match(/^([A-Za-z][A-Za-z .'-]{1,40}):\s*/)?.[1] ?? null;
+        ideas.push({
+          text: cleaned,
+          kind: "other",
+          who,
+          citation_ids: [],
+          strength: "normal",
+        });
+      }
+      if (/\bframework\b/i.test(line)) {
+        ideas.push({
+          text: line.replace(/^\[.*?\]\s*/, "").slice(0, 280),
+          kind: "framework",
+          who: null,
+          citation_ids: [],
+          strength: "normal",
+        });
       }
     }
   }
@@ -112,7 +136,7 @@ export async function librarianTag(input: {
   type: LibraryFileType;
   confidence: number;
   card: string;
-  ideas: string[];
+  ideas: DigestedIdea[];
   aiCalls: number;
 }> {
   const fallback = heuristicTag(input.listed, input.text, input.cases);
@@ -130,12 +154,11 @@ export async function librarianTag(input: {
       type: fallback.type,
       confidence: fallback.confidence,
       card: fallback.card,
-      ideas: fallback.ideas.map((text) => ({
-        text,
-        kind: "other" as const,
-        citation_ids: [],
-        strength: "normal" as const,
-      })),
+      ideas: fallback.ideas,
+      frameworks: [],
+      facts: [],
+      moderator_questions: [],
+      coach_decisions: [],
     }),
   });
 
@@ -143,12 +166,62 @@ export async function librarianTag(input: {
     ? (tagged.type as LibraryFileType)
     : fallback.type;
 
+  const ideas: DigestedIdea[] = [
+    ...tagged.ideas,
+    ...(tagged.frameworks ?? []).map((text) => ({
+      text,
+      kind: "framework" as const,
+      who: null,
+      citation_ids: [] as string[],
+      strength: "normal" as const,
+    })),
+    ...(tagged.facts ?? []).map((f) => ({
+      text: f.source ? `${f.text} (${f.source})` : f.text,
+      kind: "fact" as const,
+      who: null,
+      citation_ids: [] as string[],
+      strength: "normal" as const,
+    })),
+  ];
+
+  // Coach decisions and moderator-style questions become ideas too so they
+  // can enter the Truth Sources proposal queue when relevant.
+  for (const text of tagged.coach_decisions ?? []) {
+    ideas.push({
+      text: `Coach decision: ${text}`,
+      kind: "other",
+      who: null,
+      citation_ids: [],
+      strength: "strong",
+    });
+  }
+  for (const text of tagged.moderator_questions ?? []) {
+    ideas.push({
+      text: `Moderator-style: ${text}`,
+      kind: "other",
+      who: null,
+      citation_ids: [],
+      strength: "normal",
+    });
+  }
+
+  const card = normalizeFiveLineCard({
+    name: input.listed.name,
+    caseNumbers: tagged.case_numbers.length
+      ? tagged.case_numbers
+      : fallback.case_numbers,
+    type,
+    card: tagged.card || fallback.card,
+  });
+
   return {
-    case_numbers: tagged.case_numbers,
+    case_numbers: tagged.case_numbers.length
+      ? tagged.case_numbers
+      : fallback.case_numbers,
     type,
     confidence: tagged.confidence,
-    card: tagged.card,
-    ideas: tagged.ideas.map((i) => i.text),
+    card,
+    ideas,
     aiCalls: tagged.aiCalls,
   };
 }
@@ -287,7 +360,9 @@ export async function digestListedFile(input: {
     text_content: input.text,
     scanned_pdf: input.scannedPdf,
     status,
-    extracted_ideas: tagged.ideas,
+    extracted_ideas: tagged.ideas.map((i) =>
+      i.who ? `${i.who}: ${i.text}` : i.text,
+    ),
     created_at: input.existing?.created_at ?? nowIso(),
     created_by: input.personId ?? null,
   };

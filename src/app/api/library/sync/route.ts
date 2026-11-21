@@ -1,11 +1,31 @@
 import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/require-session";
-import { getDriveConfigStatus, DriveAccessError } from "@/lib/library/drive";
+import {
+  DRIVE_READER_EMAIL,
+  getDriveConfigStatus,
+  DriveAccessError,
+} from "@/lib/library/drive";
+import {
+  driveWriteEnabled,
+  driveWriteStatusMessage,
+} from "@/lib/library/drive-write";
 import { runDriveSync } from "@/lib/library/sync";
 import { latestSyncRun } from "@/lib/db/library-repository";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
+
+/** Exact clicks for Jainam: no Google sign-in; share once with the service account. */
+const CONNECT_STEPS = [
+  "Open Google Drive in the browser while signed in as an editor on the Ethics Bowl folder (Jainam or Dr. B).",
+  "Open the folder \"Ethics Bowl 2026 CA Regional\" (id 107T2YG-6MWUhRzy_EM_k2t4x5eyJQh64).",
+  "Click Share (person-plus icon).",
+  `Paste ${DRIVE_READER_EMAIL} and set the role to Viewer (read sync) or Editor (also needed for Crux uploads writeback).`,
+  "Uncheck \"Notify people\" if offered, then click Share or Send.",
+  "In Vercel, confirm GOOGLE_SERVICE_ACCOUNT_JSON and DRIVE_ROOT_FOLDER_ID are set for Production.",
+  "Sign in to Crux as tech admin, open Reading room (/library), click Sync now.",
+  "For Crux uploads writeback only: set DRIVE_WRITE_ENABLED=1 in Vercel and share as Editor (still no Google sign-in).",
+];
 
 export async function GET() {
   const auth = await requireSession();
@@ -16,6 +36,11 @@ export async function GET() {
     drive: status,
     latest,
     canSync: auth.session.role === "tech_admin",
+    writeEnabled: driveWriteEnabled(),
+    writeMessage: driveWriteStatusMessage(),
+    connectSteps: CONNECT_STEPS,
+    serviceAccountEmail: DRIVE_READER_EMAIL,
+    folderId: process.env.DRIVE_ROOT_FOLDER_ID?.trim() ?? null,
   });
 }
 
