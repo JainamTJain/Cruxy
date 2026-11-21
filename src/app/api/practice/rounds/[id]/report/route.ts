@@ -65,7 +65,10 @@ export async function GET(
     }),
     scores,
     lines: data.lines,
-    skills: extras.skills,
+    // Skill charts are personal progress (own past only).
+    skills: admin
+      ? extras.skills
+      : extras.skills.filter((s) => s.person_id === session.personId),
     talk: extras.talk,
     bank: extras.bank,
     people: extras.people,

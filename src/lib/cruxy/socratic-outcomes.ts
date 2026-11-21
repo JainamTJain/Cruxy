@@ -343,6 +343,8 @@ export async function listPersonSocraticOutcomes(
 
 export async function summarizeSocraticOutcomesForWeek(opts?: {
   sinceDays?: number;
+  /** When set, only that person's outcomes (member-facing). Omit for admin weekly review. */
+  personId?: string | null;
 }): Promise<{
   sampleSize: number;
   improved: number;
@@ -356,7 +358,8 @@ export async function summarizeSocraticOutcomesForWeek(opts?: {
   const rows = all.filter(
     (o) =>
       Boolean(o.socratic_session_id) &&
-      new Date(o.created_at).getTime() >= cutoff,
+      new Date(o.created_at).getTime() >= cutoff &&
+      (!opts?.personId || o.person_id === opts.personId),
   );
   const improved = rows.filter((o) => (o.score_delta ?? 0) > 0.01);
   const byAttempt: Record<AttemptKind, number> = {
