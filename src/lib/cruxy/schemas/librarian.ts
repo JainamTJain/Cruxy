@@ -22,6 +22,8 @@ export const librarianTagSchema = z.object({
       case_number: z.number().int().optional().nullable(),
       citation_ids: z.array(z.string()).default([]),
       quote: z.string().optional().nullable(),
+      /** Strong ideas are offered to other teams as Inspired by Team N. */
+      strength: z.enum(["strong", "normal"]).default("normal"),
     }),
   ),
 });

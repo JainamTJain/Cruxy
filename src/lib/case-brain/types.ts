@@ -6,6 +6,7 @@ export type ProposalOrigin =
   | "transcript"
   | "research"
   | "reading"
+  | "team_doc"
   | "inspired_by_team"
   | "member";
 
@@ -109,6 +110,8 @@ export interface Proposal {
   inspired_from_team_id: string | null;
   text: string;
   kind: TruthKind | "claim_edit" | "support_edit" | "other";
+  /** Passage / truth / team-doc passage ids this proposal cites. */
+  citation_ids: string[];
   /** Analyst one-liner only when there is a problem; null means it passed. */
   cruxy_note: string | null;
   socratic_question: string | null;

@@ -72,6 +72,7 @@ function toProposal(r: Row): Proposal {
     ...r,
     origin: (r.origin as ProposalOrigin | null) ?? "member",
     kind: (r.kind as Proposal["kind"] | null) ?? "other",
+    citation_ids: (r.citation_ids as string[] | null) ?? [],
     socratic_answered: r.socratic_answered !== false,
   } as unknown as Proposal;
 }
@@ -707,6 +708,7 @@ export async function createProposal(input: {
     inspired_from_team_id: input.inspiredFromTeamId ?? null,
     text: input.text.trim(),
     kind: input.kind ?? "other",
+    citation_ids: input.citationIds ?? [],
     cruxy_note: note,
     socratic_question: socratic,
     socratic_answered: origin !== "inspired_by_team",
