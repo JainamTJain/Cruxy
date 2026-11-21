@@ -294,6 +294,14 @@ export async function finalizeRound(opts: {
     });
   }
 
+  // Wave 6: personal Brier from required predictions vs judged scores.
+  if (wantCruxy && judgment) {
+    const { computeBrierAfterJudging } = await import(
+      "@/lib/practice/predictions"
+    );
+    await computeBrierAfterJudging({ roundId: opts.roundId });
+  }
+
   return {
     recording,
     lines,
