@@ -365,13 +365,13 @@ export function analyseJudgeCard(opts: {
 
   if (opts.competingTeamMember) {
     return {
-      note: "Conflict: judge is on a competing team — feedback only.",
+      note: "Conflict: judge is on a competing team. Feedback only.",
       use: "feedback_only",
     };
   }
   if (ratio < 0.3) {
     return {
-      note: "Weak evidence match to transcript — reduced influence.",
+      note: "Weak evidence match to transcript. Reduced influence.",
       use: "reduced",
     };
   }
