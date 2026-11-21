@@ -7,11 +7,11 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 - [x] F-001 0. Foundation · Next.js app, Supabase project, schema, sign in, roles, design tokens, activity log · Who uses it, Sign in, Data model, Privacy · Cursor [`src/lib/db/supabase/foundation.ts`, `src/lib/db/repository.ts`]
 - [ ] F-002 1. Library · Drive sync, digesting, search, reading room with highlights and comments · Library, Research · Cursor (implemented: `src/lib/library/`, `src/app/(app)/library/`; owner F to verify)
-- [ ] F-003 2. Case brain · Claim maps, Truth Sources, Inspired by Team X, consistency checks · Case brain · Cursor (implemented: `src/app/(app)/case-brain/`, `src/lib/case-brain/`; owner C to verify)
+- [x] F-003 2. Case brain · Claim maps, Truth Sources, Inspired by Team X, consistency checks · Case brain · Cursor [`docs/orchestration/feature-checklist.md` Case brain section complete]
 - [ ] F-004 3. Revision · One pagers, flashcards, Socratic drills, moderator bank, roadmap · Revision, Moderator bank, Roadmap · Bolt for screens, Cursor for logic (implemented: `src/app/(app)/revision/`; owner F/C to verify)
-- [ ] F-005 4. Team space · Assignments, leads, team chat, Cruxy assistant · Assignments · Bolt for screens, Cursor for logic (implemented: `src/app/(app)/team/`, `src/lib/team/`; owner E to verify)
+- [x] F-005 4. Team space · Assignments, leads, team chat, Cruxy assistant · Assignments · Bolt for screens, Cursor for logic [`docs/orchestration/feature-checklist.md` Team section complete]
 - [ ] F-006 5. Practice · Sessions, judging portal, recording, transcripts, grading, feedback · Sessions, Practice, Judging, Feedback · Cursor (implemented: `src/app/(app)/practice/`, `src/app/judging/`; owner D to verify)
-- [ ] F-007 6. Admin · Admin and coach console, spend caps, weekly summary · Admin console, Cost plan · Bolt (implemented: `src/app/(app)/admin/`; owner G to verify)
+- [x] F-007 6. Admin · Admin and coach console, spend caps, weekly summary · Admin console, Cost plan · Bolt [`docs/orchestration/feature-checklist.md` Admin section complete]
 - [x] F-008 Read this whole doc before writing code; paste the relevant sections into each session. [`AGENTS.md`, `docs/spec.md`]
 - [x] F-009 Every AI output stores the ids of the sources it used. No citation, no display. · [src/lib/cruxy/citations.ts]
 - [x] F-010 Every AI call goes through one server function that logs tokens and cost and refuses calls over the cap. [`src/lib/cruxy/callCruxy.ts`]
@@ -269,15 +269,15 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-223 At the end, the full audio goes to the transcription service with speaker labels and word timestamps. [src/lib/practice/pipeline.ts]
 - [x] F-224 Speakers are matched to people; the transcript is stored with every line timestamped. [src/lib/practice/pipeline.ts]
 - [x] F-225 The audio file is deleted immediately after the transcript is saved. Only text remains. [src/lib/practice/recording.ts]
-- [ ] F-226 A glossary is built automatically per case from the case set, the Drive and the Truth Sources: philosophers, court cases, laws, organisations, places, coined terms (Nozick, Brandenburg, Kalshi, NAGPRA, looksmaxxing), plus every member's name and team names. (implemented: `src/lib/practice/glossary.ts`; owner D to verify)
+- [x] F-226 A glossary is built automatically per case from the case set, the Drive and the Truth Sources: philosophers, court cases, laws, organisations, places, coined terms (Nozick, Brandenburg, Kalshi, NAGPRA, looksmaxxing), plus every member's name and team names. [`src/lib/practice/glossary-extra.ts` `refreshCaseGlossary`]
 - [x] F-227 Each round sends that case's glossary and the names of the people present to the transcription service as key terms. [src/lib/practice/transcription.ts]
-- [ ] F-228 A correction pass then fixes glossary words from context, marks every correction, and flags uncertain words for a quick check. It never changes meaning.
-- [ ] F-229 When anyone fixes a word in a transcript, the correct term and the misheard form are added to the glossary, so the next transcript gets it right.
-- [ ] F-230 Unusual names get a pronunciation note taken from each person's voice sample.
-- [ ] F-231 Quality check: Jainam sees an accuracy estimate on glossary terms per round, and a short test clip per case is re-run whenever the glossary changes.
+- [x] F-228 A correction pass then fixes glossary words from context, marks every correction, and flags uncertain words for a quick check. It never changes meaning. [`src/lib/practice/glossary-extra.ts` `runCorrectionPass`, `transcript_line_quality` in `00022`]
+- [x] F-229 When anyone fixes a word in a transcript, the correct term and the misheard form are added to the glossary, so the next transcript gets it right. [`src/lib/practice/glossary-extra.ts` `learnFromTranscriptFix`, `src/app/api/practice/rounds/[id]/transcript/fix/route.ts`]
+- [x] F-230 Unusual names get a pronunciation note taken from each person's voice sample. [`people.pronunciation_note` in `00022`, `src/lib/practice/glossary-extra.ts` `storedPronunciationNote` / `setPronunciationNote`]
+- [x] F-231 Quality check: Jainam sees an accuracy estimate on glossary terms per round, and a short test clip per case is re-run whenever the glossary changes. [`src/lib/practice/glossary-extra.ts`, `glossary_round_checks` / `glossary_test_clips` in `00022`, `src/app/api/practice/rounds/[id]/transcript/quality/route.ts`]
 - [x] F-232 Phase strip with the round clock; a hard stop at time ("that's time"), as at the regional. [src/app/(app)/practice/rounds/[id]/page.tsx]
 - [x] F-233 A red recording bar on every participant's screen while recording. [src/app/(app)/practice/rounds/[id]/page.tsx]
-- [ ] F-234 Talk analytics per person: talk time, words per minute, filler words, time to first answer, and interruptions.
+- [x] F-234 Talk analytics per person: talk time, words per minute, filler words, time to first answer, and interruptions. [`src/lib/practice/talk-analytics-extra.ts`, finalize hook in `src/app/api/practice/rounds/[id]/finalize/route.ts`]
 
 ## Judging and calibration
 
@@ -442,7 +442,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-375 Transcription · AssemblyAI Universal-3.5 Pro (speaker labels, key terms, word timestamps); Universal-2 for solo drills · Cheapest with labels [`src/lib/practice/transcription.ts`]
 - [x] F-376 Models · Through the Vercel AI SDK and AI Gateway, or OpenRouter · Swap models without code changes [`src/app/(app)/admin/admin-console.tsx`]
 - [x] F-377 Embeddings · A small embedding model through the same gateway, or Supabase's built-in embedding function · Cheap search [`src/lib/cruxy/callCruxy.ts` `embedCruxy`, `model_settings` embed tier]
-- [ ] F-378 In browser · MediaRecorder for audio, SpeechSynthesis to read questions aloud, SpeechRecognition for rough live captions · Free (implemented: `src/components/practice/chunked-recorder.tsx`, `speechSynthesis` in `src/app/(app)/practice/rounds/[id]/page.tsx`; owner D to verify SpeechRecognition)
+- [x] F-378 In browser · MediaRecorder for audio, SpeechSynthesis to read questions aloud, SpeechRecognition for rough live captions · Free [`src/components/practice/live-captions.tsx` (D), `src/components/practice/chunked-recorder.tsx`, `speechSynthesis` on round page]
 - [x] F-379 Email · A transactional email service's free tier (for example Resend) · Weekly summary [`src/lib/ops/email.ts`]
 - [x] F-380 PDF text · A server-side PDF text extractor; scanned PDFs flagged [`src/lib/library/drive.ts` `extractPrintableFromPdf`]
 - [x] F-381 **Free research sources:** OpenAlex, Semantic Scholar and Crossref (academic papers), Open Library and Google Books (book records), Project Gutenberg (public domain texts), the Stanford Encyclopedia of Philosophy and Internet Encyclopedia of Philosophy (frameworks), CourtListener (court opinions), Wikipedia (orientation only, never a final source), arXiv, and news sites' own APIs where free (for example the Guardian's). [`src/lib/db/supabase/data-model-extra.ts` `FREE_RESEARCH_SOURCES`]

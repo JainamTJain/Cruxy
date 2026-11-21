@@ -28,6 +28,7 @@ type PersonRow = {
   consent_at: string | null;
   recording_ok: boolean;
   voice_sample_path: string | null;
+  pronunciation_note: string | null;
   first_run_checklist: Record<string, boolean> | null;
   failed_attempts: number;
   locked_until: string | null;
@@ -62,6 +63,7 @@ function mapPerson(row: PersonRow): Person {
     consent_at: row.consent_at,
     recording_ok: row.recording_ok,
     voice_sample_path: row.voice_sample_path,
+    pronunciation_note: row.pronunciation_note ?? null,
     first_run_checklist: row.first_run_checklist ?? {},
     failed_attempts: row.failed_attempts,
     locked_until: row.locked_until,
@@ -339,6 +341,7 @@ export async function savePerson(person: Person): Promise<void> {
       consent_at: person.consent_at,
       recording_ok: person.recording_ok,
       voice_sample_path: person.voice_sample_path,
+      pronunciation_note: person.pronunciation_note,
       first_run_checklist: person.first_run_checklist,
       failed_attempts: person.failed_attempts,
       locked_until: person.locked_until,

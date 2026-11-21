@@ -29,6 +29,8 @@ export interface Person {
   consent_at: string | null;
   recording_ok: boolean;
   voice_sample_path: string | null;
+  /** Set by the person, tech admin, or transcription vendor after a voice sample. */
+  pronunciation_note: string | null;
   first_run_checklist: Record<string, boolean>;
   failed_attempts: number;
   locked_until: string | null;
