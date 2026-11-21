@@ -313,6 +313,13 @@ export default function RoundPage() {
 
         <div className="flex flex-wrap items-stretch gap-5">
           <section className="flex min-w-0 flex-[999] flex-col gap-[22px] rounded-[20px] border border-[#262934] bg-[#16181F] p-8">
+            {round.phase === "setup" ? (
+              <ScorePredictionForm
+                roundId={round.id}
+                personId={personId}
+                onGateChange={setPredictionsReady}
+              />
+            ) : null}
             <div className="flex flex-wrap items-end justify-between gap-3">
               <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#8C929D]">
                 {round.phase === "response"
@@ -434,13 +441,6 @@ export default function RoundPage() {
           </section>
 
           <aside className="flex w-full flex-col gap-4 sm:w-[300px]">
-            {round.phase === "setup" ? (
-              <ScorePredictionForm
-                roundId={round.id}
-                personId={personId}
-                onGateChange={setPredictionsReady}
-              />
-            ) : null}
             <section className="flex flex-col gap-3 rounded-[20px] border border-[#262934] bg-[#16181F] p-5 text-[#F2F3F5]">
               <RecordingLayoutPicker
                 roundId={round.id}
