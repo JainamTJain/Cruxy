@@ -66,7 +66,7 @@ type CacheEntry = {
 };
 
 let cache: CacheEntry | null = null;
-/** In-memory overrides until model_settings is read through the W0 server client. */
+/** In-memory overrides for sample mode (and live-check forced-fallback). */
 let overrides: Partial<Record<ModelTier, ModelSettingRow>> = {};
 
 function cloneDefaults(): Record<ModelTier, ModelSettingRow> {
