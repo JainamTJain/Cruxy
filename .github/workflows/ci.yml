@@ -22,5 +22,6 @@ jobs:
       - run: npm run test:cruxy --if-present
       - run: npm run smoke:practice
       - run: npm run smoke:case-roles
+      - run: npm run smoke:socratic-outcomes
       # Google Fonts downloads sometimes fail in CI (next/font); retry before failing.
       - run: npm run build || (sleep 20 && npm run build) || (sleep 40 && npm run build)

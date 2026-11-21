@@ -27,6 +27,11 @@ export type CruxyOutcomeRow = {
   note: string | null;
   created_at: string;
   created_by: string | null;
+  /** Wave 6: claim linked from a finished Socratic exchange. */
+  claim_id?: string | null;
+  /** Wave 6: drill | flashcard | round */
+  attempt_kind?: string | null;
+  socratic_session_id?: string | null;
 };
 
 const sampleOutcomes: CruxyOutcomeRow[] = [];
@@ -54,6 +59,9 @@ export async function insertCruxyOutcome(
     note: row.note,
     created_at: row.created_at,
     created_by: row.created_by,
+    claim_id: row.claim_id ?? null,
+    attempt_kind: row.attempt_kind ?? null,
+    socratic_session_id: row.socratic_session_id ?? null,
   });
   if (error) throw new Error(`cruxy_outcomes insert: ${error.message}`);
   return row;
@@ -120,6 +128,9 @@ export async function recordAdviceOutcome(input: {
     note: input.note ?? null,
     created_at: nowIso(),
     created_by: input.createdBy ?? input.personId,
+    claim_id: null,
+    attempt_kind: null,
+    socratic_session_id: null,
   };
 
   await insertCruxyOutcome(row);

@@ -21,6 +21,7 @@
     "smoke:supabase": "node --require ./scripts/preload-server-only.cjs ./node_modules/tsx/dist/cli.mjs scripts/supabase-smoke.ts",
     "smoke:practice": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/smoke-practice-round.ts",
     "smoke:case-roles": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/smoke-case-roles.ts",
+    "smoke:socratic-outcomes": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/smoke-socratic-outcomes.ts",
     "check:supabase-wired": "tsx scripts/check-supabase-wired.ts",
     "test:cruxy": "node scripts/with-server-only-stub.cjs ./node_modules/tsx/dist/cli.mjs scripts/test-cruxy.ts"
   },

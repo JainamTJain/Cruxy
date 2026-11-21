@@ -574,6 +574,28 @@ export async function reviewFlashcard(args: {
   );
 
   await recomputeRoadmapStages(args.personId);
+
+  const cardRow = must(
+    await sb
+      .from("flashcards")
+      .select("case_id")
+      .eq("id", args.cardId)
+      .maybeSingle(),
+    "reviewFlashcard.card",
+  );
+  if (cardRow?.case_id) {
+    const { observeClaimAttempt } = await import(
+      "@/lib/cruxy/socratic-outcomes"
+    );
+    await observeClaimAttempt({
+      personId: args.personId,
+      caseId: cardRow.case_id as string,
+      attemptKind: "flashcard",
+      scoreAfter: args.grade,
+      refId: args.cardId,
+    }).catch(() => undefined);
+  }
+
   return getOrCreateFsrsState(args.personId, args.cardId);
 }
 
@@ -1115,6 +1137,30 @@ export async function answerQuestion(args: {
   assertOk((await sb.from("answers").insert(row)).error, "answerQuestion.insert");
 
   await recomputeRoadmapStages(args.personId);
+
+  if (row.score != null) {
+    const qRow = must(
+      await sb
+        .from("questions")
+        .select("case_id")
+        .eq("id", args.questionId)
+        .maybeSingle(),
+      "answerQuestion.question",
+    );
+    if (qRow?.case_id) {
+      const { observeClaimAttempt } = await import(
+        "@/lib/cruxy/socratic-outcomes"
+      );
+      await observeClaimAttempt({
+        personId: args.personId,
+        caseId: qRow.case_id as string,
+        attemptKind: "drill",
+        scoreAfter: row.score,
+        refId: row.id,
+      }).catch(() => undefined);
+    }
+  }
+
   return row;
 }
 
@@ -1247,6 +1293,12 @@ export async function continueSocratic(args: {
     ).error,
     "continueSocratic.update",
   );
+  if (cur.status === "done") {
+    const { openSocraticOutcomes } = await import(
+      "@/lib/cruxy/socratic-outcomes"
+    );
+    await openSocraticOutcomes(cur).catch(() => undefined);
+  }
   return cur;
 }
 

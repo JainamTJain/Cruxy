@@ -15,6 +15,16 @@ export default function SettingsPage() {
   const [hideFloat, setHideFloat] = useState(false);
   const [recordingOk, setRecordingOk] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
+  const [socraticOutcomes, setSocraticOutcomes] = useState<
+    {
+      id: string;
+      attempt_kind?: string | null;
+      score_delta: number | null;
+      note: string | null;
+      created_at: string;
+    }[]
+  >([]);
+  const [socraticWeekLine, setSocraticWeekLine] = useState<string | null>(null);
 
   const [passStep, setPassStep] = useState<"idle" | "current" | "next" | "confirm">(
     "idle",
@@ -49,6 +59,25 @@ export default function SettingsPage() {
       .then((d: { prefs?: { hide_floating_cruxy?: boolean } }) => {
         setHideFloat(Boolean(d.prefs?.hide_floating_cruxy));
       })
+      .catch(() => undefined);
+    void fetch("/api/cruxy/socratic-outcomes")
+      .then((r) => (r.ok ? r.json() : null))
+      .then(
+        (d: {
+          outcomes?: {
+            id: string;
+            attempt_kind?: string | null;
+            score_delta: number | null;
+            note: string | null;
+            created_at: string;
+          }[];
+          week?: { lines?: string[] };
+        } | null) => {
+          if (!d) return;
+          setSocraticOutcomes(d.outcomes ?? []);
+          setSocraticWeekLine(d.week?.lines?.[0] ?? null);
+        },
+      )
       .catch(() => undefined);
   }, []);
 
@@ -238,6 +267,54 @@ export default function SettingsPage() {
               Cancel
             </Button>
           </div>
+        )}
+      </div>
+
+      <div className="border-t border-ink/10 pt-4">
+        <h2 className="font-display text-lg font-semibold">
+          Socratic outcomes
+        </h2>
+        <p className="mt-1 text-sm text-muted">
+          After a Socratic drill with Cruxy, we check whether your next try on
+          that claim improved (drill, flashcard or round score). Compared only
+          with your own past.
+        </p>
+        {socraticWeekLine ? (
+          <p className="mt-2 text-sm">{socraticWeekLine}</p>
+        ) : null}
+        {socraticOutcomes.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">
+            No outcomes yet. Finish a Socratic drill, then answer a question,
+            review a card or redo a round item on that case.
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {socraticOutcomes.slice(0, 12).map((o) => {
+              const improved = (o.score_delta ?? 0) > 0.01;
+              return (
+                <li
+                  key={o.id}
+                  className="rounded-xl border border-ink/10 bg-white/70 px-3 py-2 text-sm"
+                >
+                  <span className="font-medium">
+                    {improved ? "Improved" : "No lift"}
+                  </span>
+                  {o.attempt_kind ? (
+                    <span className="text-muted"> on {o.attempt_kind}</span>
+                  ) : null}
+                  {o.score_delta != null ? (
+                    <span className="ml-2 font-mono text-xs text-muted">
+                      {o.score_delta > 0 ? "+" : ""}
+                      {o.score_delta.toFixed(2)}
+                    </span>
+                  ) : null}
+                  {o.note ? (
+                    <p className="mt-1 text-xs text-muted">{o.note}</p>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
 
