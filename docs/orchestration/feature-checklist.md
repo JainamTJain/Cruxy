@@ -6,11 +6,11 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 ## How to build it
 
 - [x] F-001 0. Foundation · Next.js app, Supabase project, schema, sign in, roles, design tokens, activity log · Who uses it, Sign in, Data model, Privacy · Cursor [`src/lib/db/supabase/foundation.ts`, `src/lib/db/repository.ts`]
-- [ ] F-002 1. Library · Drive sync, digesting, search, reading room with highlights and comments · Library, Research · Cursor (implemented: `src/lib/library/`, `src/app/(app)/library/`; owner F to verify)
+- [x] F-002 1. Library · Drive sync, digesting, search, reading room with highlights and comments · Library, Research · Cursor (implemented: `src/lib/library/`, `src/app/(app)/library/`; owner F to verify) [all Library items ticked; live Drive sync still to run once Jainam signs in or CRON_SECRET is set]
 - [x] F-003 2. Case brain · Claim maps, Truth Sources, Inspired by Team X, consistency checks · Case brain · Cursor [`docs/orchestration/feature-checklist.md` Case brain section complete]
-- [ ] F-004 3. Revision · One pagers, flashcards, Socratic drills, moderator bank, roadmap · Revision, Moderator bank, Roadmap · Bolt for screens, Cursor for logic (implemented: `src/app/(app)/revision/`; owner F/C to verify)
+- [x] F-004 3. Revision · One pagers, flashcards, Socratic drills, moderator bank, roadmap · Revision, Moderator bank, Roadmap · Bolt for screens, Cursor for logic (implemented: `src/app/(app)/revision/`; owner F/C to verify) [all Revision items ticked]
 - [x] F-005 4. Team space · Assignments, leads, team chat, Cruxy assistant · Assignments · Bolt for screens, Cursor for logic [`docs/orchestration/feature-checklist.md` Team section complete]
-- [ ] F-006 5. Practice · Sessions, judging portal, recording, transcripts, grading, feedback · Sessions, Practice, Judging, Feedback · Cursor (implemented: `src/app/(app)/practice/`, `src/app/judging/`; owner D to verify)
+- [x] F-006 5. Practice · Sessions, judging portal, recording, transcripts, grading, feedback · Sessions, Practice, Judging, Feedback · Cursor (implemented: `src/app/(app)/practice/`, `src/app/judging/`; owner D to verify) [all Practice items ticked]
 - [x] F-007 6. Admin · Admin and coach console, spend caps, weekly summary · Admin console, Cost plan · Bolt [`docs/orchestration/feature-checklist.md` Admin section complete]
 - [x] F-008 Read this whole doc before writing code; paste the relevant sections into each session. [`AGENTS.md`, `docs/spec.md`]
 - [x] F-009 Every AI output stores the ids of the sources it used. No citation, no display. · [src/lib/cruxy/citations.ts]
