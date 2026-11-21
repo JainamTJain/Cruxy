@@ -1,4 +1,4 @@
-import { callCruxy } from "@/lib/cruxy/callCruxy";
+import { runAssistant } from "@/lib/cruxy/agents/assistant";
 import { listTruthItems } from "@/lib/team/repository";
 
 export type AssistantContext = {
@@ -19,10 +19,8 @@ export type AssistantReply = {
 };
 
 /**
- * Cite-or-quiet team assistant entry point.
- * Workstream H owns the Assistant agent prompt and citation validator under
- * `src/lib/cruxy/**`; this file only packs team Truth Sources and calls
- * `callCruxy({ tier: "small" })`. When H lands, swap the call line to the agent.
+ * Cite-or-quiet assistant: answers from team Truth Sources first.
+ * Workstream H: uses the Assistant agent (asks before it answers).
  */
 export async function askTeamAssistant(
   question: string,
@@ -49,7 +47,12 @@ export async function askTeamAssistant(
       .toLowerCase()
       .split(/\W+/)
       .filter((w) => w.length > 4);
-    return words.some((w) => q.includes(w)) || q.split(/\W+/).some((w) => w.length > 4 && t.text.toLowerCase().includes(w));
+    return (
+      words.some((w) => q.includes(w)) ||
+      q
+        .split(/\W+/)
+        .some((w) => w.length > 4 && t.text.toLowerCase().includes(w))
+    );
   });
 
   if (matched.length === 0) {
@@ -62,61 +65,34 @@ export async function askTeamAssistant(
     };
   }
 
-  const citations = matched.slice(0, 3).map((t) => ({
+  const truthSources = matched.slice(0, 6).map((t) => ({
     id: t.id,
     text: t.text,
-    kind: t.kind,
+    kind: "truth_item" as const,
   }));
 
-  // Ask-before-tell: one question first unless it's a lookup
-  const lookup =
-    /where|when|who|schedule|code|passcode|drive|link|url/i.test(question);
-  const questionFirst = lookup
-    ? null
-    : "What would the other side say against that?";
-
-  const sourceBlock = citations
-    .map((c, i) => `[T${i + 1}] (${c.kind}) ${c.text}`)
-    .join("\n");
-
-  const result = await callCruxy({
-    feature: "assistant_drawer",
-    tier: "small",
+  const reply = await runAssistant({
+    question,
+    truthSources,
+    page: ctx.page,
+    highlight: ctx.highlight,
     personId: ctx.personId,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are Cruxy. Answer only from the provided Truth Sources. Cite [T1], [T2]. Never invent. Short and even-handed.",
-      },
-      {
-        role: "user",
-        content: `Page: ${ctx.page ?? "unknown"}\nHighlight: ${ctx.highlight ?? "none"}\nSources:\n${sourceBlock}\n\nQuestion: ${question}`,
-      },
-    ],
+    adminMode: ctx.adminMode,
   });
 
-  if (!result.ok) {
-    return {
-      text: result.reason,
-      citations: [],
-      refusedWithoutSources: false,
-      stub: false,
-      questionFirst: null,
-    };
-  }
-
-  // Even in stub mode, ground the reply in citations
-  const grounded =
-    result.stub || result.text.includes("[Cruxy")
-      ? `From your team's Truth Sources: ${citations[0].text} [${citations.map((_, i) => `T${i + 1}`).join(", ")}]`
-      : result.text;
-
   return {
-    text: grounded,
-    citations,
-    refusedWithoutSources: false,
-    stub: result.stub,
-    questionFirst,
+    text: reply.questionFirst
+      ? reply.text
+        ? `${reply.questionFirst}\n\n${reply.text}`
+        : reply.questionFirst
+      : reply.text,
+    citations: reply.citations.map((c) => ({
+      id: c.id,
+      text: c.text,
+      kind: c.kind ?? "truth_item",
+    })),
+    refusedWithoutSources: reply.quiet,
+    stub: reply.stub,
+    questionFirst: reply.questionFirst,
   };
 }

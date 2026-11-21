@@ -1,0 +1,24 @@
+{
+  "gaps": [
+    {
+      "kind": "unsupported_support",
+      "claim_ref": "Case 1 · Claim 1 · Support 2",
+      "detail": "Automation bias needs a second independent source."
+    }
+  ],
+  "findings": [
+    {
+      "point": "Sparrow (2007) argues just war needs someone answerable for each death.",
+      "why_it_matters": "Backs the responsibility-gap support on Claim 1.",
+      "claim_ref": "Case 1 · Claim 1 · S1",
+      "quote": "someone who can be held responsible",
+      "link": "https://plato.stanford.edu/",
+      "verified": false,
+      "needs_check": true,
+      "source_ids": ["sep-sparrow"],
+      "citation_ids": []
+    }
+  ],
+  "book_request": null,
+  "claims": []
+}

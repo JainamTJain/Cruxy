@@ -15,8 +15,8 @@ import {
 import { nowIso } from "@/lib/utils";
 
 /**
- * Chunked resumable upload. Client sends 30s webm blobs.
- * Killing the browser loses at most one unfinished chunk (~30s).
+ * Chunked resumable upload. Client sends 10s webm/mp4 blobs.
+ * Killing the browser loses at most one unfinished chunk (~10s).
  */
 export async function POST(
   req: Request,

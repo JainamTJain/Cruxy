@@ -26,6 +26,31 @@ import { filterCitedFeedback } from "@/lib/practice/feedback";
 import { getPersonById, listTeams, logActivity } from "@/lib/db/repository";
 import { nowIso } from "@/lib/utils";
 
+/** Prefer Workstream H citation validator when present. */
+async function citeOrQuietFeedback<T extends { quote_line_id: string | null }>(
+  feedback: T[],
+  lines: { id: string; text: string }[],
+): Promise<T[]> {
+  try {
+    const citationsPath = "@/lib/cruxy/citations";
+    const citations = (await import(citationsPath)) as {
+      filterCitedOutputs?: <U extends { quote_line_id: string | null }>(
+        items: U[],
+        lines: { id: string; text: string }[],
+      ) => U[];
+    };
+    if (typeof citations.filterCitedOutputs === "function") {
+      return citations.filterCitedOutputs(feedback, lines);
+    }
+  } catch {
+    // H not merged yet.
+  }
+  return filterCitedFeedback(
+    feedback as unknown as Parameters<typeof filterCitedFeedback>[0],
+    lines as unknown as Parameters<typeof filterCitedFeedback>[1],
+  ) as unknown as T[];
+}
+
 /**
  * End-of-round pipeline:
  * 1. Concat chunks → AssemblyAI (or stub)
@@ -151,9 +176,8 @@ export async function finalizeRound(opts: {
       lines,
       personId: opts.personId,
     });
-    // Cite-or-quiet on feedback
-    judgment.feedback = filterCitedFeedback(judgment.feedback, lines);
-    // Drop feedback without citations entirely from display bundle
+    // Cite-or-quiet on feedback (H citation validator when available)
+    judgment.feedback = await citeOrQuietFeedback(judgment.feedback, lines);
     await saveJudgmentBundle(judgment);
     await logActivity({
       person_id: opts.personId ?? null,

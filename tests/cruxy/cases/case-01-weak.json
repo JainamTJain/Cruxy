@@ -1,0 +1,23 @@
+{
+  "id": "case-01-weak",
+  "caseNumber": 1,
+  "title": "CTRL-ALT-DEFENSE",
+  "argument": {
+    "claim": "AI weapons are fine because the law allows them.",
+    "logic_line": "Because the law allows them, they are ethical.",
+    "supports": ["The law allows them."],
+    "counterclaim_response": "None."
+  },
+  "sources": [
+    {
+      "id": "src-case",
+      "text": "Ethics Bowl is about ethics, not law or policy: bring legal points back to the moral question."
+    }
+  ],
+  "agreedCritique": {
+    "mustMention": ["ethics", "law", "moral"],
+    "fallacyFlags": ["appeal to authority", "missing supports"],
+    "socraticMustAsk": true,
+    "expectWeak": true
+  }
+}

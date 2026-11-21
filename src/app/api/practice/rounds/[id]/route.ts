@@ -9,6 +9,8 @@ import {
   listJudgeCards,
   startRound,
 } from "@/lib/db/practice-repository";
+import { getReportExtras } from "@/lib/db/supabase/practice-extra";
+import { getPersonById } from "@/lib/db/repository";
 import type { RoundPhase } from "@/lib/practice/types";
 
 export async function GET(
@@ -28,6 +30,13 @@ export async function GET(
   const lines = await getTranscript(id);
   const speakers = await getSpeakerConfirm(id);
   const { cards, scores } = await listJudgeCards(id);
+  const extras = await getReportExtras(id);
+  const me = await getPersonById(session.personId);
+  const caseTitle =
+    extras.teams && round.case_number != null
+      ? `Case ${round.case_number}`
+      : null;
+
   return NextResponse.json({
     round,
     recording: recording
@@ -36,13 +45,18 @@ export async function GET(
           status: recording.status,
           chunks: recording.chunk_meta.length,
           deleted_at: recording.deleted_at,
-          // never return chunk paths to client
         }
       : null,
     lines,
     speakers,
     cards,
     scores,
+    people: extras.people,
+    teams: extras.teams,
+    judges: extras.judges,
+    caseLabel: caseTitle,
+    recordingOk: Boolean(me?.recording_ok),
+    consentVersion: me?.consent_version ?? null,
   });
 }
 

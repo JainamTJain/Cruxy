@@ -1,0 +1,31 @@
+{
+  "id": "case-01-claim1",
+  "caseNumber": 1,
+  "title": "CTRL-ALT-DEFENSE",
+  "argument": {
+    "claim": "Even a more accurate AI would not remove the core objection: decisions to kill need meaningful human judgment and a responsible human.",
+    "logic_line": "Because autonomous killing creates a responsibility gap (S1), humans in the loop drift into rubber-stamping (S2), and greater distance makes war easier to start (S3), accuracy alone cannot justify removing human judgment.",
+    "supports": [
+      "Responsibility gap: when a machine selects a target, no one may be fully answerable.",
+      "Automation bias: people formally in the loop defer to the system.",
+      "Distance lowers the threshold for war."
+    ],
+    "counterclaim_response": "Concede democratic authority for limits in law; distinguish decision support from delegated kill decisions; rebut neutrality."
+  },
+  "sources": [
+    {
+      "id": "src-sparrow",
+      "text": "philosopher Robert Sparrow's Killer Robots (2007) argues that just war requires someone who can be held responsible for each death."
+    },
+    {
+      "id": "src-case-loop",
+      "text": "the case warns that a human may remain in the loop but rely on the system, and that a well-timed suggestion can steer a decision."
+    }
+  ],
+  "agreedCritique": {
+    "mustMention": ["responsibility", "human judgment", "accuracy"],
+    "fallacyFlags": [],
+    "socraticMustAsk": true,
+    "minCitationClaims": 0
+  }
+}

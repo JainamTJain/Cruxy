@@ -14,6 +14,7 @@ import {
   TOKENS,
 } from "@/lib/constants";
 import { buildContentSeed } from "@/lib/seed/build-content";
+import { buildPracticeFixtures } from "@/lib/practice/seed-fixtures";
 import {
   caseId,
   SEED_PERSON_IDS,
@@ -210,6 +211,8 @@ export interface SampleStore {
     failures: number;
     locked_until: string | null;
   }[];
+  /** Sample-mode admin plaintext session codes (never exposed except via admin API). */
+  session_admin_codes: Record<string, string>;
   /** Track 6 Admin */
   readiness: ReadinessCell[];
   program_totals: ProgramTotals;
@@ -358,6 +361,7 @@ function emptyPracticeTables(): Pick<
   | "talk_analytics"
   | "guest_judge_tokens"
   | "session_code_attempts"
+  | "session_admin_codes"
 > {
   return {
     practice_sessions: [],
@@ -378,6 +382,7 @@ function emptyPracticeTables(): Pick<
     talk_analytics: [],
     guest_judge_tokens: [],
     session_code_attempts: [],
+    session_admin_codes: {},
   };
 }
 
@@ -624,6 +629,9 @@ export async function buildSeedStore(): Promise<SampleStore> {
     drift_flags: [],
     person_prefs: [],
     ...emptyPracticeTables(),
+    ...(await buildPracticeFixtures()),
+    glossary: [],
+    speaker_confirms: [],
     ...emptyAdminFields(),
     case_stakeholders: content.stakeholders,
     scoring_card_items: content.scoring_card_items,
@@ -633,7 +641,7 @@ export async function buildSeedStore(): Promise<SampleStore> {
       ideas_accepted: 0,
       sources_verified: content.truth_items.length,
       bank_questions: content.questions.length,
-      rounds_graded: 0,
+      rounds_graded: 1,
       redo_improvements: 0,
     },
   };
@@ -720,6 +728,8 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     guest_judge_tokens: raw.guest_judge_tokens ?? practice.guest_judge_tokens,
     session_code_attempts:
       raw.session_code_attempts ?? practice.session_code_attempts,
+    session_admin_codes:
+      raw.session_admin_codes ?? practice.session_admin_codes,
     readiness: raw.readiness ?? admin.readiness,
     program_totals: raw.program_totals ?? admin.program_totals,
     spend_caps: raw.spend_caps ?? admin.spend_caps,
@@ -739,7 +749,24 @@ export async function readStore(): Promise<SampleStore> {
   await ensureDir();
   try {
     const raw = await fs.readFile(STORE_PATH, "utf8");
-    return migrateStoreShape(JSON.parse(raw) as Partial<SampleStore>);
+    const store = migrateStoreShape(JSON.parse(raw) as Partial<SampleStore>);
+    // Workstream D: inject practice design fixtures when an older store has none.
+    if (store.practice_sessions.length === 0) {
+      const fixtures = await buildPracticeFixtures();
+      Object.assign(store, fixtures);
+      store.glossary = store.glossary ?? [];
+      store.speaker_confirms = store.speaker_confirms ?? [];
+      // Fixture practice day assumes voice consent for seated members.
+      for (const p of store.people) {
+        if (p.role === "member" || p.role === "tech_admin") {
+          p.recording_ok = true;
+          p.consent_version = p.consent_version ?? "2026-11-21-v1";
+          p.consent_at = p.consent_at ?? "2026-11-01T00:00:00.000Z";
+        }
+      }
+      await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2));
+    }
+    return store;
   } catch {
     const seeded = await buildSeedStore();
     await fs.writeFile(STORE_PATH, JSON.stringify(seeded, null, 2));
