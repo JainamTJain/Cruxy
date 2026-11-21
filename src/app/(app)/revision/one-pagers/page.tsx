@@ -24,6 +24,9 @@ function OnePagersInner() {
   const [teamId, setTeamId] = useState(search.get("teamId") ?? "");
   const [caseId, setCaseId] = useState(search.get("caseId") ?? "");
   const [page, setPage] = useState<OnePager | null>(null);
+  const [diff, setDiff] = useState<
+    { path: string; before: string; after: string }[]
+  >([]);
   const [brain, setBrain] = useState<BrainLite | null>(null);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
@@ -52,8 +55,12 @@ function OnePagersInner() {
     const res = await fetch(
       `/api/revision/one-pagers?teamId=${teamId}&caseId=${caseId}`,
     );
-    const data = (await res.json()) as { onePager: OnePager | null };
+    const data = (await res.json()) as {
+      onePager: OnePager | null;
+      diff: { path: string; before: string; after: string }[];
+    };
     setPage(data.onePager);
+    setDiff(data.diff ?? []);
   }
 
   async function loadBrain() {
@@ -190,20 +197,43 @@ function OnePagersInner() {
       </div>
 
       {page ? (
-        <OnePagerDocument
-          page={page}
-          caseRow={caseRow}
-          team={team}
-          roles={roles}
-          teamSize={teamSize}
-          canSign={canSign}
-          busy={busy}
-          status={status}
-          onSignOff={() => void signOff()}
-          onExportPdf={exportPdf}
-          onExportDrive={() => void exportDrive()}
-          onRedraft={() => void draft()}
-        />
+        <>
+          <OnePagerDocument
+            page={page}
+            caseRow={caseRow}
+            team={team}
+            roles={roles}
+            teamSize={teamSize}
+            canSign={canSign}
+            busy={busy}
+            status={status}
+            onSignOff={() => void signOff()}
+            onExportPdf={exportPdf}
+            onExportDrive={() => void exportDrive()}
+            onRedraft={() => void draft()}
+          />
+          {diff.length ? (
+            <section className="mx-auto w-full max-w-[1100px] rounded-[20px] bg-white p-5 print:hidden">
+              <h2 className="font-display text-xl font-extrabold">
+                Diff since last version
+              </h2>
+              <ul className="mt-3 space-y-2 text-sm">
+                {diff.map((d) => (
+                  <li key={d.path} className="rounded-xl bg-[#F7F8FA] px-3 py-2">
+                    <span className="font-mono text-xs text-muted">{d.path}</span>
+                    <div>
+                      <span className="text-muted line-through">
+                        {d.before || "∅"}
+                      </span>
+                      {" → "}
+                      <span className="text-cardinal">{d.after || "∅"}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+        </>
       ) : (
         <div className="rounded-[20px] bg-white p-8">
           <p className="text-sm text-muted">
