@@ -48,6 +48,65 @@ export type BackupResult = {
   sampleMode: boolean;
 };
 
+export type BackupStatus = {
+  available: boolean;
+  lastBackupAt: string | null;
+  lastBackupBytes: number | null;
+  lastBackupPath: string | null;
+  note: string;
+};
+
+/** Latest weekly backup run for G's admin status panel. */
+export async function getBackupStatus(): Promise<BackupStatus> {
+  if (isSampleDataMode()) {
+    const { readStore } = await import("@/lib/db/sample-store");
+    const store = await readStore();
+    const hit = store.activity_log.find((e) => e.action === "weekly_logical_backup");
+    return {
+      available: true,
+      lastBackupAt: hit?.at ?? null,
+      lastBackupBytes:
+        typeof hit?.meta?.byteSize === "number" ? hit.meta.byteSize : null,
+      lastBackupPath:
+        typeof hit?.target === "string" ? hit.target : null,
+      note: "Sample-data mode: backups stay in memory Storage.",
+    };
+  }
+
+  const sb = getServiceSupabase();
+  const { data, error } = await sb
+    .from("backup_runs")
+    .select("storage_path, byte_size, created_at, ok")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    return {
+      available: false,
+      lastBackupAt: null,
+      lastBackupBytes: null,
+      lastBackupPath: null,
+      note: error.message,
+    };
+  }
+  if (!data) {
+    return {
+      available: true,
+      lastBackupAt: null,
+      lastBackupBytes: null,
+      lastBackupPath: null,
+      note: "No backup runs yet. The Sunday cron writes the first one.",
+    };
+  }
+  return {
+    available: true,
+    lastBackupAt: (data.created_at as string) ?? null,
+    lastBackupBytes: Number(data.byte_size) || null,
+    lastBackupPath: (data.storage_path as string) ?? null,
+    note: data.ok ? "Last weekly logical backup." : "Last run reported an error.",
+  };
+}
+
 /**
  * Weekly logical backup of key tables → Supabase Storage `backups` bucket.
  * JSON dump (no Vercel filesystem). Sample mode dumps the in-memory store.
