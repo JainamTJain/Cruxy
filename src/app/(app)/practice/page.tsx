@@ -77,6 +77,23 @@ export default function PracticePage() {
   }, []);
 
   async function startPractice() {
+    const drillRoutes: Partial<Record<PracticeMode, string>> = {
+      moderator_drill: "/practice/drills/moderator",
+      commentary_drill: "/practice/drills/commentary",
+      judges_qa_drill: "/practice/drills/judges-qa",
+      free_record: "/practice/drills/free-record",
+      conferral_drill: "/practice/drills/conferral",
+      qa_routing: "/practice/drills/qa-routing",
+      thesis_30: "/practice/drills/thesis",
+    };
+    const drillHref = drillRoutes[mode];
+    if (drillHref) {
+      window.location.href = caseId
+        ? `${drillHref}?caseId=${encodeURIComponent(caseId)}`
+        : drillHref;
+      return;
+    }
+
     setBusy(true);
     setCreatedCode(null);
     const caseRow = cases.find((c) => c.id === caseId);
@@ -259,6 +276,19 @@ export default function PracticePage() {
             ))
           )}
         </ul>
+      </section>
+
+      <section className="rounded-2xl border border-ink/10 bg-white/60 p-4">
+        <h2 className="font-display text-lg font-semibold">APPE scoring sheet</h2>
+        <p className="mt-1 text-sm text-muted">
+          Items, bands and Guide to Scoring built from the Drive Training Documents sheet.
+        </p>
+        <Link
+          href="/practice/scoring-sheet"
+          className="mt-3 inline-block text-sm text-cardinal underline"
+        >
+          Open scoring sheet
+        </Link>
       </section>
 
       <section className="rounded-2xl border border-ink/10 bg-white/60 p-4">

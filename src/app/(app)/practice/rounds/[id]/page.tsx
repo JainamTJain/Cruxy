@@ -181,9 +181,18 @@ export default function RoundPage() {
     );
   }
 
-  // Thesis drill routes to dedicated phone screen
-  if (round.mode === "thesis_30") {
-    router.replace("/practice/drills/thesis");
+  // Drill modes use dedicated phone screens (Workstream G Wave 5)
+  const drillRoutes: Record<string, string> = {
+    thesis_30: "/practice/drills/thesis",
+    moderator_drill: "/practice/drills/moderator",
+    commentary_drill: "/practice/drills/commentary",
+    judges_qa_drill: "/practice/drills/judges-qa",
+    free_record: "/practice/drills/free-record",
+    conferral_drill: "/practice/drills/conferral",
+    qa_routing: "/practice/drills/qa-routing",
+  };
+  if (drillRoutes[round.mode]) {
+    router.replace(drillRoutes[round.mode]!);
   }
 
   const presenters = people.filter(

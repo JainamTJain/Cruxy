@@ -250,14 +250,14 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 - [x] F-205 Mode · What happens · Who plays the other side [src/app/(app)/practice/page.tsx]
 - [x] F-206 Full round · Presentation, commentary, response, judges' Q&A, timed to the round's settings · Another team, or Cruxy as the other team [src/app/(app)/practice/rounds/[id]/page.tsx]
-- [ ] F-207 Moderator drill · Random bank questions read aloud; answer out loud within a set time · Cruxy moderator
-- [ ] F-208 Commentary drill · Cruxy presents a case position for 7 to 12 minutes; you deliver commentary on it · Cruxy as the presenting team
-- [ ] F-209 Judges' Q&A drill · Rapid follow ups, pushback and change the facts questions on your own claims · Cruxy judge panel
+- [x] F-207 Moderator drill · Random bank questions read aloud; answer out loud within a set time · Cruxy moderator [`src/app/(app)/practice/drills/moderator/page.tsx`]
+- [x] F-208 Commentary drill · Cruxy presents a case position for 7 to 12 minutes; you deliver commentary on it · Cruxy as the presenting team [`src/app/(app)/practice/drills/commentary/page.tsx`]
+- [x] F-209 Judges' Q&A drill · Rapid follow ups, pushback and change the facts questions on your own claims · Cruxy judge panel [`src/app/(app)/practice/drills/judges-qa/page.tsx`]
 - [x] F-210 Solo speech · Deliver your part (a claim, the intro, the counterclaim) and get it scored · None [src/app/(app)/practice/page.tsx]
-- [ ] F-211 Free record · Record any discussion; Cruxy pulls out ideas for Truth Sources · None
-- [ ] F-212 **Conferral drill:** an unseen question, 60 seconds to confer with scratch paper only (as the rules allow), then answer. Crux times it and checks who spoke.
+- [x] F-211 Free record · Record any discussion; Cruxy pulls out ideas for Truth Sources · None [`src/app/(app)/practice/drills/free-record/page.tsx`]
+- [x] F-212 **Conferral drill:** an unseen question, 60 seconds to confer with scratch paper only (as the rules allow), then answer. Crux times it and checks who spoke. [`src/app/(app)/practice/drills/conferral/page.tsx`]
 - [x] F-213 **Thesis in 30 seconds:** a fresh wording of a case question; answer in one sentence. Times are tracked against your own past times. [src/app/(app)/practice/drills/thesis/page.tsx]
-- [ ] F-214 **Q&A routing:** each team sets who takes which kind of judge question (facts, framework pushback, change the facts, practical). Reports check whether the right person answered.
+- [x] F-214 **Q&A routing:** each team sets who takes which kind of judge question (facts, framework pushback, change the facts, practical). Reports check whether the right person answered. [`src/app/(app)/practice/drills/qa-routing/page.tsx`]
 - [x] F-215 Every screen works on a phone browser; Crux can be added to the home screen like an app. [src/app/(app)/practice/drills/thesis/page.tsx]
 - [x] F-216 Recording is tested on iPhone Safari and Android Chrome before release. [src/components/practice/chunked-recorder.tsx]
 - [x] F-217 Captions: live captions during practice, and everything Cruxy says aloud also appears as text. [src/components/practice/live-captions.tsx, src/app/(app)/practice/rounds/[id]/page.tsx]
@@ -282,7 +282,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 ## Judging and calibration
 
 - [x] F-235 **The scoring card: a copy of the one in your Drive (same for humans and Cruxy)** · [src/lib/seed/scoring-card.ts, supabase/migrations/00009_workstream_b_content.sql]
-- [ ] F-236 **Built from the Drive.** The Librarian reads the APPE IEB Fillable Scoring Sheet (August 2020) in the Drive's Training Documents folder and builds the card from it: the same items, the same question wording, the same order, the same 1 to 10 scales and the same totals. The score bands and the Guide to Scoring from the same folder sit beside the card as a judge's guide. If a newer sheet appears in the Drive, Crux shows Jainam the differences and switches after he confirms.
+- [x] F-236 **Built from the Drive.** The Librarian reads the APPE IEB Fillable Scoring Sheet (August 2020) in the Drive's Training Documents folder and builds the card from it: the same items, the same question wording, the same order, the same 1 to 10 scales and the same totals. The score bands and the Guide to Scoring from the same folder sit beside the card as a judge's guide. If a newer sheet appears in the Drive, Crux shows Jainam the differences and switches after he confirms. [`src/app/(app)/practice/scoring-sheet/page.tsx`, `supabase/migrations/00021_workstream_g_drills_scoring.sql`]
 - [x] F-237 **Laid out like the paper sheet.** One card per judge per round, with a column for each team, so the judge scores both teams side by side, as on the original: [src/components/practice/judge-phone-card.tsx]
 - [x] F-238 Presentation A · Was the presentation clear and systematic? · 1 to 10 · 1 to 10 · [src/lib/seed/scoring-card.ts]
 - [x] F-239 Presentation B · Did the presentation clearly identify and thoroughly discuss the central moral dimensions of the case? · 1 to 10 · 1 to 10 [src/lib/practice/types.ts]

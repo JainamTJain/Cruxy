@@ -82,7 +82,7 @@ export function validateEvidence(
     };
   }
   if (score.score < 1 || score.score > 10) {
-    return { ok: false, reason: "Score must be 1–10" };
+    return { ok: false, reason: "Score must be 1 to 10" };
   }
   return { ok: true };
 }
