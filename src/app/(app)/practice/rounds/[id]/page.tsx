@@ -284,7 +284,7 @@ export default function RoundPage() {
                     : "Time left"}
               </span>
               <span className="font-mono text-[112px] font-semibold leading-none text-gold">
-                {round.phase === "setup" ? "—:— " : clockLabel(left)}
+                {round.phase === "setup" ? "00:00" : clockLabel(left)}
               </span>
             </div>
 
