@@ -28,3 +28,19 @@ Migration stamp: `00036_workstream_i_wave6_privacy.sql` (`app_kv.privacy_wave6`)
 3. Personal routes: filter by `session.personId` unless lead/admin helper allows.
 4. Admin dashboards (G): Brier and mastery trends must not name another member to non-admins; aggregates OK.
 5. No middle dots or em dashes in UI copy.
+
+## Reviews so far
+
+| PR | Verdict |
+| --- | --- |
+| #44 graph spine (K) | OK (shared) |
+| #48 privacy helpers (I) | Merged |
+| #50 graph flashcards (F) | OK if `node_mastery` stays session-scoped |
+| #51 flywheel (G) | OK admin-gated; align Brier source with D |
+
+## Follow-up fixes (this branch)
+
+- Socratic week summary scoped to the person on member GET
+- Round predictions gate: speaker list only for round participants / admins
+- Report skill charts: round participants only from DB; members see own chart
+- Report redos / predictions already redacted from #48
