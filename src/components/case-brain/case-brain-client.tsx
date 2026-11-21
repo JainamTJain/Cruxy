@@ -440,6 +440,40 @@ export function CaseBrainClient({
           <div className="flex min-w-0 flex-[999_1_620px] flex-col gap-4">
             {tab === "map" ? (
               <>
+                {Object.keys(brain.peer_claim_scores ?? {}).length > 0 ? (
+                  <div className="rounded-[14px] bg-[#F7F8FA] px-3.5 py-3 text-[12px] text-[#3B404A]">
+                    <p className="m-0 font-semibold text-ink">
+                      Robustness across teams
+                    </p>
+                    <ul className="mt-1.5 m-0 list-none space-y-1 p-0">
+                      {Object.values(brain.peer_claim_scores).map((peer) => {
+                        const open = peer.scores.reduce(
+                          (n, s) => n + s.attacks_open,
+                          0,
+                        );
+                        const answered = peer.scores.reduce(
+                          (n, s) => n + s.attacks_answered,
+                          0,
+                        );
+                        const avg =
+                          peer.scores.length === 0
+                            ? 0
+                            : Math.round(
+                                peer.scores.reduce(
+                                  (n, s) => n + s.score_pct,
+                                  0,
+                                ) / peer.scores.length,
+                              );
+                        return (
+                          <li key={peer.team_name}>
+                            {peer.team_name}: {avg}% avg, {answered} attacks
+                            answered, {open} open
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ) : null}
                 {brain.claims.map((node, idx) => {
                   const backed = node.supports.filter(
                     (s) => s.backings.length > 0,
@@ -464,6 +498,7 @@ export function CaseBrainClient({
                         <ClaimRobustness
                           backed={backed}
                           total={node.supports.length || 3}
+                          graphScore={brain.claim_scores?.[node.claim.id]}
                         />
                       </div>
                       <h2 className="font-display m-0 text-[26px] font-semibold leading-[1.15]">

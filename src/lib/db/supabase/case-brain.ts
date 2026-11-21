@@ -9,6 +9,12 @@ import {
 import { findConsistencyFlags } from "@/lib/case-brain/consistency";
 import { ideaKeyFromText } from "@/lib/case-brain/idea-key";
 import { computeRobustness } from "@/lib/case-brain/robustness";
+import {
+  scoreClaimsForTeamCase,
+  scoresByClaimId,
+} from "@/lib/arg-graph/score-case";
+import { listClaimRobustnessScoresForCase } from "@/lib/db/supabase/arg-graph-extra";
+import { listTeams } from "@/lib/db/supabase/foundation";
 import type {
   Backing,
   CaseBrainSnapshot,
@@ -274,6 +280,33 @@ export async function getCaseBrain(
     (f) => f.case_id_a === caseId || f.case_id_b === caseId,
   );
 
+  const scored = await scoreClaimsForTeamCase({
+    teamId,
+    caseId,
+    nodes,
+  });
+  const claim_scores = scoresByClaimId(scored);
+  const peer_claim_scores: CaseBrainSnapshot["peer_claim_scores"] = {};
+  try {
+    const allScores = await listClaimRobustnessScoresForCase(caseId);
+    const teams = await listTeams();
+    const byTeam = new Map<string, typeof allScores>();
+    for (const row of allScores) {
+      if (row.team_id === teamId) continue;
+      const list = byTeam.get(row.team_id) ?? [];
+      list.push(row);
+      byTeam.set(row.team_id, list);
+    }
+    for (const [tid, scores] of byTeam) {
+      peer_claim_scores[tid] = {
+        team_name: teams.find((t) => t.id === tid)?.name ?? "Team",
+        scores,
+      };
+    }
+  } catch {
+    // 00029 may not be applied yet.
+  }
+
   return {
     case_id: caseId,
     team_id: teamId,
@@ -289,6 +322,8 @@ export async function getCaseBrain(
     change_the_facts: unwrap(ctfRes) as ChangeTheFactsItem[],
     consistency_flags,
     robustness: computeRobustness(nodes, truth_items),
+    claim_scores,
+    peer_claim_scores,
   };
 }
 

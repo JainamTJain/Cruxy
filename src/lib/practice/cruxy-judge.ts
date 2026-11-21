@@ -93,12 +93,34 @@ export async function runCruxyJudge(opts: {
     opts.round.mode === "judges_qa_drill" ||
     opts.round.judges.cruxy
   ) {
-    await ensureCruxyJudgeQa({
+    const qa = await ensureCruxyJudgeQa({
       roundId: opts.round.id,
       caseNumber: null,
       caseTitle: null,
       personId: opts.personId,
     });
+    // Wave 6: classify real judge Qs onto claim nodes (attacks).
+    if (qa.length && opts.round.case_id) {
+      try {
+        const { getCaseBrain } = await import("@/lib/case-brain/service");
+        const { classifyJudgeQuestionsForRound } = await import(
+          "@/lib/arg-graph/classify-judge-q"
+        );
+        for (const teamId of opts.round.team_ids) {
+          const brain = await getCaseBrain(teamId, opts.round.case_id);
+          await classifyJudgeQuestionsForRound({
+            roundId: opts.round.id,
+            teamId,
+            caseId: opts.round.case_id,
+            nodes: brain.claims,
+            personId: opts.personId,
+            questions: qa,
+          });
+        }
+      } catch {
+        // Classification is best-effort; judging continues.
+      }
+    }
   }
 
   const judged = await runJudgeAgent({

@@ -33,6 +33,11 @@ import type {
   TruthItem,
   TruthKind,
 } from "@/lib/case-brain/types";
+import {
+  scoreClaimsForTeamCase,
+  scoresByClaimId,
+} from "@/lib/arg-graph/score-case";
+import { listClaimRobustnessScoresForCase } from "@/lib/db/supabase/arg-graph-extra";
 import { isSampleDataMode } from "@/lib/db/config";
 import { logActivity } from "@/lib/db/repository";
 import * as sb from "@/lib/db/supabase/case-brain";
@@ -42,6 +47,46 @@ import {
   type SampleStore,
 } from "@/lib/db/sample-store";
 import { nowIso } from "@/lib/utils";
+
+async function attachClaimScores(
+  snapshot: Omit<CaseBrainSnapshot, "claim_scores" | "peer_claim_scores">,
+  storeTeams?: Array<{ id: string; name: string }>,
+): Promise<CaseBrainSnapshot> {
+  const scored = await scoreClaimsForTeamCase({
+    teamId: snapshot.team_id,
+    caseId: snapshot.case_id,
+    nodes: snapshot.claims,
+  });
+  const claim_scores = scoresByClaimId(scored);
+
+  const peer_claim_scores: CaseBrainSnapshot["peer_claim_scores"] = {};
+  try {
+    const all = await listClaimRobustnessScoresForCase(snapshot.case_id);
+    let teamsList = storeTeams;
+    if (!teamsList) {
+      const repo = await import("@/lib/db/repository");
+      teamsList = await repo.listTeams();
+    }
+    const byTeam = new Map<string, typeof all>();
+    for (const row of all) {
+      if (row.team_id === snapshot.team_id) continue;
+      const list = byTeam.get(row.team_id) ?? [];
+      list.push(row);
+      byTeam.set(row.team_id, list);
+    }
+    for (const [tid, scores] of byTeam) {
+      const team = teamsList.find((t) => t.id === tid);
+      peer_claim_scores[tid] = {
+        team_name: team?.name ?? "Team",
+        scores,
+      };
+    }
+  } catch {
+    // Scores table may be missing until 00029 is applied.
+  }
+
+  return { ...snapshot, claim_scores, peer_claim_scores };
+}
 
 function pushHistory(
   store: SampleStore,
@@ -141,32 +186,35 @@ export async function getCaseBrain(
     (f) => f.case_id_a === caseId || f.case_id_b === caseId,
   );
 
-  return {
-    case_id: caseId,
-    team_id: teamId,
-    claims: nodes,
-    truth_items,
-    proposals,
-    decisions_by_proposal,
-    peer_decisions_by_idea,
-    case_roles: store.case_roles.filter(
-      (r) => r.team_id === teamId && r.case_id === caseId,
-    ),
-    opposing_positions: store.opposing_positions.filter(
-      (o) => o.case_id === caseId,
-    ),
-    history: store.item_history.filter(
-      (h) =>
-        h.case_id === caseId &&
-        (h.team_id === teamId || h.team_id === null),
-    ),
-    principles: principles.filter((p) => p.case_id === caseId),
-    change_the_facts: store.change_the_facts.filter(
-      (c) => c.team_id === teamId && c.case_id === caseId,
-    ),
-    consistency_flags,
-    robustness: computeRobustness(nodes, truth_items),
-  };
+  return attachClaimScores(
+    {
+      case_id: caseId,
+      team_id: teamId,
+      claims: nodes,
+      truth_items,
+      proposals,
+      decisions_by_proposal,
+      peer_decisions_by_idea,
+      case_roles: store.case_roles.filter(
+        (r) => r.team_id === teamId && r.case_id === caseId,
+      ),
+      opposing_positions: store.opposing_positions.filter(
+        (o) => o.case_id === caseId,
+      ),
+      history: store.item_history.filter(
+        (h) =>
+          h.case_id === caseId &&
+          (h.team_id === teamId || h.team_id === null),
+      ),
+      principles: principles.filter((p) => p.case_id === caseId),
+      change_the_facts: store.change_the_facts.filter(
+        (c) => c.team_id === teamId && c.case_id === caseId,
+      ),
+      consistency_flags,
+      robustness: computeRobustness(nodes, truth_items),
+    },
+    store.teams,
+  );
 }
 
 export async function ensureClaimMapShell(input: {

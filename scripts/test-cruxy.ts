@@ -16,6 +16,14 @@ import {
   validateCitedClaims,
   filterScoresByEvidence,
 } from "../src/lib/cruxy/citations";
+import {
+  dfQuadAggregate,
+  dfQuadScore,
+  formatAttackSummary,
+  isAttackAnswered,
+  scoreClaimFromEdges,
+} from "../src/lib/arg-graph/df-quad";
+import type { ArgEdge } from "../src/lib/arg-graph/types";
 import { runCoachSocratic } from "../src/lib/cruxy/agents/coach";
 import { runAnalystNote, detectProposalProblems } from "../src/lib/cruxy/agents/analyst";
 import { runJudgeAgent } from "../src/lib/cruxy/agents/judge";
@@ -34,6 +42,104 @@ import {
 
 function assert(cond: unknown, msg: string) {
   if (!cond) throw new Error(msg);
+}
+
+async function runDfQuadUnitTests(): Promise<number> {
+  let passed = 0;
+
+  assert(dfQuadAggregate([]) === 0, "empty aggregate is 0");
+  passed += 1;
+  assert(
+    Math.abs(dfQuadAggregate([0.5]) - 0.5) < 1e-9,
+    "single 0.5 aggregates to 0.5",
+  );
+  passed += 1;
+
+  const baseOnly = dfQuadScore({
+    supportStrengths: [],
+    unansweredAttackStrengths: [],
+  });
+  assert(Math.abs(baseOnly - 0.5) < 1e-9, "no edges → base 0.5");
+  passed += 1;
+
+  const withSupport = dfQuadScore({
+    supportStrengths: [0.7],
+    unansweredAttackStrengths: [],
+  });
+  assert(withSupport > baseOnly, "supporters raise the score");
+  passed += 1;
+
+  const withAttack = dfQuadScore({
+    supportStrengths: [0.7],
+    unansweredAttackStrengths: [0.8],
+  });
+  assert(withAttack < withSupport, "unanswered attacks lower the score");
+  passed += 1;
+
+  const attack: ArgEdge = {
+    id: "a1",
+    edge_key: "question|q1|attacks|claim|c1|cruxy_judge_qa|q1",
+    from_kind: "question",
+    from_id: "q1",
+    to_kind: "claim",
+    to_id: "c1",
+    type: "attacks",
+    weight: 0.6,
+    source_kind: "cruxy_judge_qa",
+    source_id: "q1",
+    round_id: "round-abc",
+    line_id: null,
+    team_id: "t1",
+    case_id: "case1",
+    created_by: null,
+    created_at: "2026-01-01T00:00:00.000Z",
+  };
+  const answer: ArgEdge = {
+    ...attack,
+    id: "r1",
+    edge_key: "counterclaim|cc1|rebuts|question|q1||",
+    from_kind: "counterclaim",
+    from_id: "cc1",
+    to_kind: "question",
+    to_id: "q1",
+    type: "rebuts",
+    round_id: null,
+  };
+  assert(!isAttackAnswered(attack, [attack]), "open attack unanswered");
+  passed += 1;
+  assert(isAttackAnswered(attack, [attack, answer]), "rebut answers attack");
+  passed += 1;
+
+  const openScore = scoreClaimFromEdges({
+    claimId: "c1",
+    teamId: "t1",
+    caseId: "case1",
+    edges: [attack],
+  });
+  assert(openScore.attacks_open === 1, "one open attack");
+  assert(openScore.attacks_answered === 0, "zero answered");
+  assert(
+    formatAttackSummary(openScore).includes("1 open"),
+    "summary mentions open",
+  );
+  assert(
+    formatAttackSummary(openScore).includes("round"),
+    "summary mentions round",
+  );
+  passed += 1;
+
+  const answeredScore = scoreClaimFromEdges({
+    claimId: "c1",
+    teamId: "t1",
+    caseId: "case1",
+    edges: [attack, answer],
+  });
+  assert(answeredScore.attacks_answered === 1, "one answered");
+  assert(answeredScore.attacks_open === 0, "zero open after answer");
+  assert(answeredScore.score > openScore.score, "answering raises score");
+  passed += 1;
+
+  return passed;
 }
 
 async function runCitationUnitTests(): Promise<number> {
@@ -257,6 +363,9 @@ async function runFixedCaseSet(): Promise<{
 
 async function main() {
   console.log("test:cruxy — citation units + fixed case set (fixtures, no key)\n");
+
+  const dfQuad = await runDfQuadUnitTests();
+  console.log(`DF-QuAD checks: ${dfQuad} passed`);
 
   const units = await runCitationUnitTests();
   console.log(`Citation / prompt checks: ${units} passed`);
