@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { APPE_SCORE_ITEMS, type AppeItemKey } from "@/lib/practice/types";
+import { CONFIDENCE_OPTIONS, normalizeItemPrediction } from "@/lib/practice/brier";
+import {
+  APPE_SCORE_ITEMS,
+  type AppeItemKey,
+  type ItemPrediction,
+  type ItemPredictionInput,
+  type PredictionConfidence,
+} from "@/lib/practice/types";
 
 type Gate = {
   ready: boolean;
@@ -16,8 +23,12 @@ type Props = {
   onGateChange?: (ready: boolean) => void;
 };
 
+function defaultItem(): ItemPrediction {
+  return { score: 5, confidence: 50 };
+}
+
 /**
- * Wave 6: every speaker predicts scores + the question they expect
+ * Wave 6: every speaker predicts scores + confidence + the question they expect
  * before the round can start.
  */
 export function ScorePredictionForm({
@@ -27,9 +38,9 @@ export function ScorePredictionForm({
 }: Props) {
   const [gate, setGate] = useState<Gate | null>(null);
   const [canPredict, setCanPredict] = useState(false);
-  const [scores, setScores] = useState<Partial<Record<AppeItemKey, number>>>(
-    {},
-  );
+  const [scores, setScores] = useState<
+    Partial<Record<AppeItemKey, ItemPrediction>>
+  >({});
   const [question, setQuestion] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -42,7 +53,7 @@ export function ScorePredictionForm({
       gate: Gate;
       canPredict?: boolean;
       mine: {
-        item_scores: Partial<Record<AppeItemKey, number>>;
+        item_scores: Partial<Record<AppeItemKey, ItemPredictionInput>>;
         expected_question: string;
       } | null;
     };
@@ -50,7 +61,12 @@ export function ScorePredictionForm({
     setCanPredict(Boolean(data.canPredict));
     onGateChange?.(data.gate.ready);
     if (data.mine) {
-      setScores(data.mine.item_scores ?? {});
+      const next: Partial<Record<AppeItemKey, ItemPrediction>> = {};
+      for (const [k, v] of Object.entries(data.mine.item_scores ?? {})) {
+        const n = normalizeItemPrediction(v as ItemPredictionInput);
+        if (n) next[k as AppeItemKey] = n;
+      }
+      setScores(next);
       setQuestion(data.mine.expected_question ?? "");
       setSaved(true);
     }
@@ -66,6 +82,20 @@ export function ScorePredictionForm({
       (personId && gate?.speakers.find((s) => s.id === personId)?.predicted),
   );
   const iAmSpeaker = canPredict;
+
+  function setScore(key: AppeItemKey, score: number) {
+    setScores((p) => ({
+      ...p,
+      [key]: { ...(p[key] ?? defaultItem()), score },
+    }));
+  }
+
+  function setConfidence(key: AppeItemKey, confidence: PredictionConfidence) {
+    setScores((p) => ({
+      ...p,
+      [key]: { ...(p[key] ?? defaultItem()), confidence },
+    }));
+  }
 
   async function submit() {
     setBusy(true);
@@ -100,8 +130,8 @@ export function ScorePredictionForm({
     <section className="flex flex-col gap-3 rounded-[20px] border border-[#262934] bg-[#16181F] p-5 text-[#F2F3F5]">
       <h2 className="m-0 text-base font-bold">Predict your scores</h2>
       <p className="m-0 text-sm text-[#8C929D]">
-        Required before the round starts. Compared only with your own past after
-        judging.
+        Required before the round starts. Say how sure you are on each item.
+        Compared only with your own past after judging.
       </p>
 
       <ul className="m-0 list-none space-y-1 p-0 text-sm">
@@ -116,15 +146,16 @@ export function ScorePredictionForm({
       </ul>
 
       {iAmSpeaker && !myDone ? (
-        <div className="flex flex-col gap-3 border-t border-[#262934] pt-3">
+        <div className="flex flex-col gap-4 border-t border-[#262934] pt-3">
           {(gate.requiredItems.length
             ? gate.requiredItems
             : APPE_SCORE_ITEMS.map((i) => i.key)
           ).map((key) => {
             const meta = APPE_SCORE_ITEMS.find((i) => i.key === key);
             if (!meta) return null;
+            const row = scores[key] ?? defaultItem();
             return (
-              <label key={key} className="flex flex-col gap-1 text-sm">
+              <div key={key} className="flex flex-col gap-2 text-sm">
                 <span className="font-medium">{meta.label}</span>
                 <span className="text-xs text-[#8C929D]">{meta.question}</span>
                 <div className="flex items-center gap-3">
@@ -132,20 +163,35 @@ export function ScorePredictionForm({
                     type="range"
                     min={1}
                     max={10}
-                    value={scores[key] ?? 5}
-                    onChange={(e) =>
-                      setScores((p) => ({
-                        ...p,
-                        [key]: Number(e.target.value),
-                      }))
-                    }
+                    value={row.score}
+                    onChange={(e) => setScore(key, Number(e.target.value))}
                     className="w-full"
+                    aria-label={`${meta.label} score`}
                   />
-                  <span className="font-mono text-xs w-6">
-                    {scores[key] ?? 5}
-                  </span>
+                  <span className="w-6 font-mono text-xs">{row.score}</span>
                 </div>
-              </label>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-[#8C929D]">
+                    How sure are you?
+                  </span>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {CONFIDENCE_OPTIONS.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setConfidence(key, c)}
+                        className={
+                          row.confidence === c
+                            ? "h-9 rounded-lg bg-[#F2F3F5] text-xs font-semibold text-[#0C0D11]"
+                            : "h-9 rounded-lg border border-[#3B404A] text-xs font-semibold text-[#C9CCD3]"
+                        }
+                      >
+                        {c}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             );
           })}
           <label className="flex flex-col gap-1 text-sm">
@@ -169,10 +215,7 @@ export function ScorePredictionForm({
       ) : null}
 
       {iAmSpeaker && myDone ? (
-        <p className="m-0 text-sm text-[#6EE7B7]">
-          Your prediction is locked
-          {saved ? "" : ""}.
-        </p>
+        <p className="m-0 text-sm text-[#6EE7B7]">Your prediction is locked.</p>
       ) : null}
 
       {!gate.ready ? (

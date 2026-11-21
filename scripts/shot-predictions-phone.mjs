@@ -94,26 +94,61 @@ if (!createdRes.ok()) {
 const roundId = created.rounds?.[0]?.id ?? created.session?.rounds?.[0]?.id;
 if (!roundId) throw new Error(`No round id: ${JSON.stringify(created)}`);
 
+async function dismissCruxy() {
+  const back = page.getByText("Back to the lamp");
+  if ((await back.count()) > 0) {
+    await back.first().click().catch(() => {});
+    await page.waitForTimeout(200);
+  }
+}
+
 await page.goto(`${BASE}/practice/rounds/${roundId}`, {
   waitUntil: "networkidle",
 });
 await page.waitForSelector("text=Predict your scores", { timeout: 15000 });
-await page.waitForTimeout(400);
+await page.waitForSelector("text=How sure are you?", { timeout: 10000 });
+await dismissCruxy();
+await page.getByRole("button", { name: "90%" }).first().scrollIntoViewIfNeeded();
+await page.waitForTimeout(300);
 await page.screenshot({
   path: join(OUT, "predictions-setup-390.png"),
   fullPage: true,
 });
 
 const hasPredict = await page.getByText("Predict your scores").count();
+const hasConfidence = await page.getByText("How sure are you?").count();
+const confCounts = {
+  "30%": await page.getByRole("button", { name: "30%" }).count(),
+  "50%": await page.getByRole("button", { name: "50%" }).count(),
+  "70%": await page.getByRole("button", { name: "70%" }).count(),
+  "90%": await page.getByRole("button", { name: "90%" }).count(),
+};
 const hasWaiting = await page
-  .getByText(/Waiting on predictions|Ready to start|Lock my prediction/)
+  .getByText(/Waiting on predictions|Ready to start|Lock my prediction|Round waits/)
   .count();
+
+await page.goto(`${BASE}/practice/calibration`, { waitUntil: "networkidle" });
+await page.waitForSelector("text=Your score predictions", { timeout: 15000 });
+await dismissCruxy();
+await page.waitForTimeout(300);
+await page.screenshot({
+  path: join(OUT, "calibration-390.png"),
+  fullPage: true,
+});
+const hasEmptyOrChart =
+  (await page.getByText(/No scored predictions yet|Calibration|Need a few more scored/).count()) >
+  0;
+
 console.log(
   JSON.stringify({
     roundId,
     screenshot: join(OUT, "predictions-setup-390.png"),
+    calibrationShot: join(OUT, "calibration-390.png"),
     hasPredictHeading: hasPredict > 0,
+    hasConfidenceUi: hasConfidence > 0 && Object.values(confCounts).every((n) => n > 0),
+    confCounts,
     hasGateCopy: hasWaiting > 0,
+    hasCalibrationPage: hasEmptyOrChart,
   }),
 );
 

@@ -303,12 +303,23 @@ export interface TalkAnalytics {
   interruptions: number;
 }
 
+/** Stated certainty on the predicted APPE band (percent). */
+export type PredictionConfidence = 30 | 50 | 70 | 90;
+
+/** Per-item prediction. Legacy rows may be a plain number (confidence 50). */
+export interface ItemPrediction {
+  score: number;
+  confidence: PredictionConfidence;
+}
+
+export type ItemPredictionInput = number | ItemPrediction;
+
 /** Wave 6: required pre-round score prediction per speaker. */
 export interface RoundScorePrediction {
   id: string;
   round_id: string;
   person_id: string;
-  item_scores: Partial<Record<AppeItemKey, number>>;
+  item_scores: Partial<Record<AppeItemKey, ItemPredictionInput>>;
   expected_question: string;
   created_at: string;
   updated_at: string;
