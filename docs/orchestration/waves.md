@@ -62,3 +62,11 @@ Each one: make every D-item of its screens match, wire every F-item of its spec 
 - **G. Admin:** `Admin.html`, passcodes panel, model settings panel (uses `getModelSettings`/`updateModelSettings` from Workstream M); spec "Program map, admin console and weekly summary", "Cost plan and caps", "Sign in" passcode rules. Owns `src/app/(app)/admin/**`.
 
 After Wave 2: one agent runs both checklists top to bottom, fixes what's left, and lists anything still unticked.
+
+### Wave 2 rules (Nov 21, after Wave 1 merged)
+
+- Main is live: sign-in, the 15 real people, 3 teams, 12 cases and all Team 3 content (24 claims, 159 truth items, 116 questions, 12 one pagers, 159 flashcards) are in Supabase. Design every screen against that real data; never show "sample data" text, placeholder numbers or lorem.
+- Workstream 0b is finishing Supabase paths for the remaining repository functions. Do not edit existing functions in `src/lib/db/repository.ts` or `src/lib/db/supabase/*`. If your screen needs a new data function, add it to a new file `src/lib/db/supabase/<your-area>-extra.ts` with an `isSampleDataMode()` dispatch, and say so in your PR.
+- Never write to the filesystem on Vercel. Every mutation writes `activity_log`. RLS on any new table, revoke anon and authenticated.
+- AI only through `callCruxy({ tier: 'small' | 'strong', ... })`. No model names, no provider SDKs, no Anthropic.
+- Prove parity with `npm run shots` (desktop 1440 and phone 390) next to the reference HTML, and tick only D- and F-items you can show.
