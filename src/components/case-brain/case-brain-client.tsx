@@ -10,6 +10,8 @@ import {
 } from "@/components/case-brain/support-label";
 import { VersionConfirm } from "@/components/case-brain/version-confirm";
 import { TeamDocImport } from "@/components/team-doc-import";
+import { FindingCard } from "@/components/cruxy/finding-card";
+import { coverageFromFindings } from "@/lib/cruxy/research-gaps";
 import type {
   CaseBrainSnapshot,
   CaseRoleKind,
@@ -32,11 +34,29 @@ type MapVersionMeta = {
   diff_lines: { path: string; before: string; after: string }[];
 };
 
+type ResearchPayload = {
+  id: string;
+  stub: boolean;
+  created_at: string;
+  gaps: Array<{ kind: string; claim_ref: string; detail: string }>;
+  findings: Array<{
+    id: string;
+    point: string;
+    why_it_matters: string;
+    claim_ref: string;
+    quote: string;
+    link: string;
+    verified: boolean;
+    needs_check: boolean;
+  }>;
+};
+
 type Payload = {
   case: CaseRow | null;
   teams: Team[];
   people: PersonLite[];
   brain: CaseBrainSnapshot;
+  research?: ResearchPayload | null;
   canEdit: boolean;
   viewer: { personId: string; teamId: string; name: string };
   meta: {
@@ -723,7 +743,33 @@ export function CaseBrainClient({
 
             {tab === "research" ? (
               <div className="space-y-4">
-                <ResearchCoverage brain={brain} />
+                <ResearchCoverage
+                  brain={brain}
+                  research={data.research ?? null}
+                />
+                <section className="space-y-3 rounded-[20px] bg-white p-5">
+                  <h3 className="font-display text-xl font-extrabold">
+                    Latest findings
+                  </h3>
+                  {!data.research?.findings?.length ? (
+                    <p className="text-sm text-muted">
+                      No research findings yet. Nightly research posts cards
+                      here when gaps close.
+                    </p>
+                  ) : (
+                    data.research.findings.map((f) => (
+                      <FindingCard
+                        key={f.id}
+                        point={f.point}
+                        whyItMatters={f.why_it_matters}
+                        quote={f.quote}
+                        link={f.link}
+                        verified={f.verified}
+                        needsCheck={f.needs_check}
+                      />
+                    ))
+                  )}
+                </section>
                 <section className="rounded-[20px] bg-white p-5">
                   <h3 className="font-display text-xl font-extrabold">
                     Likely opposing positions
@@ -868,10 +914,15 @@ export function CaseBrainClient({
               ) : (
                 pending.map((p, i) => {
                   const peers = brain.peer_decisions_by_idea[p.idea_key] ?? [];
+                  const researchLink =
+                    p.origin === "research" && p.origin_ref?.includes("|")
+                      ? p.origin_ref.split("|").slice(1).join("|")
+                      : null;
                   const sources = (p.origin_ref ?? "")
                     .split(/[,;]/)
                     .map((s) => s.trim())
-                    .filter(Boolean);
+                    .filter(Boolean)
+                    .filter((s) => !s.startsWith("http"));
                   return (
                     <article
                       key={p.id}
@@ -886,6 +937,16 @@ export function CaseBrainClient({
                       <p className="m-0 text-[15px] font-medium leading-snug">
                         {p.text}
                       </p>
+                      {researchLink ? (
+                        <a
+                          href={researchLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sm font-medium text-cardinal underline"
+                        >
+                          Full source
+                        </a>
+                      ) : null}
                       {sources.length && p.origin !== "transcript" ? (
                         <div className="flex flex-wrap gap-1.5">
                           {sources.map((s) => (
@@ -1057,7 +1118,10 @@ export function CaseBrainClient({
               )}
             </section>
 
-            <ResearchCoverage brain={brain} />
+            <ResearchCoverage
+              brain={brain}
+              research={data.research ?? null}
+            />
           </aside>
         </div>
       )}
@@ -1073,23 +1137,39 @@ export function CaseBrainClient({
   );
 }
 
-function ResearchCoverage({ brain }: { brain: CaseBrainSnapshot }) {
-  const rows = brain.claims.slice(0, 2).map((node, i) => {
-    const cells = [0, 1, 2].map((j) => {
-      const s = node.supports[j];
-      if (!s) return "empty" as const;
-      if (s.backings.length === 0) return "gap" as const;
-      return "full" as const;
+function ResearchCoverage({
+  brain,
+  research,
+}: {
+  brain: CaseBrainSnapshot;
+  research?: ResearchPayload | null;
+}) {
+  const fromResearch =
+    research?.findings?.length
+      ? coverageFromFindings({
+          claimCount: brain.claims.length,
+          findings: research.findings,
+        })
+      : null;
+
+  const rows =
+    fromResearch ??
+    brain.claims.slice(0, 2).map((node, i) => {
+      const cells = [0, 1, 2].map((j) => {
+        const s = node.supports[j];
+        if (!s) return "empty" as const;
+        if (s.backings.length === 0) return "gap" as const;
+        return "full" as const;
+      });
+      const vs =
+        node.counterclaims.length > 0 &&
+        node.counterclaims.every((c) => c.concede && c.distinguish && c.rebut)
+          ? ("full" as const)
+          : node.counterclaims.length > 0
+            ? ("half" as const)
+            : ("gap" as const);
+      return { label: `C${i + 1}`, cells: [...cells, vs] };
     });
-    const vs =
-      node.counterclaims.length > 0 &&
-      node.counterclaims.every((c) => c.concede && c.distinguish && c.rebut)
-        ? ("full" as const)
-        : node.counterclaims.length > 0
-          ? ("half" as const)
-          : ("gap" as const);
-    return { label: `C${i + 1}`, cells: [...cells, vs] };
-  });
 
   const closed = Math.min(
     rows.flatMap((r) => r.cells).filter((c) => c === "full" || c === "half")
@@ -1097,6 +1177,7 @@ function ResearchCoverage({ brain }: { brain: CaseBrainSnapshot }) {
     Math.max(rows.length * 4, 1),
   );
   const total = Math.max(rows.length * 4, 1);
+  const openGaps = research?.gaps?.length ?? 0;
 
   return (
     <section
@@ -1118,6 +1199,9 @@ function ResearchCoverage({ brain }: { brain: CaseBrainSnapshot }) {
       </div>
       <span className="text-[13px] leading-snug text-[#3B404A]">
         {closed} of {total} gaps closed with verified sources.
+        {openGaps
+          ? ` Cruxy is still searching ${openGaps} open gap${openGaps === 1 ? "" : "s"}.`
+          : ""}
       </span>
     </section>
   );

@@ -16,6 +16,14 @@ type Working = {
   signedIn: number;
   rosterSize: number;
   ignored: string[];
+  outcomes?: {
+    sampleSize: number;
+    avgDelta: number | null;
+    liftRate: number | null;
+    judgeAgreeRate: number | null;
+    usefulFeedback: number;
+    note: string;
+  };
 };
 
 export default function WorkingPage() {
@@ -76,6 +84,51 @@ export default function WorkingPage() {
           <p className="font-display text-2xl">{data.totals.redo_improvements}</p>
         </div>
       </section>
+
+      {data.outcomes ? (
+        <section className="space-y-2 rounded-2xl border border-ink/10 bg-white/60 px-4 py-3">
+          <h2 className="font-display text-xl font-semibold">
+            Outcomes grade Cruxy
+          </h2>
+          <p className="text-sm text-muted">{data.outcomes.note}</p>
+          <ul className="grid gap-2 text-sm sm:grid-cols-3">
+            <li>
+              Sample size:{" "}
+              <span className="font-mono">{data.outcomes.sampleSize}</span>
+            </li>
+            <li>
+              Avg score delta:{" "}
+              <span className="font-mono">
+                {data.outcomes.avgDelta == null
+                  ? "Not set"
+                  : data.outcomes.avgDelta.toFixed(2)}
+              </span>
+            </li>
+            <li>
+              Lift rate:{" "}
+              <span className="font-mono">
+                {data.outcomes.liftRate == null
+                  ? "Not set"
+                  : `${Math.round(data.outcomes.liftRate * 100)}%`}
+              </span>
+            </li>
+            <li>
+              Judge agree:{" "}
+              <span className="font-mono">
+                {data.outcomes.judgeAgreeRate == null
+                  ? "Not set"
+                  : `${Math.round(data.outcomes.judgeAgreeRate * 100)}%`}
+              </span>
+            </li>
+            <li>
+              Useful marks:{" "}
+              <span className="font-mono">
+                {data.outcomes.usefulFeedback}
+              </span>
+            </li>
+          </ul>
+        </section>
+      ) : null}
 
       <section>
         <h2 className="font-display text-xl font-semibold">Feature use</h2>

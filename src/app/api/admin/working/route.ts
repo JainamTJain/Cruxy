@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { canRead } from "@/lib/admin/permissions";
+import { summarizeCruxyOutcomes } from "@/lib/cruxy/outcomes";
 import {
   featureUsageStats,
   getPersonById,
@@ -24,10 +25,11 @@ export async function GET() {
     );
   }
 
-  const [usage, totals, people] = await Promise.all([
+  const [usage, totals, people, outcomes] = await Promise.all([
     featureUsageStats(),
     getProgramTotals(),
     listPeopleFull(),
+    summarizeCruxyOutcomes(),
   ]);
 
   const signedIn = people.filter((p) => p.last_sign_in_at).length;
@@ -49,6 +51,7 @@ export async function GET() {
       drillUses === 0 && redo === 0
         ? "No drill or redo activity yet. The link between use and score gains will show up here as people practice."
         : `${drillUses} practice-related calls and ${usefulMarks} useful marks so far, with ${redo} redo improvements logged. Watch whether heavier users climb on their own past scores.`,
+    outcomes,
     ignored: usage
       .filter((u) => u.uses === 0)
       .map((u) => u.feature)

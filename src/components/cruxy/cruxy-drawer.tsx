@@ -37,6 +37,7 @@ export function CruxyDrawer() {
   const [adminName, setAdminName] = useState("Admin");
   const [adminExtra, setAdminExtra] = useState<AdminAnswer | null>(null);
   const [hintOnly, setHintOnly] = useState(false);
+  const [wantsMore, setWantsMore] = useState(false);
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -127,9 +128,13 @@ export function CruxyDrawer() {
         citations: Cite[];
         refusedWithoutSources: boolean;
         questionFirst: string | null;
+        leanFlag?: string | null;
+        wantsMoreAvailable?: boolean;
       };
-      setAnswer(data.text);
+      const lean = data.leanFlag ? `\n\n(${data.leanFlag})` : "";
+      setAnswer(`${data.text}${lean}`);
       setCitations(data.citations ?? []);
+      setWantsMore(Boolean(data.wantsMoreAvailable));
       if (data.refusedWithoutSources) emitCruxyEvent("source.new");
       else setMood("curious");
       setBubble(null);
@@ -261,6 +266,25 @@ export function CruxyDrawer() {
                   </li>
                 ))}
               </ul>
+            ) : /couldn.?t find a source/i.test(answer) ? (
+              <p className="text-xs text-muted">No citation to show.</p>
+            ) : null}
+            {wantsMore ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setQuestion((q) =>
+                    q.toLowerCase().includes("say more")
+                      ? q
+                      : `${q || "Continue"}. Say more.`,
+                  );
+                  void ask({ forceAnswer: true });
+                }}
+              >
+                Say more
+              </Button>
             ) : null}
           </div>
         ) : null}

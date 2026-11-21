@@ -1123,7 +1123,11 @@ export function AdminConsole() {
           </span>
           <p className="text-sm text-muted">
             Primary model and ordered fallbacks for each tier. Members never see
-            these ids. Changes write to the activity log.
+            these ids. Changes write to the activity log. See also{" "}
+            <Link href="/admin/agents" className="underline">
+              Cruxy agents
+            </Link>{" "}
+            for job, tier and run counts.
           </p>
           <div className="grid gap-3 lg:grid-cols-3">
             {(["small", "strong", "embed"] as ModelTier[]).map((tier) => (

@@ -179,6 +179,8 @@ function mapBookRequest(r: Row): BookRequest {
     chapter: r.chapter ?? null,
     case_id: r.case_id ?? null,
     status: r.status,
+    upload_path: (r.upload_path as string | null) ?? null,
+    library_file_id: (r.library_file_id as string | null) ?? null,
     created_at: iso(r.created_at),
     created_by: r.created_by ?? null,
   };
@@ -611,6 +613,8 @@ export async function saveBookRequest(req: BookRequest): Promise<void> {
         chapter: req.chapter,
         case_id: req.case_id,
         status: req.status,
+        upload_path: req.upload_path ?? null,
+        library_file_id: req.library_file_id ?? null,
         created_at: req.created_at,
         created_by: req.created_by,
       },
