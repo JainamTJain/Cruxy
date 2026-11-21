@@ -5,6 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ChunkedRecorder } from "@/components/practice/chunked-recorder";
 import { CruxyJudgeQa } from "@/components/practice/cruxy-judge-qa";
+import { LiveCaptions } from "@/components/practice/live-captions";
+import { RecordingLayoutPicker } from "@/components/practice/recording-layout-picker";
+import type { RecordingLayout } from "@/lib/practice/types";
 
 type Round = {
   id: string;
@@ -19,6 +22,7 @@ type Round = {
     qa_max: number;
   };
   sides: { presenting: string | null; commenting: string | null };
+  recording_layout?: RecordingLayout;
 };
 
 type Line = {
@@ -73,6 +77,9 @@ export default function RoundPage() {
   const [elapsed, setElapsed] = useState(0);
   const [paused, setPaused] = useState(false);
   const [showFullCommentary, setShowFullCommentary] = useState(false);
+  const [cruxySpoken, setCruxySpoken] = useState<string[]>([]);
+  const cruxyPrompt =
+    "Your four-part test would also send back the Parthenon Marbles. Are you ready to say that?";
 
   async function refresh() {
     const res = await fetch(`/api/practice/rounds/${params.id}`);
@@ -310,10 +317,9 @@ export default function RoundPage() {
                 className="h-[46px] rounded-xl border border-[#3B404A] px-[18px] text-sm font-semibold"
                 onClick={() => {
                   if (typeof window !== "undefined" && "speechSynthesis" in window) {
-                    const u = new SpeechSynthesisUtterance(
-                      "Your four-part test would also send back the Parthenon Marbles. Are you ready to say that?",
-                    );
+                    const u = new SpeechSynthesisUtterance(cruxyPrompt);
                     window.speechSynthesis.speak(u);
+                    setCruxySpoken((prev) => [...prev.slice(-4), cruxyPrompt]);
                   }
                 }}
               >
@@ -345,29 +351,25 @@ export default function RoundPage() {
               )}
             </div>
 
-            <div className="flex flex-col gap-2.5 border-t border-[#262934] pt-4">
-              <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#8C929D]">
-                Live captions (rough). Final transcript comes after
-              </span>
-              {lines.length === 0 ? (
-                <p className="m-0 text-[17px] leading-relaxed text-[#C9CCD3]">
-                  Captions appear as people speak. The final transcript is saved
-                  after the round; audio is deleted then.
-                </p>
-              ) : (
-                lines.slice(-4).map((l) => (
+            <LiveCaptions cruxyLines={cruxySpoken} />
+            {lines.length > 0 ? (
+              <div className="flex flex-col gap-1 border-t border-[#262934] pt-3">
+                <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8C929D]">
+                  Saved transcript lines
+                </span>
+                {lines.slice(-3).map((l) => (
                   <p
                     key={l.id}
-                    className="m-0 text-[17px] leading-relaxed text-[#C9CCD3]"
+                    className="m-0 text-[15px] leading-relaxed text-[#C9CCD3]"
                   >
-                    <span className="font-mono text-[13px] text-[#8C929D]">
+                    <span className="font-mono text-[12px] text-[#8C929D]">
                       {fmt(l.start_ms)} {l.speaker_label ?? "?"}
                     </span>{" "}
                     {l.text}
                   </p>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            ) : null}
 
             <ChunkedRecorder
               roundId={round.id}
@@ -375,6 +377,10 @@ export default function RoundPage() {
               consentOk={recordingOk}
               autoStart={round.phase === "response"}
               onRecordingChange={setMicOn}
+              ownerMode={
+                (round.recording_layout ?? "room") === "own_device" ||
+                (round.recording_layout ?? "room") === "mixed"
+              }
             />
             {recording?.deleted_at ? (
               <p className="text-xs text-[#8C929D]">
@@ -384,6 +390,15 @@ export default function RoundPage() {
           </section>
 
           <aside className="flex w-full flex-col gap-4 sm:w-[300px]">
+            <section className="flex flex-col gap-3 rounded-[20px] border border-[#262934] bg-[#16181F] p-5 text-[#F2F3F5]">
+              <RecordingLayoutPicker
+                roundId={round.id}
+                value={round.recording_layout ?? "room"}
+                onChange={(layout) =>
+                  setRound((r) => (r ? { ...r, recording_layout: layout } : r))
+                }
+              />
+            </section>
             <section className="flex flex-col gap-3 rounded-[20px] border border-[#262934] bg-[#16181F] p-5">
               <h2 className="m-0 text-base font-bold">In this round</h2>
               <div className="flex flex-col gap-2 text-sm">

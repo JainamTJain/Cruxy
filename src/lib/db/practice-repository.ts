@@ -144,6 +144,7 @@ export async function createSession(
     ended_at: null,
     created_at: at,
     created_by: input.createdBy,
+    recording_layout: input.online ? "own_device" : "room",
   }));
 
   await updateStore((s) => {
@@ -299,10 +300,32 @@ export async function saveRecording(row: RecordingRow) {
 
 export async function getRecordingForRound(
   roundId: string,
+  ownerPersonId?: string | null,
 ): Promise<RecordingRow | null> {
-  if (!isSampleDataMode()) return sb.getRecordingForRound(roundId);
+  if (!isSampleDataMode()) return sb.getRecordingForRound(roundId, ownerPersonId);
   const store = await readStore();
-  return store.recordings.find((r) => r.round_id === roundId) ?? null;
+  const rows = store.recordings.filter((r) => r.round_id === roundId);
+  if (ownerPersonId) {
+    return rows.find((r) => r.owner_person_id === ownerPersonId) ?? null;
+  }
+  if (ownerPersonId === null) {
+    return rows.find((r) => !r.owner_person_id) ?? null;
+  }
+  return rows[0] ?? null;
+}
+
+export async function listRecordingsForRound(
+  roundId: string,
+): Promise<RecordingRow[]> {
+  if (!isSampleDataMode()) return sb.listRecordingsForRound(roundId);
+  const store = await readStore();
+  return store.recordings
+    .filter((r) => r.round_id === roundId)
+    .sort((a, b) =>
+      String(a.started_at ?? a.created_at).localeCompare(
+        String(b.started_at ?? b.created_at),
+      ),
+    );
 }
 
 export async function saveTranscriptLines(lines: TranscriptLine[]) {

@@ -33,6 +33,28 @@ type DriveStatus = {
   canSync: boolean;
 };
 
+type TodaySession = {
+  sessionId: string;
+  roundId: string | null;
+  title: string;
+  place: string | null;
+  online: boolean;
+  status: string;
+  caseNumber: number | null;
+  screen: string;
+  href: string;
+  invitePending?: boolean;
+};
+
+type MemberPractice = {
+  id: string;
+  title: string;
+  date: string;
+  status: string;
+  creator_name: string | null;
+  mode: string | null;
+};
+
 type MapData = {
   teams: Team[];
   cases: CaseRow[];
@@ -46,6 +68,8 @@ type MapData = {
   changes: Change[];
   nextActions: string[] | NextAction[];
   todayLabel?: string;
+  todaySessions?: TodaySession[];
+  memberPractices?: MemberPractice[];
 };
 
 function initials(names: string[]): string {
@@ -334,6 +358,79 @@ export default function HomePage() {
         </section>
 
         <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-5">
+          {(data.todaySessions?.length ?? 0) > 0 ? (
+            <section className="flex flex-col gap-3 rounded-[20px] bg-white p-5">
+              <h2 className="font-display m-0 text-[22px] font-extrabold">
+                Today&apos;s practice
+              </h2>
+              {data.todaySessions!.map((s) => (
+                <div
+                  key={s.sessionId}
+                  className="flex flex-col gap-2 rounded-xl border border-line p-3"
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="text-sm font-bold">{s.title}</span>
+                    <span className="text-xs text-muted">
+                      {s.online ? "Online" : s.place ?? "In person"}
+                      {s.caseNumber != null ? `, Case ${s.caseNumber}` : ""}
+                    </span>
+                  </div>
+                  {s.invitePending ? (
+                    <button
+                      type="button"
+                      className="h-10 rounded-xl bg-ink px-4 text-sm font-semibold text-white"
+                      onClick={() => {
+                        void fetch("/api/practice/invite", {
+                          method: "POST",
+                          headers: { "content-type": "application/json" },
+                          body: JSON.stringify({
+                            action: "accept",
+                            sessionId: s.sessionId,
+                          }),
+                        }).then(async (r) => {
+                          const d = await r.json();
+                          if (r.ok && d.href) window.location.href = d.href;
+                        });
+                      }}
+                    >
+                      Accept invite
+                    </button>
+                  ) : (
+                    <Link
+                      href={s.href}
+                      className="inline-flex h-10 items-center justify-center rounded-xl bg-cardinal px-4 text-sm font-semibold text-white"
+                    >
+                      Join as {s.screen}
+                    </Link>
+                  )}
+                </div>
+              ))}
+            </section>
+          ) : null}
+
+          {(data.memberPractices?.length ?? 0) > 0 ? (
+            <section className="flex flex-col gap-3 rounded-[20px] bg-white p-5">
+              <h2 className="font-display m-0 text-[22px] font-extrabold">
+                Member practices
+              </h2>
+              <p className="m-0 text-xs text-muted">
+                Admins can see these. No approval needed.
+              </p>
+              {data.memberPractices!.map((p) => (
+                <Link
+                  key={p.id}
+                  href={`/practice/sessions/${p.id}`}
+                  className="flex flex-col gap-0.5 rounded-xl border border-line p-3 text-sm"
+                >
+                  <span className="font-bold">{p.title}</span>
+                  <span className="text-xs text-muted">
+                    {p.date}, {p.creator_name ?? "member"}, {p.status}
+                  </span>
+                </Link>
+              ))}
+            </section>
+          ) : null}
+
           <section className="flex flex-col gap-3 rounded-[20px] bg-ink p-5 text-white">
             <h2 className="font-display m-0 text-[22px] font-extrabold">
               Your next three

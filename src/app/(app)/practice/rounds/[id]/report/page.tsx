@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AppeScoringCard } from "@/components/practice/appe-scoring-card";
+import { SpeakerConfirmPanel } from "@/components/practice/speaker-confirm";
 import { APPE_SCORE_ITEMS } from "@/lib/practice/types";
 
 type Score = {
@@ -66,8 +67,10 @@ export default function RoundReportPage() {
       sides: { commenting: string | null; presenting: string | null };
       team_ids: string[];
       mode: string;
+      case_id: string | null;
       case_number: number | null;
       ended_at: string | null;
+      recording_layout?: string;
     };
     skills: { person_id: string; skills: Record<string, number> }[];
     talk: {
@@ -92,12 +95,34 @@ export default function RoundReportPage() {
   const [who, setWho] = useState<string | null>(null);
   const [bankMsg, setBankMsg] = useState<string | null>(null);
   const [redoRecording, setRedoRecording] = useState(false);
+  const [ideas, setIdeas] = useState<{ text: string; lineId: string }[]>([]);
+  const [ideasMsg, setIdeasMsg] = useState<string | null>(null);
+  const [doThisMsg, setDoThisMsg] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   async function refresh() {
     const res = await fetch(`/api/practice/rounds/${params.id}/report`);
     const rep = await res.json();
     setData(rep);
     if (!who && rep.feedback?.[0]) setWho(rep.feedback[0].person_id);
+    void fetch(`/api/practice/rounds/${params.id}/ideas`)
+      .then((r) => r.json())
+      .then((d: { ideas?: { text: string; lineId: string }[] }) =>
+        setIdeas(d.ideas ?? []),
+      )
+      .catch(() => undefined);
+    void fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const role = d?.person?.role ?? d?.session?.role;
+        setIsAdmin(
+          Boolean(
+            d?.session?.adminView &&
+              (role === "tech_admin" || role === "coach_admin"),
+          ),
+        );
+      })
+      .catch(() => undefined);
   }
 
   useEffect(() => {
@@ -208,6 +233,44 @@ export default function RoundReportPage() {
     });
     const d = await res.json();
     setBankMsg(res.ok ? "Added to the bank with its drill." : d.error ?? "Failed");
+  }
+
+  async function markDoThis() {
+    if (!bank?.id) {
+      setDoThisMsg("Add the bank entry first, then tap I do this.");
+      return;
+    }
+    const res = await fetch("/api/practice/bank/do-this", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        bankEntryId: bank.id,
+        caseId: data?.round.case_id ?? null,
+      }),
+    });
+    const d = await res.json();
+    setDoThisMsg(
+      res.ok
+        ? "Added to your roadmap. Open Roadmap to practise the drill."
+        : d.error ?? "Could not save",
+    );
+  }
+
+  async function queueIdeas() {
+    setIdeasMsg(null);
+    const res = await fetch(`/api/practice/rounds/${params.id}/ideas`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        ideas: ideas.map((i) => ({ text: i.text, lineId: i.lineId })),
+      }),
+    });
+    const d = await res.json();
+    setIdeasMsg(
+      res.ok
+        ? `${d.queued ?? 0} ideas sent to Truth Sources.`
+        : d.error ?? "Could not queue ideas",
+    );
   }
 
   async function submitPeer(payload: {
@@ -577,10 +640,48 @@ export default function RoundReportPage() {
             >
               Only for this person
             </button>
+            <button
+              type="button"
+              onClick={() => void markDoThis()}
+              className="h-11 rounded-xl border border-ink bg-white px-[18px] text-sm font-semibold"
+            >
+              I do this
+            </button>
           </div>
           {bankMsg ? <p className="text-sm text-muted">{bankMsg}</p> : null}
+          {doThisMsg ? <p className="text-sm text-muted">{doThisMsg}</p> : null}
         </section>
       )}
+
+      <SpeakerConfirmPanel
+        roundId={params.id}
+        people={data.people.map((p) => ({ id: p.id, name: p.name }))}
+        isAdmin={isAdmin}
+      />
+
+      {ideas.length > 0 ? (
+        <section className="rounded-[20px] bg-white p-[22px]">
+          <h2 className="font-display m-0 text-[22px] font-extrabold">
+            New ideas for Truth Sources
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            Raised in this round. Already queued, or send again with one tap.
+          </p>
+          <ul className="mt-3 list-disc space-y-2 pl-5 text-sm">
+            {ideas.map((i) => (
+              <li key={i.lineId}>{i.text}</li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            onClick={() => void queueIdeas()}
+            className="mt-4 h-11 rounded-xl bg-ink px-[18px] text-sm font-semibold text-white"
+          >
+            Send to Truth Sources queue
+          </button>
+          {ideasMsg ? <p className="mt-2 text-sm text-muted">{ideasMsg}</p> : null}
+        </section>
+      ) : null}
 
       {data.report.socratic_followups.length ? (
         <section className="rounded-[20px] bg-white p-[22px]">

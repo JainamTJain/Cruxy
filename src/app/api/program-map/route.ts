@@ -163,6 +163,32 @@ export async function GET() {
     day: "numeric",
   });
 
+  const { listTodaySessionsForPerson, listRecentMemberPractices } = await import(
+    "@/lib/practice/wave5"
+  );
+  const todaySessions = await listTodaySessionsForPerson({
+    personId: session.personId,
+    teamId: session.teamId,
+  });
+  const memberPractices =
+    session.adminView &&
+    (session.role === "tech_admin" || session.role === "coach_admin")
+      ? await listRecentMemberPractices(8)
+      : [];
+
+  // Prefer joining today's practice over filler next-actions.
+  for (const s of todaySessions.slice(0, 2)) {
+    nextActions.unshift({
+      label: s.invitePending ? "INVITE" : "JOIN",
+      detail: s.invitePending
+        ? `Accept invite: ${s.title}`
+        : `Join ${s.title}${s.caseNumber != null ? ` (Case ${s.caseNumber})` : ""}`,
+      href: s.invitePending
+        ? `/practice/sessions/${s.sessionId}`
+        : s.href,
+    });
+  }
+
   return NextResponse.json({
     teams,
     cases: cases.filter((c) => c.active),
@@ -202,5 +228,7 @@ export async function GET() {
     nextActions: nextActions.slice(0, 3),
     lastVisit,
     todayLabel,
+    todaySessions,
+    memberPractices,
   });
 }

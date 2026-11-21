@@ -13,6 +13,8 @@ type Props = {
   embedded?: boolean;
   autoStart?: boolean;
   consentOk: boolean;
+  /** F-219: this phone records its owner. */
+  ownerMode?: boolean;
 };
 
 function pickMimeType(): string | undefined {
@@ -23,6 +25,45 @@ function pickMimeType(): string | undefined {
   if (MediaRecorder.isTypeSupported("audio/webm")) return "audio/webm";
   if (MediaRecorder.isTypeSupported("audio/mp4")) return "audio/mp4";
   return undefined;
+}
+
+function detectBrowser(): { name: string; ok: boolean; tip: string } {
+  if (typeof navigator === "undefined") {
+    return { name: "Unknown", ok: false, tip: "Open on a phone browser to record." };
+  }
+  const ua = navigator.userAgent;
+  const isSafari = /Safari/i.test(ua) && !/Chrome|Chromium|CriOS|Edg/i.test(ua);
+  const isChrome =
+    /Chrome|Chromium|CriOS/i.test(ua) && !/Edg/i.test(ua);
+  const hasMedia =
+    typeof MediaRecorder !== "undefined" &&
+    Boolean(navigator.mediaDevices?.getUserMedia);
+  const mime = pickMimeType();
+  if (isSafari) {
+    return {
+      name: "Safari",
+      ok: hasMedia && Boolean(mime),
+      tip: hasMedia
+        ? mime?.includes("mp4")
+          ? "Safari ready (mp4 chunks)."
+          : "Safari ready."
+        : "Safari needs microphone permission.",
+    };
+  }
+  if (isChrome) {
+    return {
+      name: "Chrome",
+      ok: hasMedia && Boolean(mime),
+      tip: hasMedia ? "Chrome ready (webm chunks)." : "Chrome needs microphone permission.",
+    };
+  }
+  return {
+    name: "Browser",
+    ok: hasMedia && Boolean(mime),
+    tip: hasMedia
+      ? "Recording supported on this browser."
+      : "Use Safari on iPhone or Chrome on Android.",
+  };
 }
 
 /**
@@ -37,18 +78,20 @@ export function ChunkedRecorder({
   embedded,
   autoStart,
   consentOk,
+  ownerMode,
 }: Props) {
   const [recording, setRecording] = useState(false);
   const [chunks, setChunks] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [nextIndex, setNextIndex] = useState(0);
-  const [mime, setMime] = useState<string>("");
+  const [browser, setBrowser] = useState(() => detectBrowser());
   const mediaRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const indexRef = useRef(0);
   const wakeRef = useRef<{ release: () => Promise<void> } | null>(null);
 
   useEffect(() => {
+    setBrowser(detectBrowser());
     void fetch(`/api/practice/rounds/${roundId}/chunks`)
       .then((r) => r.json())
       .then((d: { nextIndex?: number; chunks?: number }) => {
@@ -65,7 +108,7 @@ export function ChunkedRecorder({
   }, [roundId]);
 
   useEffect(() => {
-    if (autoStart && consentOk && !recording && !disabled) {
+    if (autoStart && consentOk && !recording && !disabled && browser.ok) {
       void start();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -100,11 +143,14 @@ export function ChunkedRecorder({
       setError("Recording needs consent. Agree on the consent screen first.");
       return;
     }
+    if (!browser.ok) {
+      setError(browser.tip);
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       const mimeType = pickMimeType();
-      setMime(mimeType ?? "default");
       const recorder = mimeType
         ? new MediaRecorder(stream, { mimeType })
         : new MediaRecorder(stream);
@@ -119,7 +165,6 @@ export function ChunkedRecorder({
       setRecording(true);
       onRecordingChange?.(true);
       try {
-        // Keep phone screens awake while recording
         const nav = navigator as Navigator & {
           wakeLock?: { request: (t: string) => Promise<{ release: () => Promise<void> }> };
         };
@@ -143,6 +188,20 @@ export function ChunkedRecorder({
     onStopped?.({ chunksUploaded: chunks });
   }
 
+  const badge = (
+    <span
+      className={
+        embedded
+          ? "rounded-lg border border-[#3B404A] px-2 py-0.5 text-[11px] font-semibold text-[#8C929D]"
+          : "rounded-lg border border-line px-2 py-0.5 text-[11px] font-semibold text-muted"
+      }
+      title={browser.tip}
+    >
+      {browser.name}: {browser.ok ? "ok" : "not ready"}
+      {ownerMode ? ", this phone" : ""}
+    </span>
+  );
+
   if (!consentOk) {
     return (
       <div
@@ -160,11 +219,12 @@ export function ChunkedRecorder({
   if (embedded) {
     return (
       <div className="flex flex-wrap items-center gap-3 text-sm text-[#C9CCD3]">
+        {badge}
         {error ? <span className="text-[#F87171]">{error}</span> : null}
         {!recording ? (
           <button
             type="button"
-            disabled={disabled}
+            disabled={disabled || !browser.ok}
             onClick={() => void start()}
             className="h-11 rounded-xl border border-[#3B404A] px-4 font-semibold text-[#F2F3F5]"
           >
@@ -195,12 +255,15 @@ export function ChunkedRecorder({
             Saves as you speak. Next part #{nextIndex}
           </p>
         </div>
-        {recording ? (
-          <span className="inline-flex items-center gap-2 rounded-xl bg-cardinal/10 px-3 py-1 text-xs font-medium text-cardinal">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-cardinal" />
-            Recording
-          </span>
-        ) : null}
+        <div className="flex flex-col items-end gap-1">
+          {badge}
+          {recording ? (
+            <span className="inline-flex items-center gap-2 rounded-xl bg-cardinal/10 px-3 py-1 text-xs font-medium text-cardinal">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-cardinal" />
+              Recording
+            </span>
+          ) : null}
+        </div>
       </div>
       {error ? <p className="text-sm text-cardinal">{error}</p> : null}
       <p className="text-sm text-muted">{chunks} chunks uploaded</p>
@@ -208,7 +271,7 @@ export function ChunkedRecorder({
         {!recording ? (
           <button
             type="button"
-            disabled={disabled}
+            disabled={disabled || !browser.ok}
             onClick={() => void start()}
             className="h-11 rounded-xl bg-cardinal px-4 text-sm font-bold text-white"
           >

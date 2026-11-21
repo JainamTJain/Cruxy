@@ -5,6 +5,7 @@ import {
   getTranscript,
   getTranscriptLineById,
   listAttendance,
+  listRecordingsForRound,
   saveJudgmentBundle,
   saveRecording,
   saveSpeakerConfirm,
@@ -32,6 +33,11 @@ import {
   logActivity,
 } from "@/lib/db/repository";
 import { saveBankEntry } from "@/lib/db/practice-repository";
+import {
+  queueRoundIdeasToTruthSources,
+  suggestIdeasFromTranscript,
+  updateSkillsAfterRound,
+} from "@/lib/practice/wave5";
 import { nowIso } from "@/lib/utils";
 
 /** Cite-or-quiet: keep only feedback that links to a real transcript line. */
@@ -64,9 +70,14 @@ export async function finalizeRound(opts: {
   const round = await getRoundById(opts.roundId);
   if (!round) throw new Error("Round not found");
 
-  let recording = await getRecordingForRound(opts.roundId);
-  if (!recording || recording.chunk_paths.length === 0) {
-    // Allow finalize without audio (text-only / stub path) by synthesizing empty job
+  // F-219 / F-220: own-device and mixed may have several recordings lined up by started_at.
+  let recordings = await listRecordingsForRound(opts.roundId);
+  if (recordings.length === 0) {
+    const single = await getRecordingForRound(opts.roundId);
+    if (single) recordings = [single];
+  }
+  let recording = recordings[0] ?? null;
+  if (!recording || recordings.every((r) => r.chunk_paths.length === 0)) {
     recording = {
       id: recording?.id ?? `no-audio-${opts.roundId}`,
       round_id: opts.roundId,
@@ -77,10 +88,14 @@ export async function finalizeRound(opts: {
       transcript_job_id: null,
       created_at: nowIso(),
       created_by: opts.personId ?? null,
+      owner_person_id: recording?.owner_person_id ?? null,
+      started_at: recording?.started_at ?? nowIso(),
     };
+    recordings = [recording];
   } else {
-    recording = { ...recording, status: "transcribing" };
-    await saveRecording(recording);
+    recordings = recordings.map((r) => ({ ...r, status: "transcribing" as const }));
+    for (const r of recordings) await saveRecording(r);
+    recording = recordings[0]!;
   }
 
   const attendance = await listAttendance(round.session_id);
@@ -96,10 +111,31 @@ export async function finalizeRound(opts: {
   const glossary = await getGlossary(round.case_id);
   const keyTerms = keyTermsForRound(glossary, presentNames);
 
-  let audio: Buffer = Buffer.from("stub");
-  if (recording.chunk_paths.length > 0) {
-    audio = Buffer.from(await concatChunksToBuffer(recording));
+  // Line mixed device audio up by wall-clock start (F-220).
+  const parts: Buffer[] = [];
+  const ownerOffsets: { ownerId: string | null; offsetMs: number }[] = [];
+  let cursorMs = 0;
+  const baseStart = recordings
+    .map((r) => (r.started_at ? Date.parse(r.started_at) : NaN))
+    .filter((n) => Number.isFinite(n))
+    .sort((a, b) => a - b)[0];
+
+  for (const r of recordings) {
+    if (r.chunk_paths.length === 0) continue;
+    const buf = Buffer.from(await concatChunksToBuffer(r));
+    const startMs =
+      r.started_at && Number.isFinite(baseStart)
+        ? Math.max(0, Date.parse(r.started_at) - (baseStart as number))
+        : cursorMs;
+    ownerOffsets.push({
+      ownerId: r.owner_person_id ?? null,
+      offsetMs: startMs,
+    });
+    parts.push(buf);
+    cursorMs = startMs + 1000;
   }
+  const audio: Buffer =
+    parts.length > 0 ? Buffer.concat(parts) : Buffer.from("stub");
 
   const transcript = await transcribeWithSpeakerLabels({
     audio,
@@ -110,6 +146,14 @@ export async function finalizeRound(opts: {
   });
 
   const speakerMap = matchSpeakersByRole(transcript.utterances, presentIds);
+  // Own-device: prefer the recording owner as the speaker for that stream.
+  for (const o of ownerOffsets) {
+    if (o.ownerId && !Object.values(speakerMap).includes(o.ownerId)) {
+      const label = Object.keys(speakerMap).find((k) => !speakerMap[k]);
+      if (label) speakerMap[label] = o.ownerId;
+      else speakerMap[`A${Object.keys(speakerMap).length + 1}`] = o.ownerId;
+    }
+  }
   const lines = utterancesToLines(
     opts.roundId,
     transcript.utterances,
@@ -128,23 +172,29 @@ export async function finalizeRound(opts: {
     confirmed_at: null,
   });
 
-  // Audio deleted immediately after transcript saved
-  if (recording.chunk_paths.length > 0) {
-    recording = await deleteRecordingAudio({
-      ...recording,
-      transcript_job_id: transcript.jobId,
-    });
-  } else {
-    recording = {
-      ...recording,
-      status: "ready",
-      deleted_at: nowIso(),
-      transcript_job_id: transcript.jobId,
-      chunk_paths: [],
-      chunk_meta: [],
-    };
+  // Audio deleted immediately after transcript saved (every device stream).
+  const cleaned = [];
+  for (const r of recordings) {
+    if (r.chunk_paths.length > 0) {
+      cleaned.push(
+        await deleteRecordingAudio({
+          ...r,
+          transcript_job_id: transcript.jobId,
+        }),
+      );
+    } else {
+      cleaned.push({
+        ...r,
+        status: "ready" as const,
+        deleted_at: nowIso(),
+        transcript_job_id: transcript.jobId,
+        chunk_paths: [],
+        chunk_meta: [],
+      });
+    }
   }
-  await saveRecording(recording);
+  for (const r of cleaned) await saveRecording(r);
+  recording = cleaned[0]!;
 
   await logActivity({
     person_id: opts.personId ?? null,
@@ -204,6 +254,36 @@ export async function finalizeRound(opts: {
         stub: judgment.stub,
         bankAdded,
       },
+    });
+
+    // F-278: update skills and promote stalls to roadmap drills.
+    const speakerIds = [
+      ...new Set(
+        lines
+          .map((l) => l.speaker_person_id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    for (const personId of speakerIds.length ? speakerIds : presentIds) {
+      const improved = judgment.feedback.some(
+        (f) => f.person_id === personId && f.kind === "worked",
+      );
+      await updateSkillsAfterRound({
+        personId,
+        caseId: round.case_id,
+        improved,
+      });
+    }
+  }
+
+  // F-276: ideas from the transcript → Truth Sources queue.
+  const ideas = suggestIdeasFromTranscript(lines);
+  if (ideas.length && round.team_ids[0]) {
+    await queueRoundIdeasToTruthSources({
+      roundId: opts.roundId,
+      teamId: round.team_ids[0],
+      personId: opts.personId ?? presentIds[0] ?? round.created_by ?? "",
+      ideas: ideas.map((i) => ({ text: i.text, lineId: i.lineId })),
     });
   }
 
