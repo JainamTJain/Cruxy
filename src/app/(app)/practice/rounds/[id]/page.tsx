@@ -28,10 +28,10 @@ type Line = {
 };
 
 const PHASES = [
-  { key: "presentation", label: (t: string) => `1 · ${t} presents` },
-  { key: "commentary", label: () => "2 · Cruxy comments" },
-  { key: "response", label: (t: string) => `3 · ${t} responds` },
-  { key: "judges_qa", label: () => "4 · Judges' Q&A" },
+  { key: "presentation", label: (t: string) => `1. ${t} presents` },
+  { key: "commentary", label: () => "2. Cruxy comments" },
+  { key: "response", label: (t: string) => `3. ${t} responds` },
+  { key: "judges_qa", label: () => "4. Judges' Q&A" },
 ] as const;
 
 function fmt(ms: number) {
@@ -181,7 +181,7 @@ export default function RoundPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 bg-[#C62828] px-8 py-2.5 text-sm font-semibold text-white">
           <span className="flex items-center gap-2.5">
             <span className="h-2.5 w-2.5 rounded-full bg-white" />
-            Recording · everyone in this room agreed to be recorded
+            Recording: everyone in this room agreed to be recorded
           </span>
           <span className="font-mono">{clockLabel(elapsed)}</span>
         </div>
@@ -198,7 +198,7 @@ export default function RoundPage() {
             </Link>
             <div className="flex flex-col gap-1">
               <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#8C929D]">
-                Full round · Case {round.case_number ?? "—"}
+                Full round, Case {round.case_number ?? "Not set"}
               </span>
               <span className="font-display text-[26px] font-extrabold">
                 {presentTeam}{" "}
@@ -258,7 +258,7 @@ export default function RoundPage() {
                   {ph.label(presentTeam)}
                 </div>
                 <div className="font-mono text-[15px] font-semibold">
-                  {now ? "now" : done ? `${timeLabel} · done` : timeLabel}
+                  {now ? "now" : done ? `${timeLabel}, done` : timeLabel}
                 </div>
               </li>
             );
@@ -282,7 +282,7 @@ export default function RoundPage() {
 
             <div className="flex flex-col gap-2.5 rounded-2xl bg-[#0C0D11] p-5">
               <span className="text-[13px] font-bold text-gold">
-                Cruxy&apos;s strongest point in its commentary · answer this
+                Cruxy&apos;s strongest point in its commentary. Answer this
                 first
               </span>
               <p className="font-display m-0 text-[28px] font-semibold leading-tight sm:text-[34px]">
@@ -346,7 +346,7 @@ export default function RoundPage() {
 
             <div className="flex flex-col gap-2.5 border-t border-[#262934] pt-4">
               <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#8C929D]">
-                Live captions · rough, final transcript comes after
+                Live captions (rough). Final transcript comes after
               </span>
               {lines.length === 0 ? (
                 <p className="m-0 text-[17px] leading-relaxed text-[#C9CCD3]">
@@ -410,7 +410,7 @@ export default function RoundPage() {
                       className="flex justify-between gap-2"
                     >
                       <span>
-                        {p.name} · {role}
+                        {p.name}, {role}
                       </span>
                       <span className="text-[#8C929D]">
                         {speaking ? "speaking" : "present"}

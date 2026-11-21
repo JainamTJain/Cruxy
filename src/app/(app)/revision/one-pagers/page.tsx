@@ -85,7 +85,7 @@ function OnePagersInner() {
     const people = brain?.people ?? [];
     const name = (role: string) => {
       const id = brain?.brain.case_roles.find((r) => r.role === role)?.person_id;
-      return people.find((p) => p.id === id)?.name ?? "—";
+      return people.find((p) => p.id === id)?.name ?? "Not set";
     };
     return {
       lead1: name("lead_1"),
@@ -236,8 +236,12 @@ function OnePagersInner() {
         </>
       ) : (
         <div className="rounded-[20px] bg-white p-8">
-          <p className="text-sm text-muted">
-            No one pager yet for this team and case.
+          <h2 className="font-display m-0 text-2xl font-extrabold">
+            No one pager yet
+          </h2>
+          <p className="mt-2 max-w-md text-sm leading-snug text-muted">
+            Cruxy can draft one from this team&apos;s claim map. You edit it,
+            then everyone signs it off before the round.
           </p>
           <button
             type="button"

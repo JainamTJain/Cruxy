@@ -325,7 +325,11 @@ export async function listReadiness(): Promise<ReadinessCell[]> {
 export async function getProgramTotals(): Promise<ProgramTotals> {
   if (!isSampleDataMode()) return sbProgram.getProgramTotals();
   const store = await readStore();
-  return store.program_totals;
+  // Match production: rounds graded = saved round reports (moves after a real round).
+  return {
+    ...store.program_totals,
+    rounds_graded: store.round_reports.length,
+  };
 }
 
 export async function listPeopleFull(): Promise<Person[]> {

@@ -174,7 +174,7 @@ export function SessionClient() {
   function roundBlurb(r: Round) {
     if (r.mode === "moderator_drill") {
       return {
-        title: "Moderator drills · everyone, on own devices",
+        title: "Moderator drills: everyone, on own devices",
         sub: "Random bank questions on each person's cases",
       };
     }
@@ -197,8 +197,8 @@ export function SessionClient() {
       .filter(Boolean)
       .join(" + ");
     return {
-      title: `Case ${r.case_number} · ${presentingLabel}, ${commentingLabel}`,
-      sub: `Moderator: ${mod} · judges: ${judgeBits || "none"} · ${r.timings.presentation_max} / ${r.timings.commentary_max} / ${r.timings.qa_max} min`,
+      title: `Case ${r.case_number}: ${presentingLabel}, ${commentingLabel}`,
+      sub: `Moderator: ${mod}, judges: ${judgeBits || "none"}, ${r.timings.presentation_max} / ${r.timings.commentary_max} / ${r.timings.qa_max} min`,
     };
   }
 
@@ -208,7 +208,7 @@ export function SessionClient() {
 
   const codeDisplay = code
     ? `${code.slice(0, 3)} ${code.slice(3)}`.trim()
-    : "······";
+    : "••••••";
 
   const qrUrl =
     typeof window !== "undefined"
@@ -266,21 +266,21 @@ export function SessionClient() {
           <div className="flex flex-col gap-1.5">
             <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
               {session.title}
-              {screen ? ` · you: ${screen}` : ""}
+              {screen ? `, you: ${screen}` : ""}
             </span>
             <h1 className="font-display m-0 text-[40px] font-extrabold leading-none tracking-[-0.02em] sm:text-[48px]">
               {formatWhen(session.date)}
             </h1>
             <span className="text-[15px] text-[#3B404A]">
               {session.place ?? "Online"}
-              {session.online ? ", plus online" : ""} · created by {creatorName}
+              {session.online ? ", plus online" : ""}, created by {creatorName}
             </span>
           </div>
           {admin ? (
             <div className="flex items-center gap-[18px] rounded-[18px] bg-ink px-5 py-3.5 text-white">
               <div>
                 <div className="text-xs font-bold tracking-[0.1em] text-gold">
-                  SESSION CODE · ADMINS ONLY
+                  SESSION CODE, ADMINS ONLY
                 </div>
                 <div className="font-mono text-[34px] font-semibold tracking-[0.12em]">
                   {codeHidden ? "••• •••" : codeDisplay}
@@ -407,7 +407,7 @@ export function SessionClient() {
                               {j.name}
                               {j.team_name ? ` (${j.team_name})` : ""}
                             </strong>{" "}
-                            · already in Crux
+                            (already in Crux)
                             <br />
                             <span className="text-muted">
                               Opens the Judging portal and types the session

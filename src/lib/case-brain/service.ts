@@ -501,6 +501,7 @@ export async function createProposal(input: {
     inspired_from_team_id: input.inspiredFromTeamId ?? null,
     text: input.text.trim(),
     kind: input.kind ?? "other",
+    citation_ids: input.citationIds ?? [],
     cruxy_note: note,
     socratic_question: socratic,
     socratic_answered: origin !== "inspired_by_team",
@@ -1021,5 +1022,6 @@ export function originLabel(
   if (proposal.origin === "research") return "Cruxy research";
   if (proposal.origin === "transcript") return "Practice transcript";
   if (proposal.origin === "reading") return "Reading room";
+  if (proposal.origin === "team_doc") return "Team doc";
   return "Team member";
 }

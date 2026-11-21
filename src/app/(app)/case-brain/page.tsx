@@ -15,7 +15,10 @@ export default async function CaseBrainIndexPage() {
     <main className="animate-fade-up space-y-6">
       <div>
         <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-muted">
-          Cases · {myTeam?.name ?? "your team"}
+          Cases
+          <span className="ml-2 font-semibold normal-case tracking-normal text-[#3B404A]">
+            {myTeam?.name ?? "your team"}
+          </span>
         </p>
         <h1 className="font-display text-[44px] font-extrabold tracking-[-0.02em] text-ink">
           Case brain

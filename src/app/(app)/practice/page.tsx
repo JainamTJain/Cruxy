@@ -139,7 +139,7 @@ export default function PracticePage() {
               >
                 {cases.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {String(c.number).padStart(2, "0")} · {c.title}
+                    {String(c.number).padStart(2, "0")}. {c.title}
                   </option>
                 ))}
               </select>
@@ -193,11 +193,11 @@ export default function PracticePage() {
                   <span>
                     <span className="font-medium">{s.title}</span>
                     <span className="ml-2 text-xs text-muted">
-                      {s.kind} · {s.date} · {s.status}
+                      {s.kind}, {s.date}, {s.status}
                     </span>
                   </span>
                   <span className="font-mono text-xs text-muted">
-                    {s.rounds[0]?.mode ?? s.mode ?? "—"}
+                    {s.rounds[0]?.mode ?? s.mode ?? "Not set"}
                   </span>
                 </Link>
               </li>

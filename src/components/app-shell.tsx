@@ -161,7 +161,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const isAdminRole =
     me?.session?.role === "tech_admin" || me?.session?.role === "coach_admin";
   const displayName = me?.session?.name ?? me?.person?.name ?? "";
-  const initial = displayName.slice(0, 1).toUpperCase() || "·";
+  const initial = displayName.slice(0, 1).toUpperCase() || "?";
   const onAdminScreen =
     Boolean(me?.session?.adminView) && pathname.startsWith("/admin");
   const sideItems = onAdminScreen ? ADMIN_SIDE_NAV : SIDE_NAV;
@@ -180,7 +180,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <aside className="hidden w-[248px] shrink-0 flex-col gap-7 bg-ink px-4 pb-7 pt-[28px] text-white sm:flex">
         <Link
           href="/home"
-          className="font-display px-3 text-[38px] font-extrabold leading-none tracking-[-0.04em] text-white"
+          className="font-display mx-1 inline-block rounded-[14px] border-2 border-genie-bright px-3 py-1 text-[38px] font-extrabold leading-none tracking-[-0.04em] text-white"
         >
           crux
         </Link>
@@ -243,7 +243,12 @@ function ShellInner({ children }: { children: React.ReactNode }) {
               <br />
               <span className="text-[#9AA0AA]">
                 {teamLabel ?? "Member"}
-                {me?.session?.adminView ? " · admin" : ""}
+                {me?.session?.adminView ? (
+                  <>
+                    <br />
+                    Admin
+                  </>
+                ) : null}
               </span>
             </span>
           </div>
@@ -272,14 +277,11 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         <header className="flex items-center justify-between gap-3 px-4 pb-2 pt-4 sm:hidden">
           <Link
             href="/home"
-            className="font-display text-2xl font-extrabold tracking-tight text-cardinal"
+            className="font-display rounded-lg border-2 border-genie-bright px-2 py-0.5 text-2xl font-extrabold tracking-tight text-cardinal"
           >
             crux
           </Link>
-          <p className="text-xs text-muted">
-            {displayName}
-            {me?.dataMode === "sample" ? " · sample" : ""}
-          </p>
+          <p className="text-xs text-muted">{displayName}</p>
         </header>
         <main className="min-w-0 flex-1 px-4 pb-24 pt-4 sm:px-10 sm:pb-10 sm:pt-8">
           {children}
