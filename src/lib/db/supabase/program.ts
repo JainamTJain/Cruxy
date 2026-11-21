@@ -448,7 +448,7 @@ export async function buildWeeklyEmailPreview(): Promise<WeeklyEmailPreview> {
       .map((c) => {
         const team = teams.find((t) => t.id === c.team_id)?.name ?? "?";
         const cas = cases.find((x) => x.id === c.case_id);
-        return `${team} · Case ${cas?.number ?? "?"} at ${c.readiness_pct}%`;
+        return `${team}, Case ${cas?.number ?? "?"} at ${c.readiness_pct}%`;
       }),
     openDisagreements: [],
     thingsToCare: [],

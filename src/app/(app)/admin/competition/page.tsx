@@ -104,8 +104,23 @@ export default function CompetitionLogPage() {
 
   async function rollover() {
     const res = await fetch("/api/admin/season", { method: "POST" });
-    const j = (await res.json()) as { message?: string; error?: string };
-    setMsg(j.message ?? j.error ?? "Done");
+    const j = (await res.json()) as {
+      message?: string;
+      error?: string;
+      downloadPath?: string | null;
+      filename?: string;
+    };
+    if (j.downloadPath) {
+      setMsg(
+        `${j.message ?? "Archive ready."} Download: ${j.downloadPath}`,
+      );
+      return;
+    }
+    setMsg(
+      j.message ??
+        j.error ??
+        (j.filename ? `Archive built: ${j.filename}` : "Done"),
+    );
   }
 
   if (error) {
@@ -254,10 +269,10 @@ export default function CompetitionLogPage() {
                 className="rounded-xl border border-ink/5 bg-white/50 px-3 py-2"
               >
                 vs {l.opponent}
-                {l.case_number != null ? ` · Case ${l.case_number}` : ""} ·{" "}
+                {l.case_number != null ? `, Case ${l.case_number}` : ""},{" "}
                 {l.result}
                 {l.score_us != null
-                  ? ` · ${l.score_us}–${l.score_them ?? "?"}`
+                  ? `, ${l.score_us}–${l.score_them ?? "?"}`
                   : ""}
               </li>
             ))
@@ -268,11 +283,12 @@ export default function CompetitionLogPage() {
       <section className="rounded-2xl border border-ink/10 bg-white/60 p-4">
         <h2 className="font-display text-lg font-semibold">Season rollover</h2>
         <p className="mt-1 text-sm text-muted">
-          Archive the season to Drive, import the next case set, reset roles.
-          keep the Things bank, example library, and glossary. Tech admin only.
+          Build a downloadable archive (Drive service account is read only),
+          then import the next case set and reset roles and roadmaps. Keeps the
+          Things bank, example library, and glossary. Tech admin only.
         </p>
         <Button className="mt-3" variant="outline" onClick={() => void rollover()}>
-          Queue season rollover (stub)
+          Queue season rollover
         </Button>
       </section>
 

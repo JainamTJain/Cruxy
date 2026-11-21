@@ -20,6 +20,7 @@ import { readStore, updateStore } from "@/lib/db/sample-store";
 import { nowIso } from "@/lib/utils";
 import { missingStarterHash } from "@/lib/db/supabase/foundation";
 import type { AuthCode } from "@/lib/types";
+import type { ModeratorQuestion } from "@/lib/revision/types";
 
 export type TeamReadiness = {
   team_id: string;
@@ -256,6 +257,95 @@ export async function rotateMemberStarterHash(
     action: "member_starter_rotated",
     target: "shared_starter",
   });
+}
+
+const UCSB_TAG = "Asked at UCSB";
+
+/**
+ * Competition log: real moderator / judge questions enter the bank tagged
+ * "Asked at UCSB" (confirmed, ready to drill).
+ */
+export async function bankCompetitionQuestions(opts: {
+  actorId: string;
+  caseId: string | null;
+  moderatorQuestion?: string | null;
+  judgesQuestions?: string | null;
+  logId: string;
+}): Promise<number> {
+  const texts = [opts.moderatorQuestion, opts.judgesQuestions]
+    .flatMap((raw) =>
+      (raw ?? "")
+        .split(/\n+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 8),
+    );
+  if (!texts.length) return 0;
+
+  if (isSampleDataMode()) {
+    const store = await readStore();
+    const caseId =
+      opts.caseId ??
+      store.cases.find((c) => c.active)?.id ??
+      store.cases[0]?.id;
+    if (!caseId) return 0;
+    await updateStore((s) => {
+      for (const text of texts) {
+        const q: ModeratorQuestion = {
+          id: randomUUID(),
+          case_id: caseId,
+          text,
+          type: "follow_up",
+          difficulty: 2,
+          origin: "asked_at_round",
+          origin_label: "Competition",
+          status: "active",
+          asked_at_tag: UCSB_TAG,
+          created_at: nowIso(),
+          created_by: opts.actorId,
+        };
+        s.questions.push(q);
+      }
+    });
+  } else {
+    const sb = getServiceSupabase();
+    let caseId = opts.caseId;
+    if (!caseId) {
+      const { data } = await sb
+        .from("cases")
+        .select("id")
+        .eq("active", true)
+        .order("number", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      caseId = data ? String((data as { id: string }).id) : null;
+    }
+    if (!caseId) return 0;
+    const rows: ModeratorQuestion[] = texts.map((text) => ({
+      id: randomUUID(),
+      case_id: caseId as string,
+      text,
+      type: "follow_up",
+      difficulty: 2,
+      origin: "asked_at_round",
+      origin_label: "Competition",
+      status: "active",
+      asked_at_tag: UCSB_TAG,
+      created_at: nowIso(),
+      created_by: opts.actorId,
+    }));
+    assertOk(
+      (await sb.from("questions").insert(rows)).error,
+      "bankCompetitionQuestions.insert",
+    );
+  }
+
+  await logActivity({
+    person_id: opts.actorId,
+    action: "bank_question_tagged",
+    target: opts.logId,
+    meta: { tag: UCSB_TAG, count: texts.length },
+  });
+  return texts.length;
 }
 
 /** Group spend rows into the Admin.html feature buckets. */

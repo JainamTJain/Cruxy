@@ -15,35 +15,35 @@ function formatBody(preview: WeeklyEmailPreview, includeSpend: boolean): string 
     "",
     "Attendance",
     ...preview.attendance.map(
-      (a) => `· ${a.name}: ${a.present}/${a.sessions} sessions`,
+      (a) => `- ${a.name}: ${a.present}/${a.sessions} sessions`,
     ),
     "",
     "Scores by team",
     ...preview.scoresByTeam.map(
-      (s) => `· ${s.team}: ${s.rounds} rounds, avg ${s.avg}/60`,
+      (s) => `- ${s.team}: ${s.rounds} rounds, avg ${s.avg}/60`,
     ),
     "",
     "Biggest improvements",
-    ...preview.biggestImprovements.map((x) => `· ${x}`),
+    ...preview.biggestImprovements.map((x) => `- ${x}`),
     "",
     "Cases at risk",
     ...(preview.casesAtRisk.length
-      ? preview.casesAtRisk.map((x) => `· ${x}`)
-      : ["· None this week"]),
+      ? preview.casesAtRisk.map((x) => `- ${x}`)
+      : ["- None this week"]),
     "",
     "Open disagreements",
-    ...preview.openDisagreements.map((x) => `· ${x}`),
+    ...preview.openDisagreements.map((x) => `- ${x}`),
     "",
     "Things to take care of",
-    ...preview.thingsToCare.map((x) => `· ${x}`),
+    ...preview.thingsToCare.map((x) => `- ${x}`),
   ];
   if (includeSpend) {
-    lines.push("", "Spend", `· ${preview.spendLine ?? "n/a"}`);
+    lines.push("", "Spend", `- ${preview.spendLine ?? "n/a"}`);
     if (preview.errors.length) {
-      lines.push("", "Errors", ...preview.errors.map((e) => `· ${e}`));
+      lines.push("", "Errors", ...preview.errors.map((e) => `- ${e}`));
     }
   }
-  lines.push("", "Open Crux → each line links into the app once live.");
+  lines.push("", "Open Crux: each line links into the app.");
   return lines.join("\n");
 }
 

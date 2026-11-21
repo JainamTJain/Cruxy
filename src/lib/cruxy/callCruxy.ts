@@ -104,14 +104,19 @@ function estimateCost(tokensIn: number, tokensOut: number) {
   return tokensIn * 0.00000025 + tokensOut * 0.000001 || 0.0001;
 }
 
-function featureCap(feature: string): number | null {
+function featureCap(
+  feature: string,
+  caps: Awaited<ReturnType<typeof getSpendCaps>> | null,
+): number | null {
   const f = feature.toLowerCase();
   if (f.includes("round") || f.includes("judge") || f.includes("report")) {
-    return PER_ROUND_CAP_USD;
+    return caps?.per_round_usd ?? PER_ROUND_CAP_USD;
   }
-  if (f.includes("research")) return PER_RESEARCH_NIGHT_CAP_USD;
+  if (f.includes("research")) {
+    return caps?.per_research_night_usd ?? PER_RESEARCH_NIGHT_CAP_USD;
+  }
   if (f.includes("assistant") || f.includes("drawer")) {
-    return PER_PERSON_ASSISTANT_DAY_CAP_USD;
+    return caps?.per_person_assistant_day_usd ?? PER_PERSON_ASSISTANT_DAY_CAP_USD;
   }
   return null;
 }
@@ -282,7 +287,7 @@ export async function callCruxy(
     };
   }
 
-  const per = featureCap(input.feature);
+  const per = featureCap(input.feature, caps);
   if (per != null && estimated > per) {
     await insertAiCall({
       feature: input.feature,

@@ -13,7 +13,7 @@ For each screen, every visible label, number, button and image in the reference 
 - [x] D-0006 Program analytics [`src/app/(app)/admin/admin-console.tsx`]
 - [x] D-0007 Question bank [`src/app/(app)/admin/admin-console.tsx`]
 - [x] D-0008 Back to member view [`src/app/(app)/admin/admin-console.tsx`]
-- [ ] D-0009 Admin console · sample data
+- [x] D-0009 Admin console (no "sample data" label; Wave 4) [`src/app/(app)/admin/admin-console.tsx`]
 - [x] D-0010 Running the program [`src/app/(app)/admin/admin-console.tsx`]
 - [x] D-0011 Dr. B sees everything here except the panels marked [`src/app/(app)/admin/admin-console.tsx`]
 - [x] D-0012 ONLY JAINAM [`src/app/(app)/admin/admin-console.tsx`]

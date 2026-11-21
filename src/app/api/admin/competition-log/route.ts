@@ -10,6 +10,7 @@ import {
   listTeams,
   logActivity,
 } from "@/lib/db/repository";
+import { bankCompetitionQuestions } from "@/lib/db/supabase/admin-extra";
 
 export const runtime = "nodejs";
 
@@ -81,13 +82,13 @@ export async function POST(req: Request) {
     created_by: person.id,
   });
 
-  // Real questions enter the bank tagged "Asked at UCSB" (stub until Track 3 bank)
   if (body.moderator_question || body.judges_questions) {
-    await logActivity({
-      person_id: person.id,
-      action: "bank_question_tagged",
-      target: row.id,
-      meta: { tag: "Asked at UCSB" },
+    await bankCompetitionQuestions({
+      actorId: person.id,
+      caseId: body.case_id ?? null,
+      moderatorQuestion: body.moderator_question,
+      judgesQuestions: body.judges_questions,
+      logId: row.id,
     });
   }
 

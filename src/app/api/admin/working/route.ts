@@ -31,13 +31,24 @@ export async function GET() {
   ]);
 
   const signedIn = people.filter((p) => p.last_sign_in_at).length;
+  const drillUses = usage
+    .filter((u) =>
+      /drill|redo|flashcard|reading|assistant/i.test(u.feature),
+    )
+    .reduce((s, u) => s + u.uses, 0);
+  const usefulMarks = usage.reduce((s, u) => s + u.useful_marks, 0);
+  const redo = totals.redo_improvements ?? 0;
   return NextResponse.json({
     hypothesis:
-      "People who drill, redo, and read more should improve faster on their own scores. Tracks 3–5 fill the causal links; this view shows feature use and useful marks for now.",
+      "Use against improvement: people who drill, redo and read more should improve faster on their own scores. This portal compares feature use and useful marks with redo improvements for the program.",
     usage,
     totals,
     signedIn,
     rosterSize: people.length,
+    correlationNote:
+      drillUses === 0 && redo === 0
+        ? "No drill or redo activity yet. The link between use and score gains will show up here as people practice."
+        : `${drillUses} practice-related calls and ${usefulMarks} useful marks so far, with ${redo} redo improvements logged. Watch whether heavier users climb on their own past scores.`,
     ignored: usage
       .filter((u) => u.uses === 0)
       .map((u) => u.feature)

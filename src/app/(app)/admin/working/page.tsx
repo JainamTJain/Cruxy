@@ -5,6 +5,7 @@ import Link from "next/link";
 
 type Working = {
   hypothesis: string;
+  correlationNote?: string;
   usage: {
     feature: string;
     uses: number;
@@ -54,6 +55,9 @@ export default function WorkingPage() {
         </p>
         <h1 className="font-display text-3xl font-semibold">Is Crux working?</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">{data.hypothesis}</p>
+        {data.correlationNote ? (
+          <p className="mt-2 max-w-2xl text-sm">{data.correlationNote}</p>
+        ) : null}
       </div>
 
       <section className="grid gap-3 sm:grid-cols-3">
@@ -84,7 +88,7 @@ export default function WorkingPage() {
               <span>
                 {u.feature}{" "}
                 <span className="text-xs text-muted">
-                  {u.unique_people} people · {u.useful_marks} useful
+                  {u.unique_people} people, {u.useful_marks} useful
                 </span>
               </span>
               <span className="font-mono">{u.uses}</span>
