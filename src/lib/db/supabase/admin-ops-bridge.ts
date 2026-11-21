@@ -1,12 +1,15 @@
 /**
  * Soft bridge from Workstream G's admin panel to Workstream I (`src/lib/ops/**`)
- * and H (weekly Cruxy review). Privacy / season / backup are wired to I.
- * Review stays stubbed until H lands.
+ * and H (weekly Cruxy review). Privacy / season / backup → I; review → H.
  */
 import "server-only";
 import { adminDeletePersonPrivateData } from "@/lib/ops/privacy-delete";
 import { runSeasonEndExport } from "@/lib/ops/season-export";
 import { getBackupStatus as opsGetBackupStatus } from "@/lib/ops/backup";
+import {
+  approveWeeklyReview,
+  listPendingWeeklyReviews,
+} from "@/lib/cruxy/weekly-review";
 
 export type DeletePersonResult = {
   ok: true;
@@ -116,12 +119,51 @@ export async function loadBackupOps(): Promise<BackupOps | null> {
   };
 }
 
-/**
- * Workstream H: weekly Cruxy review draft the tech admin approves.
- * Wire to the H module when it lands.
- */
+/** Workstream H: weekly Cruxy review draft the tech admin approves. */
 export async function loadReviewOps(): Promise<ReviewOps | null> {
-  return null;
+  return {
+    async listPendingReviews() {
+      const rows = await listPendingWeeklyReviews();
+      return rows.map((r) => ({
+        id: r.id,
+        weekOf: r.week_start,
+        summary: r.draft_body,
+        proposedUpdates: (r.proposed_check_updates ?? []).map((item) => {
+          if (typeof item === "string") return { kind: "check", text: item };
+          if (item && typeof item === "object") {
+            const rec = item as { kind?: unknown; text?: unknown };
+            return {
+              kind: typeof rec.kind === "string" ? rec.kind : "check",
+              text:
+                typeof rec.text === "string"
+                  ? rec.text
+                  : JSON.stringify(item),
+            };
+          }
+          return { kind: "check", text: String(item) };
+        }),
+        status: r.status as CruxyReviewDraft["status"],
+        created_at: r.created_at,
+      }));
+    },
+    async approveReview(draftId, actorId) {
+      await approveWeeklyReview({
+        id: draftId,
+        reviewedBy: actorId,
+        approve: true,
+      });
+      return { ok: true };
+    },
+    async rejectReview(draftId, actorId, reason) {
+      await approveWeeklyReview({
+        id: draftId,
+        reviewedBy: actorId,
+        approve: false,
+        note: reason ?? null,
+      });
+      return { ok: true };
+    },
+  };
 }
 
 export function waitingPayload(workstream: "I" | "H", feature: string) {
