@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useCruxy } from "@/components/cruxy/cruxy-context";
@@ -55,6 +56,8 @@ export default function SocraticPage() {
     if (data.session.status !== "active") setMood("excited");
     else setMood("happy");
   }
+
+  const summaryLines = session?.summary?.split("\n").filter(Boolean) ?? [];
 
   return (
     <main className="animate-fade-up space-y-6">
@@ -117,7 +120,7 @@ export default function SocraticPage() {
                 className="min-h-24 w-full rounded-xl border border-ink/15 p-3 text-sm"
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
-                placeholder="Try an answer first…"
+                placeholder="Try an answer first"
               />
               <Button type="button" size="sm" onClick={() => void submit()}>
                 Answer
@@ -126,10 +129,25 @@ export default function SocraticPage() {
           ) : (
             <div className="rounded-xl border border-cardinal/20 bg-cardinal/5 p-3 text-sm">
               <p className="font-medium">3-line summary</p>
-              <p className="mt-1 text-muted">{session.summary}</p>
-              <p className="mt-2 text-xs text-muted">
-                Linked claims: {session.claim_links.length}
-              </p>
+              <ul className="mt-2 space-y-1 text-muted">
+                {summaryLines.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link
+                  href={`/case-brain/${session.case_id}`}
+                  className="text-xs font-medium text-cardinal underline"
+                >
+                  Open claim map
+                </Link>
+                {session.claim_links.length ? (
+                  <span className="text-xs text-muted">
+                    {session.claim_links.length} linked claim
+                    {session.claim_links.length === 1 ? "" : "s"}
+                  </span>
+                ) : null}
+              </div>
             </div>
           )}
         </div>

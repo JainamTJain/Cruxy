@@ -157,21 +157,21 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-126 Generated from readings, Truth Sources and the case card: facts with page numbers, claims and their logic lines, frameworks in one sentence, counterclaim responses, and change the facts answers. · [src/lib/seed/build-content.ts, supabase/seed/06_flashcards_roles_proposals.sql]
 - [x] F-127 Assigned by role: leads get their cases' decks automatically. Anyone else can add any deck, and their profile shows "studying Case 9 (not assigned)". · [src/lib/seed/build-content.ts deck_opt_ins for leads]
 - [x] F-128 Spaced repetition: cards come back sooner when missed (SM-2 or FSRS scheduling), and answers can be typed or spoken. [src/lib/revision/fsrs.ts]
-- [ ] F-129 Cruxy asks one question at a time aimed at the weakest link in the claim map, then follows up on the answer ("why does that follow?", "what would your opponent say?"). (implemented: `src/app/(app)/revision/socratic/page.tsx`; owner F to verify)
-- [ ] F-130 Ends with a 3 line summary of what held and what didn't, linked to the claim map. (implemented: `src/lib/revision/repository.ts`, `src/lib/db/supabase/revision.ts`; owner F to verify)
-- [ ] F-131 For each claim, Cruxy suggests: a plain sentence version under 25 words, 2 everyday analogies, 1 vivid example from the Truth Sources, and phrases to avoid (jargon, hedges, loaded words).
-- [ ] F-132 Members save their favourite phrasings to their personal phrasebook.
+- [x] F-129 Cruxy asks one question at a time aimed at the weakest link in the claim map, then follows up on the answer ("why does that follow?", "what would your opponent say?"). [`src/lib/revision/socratic.ts`, `src/lib/db/supabase/revision.ts`]
+- [x] F-130 Ends with a 3 line summary of what held and what didn't, linked to the claim map. [`src/lib/revision/socratic.ts`, `src/app/(app)/revision/socratic/page.tsx`]
+- [x] F-131 For each claim, Cruxy suggests: a plain sentence version under 25 words, 2 everyday analogies, 1 vivid example from the Truth Sources, and phrases to avoid (jargon, hedges, loaded words). [`src/lib/revision/language.ts`, `src/app/(app)/revision/language/page.tsx`]
+- [x] F-132 Members save their favourite phrasings to their personal phrasebook. [`src/app/api/revision/language/route.ts`, `src/app/(app)/revision/language/page.tsx`]
 - [x] F-133 A 10 minute warm up for the morning of a round: 5 flashcards, 2 moderator questions answered out loud, 1 counterclaim rebuttal, on cases picked at random. [src/app/(app)/revision/warmup/page.tsx]
 
 ## Moderator question bank
 
-- [ ] F-134 **Dr. B adds freely.** She can paste unstructured text (an email, a list, a voice note transcript); Cruxy splits it into single questions, tags each with its case, type and difficulty, and shows the result for her to confirm. (implemented: `src/app/(app)/revision/questions/page.tsx`; owner F to verify)
-- [ ] F-135 **Cruxy adds** using the five question types judges are trained to ask: follow ups on skipped issues, pushback on our own view, the other team's points re-asked, change the facts hypotheticals, and "state your view and main reasons". It also writes the case's own closing question in several wordings.
+- [x] F-134 **Dr. B adds freely.** She can paste unstructured text (an email, a list, a voice note transcript); Cruxy splits it into single questions, tags each with its case, type and difficulty, and shows the result for her to confirm. [`src/lib/revision/moderator-paste.ts`, `src/app/(app)/revision/questions/page.tsx`]
+- [x] F-135 **Cruxy adds** using the five question types judges are trained to ask: follow ups on skipped issues, pushback on our own view, the other team's points re-asked, change the facts hypotheticals, and "state your view and main reasons". It also writes the case's own closing question in several wordings. [`src/lib/db/supabase/revision-wave5.ts`, `src/app/(app)/revision/questions/page.tsx`]
 - [x] F-136 **Members add** questions they heard or imagined; real regional questions get the tag "Asked at UCSB" afterwards. · [src/lib/seed/build-content.ts questions origin member]
 - [x] F-137 **Difficulty** 1 to 3, set by Cruxy and corrected by how people actually score on it. · [src/lib/seed/build-content.ts difficulty 1–3]
-- [ ] F-138 **Random serve** in drills and practice: weighted toward unseen questions, questions you scored low on, and your cases; never the same question twice in a session.
-- [ ] F-139 **Answer log:** every answer (spoken or typed) is kept with its score and feedback, so the bank shows each question's best team answer, linked to its timestamp.
-- [ ] F-140 **Robustness meter per case:** share of bank questions each member now answers better than their own first attempt, per team.
+- [x] F-138 **Random serve** in drills and practice: weighted toward unseen questions, questions you scored low on, and your cases; never the same question twice in a session. [`supabase/migrations/00023_workstream_f_wave5.sql`, `src/lib/db/supabase/revision.ts`]
+- [x] F-139 **Answer log:** every answer (spoken or typed) is kept with its score and feedback, so the bank shows each question's best team answer, linked to its timestamp. [`src/app/api/revision/questions/route.ts`, `src/app/(app)/revision/questions/page.tsx`]
+- [x] F-140 **Robustness meter per case:** share of bank questions each member now answers better than their own first attempt, per team. [`src/lib/db/supabase/revision-wave5.ts`, `src/app/(app)/revision/questions/page.tsx`]
 
 ## Personal roadmap and deadlines
 

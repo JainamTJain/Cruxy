@@ -11,8 +11,23 @@ import {
 } from "@/lib/revision/flashcards";
 import {
   pickWeightedQuestion,
-  splitPasteIntoQuestions,
 } from "@/lib/revision/moderator-bank";
+import {
+  caseIdForPastePart,
+  splitPasteWithCruxy,
+} from "@/lib/revision/moderator-paste";
+import { cruxyLanguageSuggestions } from "@/lib/revision/language";
+import {
+  cruxySocraticAfterAnswer,
+  cruxySocraticOpening,
+} from "@/lib/revision/socratic";
+
+export {
+  deletePhrasebookEntry,
+  generateCruxyModeratorQuestions,
+  listAnswersForQuestion,
+  robustnessMeterForCase,
+} from "@/lib/db/supabase/revision-wave5";
 import { diffOnePagerBodies, draftOnePagerBody } from "@/lib/revision/one-pager";
 import {
   buildRoadmapForPerson,
@@ -40,8 +55,8 @@ import type {
 import type { CaseRow, Person, Team } from "@/lib/types";
 import { nowIso } from "@/lib/utils";
 
-/** Moderator-drill "seen" rows only count for this long (the table has no session key). */
-const DRILL_SEEN_WINDOW_MS = 2 * 60 * 60 * 1000;
+/** Drop stale drill "seen" rows older than this (per person). */
+const DRILL_SEEN_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 function must<T>(
   res: { data: T; error: { message: string } | null },
@@ -858,20 +873,35 @@ export async function pasteModeratorQuestions(args: {
   origin?: QuestionOrigin;
 }): Promise<ModeratorQuestion[]> {
   const sb = getServiceSupabase();
-  const parts = splitPasteIntoQuestions(args.raw);
-  if (parts.length === 0) return [];
+  const caseRows =
+    must(
+      await sb
+        .from("cases")
+        .select("id,number,title,active")
+        .order("number", { ascending: true }),
+      "pasteModeratorQuestions.cases",
+    ) ?? [];
 
   let fallbackCase: string | null = args.caseId;
   if (!fallbackCase) {
-    const cases =
-      must(
-        await sb.from("cases").select("id,active").order("number", { ascending: true }),
-        "pasteModeratorQuestions.cases",
-      ) ?? [];
     fallbackCase =
-      cases.find((c: Row) => c.active)?.id ?? cases[0]?.id ?? null;
+      caseRows.find((c: Row) => c.active)?.id ?? caseRows[0]?.id ?? null;
   }
   if (!fallbackCase) throw new Error("no cases");
+
+  const catalog = caseRows.map((c: Row) => ({
+    id: c.id as string,
+    number: c.number as number,
+    title: c.title as string,
+  }));
+
+  const parts = await splitPasteWithCruxy({
+    raw: args.raw,
+    personId: args.personId,
+    caseCatalog: catalog,
+    defaultCaseId: fallbackCase,
+  });
+  if (parts.length === 0) return [];
 
   const person = must(
     await sb.from("people").select("id,name").eq("id", args.personId).maybeSingle(),
@@ -887,7 +917,7 @@ export async function pasteModeratorQuestions(args: {
 
   const created: ModeratorQuestion[] = parts.map((part) => ({
     id: randomUUID(),
-    case_id: fallbackCase as string,
+    case_id: caseIdForPastePart(part, catalog, fallbackCase),
     text: part.text,
     type: part.type,
     difficulty: part.difficulty,
@@ -902,13 +932,6 @@ export async function pasteModeratorQuestions(args: {
     (await sb.from("questions").insert(created)).error,
     "pasteModeratorQuestions.insert",
   );
-
-  await callCruxy({
-    feature: "moderator_paste_split",
-    model: "small",
-    messages: [{ role: "user", content: args.raw.slice(0, 2000) }],
-    personId: args.personId,
-  });
 
   await logActivity({
     person_id: args.personId,
@@ -976,7 +999,7 @@ export async function serveQuestion(args: {
       .from("drill_session_seen")
       .select("question_id")
       .eq("person_id", args.personId)
-      .gte("seen_at", cutoff),
+      .eq("session_key", args.sessionKey),
     sb
       .from("answers")
       .select("question_id,score")
@@ -1025,8 +1048,13 @@ export async function serveQuestion(args: {
       await sb
         .from("drill_session_seen")
         .upsert(
-          { person_id: args.personId, question_id: picked.id, seen_at: nowIso() },
-          { onConflict: "person_id,question_id" },
+          {
+            person_id: args.personId,
+            session_key: args.sessionKey,
+            question_id: picked.id,
+            seen_at: nowIso(),
+          },
+          { onConflict: "person_id,session_key,question_id" },
         )
     ).error,
     "serveQuestion.markSeen",
@@ -1111,6 +1139,13 @@ export async function bestTeamAnswer(
 
 // ---------- Socratic + language + warm-up ----------
 
+export async function listTeamCaseClaims(
+  teamId: string,
+  caseId: string,
+): Promise<ClaimRow[]> {
+  return teamCaseClaims(teamId, caseId);
+}
+
 async function teamCaseClaims(teamId: string, caseId: string): Promise<ClaimRow[]> {
   const sb = getServiceSupabase();
   const rows =
@@ -1134,17 +1169,8 @@ export async function startSocraticDrill(args: {
 }): Promise<SocraticSession> {
   const sb = getServiceSupabase();
   const claims = await teamCaseClaims(args.teamId, args.caseId);
-  const weak =
-    claims.find((c) => !c.logic_line)?.text ??
-    claims[0]?.text ??
-    "your main claim";
-
-  const question = `Looking at the weakest link: why does "${weak.slice(0, 80)}" follow from your supports — what would drop out if one support failed?`;
-
-  await callCruxy({
-    feature: "socratic_drill",
-    model: "strong",
-    messages: [{ role: "user", content: question }],
+  const { question, claimLinks } = await cruxySocraticOpening({
+    claims,
     personId: args.personId,
   });
 
@@ -1155,7 +1181,7 @@ export async function startSocraticDrill(args: {
     case_id: args.caseId,
     turns: [{ role: "cruxy", text: question, at: nowIso() }],
     summary: null,
-    claim_links: claims.map((c) => c.id),
+    claim_links: claimLinks,
     status: "active",
     created_at: nowIso(),
     updated_at: nowIso(),
@@ -1185,23 +1211,19 @@ export async function continueSocratic(args: {
   const cur = mapSocratic(row);
 
   cur.turns.push({ role: "person", text: args.answer, at: nowIso() });
-  const followUps = [
-    "Why does that follow?",
-    "What would your opponent say to that?",
-    "Which Truth Source backs the key fact you just used?",
-  ];
-  const n = cur.turns.filter((t) => t.role === "cruxy").length;
-  if (n >= 3) {
-    cur.summary = [
-      "Held: you named a support and tried to connect it to the claim.",
-      "Weak: the opponent angle still needs a concede/distinguish/rebut line.",
-      "Next: tie the answer to a cited Truth Source on the claim map.",
-    ].join(" ");
+  const claims = await teamCaseClaims(cur.team_id, cur.case_id);
+  const next = await cruxySocraticAfterAnswer({
+    claims,
+    turns: cur.turns,
+    personId: args.personId,
+  });
+  if (next.status === "done") {
+    cur.summary = next.summary;
     cur.status = "done";
   } else {
     cur.turns.push({
       role: "cruxy",
-      text: followUps[Math.min(n, followUps.length - 1)],
+      text: next.question,
       at: nowIso(),
     });
   }
@@ -1253,33 +1275,12 @@ export async function languageSuggestions(args: {
       "languageSuggestions.truth",
     ) ?? []
   ).map(mapTruth);
-  const vivid =
-    truth.find((t) => t.kind === "example")?.text ??
-    truth.find((t) => t.kind === "fact")?.text ??
-    "";
 
-  await callCruxy({
-    feature: "language_analogies",
-    model: "small",
-    messages: [
-      {
-        role: "user",
-        content: `Plain sentence + analogies for: ${claim?.text ?? ""}`,
-      },
-    ],
+  return cruxyLanguageSuggestions({
+    claim,
+    truthItems: truth,
     personId: args.personId,
   });
-
-  return {
-    plain: (claim?.text ?? "State the claim plainly.").slice(0, 120),
-    analogies: [
-      "Like choosing a rule before you know which seat you'll sit in.",
-      "Like fixing a shared boat — milder patches before ripping out planks.",
-    ],
-    vivid,
-    avoid: ["obviously", "clearly", "just policy", "slippery slope (no stop)"],
-    citation_ids: claim?.citation_ids ?? [],
-  };
 }
 
 export async function savePhrase(args: {

@@ -11,8 +11,20 @@ import {
 } from "@/lib/revision/flashcards";
 import {
   pickWeightedQuestion,
-  splitPasteIntoQuestions,
 } from "@/lib/revision/moderator-bank";
+import {
+  caseIdForPastePart,
+  splitPasteWithCruxy,
+} from "@/lib/revision/moderator-paste";
+import { cruxyLanguageSuggestions } from "@/lib/revision/language";
+import {
+  cruxySocraticAfterAnswer,
+  cruxySocraticOpening,
+} from "@/lib/revision/socratic";
+import {
+  computeRobustnessFromStore,
+  listAnswersForQuestionSample,
+} from "@/lib/revision/question-bank-extra";
 import { diffOnePagerBodies, draftOnePagerBody } from "@/lib/revision/one-pager";
 import {
   buildRoadmapForPerson,
@@ -536,15 +548,26 @@ export async function pasteModeratorQuestions(args: {
   origin?: QuestionOrigin;
 }): Promise<ModeratorQuestion[]> {
   if (!isSampleDataMode()) return sb.pasteModeratorQuestions(args);
-  const parts = splitPasteIntoQuestions(args.raw);
-  if (parts.length === 0) return [];
 
   const store = await readStore();
+  const catalog = store.cases.map((c) => ({
+    id: c.id,
+    number: c.number,
+    title: c.title,
+  }));
   const fallbackCase =
     args.caseId ??
     store.cases.find((c) => c.active)?.id ??
     store.cases[0]?.id;
   if (!fallbackCase) throw new Error("no cases");
+
+  const parts = await splitPasteWithCruxy({
+    raw: args.raw,
+    personId: args.personId,
+    caseCatalog: catalog,
+    defaultCaseId: fallbackCase,
+  });
+  if (parts.length === 0) return [];
 
   const person = store.people.find((p) => p.id === args.personId);
   const origin: QuestionOrigin = args.origin ?? "dr_b";
@@ -560,7 +583,7 @@ export async function pasteModeratorQuestions(args: {
     for (const part of parts) {
       const q: ModeratorQuestion = {
         id: randomUUID(),
-        case_id: fallbackCase,
+        case_id: caseIdForPastePart(part, catalog, fallbackCase),
         text: part.text,
         type: part.type,
         difficulty: part.difficulty,
@@ -574,13 +597,6 @@ export async function pasteModeratorQuestions(args: {
       s.questions.push(q);
       created.push(q);
     }
-  });
-
-  await callCruxy({
-    feature: "moderator_paste_split",
-    tier: "small",
-    messages: [{ role: "user", content: args.raw.slice(0, 2000) }],
-    personId: args.personId,
   });
 
   await logActivity({
@@ -732,17 +748,8 @@ export async function startSocraticDrill(args: {
   const claims = store.claims.filter(
     (c) => c.team_id === args.teamId && c.case_id === args.caseId,
   );
-  const weak =
-    claims.find((c) => !c.logic_line)?.text ??
-    claims[0]?.text ??
-    "your main claim";
-
-  const question = `Looking at the weakest link: why does "${weak.slice(0, 80)}" follow from your supports — what would drop out if one support failed?`;
-
-  await callCruxy({
-    feature: "socratic_drill",
-    tier: "strong",
-    messages: [{ role: "user", content: question }],
+  const { question, claimLinks } = await cruxySocraticOpening({
+    claims,
     personId: args.personId,
   });
 
@@ -757,7 +764,7 @@ export async function startSocraticDrill(args: {
         { role: "cruxy", text: question, at: nowIso() },
       ],
       summary: null,
-      claim_links: claims.map((c) => c.id),
+      claim_links: claimLinks,
       status: "active",
       created_at: nowIso(),
       updated_at: nowIso(),
@@ -773,33 +780,39 @@ export async function continueSocratic(args: {
   answer: string;
 }): Promise<SocraticSession> {
   if (!isSampleDataMode()) return sb.continueSocratic(args);
+  const store = await readStore();
+  const cur = store.socratic_sessions.find((x) => x.id === args.sessionId);
+  if (!cur) throw new Error("session not found");
+  const turns = [
+    ...cur.turns,
+    { role: "person" as const, text: args.answer, at: nowIso() },
+  ];
+  const claims = store.claims.filter(
+    (c) => c.team_id === cur.team_id && c.case_id === cur.case_id,
+  );
+  const next = await cruxySocraticAfterAnswer({
+    claims,
+    turns,
+    personId: args.personId,
+  });
+
   let session!: SocraticSession;
   await updateStore((s) => {
-    const cur = s.socratic_sessions.find((x) => x.id === args.sessionId);
-    if (!cur) throw new Error("session not found");
-    cur.turns.push({ role: "person", text: args.answer, at: nowIso() });
-    const followUps = [
-      "Why does that follow?",
-      "What would your opponent say to that?",
-      "Which Truth Source backs the key fact you just used?",
-    ];
-    const n = cur.turns.filter((t) => t.role === "cruxy").length;
-    if (n >= 3) {
-      cur.summary = [
-        "Held: you named a support and tried to connect it to the claim.",
-        "Weak: the opponent angle still needs a concede/distinguish/rebut line.",
-        "Next: tie the answer to a cited Truth Source on the claim map.",
-      ].join(" ");
-      cur.status = "done";
+    const live = s.socratic_sessions.find((x) => x.id === args.sessionId);
+    if (!live) throw new Error("session not found");
+    live.turns = turns;
+    if (next.status === "done") {
+      live.summary = next.summary;
+      live.status = "done";
     } else {
-      cur.turns.push({
+      live.turns.push({
         role: "cruxy",
-        text: followUps[Math.min(n, followUps.length - 1)],
+        text: next.question,
         at: nowIso(),
       });
     }
-    cur.updated_at = nowIso();
-    session = cur;
+    live.updated_at = nowIso();
+    session = live;
   });
   return session;
 }
@@ -820,33 +833,11 @@ export async function languageSuggestions(args: {
   const truth = store.truth_items.filter(
     (t) => t.team_id === args.teamId && t.case_id === args.caseId,
   );
-  const vivid =
-    truth.find((t) => t.kind === "example")?.text ??
-    truth.find((t) => t.kind === "fact")?.text ??
-    "";
-
-  await callCruxy({
-    feature: "language_analogies",
-    tier: "small",
-    messages: [
-      {
-        role: "user",
-        content: `Plain sentence + analogies for: ${claim?.text ?? ""}`,
-      },
-    ],
+  return cruxyLanguageSuggestions({
+    claim,
+    truthItems: truth,
     personId: args.personId,
   });
-
-  return {
-    plain: (claim?.text ?? "State the claim plainly.").slice(0, 120),
-    analogies: [
-      "Like choosing a rule before you know which seat you'll sit in.",
-      "Like fixing a shared boat — milder patches before ripping out planks.",
-    ],
-    vivid,
-    avoid: ["obviously", "clearly", "just policy", "slippery slope (no stop)"],
-    citation_ids: claim?.citation_ids ?? [],
-  };
 }
 
 export async function savePhrase(args: {
@@ -1224,4 +1215,95 @@ export async function listCasesAndTeams() {
     people: store.people,
     case_roles: store.case_roles,
   };
+}
+
+export async function deletePhrasebookEntry(personId: string, entryId: string) {
+  if (!isSampleDataMode()) return sb.deletePhrasebookEntry(personId, entryId);
+  await updateStore((s) => {
+    s.phrasebook_entries = s.phrasebook_entries.filter(
+      (e) => !(e.id === entryId && e.person_id === personId),
+    );
+  });
+}
+
+export async function listAnswersForQuestion(
+  questionId: string,
+  teamId?: string,
+) {
+  if (!isSampleDataMode()) return sb.listAnswersForQuestion(questionId, teamId);
+  const store = await readStore();
+  return listAnswersForQuestionSample(store.answers, questionId, teamId);
+}
+
+export async function robustnessMeterForCase(caseId: string, teamId: string) {
+  if (!isSampleDataMode()) return sb.robustnessMeterForCase(caseId, teamId);
+  const store = await readStore();
+  return computeRobustnessFromStore({
+    questions: store.questions,
+    answers: store.answers,
+    members: store.people,
+    caseId,
+    teamId,
+  });
+}
+
+export async function generateCruxyModeratorQuestions(args: {
+  personId: string;
+  teamId: string;
+  caseId: string;
+}) {
+  if (!isSampleDataMode()) return sb.generateCruxyModeratorQuestions(args);
+  const store = await readStore();
+  const caseRow = store.cases.find((c) => c.id === args.caseId);
+  if (!caseRow) throw new Error("case not found");
+  const summaries = store.claims
+    .filter((c) => c.team_id === args.teamId && c.case_id === args.caseId)
+    .map((c) => c.text);
+  if (!summaries.length) summaries.push("Team claim map not filled yet.");
+
+  const { runModerator } = await import("@/lib/cruxy/agents/moderator");
+  const mod = await runModerator({
+    caseNumber: caseRow.number,
+    caseTitle: caseRow.title,
+    claimSummaries: summaries,
+    personId: args.personId,
+  });
+
+  const created: ModeratorQuestion[] = [];
+  await updateStore((s) => {
+    for (const q of mod.questions) {
+      const row: ModeratorQuestion = {
+        id: randomUUID(),
+        case_id: args.caseId,
+        text: q.text,
+        type: q.type,
+        difficulty: Math.min(3, Math.max(1, q.difficulty)) as 1 | 2 | 3,
+        origin: "cruxy",
+        origin_label: "Cruxy",
+        status: "pending_confirm",
+        asked_at_tag: q.type === "closing" ? "closing" : null,
+        created_at: nowIso(),
+        created_by: args.personId,
+      };
+      s.questions.push(row);
+      created.push(row);
+    }
+  });
+
+  await logActivity({
+    person_id: args.personId,
+    action: "moderator_cruxy_generate",
+    target: args.caseId,
+    meta: { count: created.length, team_id: args.teamId },
+  });
+
+  return created;
+}
+
+export async function listTeamCaseClaims(teamId: string, caseId: string) {
+  if (!isSampleDataMode()) return sb.listTeamCaseClaims(teamId, caseId);
+  const store = await readStore();
+  return store.claims.filter(
+    (c) => c.team_id === teamId && c.case_id === caseId,
+  );
 }
