@@ -21,7 +21,7 @@ export default function ChoosePasscodePage() {
   const [saved, setSaved] = useState(false);
 
   const rules = useMemo(() => {
-    const code = live.length === 6 ? live : first ?? live;
+    const code = live.length === 6 ? live : (first ?? live);
     return [
       {
         ok: code.length === 6 && code !== SAMPLE_MEMBER_STARTER,
@@ -73,82 +73,83 @@ export default function ChoosePasscodePage() {
 
   if (saved) {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-4 py-10">
-        <p className="font-display text-4xl font-extrabold text-cardinal">
-          crux
-        </p>
-        <h1 className="mt-6 font-display text-3xl font-extrabold">
-          Passcode saved
-        </h1>
-        <p className="mt-2 text-sm text-muted">
-          Change it any time in Settings. Forgot it? Ask Jainam.
-        </p>
-        <Button className="mt-8" onClick={() => router.push("/home")}>
-          Enter Crux
-        </Button>
+      <main className="flex min-h-dvh flex-col bg-paper lg:flex-row">
+        <section className="flex flex-1 flex-col justify-between bg-cardinal px-10 py-12 text-white">
+          <p className="text-[13px] font-semibold tracking-[0.08em]">
+            USC ETHICS BOWL
+          </p>
+          <h1 className="font-display text-[120px] font-extrabold leading-[0.82] tracking-[-0.05em]">
+            crux
+          </h1>
+        </section>
+        <section className="flex flex-1 flex-col justify-center bg-white px-10 py-12 sm:px-14">
+          <h2 className="font-display text-3xl font-extrabold">Passcode saved</h2>
+          <p className="mt-2 text-sm text-muted">
+            Change it any time in Settings. Forgot it? Ask Jainam.
+          </p>
+          <Button className="mt-8 w-fit" onClick={() => router.push("/home")}>
+            Enter Crux
+          </Button>
+        </section>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-5xl flex-col gap-8 px-4 py-10 lg:flex-row lg:items-start lg:px-10">
-      <aside className="flex flex-1 flex-col gap-4">
-        <div className="flex items-center justify-between text-[12px] font-bold uppercase tracking-[0.12em] text-muted">
-          <span>USC Ethics Bowl</span>
-          <span>First sign in · sample</span>
+    <main className="flex min-h-dvh flex-col bg-paper lg:flex-row">
+      {/* ChooseCode.html: full-height cardinal left panel */}
+      <section className="flex min-h-[50vh] flex-1 flex-col justify-between gap-8 bg-cardinal px-8 py-10 text-white sm:px-12 sm:py-12 lg:min-h-dvh">
+        <div className="flex items-center justify-between text-[13px] font-semibold tracking-[0.08em]">
+          <span>USC ETHICS BOWL</span>
+          <span>FIRST SIGN IN · SAMPLE</span>
         </div>
-        <div className="flex gap-3 rounded-2xl border border-mist bg-white p-4">
+        <div className="flex flex-wrap items-end gap-5">
           <Image
             src="/cruxy/cruxy-curious.png"
             alt="Cruxy, thinking"
-            width={72}
-            height={72}
-            className="h-[72px] w-[72px] shrink-0"
+            width={170}
+            height={170}
+            className="h-[170px] w-[170px] shrink-0"
             unoptimized
+            priority
           />
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-cardinal">
-              Cruxy
-            </p>
-            <p className="mt-1 text-[15px] leading-snug">
+          <div className="mb-[7.5rem] max-w-[360px] rounded-[20px] rounded-bl-[4px] bg-white px-5 py-[18px] text-ink">
+            <p className="font-display text-[17px] font-extrabold">Cruxy</p>
+            <p className="mt-1.5 text-[17px] leading-snug">
               What six digits will you still remember the morning of the
               regional, that nobody could guess?
             </p>
           </div>
         </div>
-        <ul className="space-y-2 text-sm">
-          {rules.map((r) => (
-            <li key={r.text} className="flex items-center gap-2">
-              <span aria-hidden>{r.ok ? "✅" : "○"}</span>
-              <span className={r.ok ? "text-ink" : "text-muted"}>{r.text}</span>
-            </li>
-          ))}
-        </ul>
-      </aside>
-
-      <section className="flex flex-1 flex-col">
-        <p className="font-display text-4xl font-extrabold text-cardinal">
+        <h1 className="font-display text-[clamp(4.5rem,14vw,7.5rem)] font-extrabold leading-[0.82] tracking-[-0.05em]">
           crux
-        </p>
-        <p className="mt-6 text-xs font-bold uppercase tracking-[0.12em] text-muted">
-          Step 3 of 3 · first time only
-        </p>
-        <h1 className="mt-2 font-display text-3xl font-extrabold">
-          Choose your passcode
         </h1>
-        <p className="mt-3 text-sm text-muted">
+      </section>
+
+      <section className="flex flex-1 flex-col gap-5 bg-white px-8 py-10 sm:px-14 sm:py-12">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
+            Step 3 of 3 · first time only
+          </p>
+          <h2 className="mt-2 font-display text-[40px] font-extrabold leading-none tracking-[-0.02em]">
+            Choose your passcode
+          </h2>
+        </div>
+        <p className="max-w-[520px] text-sm text-muted">
           From now on you&apos;ll sign in with your name and this passcode. The
           member code stops working for you.
         </p>
-        <p className="mt-4 rounded-2xl border border-gold/40 bg-[#FFF7DB] px-4 py-3 text-sm text-ink">
-          Jainam, as technical admin, can see your passcode so he can help if
-          you forget it. Don&apos;t reuse a code you use anywhere else.
-        </p>
+        <div className="flex max-w-[520px] gap-3 rounded-[14px] bg-[#FFF7DB] px-4 py-3.5">
+          <p className="text-sm text-ink">
+            Jainam, as technical admin, can see your passcode so he can help if
+            you forget it. Don&apos;t reuse a code you use anywhere else.
+          </p>
+        </div>
 
-        <div className="mt-8">
+        <div className="max-w-[420px] rounded-[18px] bg-[#E8F5F1] p-6">
           {!first ? (
             <>
-              <p className="mb-4 text-sm font-medium">Type 6 digits</p>
+              <p className="mb-4 text-sm font-semibold">Type 6 digits</p>
               <Keypad
                 onSubmit={onFirst}
                 disabled={busy}
@@ -157,7 +158,7 @@ export default function ChoosePasscodePage() {
             </>
           ) : (
             <>
-              <p className="mb-4 text-sm font-medium">Type them again</p>
+              <p className="mb-4 text-sm font-semibold">Type them again</p>
               <Keypad onSubmit={onConfirm} disabled={busy} />
               <Button
                 variant="ghost"
@@ -173,7 +174,16 @@ export default function ChoosePasscodePage() {
             </>
           )}
         </div>
-        {error ? <p className="mt-3 text-sm text-cardinal">{error}</p> : null}
+
+        <ul className="space-y-2 text-sm">
+          {rules.map((r) => (
+            <li key={r.text} className="flex items-center gap-2">
+              <span aria-hidden>{r.ok ? "✅" : "○"}</span>
+              <span className={r.ok ? "text-ink" : "text-muted"}>{r.text}</span>
+            </li>
+          ))}
+        </ul>
+        {error ? <p className="text-sm text-cardinal">{error}</p> : null}
       </section>
     </main>
   );

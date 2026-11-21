@@ -52,6 +52,13 @@ h3,
   letter-spacing: -0.02em;
 }
 
+/* Page titles stay Bricolage 800 even when a Tailwind font-* utility is present */
+h1.font-display,
+h2.font-display,
+h1 {
+  font-weight: 800 !important;
+}
+
 .font-mono {
   font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
 }
