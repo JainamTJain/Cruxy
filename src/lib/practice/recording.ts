@@ -6,8 +6,8 @@ import { nowIso } from "@/lib/utils";
 
 const AUDIO_ROOT = path.join(process.cwd(), ".data", "audio");
 
-/** Max audio loss on crash: 30s chunks. */
-export const CHUNK_DURATION_MS = 30_000;
+/** 10s chunks (apis.md); a crash loses at most ~30s of unfinished work. */
+export const CHUNK_DURATION_MS = 10_000;
 
 export async function ensureAudioDir(roundId: string) {
   const dir = path.join(AUDIO_ROOT, roundId);

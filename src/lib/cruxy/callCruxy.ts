@@ -1,4 +1,4 @@
-import { generateText, embed } from "ai";
+import { generateText, embed, gateway, stepCountIs } from "ai";
 import {
   CAP_ALERT_RATIO,
   MONTHLY_CAP_USD_DEFAULT,
@@ -19,6 +19,12 @@ import {
   type ModelTier,
   type ReasoningEffort,
 } from "@/lib/cruxy/models";
+import {
+  applyCitationGuard,
+  logCitationFailures,
+  tryParseClaimsPayload,
+  type CitationSource,
+} from "@/lib/cruxy/citations";
 
 export type CruxyMessage = {
   role: "system" | "user" | "assistant";
@@ -40,6 +46,16 @@ export type CallCruxyInput = {
   estimatedCostUsd?: number;
   /** Reasoning effort override for this call. */
   effort?: ReasoningEffort;
+  /**
+   * When set, run the citation guard on any JSON `claims` in the response
+   * (no citation, no display). Workstream H.
+   */
+  citationCorpus?: CitationSource[];
+  /**
+   * Ask the Gateway for web search tooling (Researcher nightly).
+   * Still goes through this function only; no provider SDKs.
+   */
+  webSearch?: boolean;
 };
 
 export type CallCruxyResult =
@@ -153,6 +169,42 @@ function answeredModel(
     }
   }
   return primary;
+}
+
+/**
+ * Workstream H citation hook: if the response is JSON with `claims`, drop
+ * any claim that fails id / quote checks (no citation, no display).
+ */
+async function applyOptionalCitationGuard(
+  text: string,
+  corpus: CitationSource[] | undefined,
+  feature: string,
+  personId?: string | null,
+): Promise<string> {
+  if (!corpus?.length) return text;
+  const payload = tryParseClaimsPayload(text);
+  if (!payload) return text;
+  const checked = applyCitationGuard(payload, corpus);
+  await logCitationFailures({
+    feature,
+    personId,
+    failures: checked.failures,
+  });
+  if (checked.failures.length === 0) return text;
+  // Rewrite claims array in the JSON payload; leave the rest untouched when possible.
+  try {
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start < 0 || end <= start) return text;
+    const obj = JSON.parse(text.slice(start, end + 1)) as Record<
+      string,
+      unknown
+    >;
+    obj.claims = checked.data.claims;
+    return JSON.stringify(obj);
+  } catch {
+    return text;
+  }
 }
 
 /**
@@ -280,9 +332,17 @@ export async function callCruxy(
       refuse_reason: null,
     });
 
+    // Citation hook still runs on stubs when a corpus is provided.
+    const guarded = await applyOptionalCitationGuard(
+      text,
+      input.citationCorpus,
+      input.feature,
+      input.personId,
+    );
+
     return {
       ok: true,
-      text,
+      text: guarded,
       model: `${modelLabel}:stub`,
       tokensIn,
       tokensOut,
@@ -302,6 +362,18 @@ export async function callCruxy(
         content: m.content,
       })),
       ...(effort ? { reasoning: effort } : {}),
+      ...(input.webSearch
+        ? {
+            tools: {
+              exa_search: gateway.tools.exaSearch({
+                type: "fast",
+                numResults: 5,
+                contents: { highlights: true },
+              }),
+            },
+            stopWhen: stepCountIs(3),
+          }
+        : {}),
       providerOptions: {
         gateway: {
           zeroDataRetention: true,
@@ -336,9 +408,16 @@ export async function callCruxy(
       refuse_reason: null,
     });
 
+    const guarded = await applyOptionalCitationGuard(
+      result.text,
+      input.citationCorpus,
+      input.feature,
+      input.personId,
+    );
+
     return {
       ok: true,
-      text: result.text,
+      text: guarded,
       model: modelUsed,
       tokensIn,
       tokensOut,

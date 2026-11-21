@@ -9,7 +9,7 @@
     "check:track2": "tsx scripts/track2-checks.ts",
     "check:track3": "tsx scripts/track3-checks.ts",
     "check:track4": "tsx scripts/track4-checks.ts",
-    "check:track5": "tsx scripts/track5-checks.ts",
+    "check:track5": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/track5-checks.ts",
     "check:track6": "tsx scripts/track6-checks.ts",
     "dev": "next dev",
     "lint": "eslint",
@@ -19,7 +19,8 @@
     "seed:quality": "tsx scripts/seed-quality.ts",
     "shots": "node scripts/shots.mjs",
     "smoke:supabase": "node --require ./scripts/preload-server-only.cjs ./node_modules/tsx/dist/cli.mjs scripts/supabase-smoke.ts",
-    "check:supabase-wired": "tsx scripts/check-supabase-wired.ts"
+    "check:supabase-wired": "tsx scripts/check-supabase-wired.ts",
+    "test:cruxy": "node scripts/with-server-only-stub.cjs ./node_modules/tsx/dist/cli.mjs scripts/test-cruxy.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.2",
