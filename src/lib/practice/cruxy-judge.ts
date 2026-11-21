@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { runJudgeAgent } from "@/lib/cruxy/agents/judge";
+import { listSimilarExamples } from "@/lib/cruxy/examples";
 import {
   APPE_SCORE_ITEMS,
   type AppeItemKey,
@@ -12,6 +13,12 @@ import {
   type TranscriptLine,
 } from "@/lib/practice/types";
 import { applicableItems, filterDisplayableScores } from "@/lib/practice/appe-card";
+import {
+  getJudgeGroundingPack,
+  shouldPreferDriveGrounding,
+} from "@/lib/practice/judge-grounding";
+import { ensureCruxyJudgeQa } from "@/lib/practice/judge-qa";
+import { countHumanCards } from "@/lib/db/supabase/judge-card-extra";
 import { nowIso } from "@/lib/utils";
 
 export type CruxyJudgeOutput = {
@@ -51,10 +58,53 @@ export async function runCruxyJudge(opts: {
     kind: "transcript_line" as const,
   }));
 
+  // F-252: before human cards exist, ground in APPE Guide / score bands.
+  const humanCards = await countHumanCards();
+  const grounding = shouldPreferDriveGrounding(humanCards)
+    ? await getJudgeGroundingPack()
+    : null;
+
+  // F-264: read worked examples from calibrated rounds.
+  const examples = await listSimilarExamples({
+    agent: "judge",
+    caseId: opts.round.case_id,
+    query: transcriptBlock.slice(0, 400),
+    limit: 3,
+  });
+  const exampleBlock = examples
+    .map((e) => `- (${e.kind}) ${e.title}: ${e.body.slice(0, 400)}`)
+    .join("\n");
+
+  const groundedTranscript = [
+    grounding
+      ? `GROUNDING (APPE Guide to Scoring, score bands, judges' Q&A):\n${grounding.text.slice(0, 8000)}`
+      : "",
+    exampleBlock
+      ? `WORKED EXAMPLES from calibrated rounds:\n${exampleBlock}`
+      : "",
+    `Transcript:\n${transcriptBlock}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  // F-251: prepare out-loud Q&A (one question + follow-up per seat).
+  if (
+    opts.round.mode === "full_round" ||
+    opts.round.mode === "judges_qa_drill" ||
+    opts.round.judges.cruxy
+  ) {
+    await ensureCruxyJudgeQa({
+      roundId: opts.round.id,
+      caseNumber: null,
+      caseTitle: null,
+      personId: opts.personId,
+    });
+  }
+
   const judged = await runJudgeAgent({
     teamIds: opts.round.team_ids,
     items: scored,
-    transcriptBlock,
+    transcriptBlock: groundedTranscript,
     lineSources,
     personId: opts.personId,
   });
