@@ -71,7 +71,7 @@ export async function POST(req: Request) {
   }
 
   if (body.action === "send_now") {
-    // Preview / force send for admins — still only delivers to opted-in recipients
+    // Preview / force send for admins; still only delivers to opted-in recipients
     const result = await sendWeeklySummaryEmail({ force: true });
     return NextResponse.json(result);
   }

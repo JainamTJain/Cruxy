@@ -156,4 +156,5 @@ export interface DriveListedFile {
 
 export const SORTING_CONFIDENCE_THRESHOLD = 0.7;
 export const PASSAGE_TARGET_WORDS = 600;
-export const EMBEDDING_DIM = 64;
+/** Matches passages.embedding vector(1536) and openai/text-embedding-3-small. */
+export const EMBEDDING_DIM = 1536;

@@ -1,13 +1,27 @@
-import { createSign } from "crypto";
+import "server-only";
+import { google, type drive_v3 } from "googleapis";
 import type { DriveListedFile } from "@/lib/library/types";
 import { checksumOf } from "@/lib/library/embeddings";
+
+export const DRIVE_READER_EMAIL =
+  "crux-drive-reader@crux-ethics-bowl-jainam-jain.iam.gserviceaccount.com";
 
 export type DriveConfigStatus = {
   configured: boolean;
   hasServiceAccount: boolean;
   hasFolderId: boolean;
   stubReason: string | null;
+  serviceAccountEmail: string;
 };
+
+export class DriveAccessError extends Error {
+  readonly code: "not_configured" | "not_shared" | "auth" | "api";
+  constructor(code: DriveAccessError["code"], message: string) {
+    super(message);
+    this.name = "DriveAccessError";
+    this.code = code;
+  }
+}
 
 export function getDriveConfigStatus(): DriveConfigStatus {
   const hasServiceAccount = Boolean(
@@ -20,7 +34,8 @@ export function getDriveConfigStatus(): DriveConfigStatus {
       hasServiceAccount,
       hasFolderId,
       stubReason:
-        "DRIVE_ROOT_FOLDER_ID and GOOGLE_SERVICE_ACCOUNT_JSON are missing. Using sample Drive stubs.",
+        "DRIVE_ROOT_FOLDER_ID and GOOGLE_SERVICE_ACCOUNT_JSON are missing. Using sample Drive stubs locally.",
+      serviceAccountEmail: DRIVE_READER_EMAIL,
     };
   }
   if (!hasFolderId) {
@@ -28,8 +43,8 @@ export function getDriveConfigStatus(): DriveConfigStatus {
       configured: false,
       hasServiceAccount,
       hasFolderId,
-      stubReason:
-        "DRIVE_ROOT_FOLDER_ID is missing. Share the Ethics Bowl folder with the service account, then set the folder id. Using sample Drive stubs.",
+      stubReason: `DRIVE_ROOT_FOLDER_ID is missing. Share the Ethics Bowl folder with ${DRIVE_READER_EMAIL} as Viewer, then set the folder id.`,
+      serviceAccountEmail: DRIVE_READER_EMAIL,
     };
   }
   if (!hasServiceAccount) {
@@ -37,8 +52,8 @@ export function getDriveConfigStatus(): DriveConfigStatus {
       configured: false,
       hasServiceAccount,
       hasFolderId,
-      stubReason:
-        "GOOGLE_SERVICE_ACCOUNT_JSON is missing. Using sample Drive stubs.",
+      stubReason: `GOOGLE_SERVICE_ACCOUNT_JSON is missing. The key for ${DRIVE_READER_EMAIL} must be in Vercel env.`,
+      serviceAccountEmail: DRIVE_READER_EMAIL,
     };
   }
   return {
@@ -46,10 +61,11 @@ export function getDriveConfigStatus(): DriveConfigStatus {
     hasServiceAccount,
     hasFolderId,
     stubReason: null,
+    serviceAccountEmail: DRIVE_READER_EMAIL,
   };
 }
 
-/** Sample Ethics Bowl tree used when Drive is not configured. */
+/** Sample Ethics Bowl tree used when Drive is not configured (local only). */
 export function listSampleDriveFiles(): DriveListedFile[] {
   const samples: Omit<DriveListedFile, "checksum">[] = [
     {
@@ -59,18 +75,43 @@ export function listSampleDriveFiles(): DriveListedFile[] {
       mime: "application/pdf",
       modified_at: "2026-10-01T12:00:00.000Z",
       text_content: [
+        "CASE 9 — GEM in the Rough",
+        "The Grand Egyptian Museum opened near the pyramids in November 2025, holding tens of thousands of objects from five millennia. Its opening renewed a familiar question about objects held abroad.",
+        "The Rosetta Stone was found by French forces in the late 1790s and passed to Britain soon after, where it has been on display ever since. The British Museum says it has received no formal request from Egypt's government, and that a 1963 law strictly limits what it may give away.",
+        "Supporters of return point to the circumstances of the taking and to Egypt's new capacity to care for the object. Defenders of the current arrangement point to global access, the cost of deaccessioning, and public trust.",
+        "",
         "CASE 1 — CTRL-ALT-DEFENSE",
         "A university must decide whether to deploy an AI defense system that filters student speech online.",
         "Stakeholders include students, administrators, and outside speakers.",
-        "The crux: does automated moderation respect autonomy while preventing harm?",
-        "",
-        "CASE 3 — Sister City No More",
-        "A city council considers ending a sister-city relationship after human rights reports.",
-        "Values in tension: solidarity, economic benefit, and moral consistency.",
         "",
         "CASE 12 — Medicine and Misinformation",
         "A clinician wonders whether correcting a patient's false medical beliefs online violates professional neutrality.",
-        "Frameworks: Mill on harm, professional ethics codes, and public trust.",
+      ].join("\n"),
+    },
+    {
+      drive_id: "sample-1801-capitulation",
+      name: "1801 Capitulation notes",
+      path: "/Case 9/1801 Capitulation notes.gdoc",
+      mime: "application/vnd.google-apps.document",
+      modified_at: "2026-11-08T15:00:00.000Z",
+      text_content: [
+        "1801 Capitulation of Alexandria — notes for Case 9",
+        "Article 16 is cited by the British Museum as the transfer instrument.",
+        "An Ottoman admiral signed; whether that binds Egypt's claim is contested.",
+        "Use only after verifying against a primary source.",
+      ].join("\n"),
+    },
+    {
+      drive_id: "sample-team3-practice-c9",
+      name: "Team 3 practice, Nov 12",
+      path: "/Practice/Team 3 practice Case 9 Nov 12.txt",
+      mime: "text/plain",
+      modified_at: "2026-11-12T21:00:00.000Z",
+      text_content: [
+        "[0:00] Katie: Our four-part test keeps us off the slippery slope.",
+        "[1:20] Jainam: Waldron says the claim is superseded for land.",
+        "[2:10] Nick: Idea — concede for land, distinguish objects, rebut with responsibility.",
+        "[3:40] Daniel: Consistency with Case 12 least-restrictive tool?",
       ].join("\n"),
     },
     {
@@ -84,21 +125,6 @@ export function listSampleDriveFiles(): DriveListedFile[] {
         "Presentation A: Was the presentation clear and systematic?",
         "Presentation B: Did the presentation identify central moral dimensions?",
         "Presentation C: Awareness of different viewpoints?",
-        "Commentary, Response to commentary, Response to judges — each 1 to 10.",
-      ].join("\n"),
-    },
-    {
-      drive_id: "sample-team1-notes-c12",
-      name: "Team 1 Case 12 notes.docx",
-      path: "/Team 1/Case 12 notes.docx",
-      mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      modified_at: "2026-11-10T18:00:00.000Z",
-      text_content: [
-        "Case 12 — Medicine and Misinformation — Team 1 notes",
-        "Claim 1: Clinicians have a duty to correct dangerous misinformation when they have special standing.",
-        "Support: public trust in medicine depends on willingness to correct falsehoods.",
-        "Counterclaim: correction can look like viewpoint discrimination; concede that tone matters.",
-        "Idea raised by Serena: treat correction as a least-restrictive tool, not a speech ban.",
       ].join("\n"),
     },
     {
@@ -111,19 +137,6 @@ export function listSampleDriveFiles(): DriveListedFile[] {
         "[0:00] Ivan: Our claim is that automated filters should be a last resort.",
         "[0:45] Ashton: The other side will say platforms already moderate.",
         "[2:10] Serena: Idea — compare this to least restrictive means in Case 12.",
-        "[3:00] Coach: Good. Name the stakeholder who cannot speak for themselves.",
-      ].join("\n"),
-    },
-    {
-      drive_id: "sample-rules",
-      name: "IEB Regional Rules.pdf",
-      path: "/Rules/IEB Regional Rules.pdf",
-      mime: "application/pdf",
-      modified_at: "2025-09-01T12:00:00.000Z",
-      text_content: [
-        "Presentation 7 to 12 minutes. Commentary 5 to 8. Judges Q&A 10 to 15.",
-        "Teams may confer for 60 seconds with scratch paper only.",
-        "Spirit points are scored separately.",
       ].join("\n"),
     },
     {
@@ -150,58 +163,71 @@ export function listSampleDriveFiles(): DriveListedFile[] {
 type ServiceAccount = {
   client_email: string;
   private_key: string;
-  token_uri?: string;
+  project_id?: string;
 };
 
-function parseServiceAccount(): ServiceAccount | null {
+function parseServiceAccount(): ServiceAccount {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim();
-  if (!raw) return null;
+  if (!raw) {
+    throw new DriveAccessError(
+      "not_configured",
+      `GOOGLE_SERVICE_ACCOUNT_JSON is missing. Add the JSON key for ${DRIVE_READER_EMAIL} in Vercel.`,
+    );
+  }
   try {
-    return JSON.parse(raw) as ServiceAccount;
+    const parsed = JSON.parse(raw) as ServiceAccount;
+    if (!parsed.client_email || !parsed.private_key) {
+      throw new Error("missing fields");
+    }
+    return parsed;
   } catch {
-    return null;
+    throw new DriveAccessError(
+      "auth",
+      "GOOGLE_SERVICE_ACCOUNT_JSON could not be parsed. Paste the full service account JSON.",
+    );
   }
 }
 
-async function getAccessToken(sa: ServiceAccount): Promise<string> {
-  const now = Math.floor(Date.now() / 1000);
-  const header = Buffer.from(
-    JSON.stringify({ alg: "RS256", typ: "JWT" }),
-  ).toString("base64url");
-  const claim = Buffer.from(
-    JSON.stringify({
-      iss: sa.client_email,
-      scope: "https://www.googleapis.com/auth/drive.readonly",
-      aud: sa.token_uri || "https://oauth2.googleapis.com/token",
-      iat: now,
-      exp: now + 3600,
-    }),
-  ).toString("base64url");
-  const unsigned = `${header}.${claim}`;
-  const signer = createSign("RSA-SHA256");
-  signer.update(unsigned);
-  signer.end();
-  const signature = signer.sign(sa.private_key, "base64url");
-  const assertion = `${unsigned}.${signature}`;
-
-  const res = await fetch(sa.token_uri || "https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion,
-    }),
-  });
-  if (!res.ok) {
-    throw new Error(`Drive token exchange failed (${res.status})`);
+function getFolderId(): string {
+  const id = process.env.DRIVE_ROOT_FOLDER_ID?.trim();
+  if (!id) {
+    throw new DriveAccessError(
+      "not_configured",
+      `DRIVE_ROOT_FOLDER_ID is missing. Share the Ethics Bowl folder with ${DRIVE_READER_EMAIL} as Viewer, then set the id.`,
+    );
   }
-  const data = (await res.json()) as { access_token: string };
-  return data.access_token;
+  return id;
+}
+
+function driveClient() {
+  const sa = parseServiceAccount();
+  const auth = new google.auth.JWT({
+    email: sa.client_email,
+    key: sa.private_key,
+    scopes: ["https://www.googleapis.com/auth/drive.readonly"],
+  });
+  return google.drive({ version: "v3", auth });
+}
+
+function isNotSharedError(err: unknown): boolean {
+  const status =
+    (err as { code?: number; response?: { status?: number } })?.code ??
+    (err as { response?: { status?: number } })?.response?.status;
+  if (status === 404 || status === 403) return true;
+  const msg = err instanceof Error ? err.message : String(err);
+  return /File not found|notFound|insufficientPermissions|The user does not have sufficient permissions/i.test(
+    msg,
+  );
+}
+
+function notSharedMessage(folderId: string): string {
+  return `Drive folder ${folderId} is not visible to ${DRIVE_READER_EMAIL}. Share that folder with the service account as Viewer (Editor is fine too), wait a minute, then Sync now again.`;
 }
 
 /**
  * List files under DRIVE_ROOT_FOLDER_ID (recursive).
- * Falls back to sample stubs when not configured or on API failure.
+ * Locally, falls back to sample stubs when not configured.
+ * On Vercel / when configured, fails clearly if the folder is not shared.
  */
 export async function listDriveFiles(): Promise<{
   files: DriveListedFile[];
@@ -209,7 +235,15 @@ export async function listDriveFiles(): Promise<{
   notes: string | null;
 }> {
   const status = getDriveConfigStatus();
+  const onVercel = Boolean(process.env.VERCEL);
+
   if (!status.configured) {
+    if (onVercel) {
+      throw new DriveAccessError(
+        "not_configured",
+        status.stubReason ?? "Drive is not configured on Vercel.",
+      );
+    }
     return {
       files: listSampleDriveFiles(),
       stub: true,
@@ -217,53 +251,50 @@ export async function listDriveFiles(): Promise<{
     };
   }
 
-  const sa = parseServiceAccount();
-  const folderId = process.env.DRIVE_ROOT_FOLDER_ID!.trim();
-  if (!sa?.client_email || !sa.private_key) {
-    return {
-      files: listSampleDriveFiles(),
-      stub: true,
-      notes: "Service account JSON could not be parsed. Using sample Drive stubs.",
-    };
-  }
+  const folderId = getFolderId();
+  const drive = driveClient();
 
   try {
-    const token = await getAccessToken(sa);
-    const files: DriveListedFile[] = [];
-    const queue: { id: string; path: string }[] = [
-      { id: folderId, path: "" },
-    ];
+    // Probe root access first so a missing share fails with a clear message.
+    await drive.files.get({
+      fileId: folderId,
+      fields: "id,name,mimeType",
+      supportsAllDrives: true,
+    });
+  } catch (err) {
+    if (isNotSharedError(err)) {
+      throw new DriveAccessError("not_shared", notSharedMessage(folderId));
+    }
+    const message = err instanceof Error ? err.message : "Drive auth failed";
+    throw new DriveAccessError("auth", message);
+  }
 
+  const files: DriveListedFile[] = [];
+  const queue: { id: string; path: string }[] = [{ id: folderId, path: "" }];
+
+  try {
     while (queue.length) {
       const folder = queue.shift()!;
       let pageToken: string | undefined;
       do {
-        const q = encodeURIComponent(
-          `'${folder.id}' in parents and trashed = false`,
-        );
-        const fields = encodeURIComponent(
-          "nextPageToken,files(id,name,mimeType,modifiedTime,md5Checksum,shortcutDetails)",
-        );
-        const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=${fields}&pageSize=100${
-          pageToken ? `&pageToken=${pageToken}` : ""
-        }`;
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
+        const res = await drive.files.list({
+          q: `'${folder.id}' in parents and trashed = false`,
+          fields:
+            "nextPageToken,files(id,name,mimeType,modifiedTime,md5Checksum,shortcutDetails)",
+          pageSize: 100,
+          pageToken,
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
         });
-        if (!res.ok) {
-          throw new Error(`Drive list failed (${res.status})`);
-        }
-        const data = (await res.json()) as {
-          nextPageToken?: string;
-          files?: {
-            id: string;
-            name: string;
-            mimeType: string;
-            modifiedTime?: string;
-            md5Checksum?: string;
-          }[];
-        };
-        for (const f of data.files ?? []) {
+        for (const f of res.data.files ?? []) {
+          if (!f.id || !f.name || !f.mimeType) continue;
+          // Skip audio / video (decision: none in the Drive)
+          if (
+            f.mimeType.startsWith("audio/") ||
+            f.mimeType.startsWith("video/")
+          ) {
+            continue;
+          }
           const path = `${folder.path}/${f.name}`;
           if (f.mimeType === "application/vnd.google-apps.folder") {
             queue.push({ id: f.id, path });
@@ -277,24 +308,49 @@ export async function listDriveFiles(): Promise<{
             mime: f.mimeType,
             modified_at: modified,
             checksum:
-              f.md5Checksum ??
-              checksumOf(`${f.id}|${modified}|${f.name}`),
+              f.md5Checksum ?? checksumOf(`${f.id}|${modified}|${f.name}`),
           });
         }
-        pageToken = data.nextPageToken;
+        pageToken = res.data.nextPageToken ?? undefined;
       } while (pageToken);
     }
-
-    return { files, stub: false, notes: null };
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Drive list failed";
-    return {
-      files: listSampleDriveFiles(),
-      stub: true,
-      notes: `${message}. Falling back to sample Drive stubs.`,
-    };
+    if (isNotSharedError(err)) {
+      throw new DriveAccessError("not_shared", notSharedMessage(folderId));
+    }
+    const message = err instanceof Error ? err.message : "Drive list failed";
+    throw new DriveAccessError("api", message);
   }
+
+  return { files, stub: false, notes: null };
+}
+
+function extractPrintableFromPdf(buf: Buffer): {
+  text: string;
+  scanned: boolean;
+} {
+  // Lightweight PDF text scrape without a native parser: pull printable
+  // strings from stream content. Scanned PDFs yield almost nothing.
+  const raw = buf.toString("latin1");
+  const chunks: string[] = [];
+  const re = /\((?:\\.|[^\\)]){2,}\)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(raw))) {
+    const inner = m[0]
+      .slice(1, -1)
+      .replace(/\\n/g, "\n")
+      .replace(/\\r/g, "")
+      .replace(/\\t/g, " ")
+      .replace(/\\\(/g, "(")
+      .replace(/\\\)/g, ")")
+      .replace(/\\\\/g, "\\");
+    if (/[A-Za-z]{3,}/.test(inner)) chunks.push(inner);
+  }
+  const text = chunks.join(" ").replace(/\s+/g, " ").trim();
+  if (text.length < 40) {
+    return { text: "", scanned: true };
+  }
+  return { text, scanned: false };
 }
 
 /** Export / download text for a Drive file. Sample stubs already include text. */
@@ -314,50 +370,57 @@ export async function extractDriveText(
     };
   }
 
-  const sa = parseServiceAccount();
-  if (!sa) {
-    return {
-      text: `(No text available for ${listed.name}.)`,
-      scannedPdf: false,
-      stub: true,
-    };
-  }
+  const drive = driveClient();
 
   try {
-    const token = await getAccessToken(sa);
-    const isGoogleDoc = listed.mime.startsWith(
-      "application/vnd.google-apps.",
-    );
-    let url: string;
-    if (isGoogleDoc) {
+    if (listed.mime.startsWith("application/vnd.google-apps.")) {
       const exportMime =
         listed.mime === "application/vnd.google-apps.spreadsheet"
           ? "text/csv"
-          : "text/plain";
-      url = `https://www.googleapis.com/drive/v3/files/${listed.drive_id}/export?mimeType=${encodeURIComponent(exportMime)}`;
-    } else {
-      url = `https://www.googleapis.com/drive/v3/files/${listed.drive_id}?alt=media`;
+          : listed.mime === "application/vnd.google-apps.presentation"
+            ? "text/plain"
+            : "text/plain";
+      const res = await drive.files.export(
+        { fileId: listed.drive_id, mimeType: exportMime },
+        { responseType: "arraybuffer" },
+      );
+      const text = Buffer.from(res.data as ArrayBuffer).toString("utf8");
+      return { text, scannedPdf: false, stub: false };
     }
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) {
-      throw new Error(`Drive export failed (${res.status})`);
+
+    const res = await drive.files.get(
+      { fileId: listed.drive_id, alt: "media", supportsAllDrives: true },
+      { responseType: "arraybuffer" },
+    );
+    const buf = Buffer.from(res.data as ArrayBuffer);
+
+    if (listed.mime === "application/pdf") {
+      const extracted = extractPrintableFromPdf(buf);
+      if (extracted.scanned) {
+        return {
+          text: `[Scanned PDF flagged for Jainam: ${listed.name}]`,
+          scannedPdf: true,
+          stub: false,
+        };
+      }
+      return { text: extracted.text, scannedPdf: false, stub: false };
     }
-    const buf = Buffer.from(await res.arrayBuffer());
+
+    // Plain text / csv / markdown / docx-ish: prefer utf8 printable
     const text = buf.toString("utf8");
-    // Heuristic: PDF binary with almost no extractable text → scanned
     const printable = text.replace(/[^\x20-\x7E\n\r\t]/g, "");
-    const scannedPdf =
-      listed.mime === "application/pdf" && printable.trim().length < 40;
     return {
-      text: scannedPdf
-        ? `[Scanned PDF flagged for Jainam: ${listed.name}]`
-        : printable || text,
-      scannedPdf,
+      text: printable.trim().length > 20 ? printable : text,
+      scannedPdf: false,
       stub: false,
     };
   } catch (err) {
+    if (isNotSharedError(err)) {
+      throw new DriveAccessError(
+        "not_shared",
+        notSharedMessage(getFolderId()),
+      );
+    }
     const message = err instanceof Error ? err.message : "extract failed";
     return {
       text: `(Extract failed for ${listed.name}: ${message})`,
@@ -366,3 +429,6 @@ export async function extractDriveText(
     };
   }
 }
+
+/** Unused import guard for types used only in JSDoc / future changes.list. */
+export type DriveFileMeta = drive_v3.Schema$File;

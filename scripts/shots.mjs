@@ -4,154 +4,131 @@
 import { chromium } from "playwright";
 import { mkdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { createHash } from "node:crypto";
 
 const BASE = process.env.SHOTS_BASE ?? "http://localhost:3000";
 const OUT = ".shots";
-const MEMBER_STARTER = "482913";
-const COACH_STARTER = "719304";
-const PERSONAL = "159753";
+const STARTER = "482913"; // sample-data starter only
+const ADMIN_STARTER = process.env.SHOTS_ADMIN_CODE ?? "135790"; // sample INITIAL_ADMIN_CODE
+const MEMBER_PASS = "159753";
+// Case 1 stable sample-data id (Workstream B seed)
+// Case 9 (GEM in the Rough): CaseBrain.html / OnePager.html reference
+const CASE9 = "c0000000-0000-4000-8000-000000000009";
+const TEAM3 = "33333333-3333-3333-3333-333333333333";
 const CASE1 = "c0000000-0000-4000-8000-000000000001";
-
-function seedUuid(key) {
-  const h = createHash("sha256").update(`crux-seed-v1:${key}`).digest();
-  const bytes = Buffer.from(h.subarray(0, 16));
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = bytes.toString("hex");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
-}
-
-const SESSION = seedUuid("practice:session:nov24");
-const ROUND_LIVE = seedUuid("practice:round:case9:live");
-const ROUND_REPORT = seedUuid("practice:round:case9:report");
-
 const PAIRS = [
   ["/sign-in", "Main.html", false],
-  ["/home", "Home.html", true, "katie"],
-  ["/revision/roadmap", "Roadmap.html", true, "katie"],
-  [`/case-brain/${CASE1}`, "CaseBrain.html", true, "katie"],
-  ["/revision/one-pagers", "OnePager.html", true, "katie"],
-  ["/revision/questions", "Roadmap.html", true, "katie"],
-  ["/library", "Reading.html", true, "katie"],
-  [`/practice/sessions/${SESSION}`, "Session.html", true, "drb-admin"],
-  [`/practice/rounds/${ROUND_LIVE}`, "Practice.html", true, "katie"],
-  [`/practice/rounds/${ROUND_REPORT}/report`, "Feedback.html", true, "katie"],
-  ["/practice/drills/thesis", "DrillPhone.html", true, "katie"],
-  ["/team", "TeamBoard.html", true, "katie"],
-  ["/admin", "Admin.html", true, "drb-admin"],
-  ["/revision/flashcards", "FlashPhone.html", true, "katie"],
-  ["/judging?demo=1", "JudgePhone.html", false],
+  ["/home", "Home.html", true],
+  ["/revision/roadmap", "Roadmap.html", true],
+  [`/case-brain/${CASE9}`, "CaseBrain.html", true],
+  [`/revision/one-pagers?caseId=${CASE9}&teamId=${TEAM3}`, "OnePager.html", true],
+  ["/revision/questions", "Roadmap.html", true],
+  ["/library", "Reading.html", true], // resolved to a file id after bootstrap
+  ["/practice", "Practice.html", true],
+  ["/practice/admin", "Session.html", true],
+  ["/team", "TeamBoard.html", true],
+  ["/admin", "Admin.html", true],
+  ["/revision/flashcards", "FlashPhone.html", true],
+  ["/judging", "JudgePhone.html", false],
 ];
 
 mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch();
 
-async function ensureSignedIn(ctx, mode = "katie") {
+async function finishOnboarding(ctx, headers) {
   const me = await (await ctx.request.get(`${BASE}/api/auth/me`)).json();
-  const wantAdmin = mode === "drb-admin";
-  const wantName = mode === "drb-admin" ? "Dr. B" : "Katie";
-  if (
-    me.authenticated &&
-    me.session?.name?.startsWith(wantName.split(" ")[0]) &&
-    Boolean(me.session?.adminView) === wantAdmin
-  ) {
-    return;
+  if (!me.authenticated) return;
+  if (me.session?.mustConsent || !me.person?.consent_version) {
+    await ctx.request.post(`${BASE}/api/auth/consent`, {
+      data: { recordingOk: true },
+      headers,
+    });
   }
+  // Choose passcode when still required (starter / admin first time)
+  const again = await (await ctx.request.get(`${BASE}/api/auth/me`)).json();
+  if (again.session?.mustChoosePasscode) {
+    await ctx.request.post(`${BASE}/api/auth/choose-passcode`, {
+      data: { code: MEMBER_PASS, confirm: MEMBER_PASS },
+      headers,
+    });
+  }
+}
 
-  await ctx.clearCookies();
-  const people = (await (await ctx.request.get(`${BASE}/api/auth/people`)).json())
-    .people;
-  const person =
-    mode === "drb-admin"
-      ? people.find((p) => p.name === "Dr. B" || p.name.startsWith("Dr"))
-      : people.find((p) => p.name.startsWith("Katie"));
-  if (!person) throw new Error(`No person for mode ${mode}`);
-
+async function signIn(ctx, { asAdmin = false } = {}) {
+  const people = (await (await ctx.request.get(`${BASE}/api/auth/people`)).json()).people;
   const j = { "content-type": "application/json" };
-  const starter = mode === "drb-admin" ? COACH_STARTER : MEMBER_STARTER;
-
-  let r = await ctx.request.post(`${BASE}/api/auth/sign-in`, {
-    data: { personId: person.id, code: PERSONAL },
-    headers: j,
-  });
-  if (!r.ok()) {
-    r = await ctx.request.post(`${BASE}/api/auth/sign-in`, {
-      data: { personId: person.id, code: starter },
+  if (asAdmin) {
+    const jainam = people.find((p) => p.name === "Jainam");
+    if (!jainam) throw new Error("Jainam not in people list");
+    let r = await ctx.request.post(`${BASE}/api/auth/sign-in`, {
+      data: { personId: jainam.id, code: ADMIN_STARTER },
       headers: j,
     });
     if (!r.ok()) {
-      const err = await r.text();
-      throw new Error(`sign-in failed for ${person.name}: ${err}`);
-    }
-    const body = await r.json();
-    if (body.mustConsent) {
-      await ctx.request.post(`${BASE}/api/auth/consent`, {
-        data: { recordingOk: true },
+      r = await ctx.request.post(`${BASE}/api/auth/sign-in`, {
+        data: { personId: jainam.id, code: MEMBER_PASS },
         headers: j,
       });
     }
-    if (body.mustChoosePasscode) {
-      await ctx.request.post(`${BASE}/api/auth/choose-passcode`, {
-        data: { code: PERSONAL, confirm: PERSONAL },
-        headers: j,
-      });
-    }
-  }
-
-  if (wantAdmin) {
-    const av = await ctx.request.post(`${BASE}/api/auth/admin-view`, {
+    if (!r.ok()) throw new Error(`Jainam sign-in failed: ${r.status()}`);
+    await finishOnboarding(ctx, j);
+    await ctx.request.post(`${BASE}/api/auth/admin-view`, {
       data: { adminView: true },
       headers: j,
     });
-    if (!av.ok()) {
-      throw new Error(`admin-view failed: ${await av.text()}`);
-    }
+    return;
   }
-
-  const check = await (await ctx.request.get(`${BASE}/api/auth/me`)).json();
-  if (!check.authenticated) {
-    throw new Error(`still unauthenticated after sign-in (${mode})`);
+  const katie = people.find((p) => p.name.startsWith("Katie"));
+  const r = await ctx.request.post(`${BASE}/api/auth/sign-in`, { data: { personId: katie.id, code: STARTER }, headers: j });
+  if (r.ok()) {
+    await finishOnboarding(ctx, j);
+  } else {
+    await ctx.request.post(`${BASE}/api/auth/sign-in`, { data: { personId: katie.id, code: MEMBER_PASS }, headers: j });
+    await finishOnboarding(ctx, j);
   }
-  console.log("signed in", check.session?.name, "admin", check.session?.adminView);
 }
 
-for (const [w, h, tag] of [
-  [1440, 1000, "desktop"],
-  [390, 844, "phone"],
-]) {
+async function readingRoomRoute(ctx) {
+  const res = await ctx.request.get(`${BASE}/api/library/files`);
+  if (!res.ok()) return "/library";
+  const data = await res.json();
+  const files = data.files ?? [];
+  const hit =
+    files.find((f) => (f.case_numbers ?? []).includes(9)) ||
+    files.find((f) => /GEM|case set|Rosetta/i.test(f.name || "")) ||
+    files[0];
+  return hit ? `/library/${hit.id}` : "/library";
+}
+
+for (const [w, h, tag] of [[1440, 1000, "desktop"], [390, 844, "phone"]]) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h } });
   const page = await ctx.newPage();
   await page.route("**/cruxy/*.png", (route) => {
     const f = join("public", new URL(route.request().url()).pathname);
     return existsSync(f) ? route.fulfill({ path: f }) : route.continue();
   });
-
-  let lastAuth = null;
-  for (const [route, ref, needsAuth, authMode] of PAIRS) {
-    if (needsAuth) {
-      if (lastAuth !== authMode) {
-        await ensureSignedIn(ctx, authMode ?? "katie");
-        lastAuth = authMode ?? "katie";
-      }
+  for (const [route0, ref, needsAuth] of PAIRS) {
+    if (route0 === "/admin") {
+      // Fresh context identity for tech admin + Admin switch
+      await ctx.clearCookies();
+      await signIn(ctx, { asAdmin: true });
+    } else if (needsAuth && !(await ctx.cookies()).length) {
+      await signIn(ctx);
+    }
+    let route = route0;
+    if (route0 === "/library") {
+      route = await readingRoomRoute(ctx);
     }
     const name =
-      route.replace(/\?.*/, "").replace(/\//g, "_").replace(/^_/, "") || "root";
+      route0 === "/library"
+        ? "library_reading"
+        : route.replace(/\//g, "_").replace(/^_/, "").replace(/[?&=]/g, "_") || "root";
     try {
-      await page.goto(BASE + route, {
-        waitUntil: "networkidle",
-        timeout: 60000,
-      });
-      // Wait past client redirects to sign-in
-      await page.waitForTimeout(400);
-      if (page.url().includes("/sign-in") && needsAuth) {
-        await ensureSignedIn(ctx, authMode ?? "katie");
-        lastAuth = authMode ?? "katie";
-        await page.goto(BASE + route, {
-          waitUntil: "networkidle",
-          timeout: 60000,
-        });
+      await page.goto(BASE + route, { waitUntil: "networkidle" });
+      if (route === "/admin") {
+        await page.waitForSelector("text=Running the program", { timeout: 15000 });
+        await page.waitForTimeout(800);
       }
+      // One pagers default to Team 1; seeded content is Team 3.
       if (route.includes("one-pagers")) {
         const teamSelect = page.locator("select").first();
         if (await teamSelect.count()) {
@@ -170,22 +147,13 @@ for (const [w, h, tag] of [
           }
         }
       }
-      if (route.includes("judging") || route.includes("practice")) {
-        await page.waitForTimeout(600);
-      }
-      await page.screenshot({
-        path: join(OUT, `${tag}-${name}-app.png`),
-        fullPage: true,
-      });
+      await page.screenshot({ path: join(OUT, `${tag}-${name}-app.png`), fullPage: true });
       const html = readFileSync(join("docs/design/screens", ref), "utf8");
       await page.setContent(html, { waitUntil: "networkidle" });
-      await page.screenshot({
-        path: join(OUT, `${tag}-${name}-ref.png`),
-        fullPage: true,
-      });
-      console.log("ok", tag, route, "→", page.url().replace(BASE, ""));
+      await page.screenshot({ path: join(OUT, `${tag}-${name}-ref.png`), fullPage: true });
+      console.log("ok", tag, route);
     } catch (e) {
-      console.log("ERR", tag, route, String(e).slice(0, 200));
+      console.log("ERR", tag, route, String(e).slice(0, 120));
     }
   }
   await ctx.close();

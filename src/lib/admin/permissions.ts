@@ -11,6 +11,7 @@ export type AdminArea =
   | "spend"
   | "book_requests"
   | "calibration"
+  | "models"
   | "activity_log"
   | "is_crux_working"
   | "weekly_summary"
@@ -31,6 +32,7 @@ const PERMISSIONS: Record<
   spend: { tech: "yes", coach: "no" },
   book_requests: { tech: "yes", coach: "no" },
   calibration: { tech: "yes", coach: "no" },
+  models: { tech: "yes", coach: "no" },
   activity_log: { tech: "yes", coach: "read" },
   is_crux_working: { tech: "yes", coach: "no" },
   weekly_summary: { tech: "yes", coach: "yes" },
@@ -112,6 +114,11 @@ export const PERMISSION_TABLE = [
   },
   {
     area: "Calibration view",
+    jainam: "Yes",
+    drB: "No",
+  },
+  {
+    area: "Model settings (tiers)",
     jainam: "Yes",
     drB: "No",
   },

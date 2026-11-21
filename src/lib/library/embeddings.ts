@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+import { embedCruxy } from "@/lib/cruxy/callCruxy";
 import { EMBEDDING_DIM } from "@/lib/library/types";
 
 /** Deterministic stub embedding so search works without an AI key. */
@@ -33,4 +34,36 @@ export function cosine(a: number[], b: number[]): number {
 
 export function checksumOf(text: string): string {
   return createHash("sha256").update(text).digest("hex").slice(0, 32);
+}
+
+/**
+ * Embed with the gateway embed tier. Falls back to stubEmbed when the
+ * gateway is stubbed, refused, or returns an empty vector.
+ */
+export async function embedPassageText(
+  text: string,
+  opts?: { personId?: string | null; feature?: string },
+): Promise<{ embedding: number[]; aiCalls: number; stub: boolean }> {
+  const result = await embedCruxy({
+    feature: opts?.feature ?? "passage_embed",
+    value: text.slice(0, 8000),
+    personId: opts?.personId ?? null,
+  });
+  if (!result.ok || result.stub || result.embedding.length === 0) {
+    return {
+      embedding: stubEmbed(text, EMBEDDING_DIM),
+      aiCalls: result.ok ? 1 : 0,
+      stub: true,
+    };
+  }
+  // Pad or trim to the schema dim so pgvector stays consistent.
+  let embedding = result.embedding;
+  if (embedding.length < EMBEDDING_DIM) {
+    embedding = embedding.concat(
+      new Array(EMBEDDING_DIM - embedding.length).fill(0),
+    );
+  } else if (embedding.length > EMBEDDING_DIM) {
+    embedding = embedding.slice(0, EMBEDDING_DIM);
+  }
+  return { embedding, aiCalls: 1, stub: false };
 }
