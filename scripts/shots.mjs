@@ -11,13 +11,16 @@ const STARTER = "482913"; // sample-data starter only
 const ADMIN_STARTER = process.env.SHOTS_ADMIN_CODE ?? "135790"; // sample INITIAL_ADMIN_CODE
 const MEMBER_PASS = "159753";
 // Case 1 stable sample-data id (Workstream B seed)
+// Case 9 (GEM in the Rough): CaseBrain.html / OnePager.html reference
+const CASE9 = "c0000000-0000-4000-8000-000000000009";
+const TEAM3 = "33333333-3333-3333-3333-333333333333";
 const CASE1 = "c0000000-0000-4000-8000-000000000001";
 const PAIRS = [
   ["/sign-in", "Main.html", false],
   ["/home", "Home.html", true],
   ["/revision/roadmap", "Roadmap.html", true],
-  [`/case-brain/${CASE1}`, "CaseBrain.html", true],
-  ["/revision/one-pagers", "OnePager.html", true],
+  [`/case-brain/${CASE9}`, "CaseBrain.html", true],
+  [`/revision/one-pagers?caseId=${CASE9}&teamId=${TEAM3}`, "OnePager.html", true],
   ["/revision/questions", "Roadmap.html", true],
   ["/library", "Reading.html", true], // resolved to a file id after bootstrap
   ["/practice", "Practice.html", true],
@@ -118,7 +121,7 @@ for (const [w, h, tag] of [[1440, 1000, "desktop"], [390, 844, "phone"]]) {
     const name =
       route0 === "/library"
         ? "library_reading"
-        : route.replace(/\//g, "_").replace(/^_/, "") || "root";
+        : route.replace(/\//g, "_").replace(/^_/, "").replace(/[?&=]/g, "_") || "root";
     try {
       await page.goto(BASE + route, { waitUntil: "networkidle" });
       if (route === "/admin") {

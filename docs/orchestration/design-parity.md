@@ -131,7 +131,7 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## CaseBrain.html
 
-- [ ] D-0124 Crux: case brain
+- [x] D-0124 Crux: case brain [src/components/case-brain/case-brain-client.tsx]
 - [ ] D-0125 crux
 - [ ] D-0126 Program map
 - [ ] D-0127 My roadmap
@@ -142,96 +142,96 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0132 Team chat
 - [ ] D-0133 [image] /cruxy/cruxy-lamp.png
 - [ ] D-0134 Ask Cruxy
-- [ ] D-0135 09
-- [ ] D-0136 Case brain · Team 3 · sample data
-- [ ] D-0137 GEM in the Rough
-- [ ] D-0138 Crux: righting a wartime taking
-- [ ] D-0139 versus
-- [ ] D-0140 preservation, global access and the law.
-- [ ] D-0141 Team 1
-- [ ] D-0142 Team 2
-- [ ] D-0143 Team 3
-- [ ] D-0144 Compare
-- [ ] D-0145 Lead 1
-- [ ] D-0146 Jainam
-- [ ] D-0147 Nick
-- [ ] D-0148 Daniel
-- [ ] D-0149 Katie
-- [ ] D-0150 Lead 2
-- [ ] D-0151 Counter-arguer
-- [ ] D-0152 Supporter
-- [ ] D-0153 Claim map
-- [ ] D-0154 Truth Sources · 38
+- [x] D-0135 09 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0136 Case brain · Team 3 · sample data [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0137 GEM in the Rough [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0138 Crux: righting a wartime taking [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0139 versus [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0140 preservation, global access and the law. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0141 Team 1 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0142 Team 2 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0143 Team 3 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0144 Compare [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0145 Lead 1 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0146 Jainam [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0147 Nick [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0148 Daniel [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0149 Katie [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0150 Lead 2 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0151 Counter-arguer [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0152 Supporter [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0153 Claim map [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0154 Truth Sources · 38 [src/components/case-brain/case-brain-client.tsx]
 - [ ] D-0155 Readings · 12
-- [ ] D-0156 Flashcards · 64
-- [ ] D-0157 Questions · 24
-- [ ] D-0158 Research
-- [ ] D-0159 C1
-- [ ] D-0160 Jainam · 3 of 3 supports backed
-- [ ] D-0161 92% robust
-- [ ] D-0162 The British Museum's title is defective, and the duty to repair falls on the institution that still benefits.
-- [ ] D-0163 Because S1, S2 and S3 → Claim 1
-- [ ] D-0164 S1 · A broken first link
-- [ ] D-0165 A spoil of war passed between empires is not a just transfer.
-- [ ] D-0166 Nozick 1974
+- [x] D-0156 Flashcards · 64 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0157 Questions · 24 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0158 Research [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0159 C1 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0160 Jainam · 3 of 3 supports backed [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0161 92% robust [src/components/case-brain/claim-robustness.tsx]
+- [x] D-0162 The British Museum's title is defective, and the duty to repair falls on the institution that still benefits. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0163 Because S1, S2 and S3 → Claim 1 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0164 S1 · A broken first link [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0165 A spoil of war passed between empires is not a just transfer. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0166 Nozick 1974 [src/components/case-brain/case-brain-client.tsx]
 - [ ] D-0167 Case set p. [n]
-- [ ] D-0168 S2 · Caretaker rule fails
-- [ ] D-0169 "Keep it if you care for it better" can't be universalised.
-- [ ] D-0170 Kant
+- [x] D-0168 S2 · Caretaker rule fails [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0169 "Keep it if you care for it better" can't be universalised. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0170 Kant [src/components/case-brain/case-brain-client.tsx]
 - [ ] D-0171 Practice Nov 12 · 14:32
-- [ ] D-0172 S3 · Responsibility, not blame
-- [ ] D-0173 Power and benefit put the duty on today's holder.
-- [ ] D-0174 Young 2011
-- [ ] D-0175 Ross
-- [ ] D-0176 C2
-- [ ] D-0177 Katie · 2 of 3 supports backed
-- [ ] D-0178 61% robust
-- [ ] D-0179 The classic reasons for keeping the Stone no longer hold; return it with a partnership, now.
-- [ ] D-0180 S1 · Care is now a tie
+- [x] D-0172 S3 · Responsibility, not blame [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0173 Power and benefit put the duty on today's holder. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0174 Young 2011 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0175 Ross [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0176 C2 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0177 Katie · 2 of 3 supports backed [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0178 61% robust [src/components/case-brain/claim-robustness.tsx]
+- [x] D-0179 The classic reasons for keeping the Stone no longer hold; return it with a partnership, now. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0180 S1 · Care is now a tie [src/components/case-brain/case-brain-client.tsx]
 - [ ] D-0181 GEM, case set
 - [ ] D-0182 S2 · The law already bends
 - [ ] D-0183 Human Tissue Act s.47
 - [ ] D-0184 S3 · Return well, and early
 - [ ] D-0185 No backing yet · 1 waiting in the queue
-- [ ] D-0186 vs
-- [ ] D-0187 Counterclaim · Daniel
-- [ ] D-0188 "After 225 years, the claim is superseded." (Waldron 1992)
-- [ ] D-0189 Concede
-- [ ] D-0190 it for land.
-- [ ] D-0191 Distinguish:
-- [ ] D-0192 one object displaces no one.
-- [ ] D-0193 Rebut:
-- [ ] D-0194 the claim rests on responsibility, not blame.
-- [ ] D-0195 Flashcards from these readings · 64 cards.
-- [ ] D-0196 Leads Jainam and Katie get them automatically. Also studying: Daniel
+- [x] D-0186 vs [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0187 Counterclaim · Daniel [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0188 "After 225 years, the claim is superseded." (Waldron 1992) [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0189 Concede [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0190 it for land. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0191 Distinguish: [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0192 one object displaces no one. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0193 Rebut: [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0194 the claim rests on responsibility, not blame. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0195 Flashcards from these readings · 64 cards. [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0196 Leads Jainam and Katie get them automatically. Also studying: Daniel [src/components/case-brain/case-brain-client.tsx]
 - [ ] D-0197 (not assigned)
-- [ ] D-0198 Study the deck
-- [ ] D-0199 Waiting for Team 3
-- [ ] D-0200 4
-- [ ] D-0201 Inspired by Team 1
-- [ ] D-0202 Egypt's 2009 Louvre stand-off shows an early, voluntary return buys goodwill. Use it to back C2 S3.
-- [ ] D-0203 France 24, 2009
-- [ ] D-0204 Team 1 edit by Ivan
-- [ ] D-0205 Your reason
-- [ ] D-0206 [input] One line on why
-- [ ] D-0207 ✅ Accept
-- [ ] D-0208 ❌ Reject
-- [ ] D-0209 Edit
-- [ ] D-0210 Team 1 ✅
-- [ ] D-0211 Ivan: use it in Q&A only ·
-- [ ] D-0212 hasn't decided
-- [ ] D-0213 From practice · Nov 12 · 41:10 · Nick
-- [ ] D-0214 "The Stone toured Chicago in the 1980s."
-- [ ] D-0215 Cruxy found no source: it left London only for wartime storage and one month in Paris (1972).
-- [ ] D-0216 Cruxy research
-- [ ] D-0217 UK Charities Act 2022 moral-obligation power took effect Nov 2025 but excludes the British Museum.
-- [ ] D-0218 Museums Association
-- [ ] D-0219 The Art Newspaper
-- [ ] D-0220 Research coverage
-- [ ] D-0221 S1
-- [ ] D-0222 S2
-- [ ] D-0223 S3
-- [ ] D-0224 14 of 16 gaps closed with two verified sources. Cruxy is searching C2 S3 tonight.
+- [x] D-0198 Study the deck [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0199 Waiting for Team 3 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0200 4 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0201 Inspired by Team 1 [src/components/case-brain/origin-tag.tsx]
+- [x] D-0202 Egypt's 2009 Louvre stand-off shows an early, voluntary return buys goodwill. Use it to back C2 S3. [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0203 France 24, 2009 [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0204 Team 1 edit by Ivan [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0205 Your reason [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0206 [input] One line on why [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0207 ✅ Accept [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0208 ❌ Reject [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0209 Edit [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0210 Team 1 ✅ [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0211 Ivan: use it in Q&A only · [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0212 hasn't decided [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0213 From practice · Nov 12 · 41:10 · Nick [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0214 "The Stone toured Chicago in the 1980s." [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0215 Cruxy found no source: it left London only for wartime storage and one month in Paris (1972). [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0216 Cruxy research [src/components/case-brain/origin-tag.tsx]
+- [x] D-0217 UK Charities Act 2022 moral-obligation power took effect Nov 2025 but excludes the British Museum. [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0218 Museums Association [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0219 The Art Newspaper [src/lib/case-brain/ensure-demo-queue.ts]
+- [x] D-0220 Research coverage [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0221 S1 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0222 S2 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0223 S3 [src/components/case-brain/case-brain-client.tsx]
+- [x] D-0224 14 of 16 gaps closed with two verified sources. Cruxy is searching C2 S3 tonight. [src/components/case-brain/case-brain-client.tsx]
 
 ## ChooseCode.html
 
@@ -647,80 +647,80 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## OnePager.html
 
-- [ ] D-0607 Crux: visual one pager
-- [ ] D-0608 ← Back to the case brain
-- [ ] D-0609 Export PDF
-- [ ] D-0610 Save to Drive as a Doc
-- [ ] D-0611 Sign off v7
-- [ ] D-0612 09
-- [ ] D-0613 One pager · Team 3 · v7 · sample
-- [ ] D-0614 GEM in the Rough
-- [ ] D-0615 Leads Jainam, Katie · counter Daniel · supporter Nick · signed off 3 of 4
-- [ ] D-0616 Our answer in one sentence
-- [ ] D-0617 A museum may not keep a taken object once a people with a continuous tie asks and can care for it; the Stone should go to Egypt with a partnership, now.
-- [ ] D-0618 Claim 1
-- [ ] D-0619 The title is defective; the duty falls on whoever still benefits.
-- [ ] D-0620 S1
-- [ ] D-0621 Broken first link
-- [ ] D-0622 Nozick
-- [ ] D-0623 S2
-- [ ] D-0624 Caretaker rule fails
-- [ ] D-0625 Kant
-- [ ] D-0626 S3
-- [ ] D-0627 Responsibility, not blame
-- [ ] D-0628 Young
-- [ ] D-0629 Claim 2
-- [ ] D-0630 The old reasons to keep it no longer hold; return it with a partnership.
-- [ ] D-0631 Care is now a tie
-- [ ] D-0632 GEM
-- [ ] D-0633 The law already bends
-- [ ] D-0634 HTA s.47
-- [ ] D-0635 Return early, well
-- [ ] D-0636 Louvre 2009
-- [ ] D-0637 Counterclaim and our answer
-- [ ] D-0638 "After 225 years, the claim is superseded." (Waldron)
-- [ ] D-0639 Concede
-- [ ] D-0640 True for land: return displaces people.
-- [ ] D-0641 Distinguish
-- [ ] D-0642 One object displaces no one.
-- [ ] D-0643 Rebut
-- [ ] D-0644 We argue responsibility, not blame.
-- [ ] D-0645 Values in tension · where we land
-- [ ] D-0646 Righting a wartime taking
-- [ ] D-0647 Preservation, access, law
-- [ ] D-0648 We lean to repair, and meet access with a partnership.
-- [ ] D-0649 Case facts in order
-- [ ] D-0650 1790s
-- [ ] D-0651 French find it
-- [ ] D-0652 1801
-- [ ] D-0653 To Britain as a war prize
-- [ ] D-0654 1963
-- [ ] D-0655 British Museum Act limits returns
-- [ ] D-0656 2022
-- [ ] D-0657 Return petitions
-- [ ] D-0658 Nov 2025
-- [ ] D-0659 GEM opens
-- [ ] D-0660 Now
-- [ ] D-0661 No formal request yet
-- [ ] D-0662 Stakeholders · stake · voice in the case
-- [ ] D-0663 Egyptian public
-- [ ] D-0664 British Museum, visitors
-- [ ] D-0665 Egyptian scholars
-- [ ] D-0666 Other claimant nations
-- [ ] D-0667 Frameworks in one line
-- [ ] D-0668 Corrective justice:
-- [ ] D-0669 who benefits from a wrong repairs it.
-- [ ] D-0670 Kant:
-- [ ] D-0671 a rule must work for everyone.
-- [ ] D-0672 Hardest questions · our line
-- [ ] D-0673 Parthenon Marbles too?
-- [ ] D-0674 Apply the test aloud; likely yes. Consistency is the point.
-- [ ] D-0675 What if Egypt never asks?
-- [ ] D-0676 A standing public offer; never forced return.
-- [ ] D-0677 Isn't a replica enough?
-- [ ] D-0678 Then London should keep the replica.
-- [ ] D-0679 Egypt took from Nubia?
-- [ ] D-0680 Same test applies; a principle that only runs one way isn't one.
+- [x] D-0607 Crux: visual one pager [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0608 ← Back to the case brain [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0609 Export PDF [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0610 Save to Drive as a Doc [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0611 Sign off v7 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0612 09 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0613 One pager · Team 3 · v7 · sample [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0614 GEM in the Rough [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0615 Leads Jainam, Katie · counter Daniel · supporter Nick · signed off 3 of 4 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0616 Our answer in one sentence [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0617 A museum may not keep a taken object once a people with a continuous tie asks and can care for it; the Stone should go to Egypt with a partnership, now. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0618 Claim 1 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0619 The title is defective; the duty falls on whoever still benefits. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0620 S1 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0621 Broken first link [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0622 Nozick [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0623 S2 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0624 Caretaker rule fails [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0625 Kant [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0626 S3 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0627 Responsibility, not blame [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0628 Young [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0629 Claim 2 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0630 The old reasons to keep it no longer hold; return it with a partnership. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0631 Care is now a tie [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0632 GEM [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0633 The law already bends [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0634 HTA s.47 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0635 Return early, well [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0636 Louvre 2009 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0637 Counterclaim and our answer [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0638 "After 225 years, the claim is superseded." (Waldron) [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0639 Concede [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0640 True for land: return displaces people. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0641 Distinguish [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0642 One object displaces no one. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0643 Rebut [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0644 We argue responsibility, not blame. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0645 Values in tension · where we land [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0646 Righting a wartime taking [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0647 Preservation, access, law [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0648 We lean to repair, and meet access with a partnership. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0649 Case facts in order [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0650 1790s [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0651 French find it [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0652 1801 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0653 To Britain as a war prize [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0654 1963 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0655 British Museum Act limits returns [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0656 2022 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0657 Return petitions [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0658 Nov 2025 [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0659 GEM opens [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0660 Now [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0661 No formal request yet [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0662 Stakeholders · stake · voice in the case [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0663 Egyptian public [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0664 British Museum, visitors [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0665 Egyptian scholars [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0666 Other claimant nations [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0667 Frameworks in one line [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0668 Corrective justice: [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0669 who benefits from a wrong repairs it. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0670 Kant: [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0671 a rule must work for everyone. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0672 Hardest questions · our line [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0673 Parthenon Marbles too? [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0674 Apply the test aloud; likely yes. Consistency is the point. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0675 What if Egypt never asks? [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0676 A standing public offer; never forced return. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0677 Isn't a replica enough? [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0678 Then London should keep the replica. [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0679 Egypt took from Nubia? [src/components/case-brain/one-pager-document.tsx]
+- [x] D-0680 Same test applies; a principle that only runs one way isn't one. [src/components/case-brain/one-pager-document.tsx]
 
 ## Practice.html
 
