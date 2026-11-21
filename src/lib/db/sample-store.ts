@@ -234,6 +234,20 @@ export interface SampleStore {
     updated_at: string;
     updated_by: string | null;
   }[];
+  /** Wave 6 E/F: per-person node mastery (migration 00033). */
+  node_mastery: {
+    id: string;
+    person_id: string;
+    team_id: string | null;
+    case_id: string;
+    node_kind: string;
+    node_id: string;
+    mastery: number;
+    evidence: Record<string, number>;
+    updated_at: string;
+  }[];
+  /** Wave 6 K: argument graph edges (migration 00028). */
+  arg_edges?: import("@/lib/graph/types").ArgEdge[];
 }
 
 function emptyCaseBrainFields(): Pick<
@@ -406,6 +420,7 @@ function emptyAdminFields(): Pick<
   | "feature_useful"
   | "last_visits"
   | "roadmap_deadline_overrides"
+  | "node_mastery"
 > {
   return {
     readiness: [],
@@ -428,6 +443,7 @@ function emptyAdminFields(): Pick<
       updated_by: null,
     },
     roadmap_deadline_overrides: [],
+    node_mastery: [],
     drive_sort_queue: [],
     calibration: [],
     competition_logs: [],
@@ -754,6 +770,8 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     scoring_card_items: raw.scoring_card_items ?? [],
     roadmap_deadline_overrides:
       raw.roadmap_deadline_overrides ?? admin.roadmap_deadline_overrides ?? [],
+    node_mastery: raw.node_mastery ?? admin.node_mastery ?? [],
+    arg_edges: raw.arg_edges ?? [],
   };
 }
 
