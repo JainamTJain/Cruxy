@@ -11,6 +11,10 @@ import type { CaseRow } from "@/lib/types";
 /**
  * Workstream F extras. Do not edit existing functions in library.ts —
  * add new reads/writes here and dispatch with isSampleDataMode().
+ *
+ * Migration slot: 00016 (00016b if needed). Workstream H owns Librarian
+ * prompts, Researcher, and pgvector `match_passages` (00011). Until H
+ * lands, digest/search stay minimal behind callCruxy / embedCruxy.
  */
 
 export type RelatedLibraryFile = {
@@ -116,8 +120,8 @@ export async function listCasePagesForNumbers(
 }
 
 /**
- * Vector search using the embed tier for the query.
- * Falls back to stub vectors when the gateway is stubbed.
+ * Interim cosine search until Workstream H's match_passages RPC lands.
+ * Embeds the query with the embed tier; falls back to stub vectors.
  */
 export async function searchLibraryWithEmbed(input: {
   q: string;
