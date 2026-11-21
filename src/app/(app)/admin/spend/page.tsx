@@ -142,7 +142,7 @@ export default function SpendPage() {
           )}
         </p>
         {pct >= 80 ? (
-          <p className="text-sm font-bold text-cardinal">At or above 80% — watch the cap.</p>
+          <p className="text-sm font-bold text-cardinal">At or above 80%. Watch the cap.</p>
         ) : null}
         <div className="grid grid-cols-[1fr_auto] gap-1.5 text-[13px]">
           {grouped.map((f) => (

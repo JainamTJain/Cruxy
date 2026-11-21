@@ -761,7 +761,7 @@ export function AdminConsole() {
                   <span>Most weighted judge</span>
                   <span>
                     {(data.calibration ?? []).find((c) => c.judge_name)
-                      ?.judge_name ?? "—"}
+                      ?.judge_name ?? "None"}
                   </span>
                 </>
               ) : null}

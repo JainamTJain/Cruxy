@@ -98,19 +98,19 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 ## Library and Drive sync
 
 - [ ] F-078 Jainam connects the Ethics Bowl Drive folder once (Google sign in for the Drive API, read only scope).
-- [ ] F-079 A nightly job and a "Sync now" button list every file in the folder tree, including Google Docs, PDFs, Sheets and Slides.
-- [ ] F-080 Only new or changed files are processed (compare Drive's modified time and checksum); unchanged files cost nothing.
+- [x] F-079 A nightly job and a "Sync now" button list every file in the folder tree, including Google Docs, PDFs, Sheets and Slides. [src/app/api/cron/drive-sync/route.ts, src/app/api/library/sync/route.ts]
+- [x] F-080 Only new or changed files are processed (compare Drive's modified time and checksum); unchanged files cost nothing. [src/lib/library/sync.ts]
 - [ ] F-081 Files added inside Crux (uploads, books) are also written back to a "Crux uploads" folder in the Drive, so the Drive stays the full archive.
-- [ ] F-082 Extract text: Docs and Slides via Drive export, PDFs via text extraction (scanned PDFs flagged for Jainam).
-- [ ] F-083 Sort: a small model tags each file with its cases (1, 3, 4, 5, 7, 9, 10, 11, 12, 13, 14, 15, or "general"), its type (case set, practice transcript, team notes, rules, research, coach guidance) and a confidence score. Under 0.7 goes to a sorting queue for Jainam.
-- [ ] F-084 Split into passages of about 600 words with page or heading anchors, embed each, and store them for search.
+- [x] F-082 Extract text: Docs and Slides via Drive export, PDFs via text extraction (scanned PDFs flagged for Jainam). [src/lib/library/drive.ts]
+- [x] F-083 Sort: a small model tags each file with its cases (1, 3, 4, 5, 7, 9, 10, 11, 12, 13, 14, 15, or "general"), its type (case set, practice transcript, team notes, rules, research, coach guidance) and a confidence score. Under 0.7 goes to a sorting queue for Jainam. [src/lib/library/digest.ts]
+- [x] F-084 Split into passages of about 600 words with page or heading anchors, embed each, and store them for search. [src/lib/library/digest.ts]
 - [ ] F-085 Extract from each file: ideas raised, who raised them, frameworks named, facts with sources, moderator style questions, and coach decisions. Ideas from practice transcripts become Truth Source proposals for the team that raised them.
 - [ ] F-086 Write a 5 line file card: what it is, which case, what's new in it, open questions.
-- [ ] F-087 **Reading room** (any time except while you are in a live practice)
-- [ ] F-088 Open any case or resource full screen, with the case set page and the file side by side.
-- [ ] F-089 Highlight text and leave a comment; highlights and comments are visible to all three teams, with names and team colours.
-- [ ] F-090 Ask Cruxy about a highlight: "explain this", "find a counterexample", "is this cited elsewhere in our Drive?"
-- [ ] F-091 Turn a highlight into a flashcard or a Truth Source proposal in one tap.
+- [x] F-087 **Reading room** (any time except while you are in a live practice) [src/app/(app)/library/[fileId]/page.tsx]
+- [x] F-088 Open any case or resource full screen, with the case set page and the file side by side. [src/app/(app)/library/[fileId]/page.tsx]
+- [x] F-089 Highlight text and leave a comment; highlights and comments are visible to all three teams, with names and team colours. [src/app/(app)/library/[fileId]/page.tsx]
+- [x] F-090 Ask Cruxy about a highlight: "explain this", "find a counterexample", "is this cited elsewhere in our Drive?" [src/app/api/library/ask/route.ts]
+- [x] F-091 Turn a highlight into a flashcard or a Truth Source proposal in one tap. [src/app/api/library/highlight-actions/route.ts]
 - [ ] F-092 Search across everything (passages, transcripts, Truth Sources, comments) with filters by case, team and type.
 
 ## Research
@@ -156,12 +156,12 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-125 **Visual one pagers.** One pagers are built to be seen, not just read: the claim map as connected boxes, a values-in-tension scale, a stakeholder grid, a timeline of the case facts, a framework strip with one line each, and a table of likely questions with our one line answers. Cruxy picks the visual for each part and the team edits it. There is no limit on how much Cruxy drafts; the team signs it off.
 - [x] F-126 Generated from readings, Truth Sources and the case card: facts with page numbers, claims and their logic lines, frameworks in one sentence, counterclaim responses, and change the facts answers. · [src/lib/seed/build-content.ts, supabase/seed/06_flashcards_roles_proposals.sql]
 - [x] F-127 Assigned by role: leads get their cases' decks automatically. Anyone else can add any deck, and their profile shows "studying Case 9 (not assigned)". · [src/lib/seed/build-content.ts deck_opt_ins for leads]
-- [ ] F-128 Spaced repetition: cards come back sooner when missed (SM-2 or FSRS scheduling), and answers can be typed or spoken.
+- [x] F-128 Spaced repetition: cards come back sooner when missed (SM-2 or FSRS scheduling), and answers can be typed or spoken. [src/lib/revision/fsrs.ts]
 - [ ] F-129 Cruxy asks one question at a time aimed at the weakest link in the claim map, then follows up on the answer ("why does that follow?", "what would your opponent say?").
 - [ ] F-130 Ends with a 3 line summary of what held and what didn't, linked to the claim map.
 - [ ] F-131 For each claim, Cruxy suggests: a plain sentence version under 25 words, 2 everyday analogies, 1 vivid example from the Truth Sources, and phrases to avoid (jargon, hedges, loaded words).
 - [ ] F-132 Members save their favourite phrasings to their personal phrasebook.
-- [ ] F-133 A 10 minute warm up for the morning of a round: 5 flashcards, 2 moderator questions answered out loud, 1 counterclaim rebuttal, on cases picked at random.
+- [x] F-133 A 10 minute warm up for the morning of a round: 5 flashcards, 2 moderator questions answered out loud, 1 counterclaim rebuttal, on cases picked at random. [src/app/(app)/revision/warmup/page.tsx]
 
 ## Moderator question bank
 
@@ -182,7 +182,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-145 Question drill · 10 bank questions answered, with your average above your own first attempts on this case · Leads, counter-arguer
 - [ ] F-146 Practiced · Spoke in at least one recorded round on the case · Everyone with a role on it
 - [ ] F-147 Judged · Judged at least twice (human or Cruxy judge), with your latest score above your own earlier one on this case · Leads
-- [ ] F-148 **No fixed score cutoffs anywhere in Crux.** Every threshold compares a person with their own past (their first attempt, recent average or best), never with a set number or with other people. Judges still score on the APPE 1 to 10 scale, because that is how the regional is scored; progress, stages and "weak" flags are always measured as change from the person's own history.
+- [x] F-148 **No fixed score cutoffs anywhere in Crux.** Every threshold compares a person with their own past (their first attempt, recent average or best), never with a set number or with other people. Judges still score on the APPE 1 to 10 scale, because that is how the regional is scored; progress, stages and "weak" flags are always measured as change from the person's own history. [src/lib/revision/roadmap.ts]
 - [ ] F-149 **Recommended deadlines (default for the December 5 regional; each team can edit theirs)**
 - [ ] F-150 Read all 12 cases · Nov 24
 - [ ] F-151 Map own cases · Nov 25
@@ -191,7 +191,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-154 Question drill · Dec 2
 - [ ] F-155 Practiced · Dec 3
 - [ ] F-156 Judged · Dec 4
-- [ ] F-157 A track per case with seven stations, a "today" line and a flag on each deadline; stations fill as work happens, and overdue ones turn red.
+- [x] F-157 A track per case with seven stations, a "today" line and a flag on each deadline; stations fill as work happens, and overdue ones turn red. [src/app/(app)/revision/roadmap/page.tsx]
 - [ ] F-158 A readiness number per case (share of required stages done, weighted toward judged and practiced) and per team.
 - [ ] F-159 "Do next": the three most useful actions for this person today, picked from overdue stages, weak feedback areas, and assignments.
 
@@ -334,11 +334,11 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Program map, admin console and weekly summary
 
-- [ ] F-282 **Program map (everyone's launch screen)**
-- [ ] F-283 A 12 case by 3 team grid: each cell shows readiness, the case's leads, and the latest event ("Team 2 graded 41/60 yesterday").
-- [ ] F-284 Running totals that grow: Drive files digested, passages cited, ideas accepted, sources verified, questions in the bank, rounds graded, redo improvements.
-- [ ] F-285 What changed since your last visit, across all teams, newest first.
-- [ ] F-286 Days to the next competition, and your own top three next actions.
+- [x] F-282 **Program map (everyone's launch screen)** [src/app/(app)/home/page.tsx]
+- [x] F-283 A 12 case by 3 team grid: each cell shows readiness, the case's leads, and the latest event ("Team 2 graded 41/60 yesterday"). [src/app/(app)/home/page.tsx]
+- [x] F-284 Running totals that grow: Drive files digested, passages cited, ideas accepted, sources verified, questions in the bank, rounds graded, redo improvements. [src/app/(app)/home/page.tsx]
+- [x] F-285 What changed since your last visit, across all teams, newest first. [src/app/(app)/home/page.tsx]
+- [x] F-286 Days to the next competition, and your own top three next actions. [src/app/(app)/home/page.tsx]
 - [x] F-287 Area · Jainam · Dr. B [`src/app/(app)/admin/admin-console.tsx`]
 - [x] F-288 Teams and people: add, move, remove · Yes · Yes [`src/app/(app)/admin/admin-console.tsx`]
 - [x] F-289 Sessions: create, run, see codes, take attendance · Yes · Yes [`src/app/(app)/admin/admin-console.tsx`]
