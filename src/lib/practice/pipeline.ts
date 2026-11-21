@@ -3,6 +3,7 @@ import {
   getRecordingForRound,
   getRoundById,
   getTranscript,
+  getTranscriptLineById,
   listAttendance,
   saveJudgmentBundle,
   saveRecording,
@@ -22,8 +23,7 @@ import {
 } from "@/lib/practice/transcription";
 import { runCruxyJudge } from "@/lib/practice/cruxy-judge";
 import { filterCitedFeedback } from "@/lib/practice/feedback";
-import { getPersonById, logActivity } from "@/lib/db/repository";
-import { readStore } from "@/lib/db/sample-store";
+import { getPersonById, listTeams, logActivity } from "@/lib/db/repository";
 import { nowIso } from "@/lib/utils";
 
 /**
@@ -65,7 +65,6 @@ export async function finalizeRound(opts: {
   const presentIds = attendance
     .filter((a) => a.status === "present" || a.status === "late")
     .map((a) => a.person_id);
-  const store = await readStore();
   const presentNames = (
     await Promise.all(presentIds.map((id) => getPersonById(id)))
   )
@@ -145,7 +144,7 @@ export async function finalizeRound(opts: {
     const teams =
       round.team_ids.length > 0
         ? round.team_ids
-        : store.teams.slice(0, 1).map((t) => t.id);
+        : (await listTeams()).slice(0, 1).map((t) => t.id);
     const roundForJudge = { ...round, team_ids: teams };
     judgment = await runCruxyJudge({
       round: roundForJudge,
@@ -204,8 +203,7 @@ export async function fixTranscriptWord(opts: {
   misheardForm: string;
   caseId: string | null;
 }) {
-  const store = await readStore();
-  const line = store.transcript_lines.find((l) => l.id === opts.lineId);
+  const line = await getTranscriptLineById(opts.lineId);
   if (!line) throw new Error("Line not found");
   const glossary = await getGlossary(opts.caseId);
   const learned = learnMisheard(glossary, opts.correctTerm, opts.misheardForm);

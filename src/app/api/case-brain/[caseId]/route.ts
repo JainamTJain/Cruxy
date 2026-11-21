@@ -6,8 +6,12 @@ import {
   ensureOpposingPositions,
   getCaseBrain,
 } from "@/lib/case-brain/service";
-import { listTeams, getPersonById } from "@/lib/db/repository";
-import { readStore } from "@/lib/db/sample-store";
+import {
+  listTeams,
+  getPersonById,
+  listCases,
+  listPeopleFull,
+} from "@/lib/db/repository";
 
 type Params = { params: Promise<{ caseId: string }> };
 
@@ -42,9 +46,13 @@ export async function GET(_req: Request, { params }: Params) {
   }
   const refreshed = await getCaseBrain(teamId, caseId);
 
-  const [teams, store] = await Promise.all([listTeams(), readStore()]);
-  const caseRow = store.cases.find((c) => c.id === caseId) ?? null;
-  const people = store.people.map((p) => ({
+  const [teams, cases, peopleFull] = await Promise.all([
+    listTeams(),
+    listCases(),
+    listPeopleFull(),
+  ]);
+  const caseRow = cases.find((c) => c.id === caseId) ?? null;
+  const people = peopleFull.map((p) => ({
     id: p.id,
     name: p.name,
     team_id: p.team_id,

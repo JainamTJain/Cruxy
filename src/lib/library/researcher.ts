@@ -9,8 +9,7 @@ import {
   saveBookRequest,
   saveResearchRun,
 } from "@/lib/db/library-repository";
-import { readStore } from "@/lib/db/sample-store";
-import { logActivity } from "@/lib/db/repository";
+import { listPeopleFull, logActivity } from "@/lib/db/repository";
 import type {
   BookRequest,
   ResearchFinding,
@@ -106,11 +105,11 @@ export async function runNightlyResearch(opts?: {
     ? cases.filter((c) => opts.caseNumbers!.includes(c.number))
     : cases;
 
-  const store = await readStore();
+  const people = await listPeopleFull();
   const actorId =
     opts?.personId ??
-    store.people.find((p) => p.role === "tech_admin")?.id ??
-    store.people[0]?.id ??
+    people.find((p) => p.role === "tech_admin")?.id ??
+    people[0]?.id ??
     "system";
 
   const runs: ResearchRun[] = [];
