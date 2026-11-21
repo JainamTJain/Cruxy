@@ -288,7 +288,7 @@ export function buildTeamSpaceSeed(input: {
       chat_id: chatId,
       person_id: null,
       from_cruxy: true,
-      body: `CRUXY · CASE 9 IS NOW v7\nClaim 2 changed: "${CASE9_OLD_C2}" → "${CASE9_NEW_C2}". Reason (Katie): Team 1's Louvre point.`,
+      body: `CRUXY: Case 9 is now v7\nClaim 2 changed: "${CASE9_OLD_C2}" → "${CASE9_NEW_C2}". Reason (Katie): Team 1's Louvre point.`,
       is_idea: false,
       mention_ids: [],
       case_id: caseId(9),

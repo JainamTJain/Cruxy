@@ -191,6 +191,47 @@ async function main() {
   assert(cited.citations.length > 0, "returns citations");
   assert(cited.questionFirst, "asks before it answers");
 
+  const next = await askTeamAssistant("What should I do next?", {
+    personId: katie.id,
+    teamId: t3.id,
+  });
+  assert(/next/i.test(next.text), "next-step intent answers from board");
+
+  const mentioned = await (
+    await import("../src/lib/team/repository")
+  ).postMessage({
+    chatId: chat.id,
+    personId: nick.id,
+    body: `@Katie can you check the Case 9 timestamp at 12:40?`,
+    caseId: case9.id,
+    mentionIds: [katie.id],
+    linkRefs: { passage: "Claim 2", timestamp: "12:40" },
+    actorTeamId: t3.id,
+    actorRole: "member",
+  });
+  assert(mentioned.mention_ids.includes(katie.id), "mentions resolve");
+  assert(mentioned.case_id === case9.id, "case linked on message");
+  assert(
+    (mentioned.link_refs as { timestamp?: string } | null)?.timestamp ===
+      "12:40",
+    "timestamp link_ref stored",
+  );
+
+  const { buildReadAloudScript } = await import("../src/lib/team/read-aloud");
+  const aloud = await buildReadAloudScript({
+    teamId: t3.id,
+    caseId: case9.id,
+  });
+  assert(aloud.script.length > 40, "read-aloud script from claim map");
+  assert(aloud.source === "claim_map" || aloud.source === "one_pager", "has source");
+
+  const admin = await askTeamAssistant(
+    "Give me a readiness brief for Dec 5",
+    { personId: jainam.id, teamId: t3.id, adminMode: true },
+  );
+  assert(/numbers used|risk|gap|missing/i.test(admin.text), "admin brief grounded");
+  assert(!admin.refusedWithoutSources, "admin mode does not require Truth Sources");
+
   const log = await listActivityLog(80);
   assert(
     log.some((e) => e.action === "case_role_set"),

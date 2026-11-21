@@ -46,7 +46,7 @@ export function HomeDiffs() {
       {diffs.map((d) => (
         <div key={d.version_id} className="text-sm">
           <p className="text-xs text-muted">
-            v{d.version} · {d.change_summary}
+            v{d.version}: {d.change_summary}
           </p>
           <p>
             <span className="text-muted line-through">{d.old_text}</span>
