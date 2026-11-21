@@ -1,7 +1,10 @@
 import { randomUUID } from "crypto";
 import { extractDriveText, listDriveFiles } from "@/lib/library/drive";
 import { digestListedFile } from "@/lib/library/digest";
-import { createProposal } from "@/lib/case-brain/service";
+import {
+  librarianIdeasToProposals,
+  teamFromDrivePath,
+} from "@/lib/cruxy/agents/librarian";
 import {
   getLibraryFileByDriveId,
   listCases,
@@ -89,26 +92,24 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
     await replaceFilePassages(digested.file.id, digested.passages);
     filesProcessed += 1;
 
-    // Practice transcript ideas → proposals for each team (Truth Source queue)
-    const caseId = digested.file.case_ids[0] ?? null;
-    if (
-      digested.file.type === "practice_transcript" &&
-      digested.ideas.length > 0 &&
-      caseId
-    ) {
-      for (const team of teams) {
-        for (const idea of digested.ideas) {
-          await createProposal({
-            teamId: team.id,
-            caseId,
-            personId: actorId,
-            text: idea,
-            kind: "other",
-            origin: "transcript",
-            originRef: digested.file.id,
-          });
-        }
-      }
+    // Librarian → per-team proposals (team notes, research, transcripts).
+    // Teams 1 and 2 get content from their own Drive docs when the path names a team.
+    if (digested.ideas.length > 0) {
+      await librarianIdeasToProposals({
+        ideas: digested.ideas.map((text) => ({
+          text,
+          kind: "other" as const,
+          citation_ids: [],
+        })),
+        fileId: digested.file.id,
+        fileType: digested.file.type,
+        caseIds: digested.file.case_ids,
+        caseNumbers: digested.file.case_numbers,
+        cases,
+        teams,
+        actorId,
+        teamFilter: teamFromDrivePath(digested.file.path),
+      });
     }
   }
 

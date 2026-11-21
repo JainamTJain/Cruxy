@@ -1,0 +1,15 @@
+{
+  "case_numbers": [1],
+  "type": "team_notes",
+  "confidence": 0.9,
+  "card": "What: Team prep notes\nCase(s): 1\nType: team_notes\nNew: Responsibility gap claim\nOpen: Backing for S2?",
+  "ideas": [
+    {
+      "text": "Responsibility gap: no one fully answerable when a machine selects a target.",
+      "kind": "framework",
+      "case_number": 1,
+      "citation_ids": [],
+      "quote": null
+    }
+  ]
+}
