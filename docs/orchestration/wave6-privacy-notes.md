@@ -37,6 +37,8 @@ Migration stamp: `00036_workstream_i_wave6_privacy.sql` (`app_kv.privacy_wave6`)
 | #48 privacy helpers (I) | Merged |
 | #50 graph flashcards (F) | OK if `node_mastery` stays session-scoped |
 | #51 flywheel (G) | OK admin-gated; align Brier source with D |
+| #52 mastery map (E) | Gap: members got `scope: none`. Fixed here with `self` row |
+| #54 confidence (D) | OK (personal calibration on `session.personId`) |
 
 ## Follow-up fixes (this branch)
 
@@ -44,3 +46,4 @@ Migration stamp: `00036_workstream_i_wave6_privacy.sql` (`app_kv.privacy_wave6`)
 - Round predictions gate: speaker list only for round participants / admins
 - Report skill charts: round participants only from DB; members see own chart
 - Report redos / predictions already redacted from #48
+- Mastery map: `self` scope so non-leads see only their own row (merged E + fix)

@@ -32,7 +32,7 @@ export function privacyClassFor(field: string): PrivacyClass {
     f.includes("ai_call") ||
     f.includes("book_request") ||
     f.includes("judge_weight") ||
-    f.includes("calibration")
+    f.includes("judge_calibration")
   ) {
     return "tech_only";
   }
@@ -44,7 +44,9 @@ export function privacyClassFor(field: string): PrivacyClass {
     f.includes("phrasebook") ||
     f.includes("card_review") ||
     f.includes("outcome") ||
-    f.includes("redo")
+    f.includes("redo") ||
+    // Personal score-prediction calibration chart (not judge weights).
+    (f.includes("calibration") && !f.includes("judge"))
   ) {
     return "personal_learning";
   }

@@ -69,6 +69,20 @@ async function main() {
   });
   assert(adminAccess.scope === "admin", "jainam admin sees all");
 
+  const serena = store.people.find((p) => p.name === "Serena")!;
+  assert(Boolean(serena?.team_id), "serena has a team");
+  const selfAccess = await resolveMasteryAccess({
+    personId: serena.id,
+    role: "member",
+    adminView: false,
+    teamId: serena.team_id,
+  });
+  assert(selfAccess.scope === "self", "non-lead member gets self scope");
+  assert(
+    selfAccess.scope === "self" && selfAccess.personId === serena.id,
+    "self scope binds to viewer",
+  );
+
   // Strip seeded feedback so the grid starts empty (real activity only)
   await updateStore((s) => {
     s.feedback_items = [];
@@ -197,6 +211,21 @@ async function main() {
         r.case_id === case9.id,
     ),
     "persisted into mastery_map_cells",
+  );
+
+  const selfMap = await getMasteryMap({
+    caseId: case9.id,
+    teamId: serena.team_id,
+    access: selfAccess,
+  });
+  assert(selfMap.scope === "self", "self map scope");
+  assert(
+    selfMap.people.length === 1 && selfMap.people[0]!.id === serena.id,
+    "self map shows only the viewer",
+  );
+  assert(
+    selfMap.cells.every((c) => c.person_id === serena.id),
+    "self map cells are only the viewer",
   );
 
   console.log("\nAll mastery-map checks passed.");

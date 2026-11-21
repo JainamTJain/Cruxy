@@ -39,6 +39,10 @@ export async function GET(req: Request) {
     });
   }
 
+  if (access.scope === "none") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   if (access.scope === "lead" && !access.caseIds.includes(caseId)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -46,7 +50,7 @@ export async function GET(req: Request) {
   const teamId =
     access.scope === "admin"
       ? teamIdParam
-      : access.scope === "lead"
+      : access.scope === "lead" || access.scope === "self"
         ? access.teamId
         : person.team_id;
 
