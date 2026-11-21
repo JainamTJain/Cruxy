@@ -4,19 +4,20 @@ You are building **Crux**, a private web app for USC's three Ethics Bowl teams, 
 
 This file tells you where every piece of context lives. Do not guess what the product should do: it is all written down in `docs/`. If something you need is not there, stop and ask Jainam instead of inventing it.
 
-## Status
+## Status (Nov 21, 2026)
 
-Track 0 (Foundation) is merged (PR #1, Nov 21, 2026): sign in, consent, passcodes, activity log, `callCruxy`, schema and a sample-data mode used until the Supabase keys are set. Tracks 1 to 6 build on it. Code lives under `src/`.
+Tracks 0 to 6 are merged as plumbing (code under `src/`). The product does **not** yet match the spec or the designs. All work now follows `docs/orchestration/README.md`: reach parity with every item in `docs/orchestration/feature-checklist.md` and `docs/orchestration/design-parity.md`, with real seeded content, before adding anything new. Your task brief is in `docs/orchestration/waves.md`.
 
 ## The order to read things
 
 1. `docs/spec.md`: the full product spec. It is the source of truth for features, data model, prompts and checks.
 2. `docs/decisions.md`: every decision Jainam made, with his reasons. Never "improve" one of these away.
-3. `docs/tracks/track-N.md`: the track you are working on (what to build, which files to read, the checks that must pass).
-4. `docs/design/README.md`: how the screens must look, with the reference HTML for every screen.
-5. `docs/research/apis.md`: verified, current notes for every outside API. Use these, not your memory.
-6. `docs/domain/`: what Ethics Bowl is, the scoring card, and the 12 regional cases. Cruxy's prompts and tests use these.
-7. `docs/infrastructure.md`: which accounts, projects and IDs already exist.
+3. `docs/orchestration/README.md`, `waves.md` and the two checklists: what done means now.
+4. `docs/tracks/track-N.md`: the original track briefs and checks.
+5. `docs/design/README.md`: how the screens must look, with the reference HTML for every screen.
+6. `docs/research/apis.md`: verified, current notes for every outside API. Use these, not your memory.
+7. `docs/domain/`: what Ethics Bowl is, the scoring card, and the 12 regional cases. Cruxy's prompts and tests use these.
+8. `docs/infrastructure.md`: which accounts, projects and IDs already exist.
 
 ## The stack (do not change it)
 
@@ -43,8 +44,9 @@ Track 0 (Foundation) is merged (PR #1, Nov 21, 2026): sign in, consent, passcode
 
 ## How to work
 
-- Work one track at a time in one Cursor chat. Start the chat by @-mentioning `AGENTS.md` and `docs/tracks/track-N.md`.
-- Track 0 (Foundation) must be merged before the others start; it owns the schema, the shared types in `src/src/lib/types.ts`, the gateway and the design tokens. Other tracks add to these files but never rewrite them.
+- Work on the workstream you were given in `docs/orchestration/waves.md`, and only touch the files it owns.
+- Shared files (`src/lib/types.ts`, `src/lib/db/repository.ts`, `callCruxy`, `src/app/globals.css`): add to them, never rewrite them.
+- Before opening a pull request, run `npm run typecheck`, `npm run build` and `npm run shots`, and tick the checklist items you finished.
 - Write migrations in `supabase/migrations/`, one per change, never edit an applied one.
 - When a check in the track file passes, tick it in that file in the same commit.
 - If the spec and the code disagree, the spec wins. If the spec and `docs/decisions.md` disagree, ask Jainam.
