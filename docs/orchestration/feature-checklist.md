@@ -297,21 +297,21 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-248 **Rounds with one presenting team** (solo or a team against Cruxy) show only the columns and items that apply, with the rest marked "not scored this round". [src/lib/practice/appe-card.ts]
 - [x] F-249 **The Cruxy judge fills the identical card**, adding 1 to 3 quoted lines as evidence for each score. [src/lib/practice/cruxy-judge.ts]
 - [x] F-250 Scores every item with 1 to 3 quoted lines and their timestamps as evidence; any score without evidence is not shown. [src/lib/practice/cruxy-judge.ts]
-- [ ] F-251 Asks judges' Q&A questions out loud in Cruxy judge mode, one question and one follow up per judge seat, as the rules describe.
-- [ ] F-252 Before any human cards exist, it is grounded in the APPE Guide to Scoring, the score bands, the judges' question guide, your Nationals notes and Dr. B's practice guidance from the Drive.
+- [x] F-251 Asks judges' Q&A questions out loud in Cruxy judge mode, one question and one follow up per judge seat, as the rules describe. [src/lib/practice/judge-qa.ts, src/components/practice/cruxy-judge-qa.tsx]
+- [x] F-252 Before any human cards exist, it is grounded in the APPE Guide to Scoring, the score bands, the judges' question guide, your Nationals notes and Dr. B's practice guidance from the Drive. [src/lib/practice/judge-grounding.ts, src/lib/practice/cruxy-judge.ts]
 - [x] F-253 **Peer judging of recordings.** Any member can judge another team's recorded round later, on the same card, from its transcript. Peer cards count as judged rounds for the speakers and go through the same analysis before they tune Cruxy. [src/app/(app)/practice/rounds/[id]/report/page.tsx]
 - [x] F-254 **Predict your score first.** Before a speaker opens their report, they guess their own score on each item. The gap between guess and score is tracked over time as a skill of its own. [src/components/practice/appe-scoring-card.tsx]
-- [ ] F-255 **No fixed weights.** A judge's background (past APPE judge, faculty, debater, team member) is only a starting guess, and each card's influence is decided afresh from evidence.
-- [ ] F-256 **Analyse the card first.** Before using a card, Cruxy checks it against the transcript and writes a short note:
-- [ ] F-257 **Evidence:** do the judge's comments point to things that were actually said, and do the scores match the comments?
-- [ ] F-258 **Position lean:** do scores follow whether the judge agrees with a team's conclusion rather than the quality of its reasoning? Judges are told to separate the two, so Cruxy compares scores with how each side's reasoning held up.
-- [ ] F-259 **Drift:** does this judge score harsher or kinder as the session goes on, late at night, or after a long day? Cruxy compares rounds within the session and with the judge's earlier cards.
-- [ ] F-260 **Agreement:** where there are other judges, how far apart are they, and on which items?
-- [ ] F-261 **Conflicts:** is the judge a member of a competing team, or have they argued a side of this case themselves?
-- [ ] F-262 **Decide what to learn.** Each item on the card is then used fully, used with less influence, or kept as feedback for the speakers only and left out of calibration, with the reason recorded.
-- [ ] F-263 **Update slowly.** Cruxy's correction for each scoring item moves only when several analysed cards agree, so one unusual round can't swing it.
-- [ ] F-264 **Worked examples.** Rounds whose cards passed the analysis well become worked examples the Cruxy judge reads before scoring similar rounds.
-- [ ] F-265 **Who sees what.** Members see scores and reasons only. The technical admin sees each card's analysis note, what was used and why, and can override a decision.
+- [x] F-255 **No fixed weights.** A judge's background (past APPE judge, faculty, debater, team member) is only a starting guess, and each card's influence is decided afresh from evidence. [src/lib/practice/judge-card-analysis.ts]
+- [x] F-256 **Analyse the card first.** Before using a card, Cruxy checks it against the transcript and writes a short note: [src/lib/practice/judge-card-analysis.ts]
+- [x] F-257 **Evidence:** do the judge's comments point to things that were actually said, and do the scores match the comments? [src/lib/practice/judge-card-analysis.ts]
+- [x] F-258 **Position lean:** do scores follow whether the judge agrees with a team's conclusion rather than the quality of its reasoning? Judges are told to separate the two, so Cruxy compares scores with how each side's reasoning held up. [src/lib/practice/judge-card-analysis.ts]
+- [x] F-259 **Drift:** does this judge score harsher or kinder as the session goes on, late at night, or after a long day? Cruxy compares rounds within the session and with the judge's earlier cards. [src/lib/practice/judge-card-analysis.ts]
+- [x] F-260 **Agreement:** where there are other judges, how far apart are they, and on which items? [src/lib/practice/judge-card-analysis.ts]
+- [x] F-261 **Conflicts:** is the judge a member of a competing team, or have they argued a side of this case themselves? [src/lib/practice/judge-card-analysis.ts]
+- [x] F-262 **Decide what to learn.** Each item on the card is then used fully, used with less influence, or kept as feedback for the speakers only and left out of calibration, with the reason recorded. [src/lib/practice/judge-card-analysis.ts, src/lib/db/supabase/judge-card-extra.ts]
+- [x] F-263 **Update slowly.** Cruxy's correction for each scoring item moves only when several analysed cards agree, so one unusual round can't swing it. [src/lib/practice/judge-card-analysis.ts]
+- [x] F-264 **Worked examples.** Rounds whose cards passed the analysis well become worked examples the Cruxy judge reads before scoring similar rounds. [src/lib/practice/judge-card-analysis.ts, src/lib/practice/cruxy-judge.ts]
+- [x] F-265 **Who sees what.** Members see scores and reasons only. The technical admin sees each card's analysis note, what was used and why, and can override a decision. [src/components/practice/judge-card-analysis-panel.tsx, src/app/api/admin/judge-card-analysis/route.ts]
 
 ## Feedback reports and the bank
 

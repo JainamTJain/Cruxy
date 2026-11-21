@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ChunkedRecorder } from "@/components/practice/chunked-recorder";
+import { CruxyJudgeQa } from "@/components/practice/cruxy-judge-qa";
 
 type Round = {
   id: string;
@@ -462,6 +463,12 @@ export default function RoundPage() {
             </section>
           </aside>
         </div>
+
+        {(round.phase === "judges_qa" || round.judges.cruxy) && (
+          <div className="mt-5">
+            <CruxyJudgeQa roundId={round.id} dark />
+          </div>
+        )}
       </div>
     </div>
   );

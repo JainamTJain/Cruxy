@@ -8,7 +8,7 @@ import {
   resolveGuestToken,
   saveJudgeCard,
 } from "@/lib/db/practice-repository";
-import { analyseJudgeCard } from "@/lib/practice/cruxy-judge";
+import { analyseHumanCard } from "@/lib/practice/judge-card-analysis";
 import { validateEvidence } from "@/lib/practice/appe-card";
 import type { AppeItemKey, CardScore, JudgeCard } from "@/lib/practice/types";
 import { nowIso } from "@/lib/utils";
@@ -103,31 +103,51 @@ export async function POST(req: Request) {
     });
   }
 
-  const analysis = analyseJudgeCard({
+  await saveJudgeCard(card, scores);
+
+  const all = await listJudgeCards(body.roundId);
+  const competingTeamMember = Boolean(
+    session?.teamId &&
+      round.team_ids.includes(session.teamId) &&
+      !body.peer,
+  );
+  const peers = all.cards.filter((c) => !c.cruxy && c.id !== card.id);
+  const bundle = await analyseHumanCard({
+    card,
     scores,
     lines,
-    competingTeamMember: Boolean(
-      session?.teamId &&
-        round.team_ids.includes(session.teamId) &&
-        !body.peer,
+    peerCards: peers,
+    peerScores: all.scores.filter((s) =>
+      peers.some((p) => p.id === s.card_id),
     ),
+    priorCardsForJudge: all.cards.filter(
+      (c) =>
+        !c.cruxy &&
+        c.judge_id &&
+        c.judge_id === card.judge_id &&
+        c.id !== card.id,
+    ),
+    judge: null,
+    competingTeamMember,
+    arguedThisCase: false,
+    personId: session?.personId ?? null,
   });
-  card.calibration_note = analysis.note;
-  card.calibration_use = analysis.use;
 
+  card.calibration_note = bundle.analysis.overall_note;
+  card.calibration_use = bundle.analysis.effective_use;
   await saveJudgeCard(card, scores);
+
   await logActivity({
     person_id: session?.personId ?? null,
     action: body.peer ? "peer_judge_card" : "judge_card_submitted",
     target: body.roundId,
-    meta: { teamId: body.teamId, use: analysis.use },
+    meta: { teamId: body.teamId, use: bundle.analysis.effective_use },
   });
 
-  const all = await listJudgeCards(body.roundId);
   return NextResponse.json({
     card: {
       ...card,
-      // Members never see calibration internals
+      // F-265: members never see calibration internals
       calibration_note: undefined,
       calibration_use: undefined,
     },
