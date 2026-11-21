@@ -13,7 +13,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [ ] F-006 5. Practice · Sessions, judging portal, recording, transcripts, grading, feedback · Sessions, Practice, Judging, Feedback · Cursor
 - [ ] F-007 6. Admin · Admin and coach console, spend caps, weekly summary · Admin console, Cost plan · Bolt
 - [ ] F-008 Read this whole doc before writing code; paste the relevant sections into each session.
-- [ ] F-009 Every AI output stores the ids of the sources it used. No citation, no display.
+- [x] F-009 Every AI output stores the ids of the sources it used. No citation, no display. · [src/lib/cruxy/citations.ts]
 - [ ] F-010 Every AI call goes through one server function that logs tokens and cost and refuses calls over the cap.
 - [ ] F-011 Secrets live only in environment variables. Never paste passcodes or API keys into prompts or commit them.
 - [ ] F-012 Each track ends with the checks listed in Paste-ready prompts.
@@ -40,12 +40,12 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Cruxy's character, floating Cruxy and the lamp
 
-- [ ] F-027 **Asks first.** When someone asks for an answer, Cruxy first asks one question that moves their thinking ("What would the other side say?", "Which fact matters most here?", "Does that fit your principle in Case 12?"). It gives its full answer once the person has tried, asks a second time, or is short on time.
+- [x] F-027 **Asks first.** When someone asks for an answer, Cruxy first asks one question that moves their thinking ("What would the other side say?", "Which fact matters most here?", "Does that fit your principle in Case 12?"). It gives its full answer once the person has tried, asks a second time, or is short on time. · [src/lib/cruxy/agents/assistant.ts, prompts/shared.ts]
 - [ ] F-028 **Answers directly** when asking would only waste time: lookups ("where is this in the Drive?"), schedule and logistics, admin questions, and anything during a timed round.
 - [ ] F-029 **Hints one at a time**, never the whole answer at once.
 - [ ] F-030 **Honest and kind.** Says when an argument is weak, never flatters, never pressures, and says plainly when it doesn't know.
 - [ ] F-031 **Ethically careful.** Argues every side at full strength, keeps its own politics out, never shames a person, and never takes sides between the USC teams.
-- [ ] F-032 **A learner.** Follows the reasoning standard and the improvement loop in Cruxy's agents, models and prompts.
+- [x] F-032 **A learner.** Follows the reasoning standard and the improvement loop in Cruxy's agents, models and prompts. · [src/lib/cruxy/prompts/shared.ts, examples.ts]
 - [ ] F-033 Cruxy floats above every page, on computers and phones, with a gentle bob (still for people who turn on reduced motion).
 - [ ] F-034 Drag it anywhere with a mouse, a finger or the arrow keys. Its spot is saved per person and device. On phones it snaps to the nearest edge so it never covers a button.
 - [ ] F-035 Tap Cruxy to open the drawer with its current question. A short speech bubble shows one question at a time, with "One hint, please" and "Back to the lamp".
@@ -116,17 +116,17 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 ## Research
 
 - [ ] F-093 **Nightly loop per case (batch mode, cheapest rates)**
-- [ ] F-094 Gap check: compare the case's claim maps across all three teams with the case set. List supports with no backing, outside facts not yet verified, counterclaims with no answer, and moderator questions with no prepared answer.
-- [ ] F-095 Search free sources for each gap (list in Stack): encyclopedias, academic indexes, court opinions, open books, recent news. Prefer the last 2 years for anything that changes; keep classics for frameworks.
+- [x] F-094 Gap check: compare the case's claim maps across all three teams with the case set. List supports with no backing, outside facts not yet verified, counterclaims with no answer, and moderator questions with no prepared answer. · [src/lib/cruxy/agents/researcher.ts]
+- [x] F-095 Search free sources for each gap (list in Stack): encyclopedias, academic indexes, court opinions, open books, recent news. Prefer the last 2 years for anything that changes; keep classics for frameworks. · [src/lib/cruxy/agents/researcher.ts, callCruxy webSearch]
 - [ ] F-096 Read the best 3 to 5 results per gap in full, not snippets.
-- [ ] F-097 Verify: every fact needs two independent sources or one primary source; mark single-source facts "needs check".
-- [ ] F-098 Write each finding as one card: the point in under 40 words, why it matters to which claim, the exact quote location, and the link.
+- [x] F-097 Verify: every fact needs two independent sources or one primary source; mark single-source facts "needs check". · [src/lib/cruxy/agents/researcher.ts]
+- [x] F-098 Write each finding as one card: the point in under 40 words, why it matters to which claim, the exact quote location, and the link. · [src/lib/cruxy/agents/researcher.ts]
 - [ ] F-099 Deduplicate against the library and against yesterday's findings.
-- [ ] F-100 Post cards to each team's Truth Sources queue as proposals, tagged Cruxy research.
+- [x] F-100 Post cards to each team's Truth Sources queue as proposals, tagged Cruxy research. · [src/lib/cruxy/agents/researcher.ts]
 - [ ] F-101 Coverage is measured: each case shows a research map of every claim, support and counterclaim with a filled, thin or empty dot.
 - [ ] F-102 Display is capped: a finding card is at most 40 words; the full source is one tap away.
-- [ ] F-103 Stop rule: a gap closes once it has two verified sources; Cruxy stops searching it.
-- [ ] F-104 When a gap points to a book the team doesn't own, Cruxy files a book request with the title, why it matters and the chapter.
+- [x] F-103 Stop rule: a gap closes once it has two verified sources; Cruxy stops searching it. · [src/lib/cruxy/agents/researcher.ts]
+- [x] F-104 When a gap points to a book the team doesn't own, Cruxy files a book request with the title, why it matters and the chapter. · [src/lib/cruxy/agents/researcher.ts]
 - [ ] F-105 Only Jainam sees and handles book requests. He uploads the PDF, which goes to the Drive's Crux uploads folder and is digested like any file.
 - [ ] F-106 Open books (public domain, open access) are fetched and digested automatically.
 - [ ] F-107 **Copyright rule:** Cruxy stores passages for citation inside Crux, shows short quotes only, and paraphrases the rest.
@@ -392,32 +392,32 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 ## Cruxy's agents, models and prompts
 
 - [ ] F-333 Agent · Job · Model tier · Runs
-- [ ] F-334 Librarian · Sort files, split passages, write file cards, extract ideas · Small · On sync, batch
-- [ ] F-335 Researcher · Find gaps, search, read, verify, write finding cards · Small for search and reading, strong for verification · Nightly, batch
-- [ ] F-336 Analyst · Check proposals (acceptable, relevant, sufficient), consistency across cases, change the facts list · Strong · On each proposal
-- [ ] F-337 Coach · One pagers, flashcards, Socratic drills, language and analogies · Small for cards, strong for Socratic · On demand
-- [ ] F-338 Moderator · Pick and phrase bank questions, write new ones · Small · On demand, nightly
-- [ ] F-339 Opponent · Write and read the other team's presentation or commentary · Strong · Practice
-- [ ] F-340 Judge · Score cards with evidence, ask Q&A questions, write reports and redos · Strong · After each round
-- [ ] F-341 Assistant · The chat drawer · Small by default, strong when asked to reason · On demand
+- [x] F-334 Librarian · Sort files, split passages, write file cards, extract ideas · Small · On sync, batch · [src/lib/cruxy/agents/librarian.ts]
+- [x] F-335 Researcher · Find gaps, search, read, verify, write finding cards · Small for search and reading, strong for verification · Nightly, batch · [src/lib/cruxy/agents/researcher.ts]
+- [x] F-336 Analyst · Check proposals (acceptable, relevant, sufficient), consistency across cases, change the facts list · Strong · On each proposal · [src/lib/cruxy/agents/analyst.ts]
+- [x] F-337 Coach · One pagers, flashcards, Socratic drills, language and analogies · Small for cards, strong for Socratic · On demand · [src/lib/cruxy/agents/coach.ts]
+- [x] F-338 Moderator · Pick and phrase bank questions, write new ones · Small · On demand, nightly · [src/lib/cruxy/agents/moderator.ts]
+- [x] F-339 Opponent · Write and read the other team's presentation or commentary · Strong · Practice · [src/lib/cruxy/agents/opponent.ts]
+- [x] F-340 Judge · Score cards with evidence, ask Q&A questions, write reports and redos · Strong · After each round · [src/lib/cruxy/agents/judge.ts]
+- [x] F-341 Assistant · The chat drawer · Small by default, strong when asked to reason · On demand · [src/lib/cruxy/agents/assistant.ts]
 - [x] F-342 **Model routing.** Call every model through one gateway (the Vercel AI SDK with AI Gateway, or OpenRouter) so models can be swapped from an admin setting without code changes. Use paid tiers that don't train on your data for anything containing transcripts. [`src/app/(app)/admin/admin-console.tsx`]
-- [ ] F-343 **Context packing (the main cost and quality lever)**
-- [ ] F-344 Never send the whole library. Each call gets: the Cruxy rules, the case card, the relevant claim map nodes, and the top 8 to 12 passages by search, about 6,000 to 12,000 tokens.
-- [ ] F-345 The Cruxy rules and case card are a fixed prefix, so prompt caching applies.
-- [ ] F-346 Transcripts are sent whole only to the Judge, once per round.
-- [ ] F-347 Every agent returns JSON in a fixed schema; every claim carries citation ids (passage, transcript line or truth item).
-- [ ] F-348 The server checks that each id exists and that a quoted string appears in the cited text; anything failing is dropped and logged.
-- [ ] F-349 **Shared system prompt (start of every call)**
-- [ ] F-350 **The reasoning standard (taught to every agent)**
-- [ ] F-351 **Logical structure:** claim → logic line ("because S1, S2 and S3, therefore the claim") → three supports, each with backing → at least one counterclaim answered by concede, distinguish or rebut. Every support passes the acceptable, relevant, sufficient test; if the supports could all be true and the claim still false, a support is missing.
-- [ ] F-352 **Ethical analysis:** name the values in tension, the stakeholders (including the voiceless), one or two frameworks explained in plain words with their limits, principle and consequences together, and what we concede.
-- [ ] F-353 **Stress tests:** counterexample, flip test, slope test, second order effects, and change the facts.
-- [ ] F-354 **Checks Cruxy runs on any argument:** a catalogue of common fallacies (false dilemma, slippery slope without a stopping point, post hoc, appeal to authority, equivocation on a key term), circular supports, unexplained theory, and a gap between principle and case facts.
-- [ ] F-355 **Growing example library.** Arguments that held up (accepted claim maps, moments judges praised, redos that scored higher) are stored as worked examples; weak ones are stored with what went wrong. Agents read the most similar examples before they work.
-- [ ] F-356 **People grade Cruxy.** Every critique, Socratic question and model answer has "useful" and "not useful" buttons with an optional reason; leads and admins can mark a Cruxy point as wrong.
+- [x] F-343 **Context packing (the main cost and quality lever)** · [src/lib/cruxy/context.ts]
+- [x] F-344 Never send the whole library. Each call gets: the Cruxy rules, the case card, the relevant claim map nodes, and the top 8 to 12 passages by search, about 6,000 to 12,000 tokens. · [src/lib/cruxy/context.ts]
+- [x] F-345 The Cruxy rules and case card are a fixed prefix, so prompt caching applies. · [src/lib/cruxy/context.ts, prompts/shared.ts]
+- [x] F-346 Transcripts are sent whole only to the Judge, once per round. · [src/lib/cruxy/agents/judge.ts]
+- [x] F-347 Every agent returns JSON in a fixed schema; every claim carries citation ids (passage, transcript line or truth item). · [src/lib/cruxy/schemas/, agents/runAgent.ts]
+- [x] F-348 The server checks that each id exists and that a quoted string appears in the cited text; anything failing is dropped and logged. · [src/lib/cruxy/citations.ts]
+- [x] F-349 **Shared system prompt (start of every call)** · [src/lib/cruxy/prompts/shared.ts]
+- [x] F-350 **The reasoning standard (taught to every agent)** · [src/lib/cruxy/prompts/shared.ts]
+- [x] F-351 **Logical structure:** claim → logic line ("because S1, S2 and S3, therefore the claim") → three supports, each with backing → at least one counterclaim answered by concede, distinguish or rebut. Every support passes the acceptable, relevant, sufficient test; if the supports could all be true and the claim still false, a support is missing. · [src/lib/cruxy/prompts/shared.ts]
+- [x] F-352 **Ethical analysis:** name the values in tension, the stakeholders (including the voiceless), one or two frameworks explained in plain words with their limits, principle and consequences together, and what we concede. · [src/lib/cruxy/prompts/shared.ts]
+- [x] F-353 **Stress tests:** counterexample, flip test, slope test, second order effects, and change the facts. · [src/lib/cruxy/prompts/shared.ts]
+- [x] F-354 **Checks Cruxy runs on any argument:** a catalogue of common fallacies (false dilemma, slippery slope without a stopping point, post hoc, appeal to authority, equivocation on a key term), circular supports, unexplained theory, and a gap between principle and case facts. · [src/lib/cruxy/prompts/shared.ts]
+- [x] F-355 **Growing example library.** Arguments that held up (accepted claim maps, moments judges praised, redos that scored higher) are stored as worked examples; weak ones are stored with what went wrong. Agents read the most similar examples before they work. · [src/lib/cruxy/examples.ts, migration 00011]
+- [x] F-356 **People grade Cruxy.** Every critique, Socratic question and model answer has "useful" and "not useful" buttons with an optional reason; leads and admins can mark a Cruxy point as wrong. · [src/lib/cruxy/examples.ts, api/cruxy/feedback]
 - [ ] F-357 **Outcomes grade Cruxy.** Cruxy's advice is checked against what happened next: did following it raise the person's next score, and did judges later agree?
-- [ ] F-358 **A fixed test set.** A set of past transcripts and arguments with agreed critiques is re-run whenever prompts or examples change; a change ships only if Cruxy does at least as well on it.
-- [ ] F-359 **Weekly review.** Cruxy drafts updates to its examples and checks from the week's feedback; the technical admin approves them in the console.
+- [x] F-358 **A fixed test set.** A set of past transcripts and arguments with agreed critiques is re-run whenever prompts or examples change; a change ships only if Cruxy does at least as well on it. · [tests/cruxy/, npm run test:cruxy]
+- [x] F-359 **Weekly review.** Cruxy drafts updates to its examples and checks from the week's feedback; the technical admin approves them in the console. · [src/lib/cruxy/weekly-review.ts]
 
 ## Cost plan and caps
 

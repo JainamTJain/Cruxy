@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "minScore": 0.75,
+  "lastScore": 0.917,
+  "notes": "Prompt changes ship only if score >= lastScore."
+}

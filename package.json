@@ -19,7 +19,8 @@
     "seed:quality": "tsx scripts/seed-quality.ts",
     "shots": "node scripts/shots.mjs",
     "smoke:supabase": "node --require ./scripts/preload-server-only.cjs ./node_modules/tsx/dist/cli.mjs scripts/supabase-smoke.ts",
-    "check:supabase-wired": "tsx scripts/check-supabase-wired.ts"
+    "check:supabase-wired": "tsx scripts/check-supabase-wired.ts",
+    "test:cruxy": "node scripts/with-server-only-stub.cjs ./node_modules/tsx/dist/cli.mjs scripts/test-cruxy.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.2",
