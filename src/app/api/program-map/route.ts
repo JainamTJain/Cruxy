@@ -15,6 +15,10 @@ import {
 } from "@/lib/db/repository";
 import { getRoadmapView } from "@/lib/revision/repository";
 import { listAssignments } from "@/lib/team/repository";
+import {
+  countLibraryForProgramMap,
+  ensureSampleLibraryBootstrapped,
+} from "@/lib/db/supabase/library-extra";
 
 export const runtime = "nodejs";
 
@@ -24,19 +28,22 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  await ensureSampleLibraryBootstrapped(session.personId).catch(() => null);
+
   const person = await getPersonById(session.personId);
   const lastVisit = await getLastVisit(session.personId);
   const [
     teams,
     cases,
     readiness,
-    totals,
+    totalsBase,
     competitions,
     people,
     avgs,
     changes,
     roadmap,
     assignments,
+    libraryCounts,
   ] = await Promise.all([
     listTeams(),
     listCases(),
@@ -48,7 +55,20 @@ export async function GET() {
     changesSince(lastVisit, 15),
     getRoadmapView(session.personId).catch(() => null),
     listAssignments({ personId: session.personId }).catch(() => []),
+    countLibraryForProgramMap().catch(() => ({
+      drive_files: 0,
+      passages: 0,
+    })),
   ]);
+
+  const totals = {
+    ...totalsBase,
+    drive_files: Math.max(totalsBase.drive_files, libraryCounts.drive_files),
+    passages_cited: Math.max(
+      totalsBase.passages_cited,
+      libraryCounts.passages,
+    ),
+  };
 
   await recordLastVisit(session.personId);
 

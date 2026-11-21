@@ -241,6 +241,31 @@ export async function searchLibraryWithEmbed(input: {
   return hits.sort((a, b) => b.score - a.score).slice(0, limit);
 }
 
+/** Live library counts for the program map (files + passages). */
+export async function countLibraryForProgramMap(): Promise<{
+  drive_files: number;
+  passages: number;
+}> {
+  if (isSampleDataMode()) {
+    const store = await readStore();
+    return {
+      drive_files: store.files.length,
+      passages: store.passages.length,
+    };
+  }
+  const sb = getServiceSupabase();
+  const [files, passages] = await Promise.all([
+    sb.from("files").select("id", { count: "exact", head: true }),
+    sb.from("passages").select("id", { count: "exact", head: true }),
+  ]);
+  assertOk(files.error, "countLibraryForProgramMap.files");
+  assertOk(passages.error, "countLibraryForProgramMap.passages");
+  return {
+    drive_files: files.count ?? 0,
+    passages: passages.count ?? 0,
+  };
+}
+
 /**
  * Local sample mode: if the library is empty, digest the sample Drive tree
  * once so Reading room and shots have real passages without a Sync click.
