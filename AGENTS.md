@@ -31,7 +31,7 @@ Tracks 0 to 6 are merged as plumbing (code under `src/`). The product does **not
 ## Rules that are never broken
 
 1. **No citation, no display.** Every AI output stores the ids of the sources it used. If Cruxy can't cite, it says so.
-2. **One AI gateway.** Every model call goes through `callCruxy()` in `src/lib/cruxy/callCruxy.ts`, which logs to `ai_calls`, enforces the caps in the spec's Cost plan section and refuses calls over them. Never call a model anywhere else.
+2. **One AI gateway.** Every model call goes through `callCruxy()` in `src/lib/cruxy/callCruxy.ts`, which logs to `ai_calls`, enforces the caps in the spec's Cost plan section and refuses calls over them. Never call a model anywhere else. Never add an Anthropic, OpenAI, Google or other provider SDK or key: only Vercel AI Gateway, with tier names (`small`, `strong`); Jainam chooses the model behind each tier in admin settings, so never hardcode a model or default provider.
 3. **Secrets live only in environment variables** (see `.env.example`). Never commit a key, a passcode, a service account file or a `.env` file. Never put a secret in a prompt, a log line or client code.
 4. **`SUPABASE_SERVICE_ROLE_KEY` (the `sb_secret_` key), `PASSCODE_VIEW_KEY` and the service account are server only.** Never import them into a client component.
 5. **Row level security on every table**, written in the same migration that creates the table.
