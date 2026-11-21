@@ -19,6 +19,7 @@ import {
   SEED_PERSON_IDS,
   SEED_TEAM_IDS,
 } from "@/lib/seed/ids";
+import { buildTeamSpaceSeed } from "@/lib/team/seed";
 import type { CaseStakeholderSeed } from "@/lib/seed/build-content";
 import type { ScoringCardItemSeed } from "@/lib/seed/scoring-card";
 import type {
@@ -570,6 +571,11 @@ export async function buildSeedStore(): Promise<SampleStore> {
 
   // Workstream B: real content from docs/domain/cases
   const content = await buildContentSeed(process.cwd());
+  // Workstream E: claim maps, team chat, gaps, Case 9 v7
+  const teamSpace = buildTeamSpaceSeed({
+    onePagers: content.one_pagers,
+    caseRoles: content.case_roles,
+  });
 
   // Ensure CASE_TITLES inactive flags and Case 10 title stay authoritative
   const cases: CaseRow[] = content.cases.map((c) => {
@@ -598,7 +604,7 @@ export async function buildSeedStore(): Promise<SampleStore> {
     counterclaims: content.counterclaims,
     truth_items: content.truth_items,
     proposals: content.proposals,
-    case_roles: content.case_roles,
+    case_roles: teamSpace.case_roles,
     opposing_positions: content.opposing_positions,
     seeded_at: now,
     last_tech_reauth_at: null,
@@ -608,6 +614,15 @@ export async function buildSeedStore(): Promise<SampleStore> {
     questions: content.questions,
     deck_opt_ins: content.deck_opt_ins,
     ...emptyTeamSpaceFields(),
+    assignments: [],
+    chats: teamSpace.chats,
+    messages: teamSpace.messages,
+    claim_map_versions: teamSpace.claim_map_versions,
+    claim_map_confirmations: teamSpace.claim_map_confirmations,
+    claim_change_proposals: [],
+    alignment_questions: teamSpace.alignment_questions,
+    drift_flags: [],
+    person_prefs: [],
     ...emptyPracticeTables(),
     ...emptyAdminFields(),
     case_stakeholders: content.stakeholders,

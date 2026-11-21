@@ -19,8 +19,10 @@ export type AssistantReply = {
 };
 
 /**
- * Cite-or-quiet assistant: answers from team Truth Sources first.
- * If none match, refuses with the quiet phrase (does not invent).
+ * Cite-or-quiet team assistant entry point.
+ * Workstream H owns the Assistant agent prompt and citation validator under
+ * `src/lib/cruxy/**`; this file only packs team Truth Sources and calls
+ * `callCruxy({ tier: "small" })`. When H lands, swap the call line to the agent.
  */
 export async function askTeamAssistant(
   question: string,

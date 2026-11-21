@@ -197,30 +197,30 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Assignments, team chat and the Cruxy assistant
 
-- [ ] F-160 An Assign button on every case, flashcard deck, one pager, reading and practice slot. Pick a person (or several), a role or task, and an optional due date.
-- [ ] F-161 Case roles (Lead 1, Lead 2, counter-arguer, supporter) are set per team per case; any team member can change them, in two taps, from the case brain or the team board. The change is logged and announced in team chat.
-- [ ] F-162 Everything assigned appears on the person's profile and roadmap, with who assigned it.
-- [ ] F-163 A team board shows the 12 cases by role and person, so gaps (a case with no lead) are visible at a glance.
-- [ ] F-164 One channel per team plus one all-program channel; every channel is readable by everyone; posting is for members of that team (admins can post anywhere).
-- [ ] F-165 Messages can mention people, link a case, a passage, a timestamp or a Truth Source.
-- [ ] F-166 Chat does not create tasks by itself; assignments stay explicit.
-- [ ] F-167 **One current position per case.** The claim map is versioned (v1, v2, ...). Any change to a claim, logic line or counterclaim response creates a new version with a one line "what changed and why", written by whoever changed it.
-- [ ] F-168 **Changes reach everyone.** A new version posts to team chat and to each member's home screen as a short diff (old wording struck through, new wording shown).
-- [ ] F-169 **Read and confirm.** Each member taps "I've got v7" after reading the diff. The case board shows who is still on an older version; a session start warns the admin if anyone in that round hasn't confirmed.
-- [ ] F-170 **Alignment check.** After a change, Cruxy asks each member 2 or 3 quick questions ("What is our Claim 2 now?", "How do we answer Waldron?"). Answers that drift from the current version are flagged to that person and the leads, privately at first.
-- [ ] F-171 **Drift in practice.** In transcripts, Cruxy flags lines where someone argues an older version or contradicts the current one ("Katie used the v5 wording of C2 at 12:40"), and links the current wording.
-- [ ] F-172 **State of the case, out loud.** Every team session can open with a 2 minute read-aloud of the current one pager by the supporter, so the room starts from the same version.
-- [ ] F-173 **Bigger changes need two people.** Changing a claim itself (not its supports) needs the lead plus one more team member to accept, so a position never shifts on one person's say-so.
-- [ ] F-174 **Cruxy assistant (drawer on every page)**
-- [ ] F-175 Knows where you are (case, page, highlight) and answers from your team's Truth Sources first, then the library, then the web, citing each.
-- [ ] F-176 Can: explain a passage, quiz you, find a source, draft a one pager row for your review, summarize what changed since your last visit, and tell you what to do next.
-- [ ] F-177 Won't: decide Truth Sources, change roles, or speak for the team.
-- [ ] F-178 Follows the Cruxy rules (cites, honest, even-handed, short) and has its own mark and colour so it is recognizable.
-- [ ] F-179 **What's happening where:** "What did the teams do this week?", "Which sessions ran today and who came?", "What changed in Case 12 since Monday?"
-- [ ] F-180 **Who is prepared:** "Who is ready to lead Case 9?", "Who hasn't practised Case 5?", "Who is behind their roadmap?" Readiness here means progress against each person's own path and history, not a fixed bar.
-- [ ] F-181 **Which team needs help:** "Which team is weakest on Case 13, and why?", "Where do the teams disagree?", "Which cases have no counterclaim answered?" Cruxy names the gap, the people involved and one suggested next step (a session, a drill or a pairing).
-- [ ] F-182 **Before a competition:** "Give me a readiness brief for Dec 5" returns a one page summary by team and case, with risks first.
-- [ ] F-183 It answers only from Crux's own records (roadmaps, attendance, scores, Truth Sources, chat), shows the numbers it used, and says when data is missing. Members can't use this mode.
+- [ ] F-160 An Assign button on every case, flashcard deck, one pager, reading and practice slot. Pick a person (or several), a role or task, and an optional due date. BLOCKED: Assign wired on /team and /team/cases/[id]; other surfaces owned by C/D/F
+- [x] F-161 Case roles (Lead 1, Lead 2, counter-arguer, supporter) are set per team per case; any team member can change them, in two taps, from the case brain or the team board. The change is logged and announced in team chat. [src/app/(app)/team/page.tsx]
+- [x] F-162 Everything assigned appears on the person's profile and roadmap, with who assigned it. [src/lib/team/repository.ts]
+- [x] F-163 A team board shows the 12 cases by role and person, so gaps (a case with no lead) are visible at a glance. [src/app/(app)/team/page.tsx]
+- [x] F-164 One channel per team plus one all-program channel; every channel is readable by everyone; posting is for members of that team (admins can post anywhere). [src/lib/team/repository.ts]
+- [ ] F-165 Messages can mention people, link a case, a passage, a timestamp or a Truth Source. BLOCKED: case_id + link_refs on messages; @mentions UI not finished
+- [x] F-166 Chat does not create tasks by itself; assignments stay explicit. [src/app/(app)/team/page.tsx]
+- [x] F-167 **One current position per case.** The claim map is versioned (v1, v2, ...). Any change to a claim, logic line or counterclaim response creates a new version with a one line "what changed and why", written by whoever changed it. [src/app/(app)/team/cases/[caseId]/page.tsx]
+- [x] F-168 **Changes reach everyone.** A new version posts to team chat and to each member's home screen as a short diff (old wording struck through, new wording shown). [src/app/(app)/team/page.tsx] (chat diff shown; home surface owned by F)
+- [x] F-169 **Read and confirm.** Each member taps "I've got v7" after reading the diff. The case board shows who is still on an older version; a session start warns the admin if anyone in that round hasn't confirmed. [src/app/(app)/team/page.tsx] (board + confirm; session warn owned by D)
+- [x] F-170 **Alignment check.** After a change, Cruxy asks each member 2 or 3 quick questions ("What is our Claim 2 now?", "How do we answer Waldron?"). Answers that drift from the current version are flagged to that person and the leads, privately at first. [src/app/(app)/team/page.tsx]
+- [ ] F-171 **Drift in practice.** In transcripts, Cruxy flags lines where someone argues an older version or contradicts the current one ("Katie used the v5 wording of C2 at 12:40"), and links the current wording. BLOCKED: practice transcript UI owned by D
+- [ ] F-172 **State of the case, out loud.** Every team session can open with a 2 minute read-aloud of the current one pager by the supporter, so the room starts from the same version. BLOCKED: session flow owned by D
+- [x] F-173 **Bigger changes need two people.** Changing a claim itself (not its supports) needs the lead plus one more team member to accept, so a position never shifts on one person's say-so. [src/app/(app)/team/cases/[caseId]/page.tsx]
+- [x] F-174 **Cruxy assistant (drawer on every page)** [src/lib/team/assistant.ts] (drawer shell owned by A; team assistant uses tier small)
+- [x] F-175 Knows where you are (case, page, highlight) and answers from your team's Truth Sources first, then the library, then the web, citing each. [src/lib/team/assistant.ts] (Truth Sources first; library/web via Workstream H)
+- [ ] F-176 Can: explain a passage, quiz you, find a source, draft a one pager row for your review, summarize what changed since your last visit, and tell you what to do next. BLOCKED: full tool set lands with Workstream H agents
+- [x] F-177 Won't: decide Truth Sources, change roles, or speak for the team. [src/lib/team/assistant.ts]
+- [x] F-178 Follows the Cruxy rules (cites, honest, even-handed, short) and has its own mark and colour so it is recognizable. [src/lib/team/assistant.ts]
+- [ ] F-179 **What's happening where:** "What did the teams do this week?", "Which sessions ran today and who came?", "What changed in Case 12 since Monday?" BLOCKED: admin drawer mode owned by A/G
+- [ ] F-180 **Who is prepared:** "Who is ready to lead Case 9?", "Who hasn't practised Case 5?", "Who is behind their roadmap?" Readiness here means progress against each person's own path and history, not a fixed bar. BLOCKED: admin drawer mode owned by A/G
+- [ ] F-181 **Which team needs help:** "Which team is weakest on Case 13, and why?", "Where do the teams disagree?", "Which cases have no counterclaim answered?" Cruxy names the gap, the people involved and one suggested next step (a session, a drill or a pairing). BLOCKED: admin drawer mode owned by A/G
+- [ ] F-182 **Before a competition:** "Give me a readiness brief for Dec 5" returns a one page summary by team and case, with risks first. BLOCKED: admin drawer mode owned by A/G
+- [ ] F-183 It answers only from Crux's own records (roadmaps, attendance, scores, Truth Sources, chat), shows the numbers it used, and says when data is missing. Members can't use this mode. BLOCKED: admin drawer mode owned by A/G
 
 ## Sessions
 
