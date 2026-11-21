@@ -97,21 +97,21 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 
 ## Library and Drive sync
 
-- [ ] F-078 Jainam connects the Ethics Bowl Drive folder once (Google sign in for the Drive API, read only scope).
+- [x] F-078 Jainam connects the Ethics Bowl Drive folder once (service account share, not Google sign-in; Sync now on /library). [`src/lib/library/drive.ts`, `src/app/api/library/sync/route.ts`, `src/app/(app)/library/page.tsx`]
 - [x] F-079 A nightly job and a "Sync now" button list every file in the folder tree, including Google Docs, PDFs, Sheets and Slides. [src/app/api/cron/drive-sync/route.ts, src/app/api/library/sync/route.ts]
 - [x] F-080 Only new or changed files are processed (compare Drive's modified time and checksum); unchanged files cost nothing. [src/lib/library/sync.ts]
-- [ ] F-081 Files added inside Crux (uploads, books) are also written back to a "Crux uploads" folder in the Drive, so the Drive stays the full archive.
+- [x] F-081 Files added inside Crux (uploads, books) are also written back to a "Crux uploads" folder in the Drive, so the Drive stays the full archive. [`src/lib/library/drive-write.ts`, `src/app/api/library/upload/route.ts`]
 - [x] F-082 Extract text: Docs and Slides via Drive export, PDFs via text extraction (scanned PDFs flagged for Jainam). [src/lib/library/drive.ts]
 - [x] F-083 Sort: a small model tags each file with its cases (1, 3, 4, 5, 7, 9, 10, 11, 12, 13, 14, 15, or "general"), its type (case set, practice transcript, team notes, rules, research, coach guidance) and a confidence score. Under 0.7 goes to a sorting queue for Jainam. [src/lib/library/digest.ts]
 - [x] F-084 Split into passages of about 600 words with page or heading anchors, embed each, and store them for search. [src/lib/library/digest.ts]
-- [ ] F-085 Extract from each file: ideas raised, who raised them, frameworks named, facts with sources, moderator style questions, and coach decisions. Ideas from practice transcripts become Truth Source proposals for the team that raised them. (implemented: `src/lib/library/digest.ts`, `src/lib/library/sync.ts`; owner F to verify)
-- [ ] F-086 Write a 5 line file card: what it is, which case, what's new in it, open questions. (implemented: `src/lib/cruxy/agents/librarian.ts`, `src/lib/library/digest.ts`; owner F to verify)
+- [x] F-085 Extract from each file: ideas raised, who raised them, frameworks named, facts with sources, moderator style questions, and coach decisions. Ideas from practice transcripts become Truth Source proposals for the team that raised them. [`src/lib/library/digest.ts`, `src/lib/library/sync.ts`, `src/lib/cruxy/schemas/librarian.ts`]
+- [x] F-086 Write a 5 line file card: what it is, which case, what's new in it, open questions. [`src/lib/library/file-card.ts`, `src/lib/library/digest.ts`, `src/app/(app)/library/[fileId]/page.tsx`]
 - [x] F-087 **Reading room** (any time except while you are in a live practice) [src/app/(app)/library/[fileId]/page.tsx]
 - [x] F-088 Open any case or resource full screen, with the case set page and the file side by side. [src/app/(app)/library/[fileId]/page.tsx]
 - [x] F-089 Highlight text and leave a comment; highlights and comments are visible to all three teams, with names and team colours. [src/app/(app)/library/[fileId]/page.tsx]
 - [x] F-090 Ask Cruxy about a highlight: "explain this", "find a counterexample", "is this cited elsewhere in our Drive?" [src/app/api/library/ask/route.ts]
 - [x] F-091 Turn a highlight into a flashcard or a Truth Source proposal in one tap. [src/app/api/library/highlight-actions/route.ts]
-- [ ] F-092 Search across everything (passages, transcripts, Truth Sources, comments) with filters by case, team and type. (implemented: `src/app/(app)/library/search/page.tsx`, `src/app/api/library/search/route.ts`; owner F to verify)
+- [x] F-092 Search across everything (passages, transcripts, Truth Sources, comments) with filters by case, team and type. [`src/lib/db/supabase/library-search-extra.ts`, `src/app/api/library/search/route.ts`, `src/app/(app)/library/search/page.tsx`]
 
 ## Research
 

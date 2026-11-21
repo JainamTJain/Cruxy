@@ -16,14 +16,28 @@ type Hit = {
   score: number;
   case_numbers: number[];
   type: string | null;
+  team_id?: string | null;
 };
+
+type Team = { id: string; name: string };
 
 export default function LibrarySearchPage() {
   const [q, setQ] = useState("");
   const [caseNumber, setCaseNumber] = useState("");
   const [type, setType] = useState("");
+  const [teamId, setTeamId] = useState("");
+  const [teams, setTeams] = useState<Team[]>([]);
   const [hits, setHits] = useState<Hit[]>([]);
   const [searched, setSearched] = useState(false);
+
+  useEffect(() => {
+    void fetch("/api/revision/one-pagers")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { teams?: Team[] } | null) => {
+        if (d?.teams) setTeams(d.teams);
+      })
+      .catch(() => null);
+  }, []);
 
   async function runSearch(e?: React.FormEvent) {
     e?.preventDefault();
@@ -31,16 +45,13 @@ export default function LibrarySearchPage() {
     if (q.trim()) params.set("q", q.trim());
     if (caseNumber) params.set("case", caseNumber);
     if (type) params.set("type", type);
+    if (teamId) params.set("team", teamId);
     const res = await fetch(`/api/library/search?${params}`);
     if (!res.ok) return;
     const data = (await res.json()) as { hits: Hit[] };
     setHits(data.hits);
     setSearched(true);
   }
-
-  useEffect(() => {
-    // no auto-search
-  }, []);
 
   return (
     <main className="animate-fade-up space-y-6">
@@ -50,7 +61,8 @@ export default function LibrarySearchPage() {
         </Link>
         <h1 className="font-display text-3xl font-semibold">Search</h1>
         <p className="mt-1 text-sm text-muted">
-          Passages, transcripts, and comments — filter by case and type.
+          Passages, transcripts, Truth Sources, and comments. Filter by case,
+          team, and type.
         </p>
       </div>
 
@@ -74,6 +86,18 @@ export default function LibrarySearchPage() {
           ))}
         </select>
         <select
+          value={teamId}
+          onChange={(e) => setTeamId(e.target.value)}
+          className="rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm"
+        >
+          <option value="">All teams</option>
+          {teams.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+        <select
           value={type}
           onChange={(e) => setType(e.target.value)}
           className="rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm"
@@ -85,6 +109,7 @@ export default function LibrarySearchPage() {
           <option value="rules">Rules</option>
           <option value="research">Research</option>
           <option value="coach_guidance">Coach guidance</option>
+          <option value="truth">Truth Sources</option>
         </select>
         <Button type="submit">Search</Button>
       </form>
@@ -116,7 +141,6 @@ export default function LibrarySearchPage() {
                 <span className="font-mono text-[10px] text-muted">
                   {h.kind}
                   {h.anchor ? `, ${h.anchor}` : ""}
-                  {h.drive_id ? `, ${h.drive_id.slice(0, 10)}` : ""}
                   {`, ${h.score.toFixed(2)}`}
                 </span>
               </div>

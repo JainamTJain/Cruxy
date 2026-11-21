@@ -403,7 +403,9 @@ export default function ReadingRoomPage() {
             )}
             {file.card ? (
               <p className="m-0 font-sans text-[15px] text-muted">
-                File card: {file.card.split("\n")[0]}
+                <span className="block whitespace-pre-wrap">
+                  {file.card}
+                </span>
               </p>
             ) : null}
             {passages[0]?.drive_id || passages[0]?.id ? (
