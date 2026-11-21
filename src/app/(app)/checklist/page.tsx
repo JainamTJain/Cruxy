@@ -1,96 +1,114 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-const ITEMS: { key: string; label: string; hint: string }[] = [
-  {
-    key: "confirm_cases",
-    label: "Confirm your cases and roles",
-    hint: "Team board lands in Track 4 — mark done once you know your leads.",
-  },
-  {
-    key: "open_reading",
-    label: "Open one reading",
-    hint: "Reading room is Track 1.",
-  },
-  {
-    key: "review_flashcards",
-    label: "Review 5 flashcards",
-    hint: "Flashcards are Track 3.",
-  },
-  {
-    key: "answer_aloud",
-    label: "Answer one question out loud",
-    hint: "Practice modes are Track 5.",
-  },
-  {
-    key: "see_roadmap",
-    label: "See your roadmap",
-    hint: "Roadmaps are Track 3.",
-  },
-];
+type Item = {
+  key: string;
+  label: string;
+  href: string;
+  done: boolean;
+};
 
 export default function ChecklistPage() {
-  const [checklist, setChecklist] = useState<Record<string, boolean>>({});
+  const [items, setItems] = useState<Item[]>([]);
+  const [complete, setComplete] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [championId, setChampionId] = useState<string | null>(null);
+
+  async function load() {
+    const res = await fetch("/api/checklist");
+    if (!res.ok) return;
+    const data = (await res.json()) as {
+      items: Item[];
+      complete: boolean;
+    };
+    setItems(data.items);
+    setComplete(data.complete);
+    const ch = await fetch("/api/auth/champion");
+    if (ch.ok) {
+      const c = (await ch.json()) as { championId?: string | null };
+      setChampionId(c.championId ?? null);
+    }
+  }
 
   useEffect(() => {
-    void fetch("/api/auth/me")
-      .then((r) => r.json())
-      .then((d: { person?: { first_run_checklist?: Record<string, boolean> } }) => {
-        setChecklist(d.person?.first_run_checklist ?? {});
-      });
+    void load();
   }, []);
 
-  async function toggle(key: string) {
+  async function toggle(key: string, done: boolean) {
     setBusy(key);
     try {
-      const res = await fetch("/api/checklist", {
+      await fetch("/api/checklist", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ key, done: !checklist[key] }),
+        body: JSON.stringify({ key, done: !done }),
       });
-      const data = (await res.json()) as {
-        checklist?: Record<string, boolean>;
-      };
-      if (data.checklist) setChecklist(data.checklist);
+      await load();
     } finally {
       setBusy(null);
     }
   }
 
-  const done = ITEMS.filter((i) => checklist[i.key]).length;
+  async function becomeChampion() {
+    await fetch("/api/auth/champion", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "set" }),
+    });
+    await load();
+  }
+
+  const done = items.filter((i) => i.done).length;
 
   return (
     <main className="animate-fade-up space-y-6">
       <div>
         <h1 className="font-display text-3xl font-semibold">First-run checklist</h1>
         <p className="mt-1 text-sm text-muted">
-          About 10 minutes · {done} of {ITEMS.length} done
+          About 10 minutes · {done} of {items.length || 5} done
+          {complete ? " · complete" : ""}
         </p>
       </div>
       <ul className="space-y-3">
-        {ITEMS.map((item) => (
+        {items.map((item) => (
           <li
             key={item.key}
             className="flex flex-col gap-2 rounded-2xl border border-ink/10 bg-white/60 p-4 sm:flex-row sm:items-center sm:justify-between"
           >
             <div>
               <p className="font-medium">{item.label}</p>
-              <p className="text-xs text-muted">{item.hint}</p>
+              <Link href={item.href} className="text-xs text-cardinal underline">
+                Open
+              </Link>
             </div>
             <Button
-              size="sm"
-              variant={checklist[item.key] ? "gold" : "outline"}
+              variant={item.done ? "secondary" : "outline"}
               disabled={busy === item.key}
-              onClick={() => void toggle(item.key)}
+              onClick={() => void toggle(item.key, item.done)}
             >
-              {checklist[item.key] ? "Done" : "Mark done"}
+              {item.done ? "Done" : "Mark done"}
             </Button>
           </li>
         ))}
       </ul>
+      <div className="rounded-2xl border border-ink/10 bg-white/60 p-4">
+        <h2 className="font-display text-lg font-semibold">Team champion</h2>
+        <p className="mt-1 text-sm text-muted">
+          One person per team gets nudges when teammates have not finished this
+          checklist.
+        </p>
+        <Button className="mt-3" variant="outline" onClick={() => void becomeChampion()}>
+          {championId ? "I am the champion" : "Choose me as champion"}
+        </Button>
+      </div>
+      <Link
+        href="/home"
+        className="inline-flex h-10 items-center justify-center rounded-xl bg-cardinal px-4 text-sm font-semibold text-white"
+      >
+        Go to home
+      </Link>
     </main>
   );
 }

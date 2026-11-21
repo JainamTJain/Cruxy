@@ -1,10 +1,15 @@
 /**
- * Soft bridge to Workstream I (`src/lib/ops/**`) and H (weekly Cruxy review).
- * Those modules are not on main yet. When they land, flip the imports below
- * from null stubs to the real exports. Do not invent schema here (G's
- * reserved migration is 00017 if a table is ever needed).
+ * Soft bridge from Workstream G's admin panel to Workstream I (`src/lib/ops/**`)
+ * and H (weekly Cruxy review). Privacy / season / backup → I; review → H.
  */
 import "server-only";
+import { adminDeletePersonPrivateData } from "@/lib/ops/privacy-delete";
+import { runSeasonEndExport } from "@/lib/ops/season-export";
+import { getBackupStatus as opsGetBackupStatus } from "@/lib/ops/backup";
+import {
+  approveWeeklyReview,
+  listPendingWeeklyReviews,
+} from "@/lib/cruxy/weekly-review";
 
 export type DeletePersonResult = {
   ok: true;
@@ -69,30 +74,96 @@ type ReviewOps = {
   ) => Promise<{ ok: true }>;
 };
 
-/**
- * Workstream I: set this to `await import("@/lib/ops/privacy")` once that
- * file exists. Until then the admin panel shows a waiting slot.
- */
+/** Workstream I: one-action admin privacy delete. */
 export async function loadPrivacyOps(): Promise<PrivacyOps | null> {
-  return null;
+  return {
+    async deletePersonPrivateData(personId, actorId) {
+      const result = await adminDeletePersonPrivateData({ personId, actorId });
+      return {
+        ok: true,
+        deleted: {
+          transcript_lines: result.transcriptLines,
+          voice_sample: result.voiceSample,
+          comments: result.comments,
+        },
+      };
+    },
+  };
 }
 
 /** Workstream I: season-end downloadable archive. */
 export async function loadSeasonOps(): Promise<SeasonOps | null> {
-  return null;
+  return {
+    async buildSeasonArchive(actorId) {
+      const year = new Date().getUTCFullYear();
+      const result = await runSeasonEndExport({
+        actorId,
+        seasonLabel: `${year}-CA`,
+        deleteVoiceSamples: true,
+        deleteOldTranscripts: false,
+      });
+      return {
+        ok: true,
+        filename: result.storagePath,
+        bytes: result.byteSize,
+        downloadPath: result.downloadUrl ?? undefined,
+      };
+    },
+  };
 }
 
 /** Workstream I: weekly logical backup status from Storage. */
 export async function loadBackupOps(): Promise<BackupOps | null> {
-  return null;
+  return {
+    getBackupStatus: () => opsGetBackupStatus(),
+  };
 }
 
-/**
- * Workstream H: weekly Cruxy review draft the tech admin approves.
- * Wire to the H module when it lands.
- */
+/** Workstream H: weekly Cruxy review draft the tech admin approves. */
 export async function loadReviewOps(): Promise<ReviewOps | null> {
-  return null;
+  return {
+    async listPendingReviews() {
+      const rows = await listPendingWeeklyReviews();
+      return rows.map((r) => ({
+        id: r.id,
+        weekOf: r.week_start,
+        summary: r.draft_body,
+        proposedUpdates: (r.proposed_check_updates ?? []).map((item) => {
+          if (typeof item === "string") return { kind: "check", text: item };
+          if (item && typeof item === "object") {
+            const rec = item as { kind?: unknown; text?: unknown };
+            return {
+              kind: typeof rec.kind === "string" ? rec.kind : "check",
+              text:
+                typeof rec.text === "string"
+                  ? rec.text
+                  : JSON.stringify(item),
+            };
+          }
+          return { kind: "check", text: String(item) };
+        }),
+        status: r.status as CruxyReviewDraft["status"],
+        created_at: r.created_at,
+      }));
+    },
+    async approveReview(draftId, actorId) {
+      await approveWeeklyReview({
+        id: draftId,
+        reviewedBy: actorId,
+        approve: true,
+      });
+      return { ok: true };
+    },
+    async rejectReview(draftId, actorId, reason) {
+      await approveWeeklyReview({
+        id: draftId,
+        reviewedBy: actorId,
+        approve: false,
+        note: reason ?? null,
+      });
+      return { ok: true };
+    },
+  };
 }
 
 export function waitingPayload(workstream: "I" | "H", feature: string) {

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
 import { saveConsent } from "@/lib/auth/passcode-rules";
 import { getSession, updateSession } from "@/lib/auth/session";
+import { uploadVoiceSample } from "@/lib/auth/voice-sample";
 
 export const runtime = "nodejs";
 
@@ -21,12 +20,12 @@ export async function POST(req: Request) {
     recordingOk = form.get("recordingOk") === "true";
     const file = form.get("voice");
     if (recordingOk && file && file instanceof File && file.size > 0) {
-      const dir = path.join(process.cwd(), ".voice-samples");
-      await fs.mkdir(dir, { recursive: true });
-      const dest = path.join(dir, `${session.personId}.webm`);
       const buf = Buffer.from(await file.arrayBuffer());
-      await fs.writeFile(dest, buf);
-      voicePath = dest;
+      voicePath = await uploadVoiceSample(
+        session.personId,
+        buf,
+        file.type || "audio/webm",
+      );
     }
   } else {
     const body = (await req.json()) as { recordingOk?: boolean };

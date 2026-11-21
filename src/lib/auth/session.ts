@@ -49,11 +49,32 @@ export async function clearSessionCookie() {
   jar.delete(COOKIE);
 }
 
+/**
+ * Returns the session only if the cookie is valid and people.session_version
+ * still matches (passcode reset signs the person out everywhere).
+ */
 export async function getSession(): Promise<SessionPayload | null> {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
   if (!token) return null;
-  return readSessionToken(token);
+  const payload = await readSessionToken(token);
+  if (!payload) return null;
+
+  try {
+    const { getPersonSessionVersion } = await import(
+      "@/lib/db/supabase/auth-extra"
+    );
+    const current = await getPersonSessionVersion(payload.personId);
+    const tokenVersion =
+      typeof payload.sessionVersion === "number" ? payload.sessionVersion : 0;
+    if (tokenVersion !== current) {
+      await clearSessionCookie();
+      return null;
+    }
+  } catch {
+    // If the version check cannot run, keep the cookie so sample/dev still works.
+  }
+  return payload;
 }
 
 export async function updateSession(patch: Partial<SessionPayload>) {

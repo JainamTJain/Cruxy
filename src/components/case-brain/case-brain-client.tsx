@@ -27,6 +27,8 @@ type MapVersionMeta = {
   confirmed_count: number;
   team_size: number;
   viewer_confirmed: boolean;
+  unconfirmed_names: string[];
+  diff_lines: { path: string; before: string; after: string }[];
 };
 
 type Payload = {
@@ -38,9 +40,13 @@ type Payload = {
   viewer: { personId: string; teamId: string; name: string };
   meta: {
     truth_count: number;
+    truth_accepted: number;
+    truth_rejected: number;
+    truth_waiting: number;
     flashcard_count: number;
     question_count: number;
     reading_count: number;
+    also_studying: string[];
     map_version: MapVersionMeta | null;
   };
 };
@@ -223,6 +229,18 @@ export function CaseBrainClient({
   const leadNames = [lead1, lead2]
     .map((r) => personName(data.people, r?.person_id))
     .filter((n) => n !== "—");
+
+  // Design shows "No backing yet · N waiting" on the first unbacked support only.
+  let firstMissingSupportId: string | null = null;
+  for (const node of brain.claims) {
+    for (const s of node.supports) {
+      if (s.backings.length === 0) {
+        firstMissingSupportId = s.support.id;
+        break;
+      }
+    }
+    if (firstMissingSupportId) break;
+  }
 
   return (
     <div className="flex flex-col gap-5 animate-fade-up">
@@ -461,8 +479,9 @@ export function CaseBrainClient({
                               {missing ? (
                                 <span className="text-[13px] font-semibold text-[#C62828]">
                                   No backing yet
-                                  {pending.length
-                                    ? ` · ${Math.min(pending.length, 1)} waiting in the queue`
+                                  {s.support.id === firstMissingSupportId &&
+                                  pending.length
+                                    ? ` · ${pending.length} waiting in the queue`
                                     : ""}
                                 </span>
                               ) : (
@@ -472,7 +491,7 @@ export function CaseBrainClient({
                                       key={b.id}
                                       className="inline-flex items-center rounded-md bg-paper px-2 py-0.5 font-mono text-[12px] font-medium text-[#3B404A]"
                                     >
-                                      {backingChip(b.text)}
+                                      {backingChip(b)}
                                     </span>
                                   ))}
                                 </div>
@@ -514,11 +533,19 @@ export function CaseBrainClient({
 
                 <VersionConfirm
                   version={meta.map_version?.version ?? null}
+                  changeSummary={meta.map_version?.change_summary ?? null}
                   confirmedCount={meta.map_version?.confirmed_count ?? 0}
                   teamSize={meta.map_version?.team_size ?? teamPeople.length}
+                  unconfirmedNames={meta.map_version?.unconfirmed_names ?? []}
+                  diffLines={meta.map_version?.diff_lines ?? []}
                   canConfirm={
-                    Boolean(canEdit && meta.map_version && !meta.map_version.viewer_confirmed)
+                    Boolean(
+                      canEdit &&
+                        meta.map_version &&
+                        !meta.map_version.viewer_confirmed,
+                    )
                   }
+                  canPublish={canEdit}
                   busy={busy}
                   onConfirm={() => {
                     if (!meta.map_version) return;
@@ -530,7 +557,16 @@ export function CaseBrainClient({
                       }),
                     });
                   }}
-                  onPublish={
+                  onPublish={(changeSummary) => {
+                    void api(`/api/case-brain/${caseId}`, {
+                      method: "POST",
+                      body: JSON.stringify({
+                        action: "publish_version",
+                        changeSummary,
+                      }),
+                    });
+                  }}
+                  onEnsure={
                     canEdit
                       ? () => {
                           void api(`/api/case-brain/${caseId}`, {
@@ -549,7 +585,15 @@ export function CaseBrainClient({
                       cards.
                     </strong>{" "}
                     Leads {leadNames.join(" and ") || "—"} get them
-                    automatically.
+                    automatically
+                    {meta.also_studying.length
+                      ? `. Also studying: ${meta.also_studying.join(", ")} `
+                      : ". "}
+                    {meta.also_studying.length ? (
+                      <span className="font-semibold text-[#8A6500]">
+                        (not assigned)
+                      </span>
+                    ) : null}
                   </span>
                   <Link
                     href={`/revision/flashcards?caseId=${caseId}`}
@@ -563,6 +607,16 @@ export function CaseBrainClient({
 
             {tab === "truth" ? (
               <section className="space-y-3">
+                <div className="rounded-[20px] bg-white p-5">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
+                    Truth Sources
+                  </div>
+                  <p className="mt-1 text-base leading-snug">
+                    {meta.truth_accepted} accepted · {meta.truth_rejected}{" "}
+                    rejected · {meta.truth_waiting} waiting for{" "}
+                    {viewingTeam?.name ?? "this team"}
+                  </p>
+                </div>
                 {brain.truth_items.length === 0 ? (
                   <p className="text-sm text-muted">No Truth Sources yet.</p>
                 ) : (
@@ -571,11 +625,16 @@ export function CaseBrainClient({
                       key={t.id}
                       className="rounded-[20px] bg-white p-5"
                     >
-                      <OriginTag label={t.kind} />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <OriginTag label={t.kind} />
+                        <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
+                          {t.status}
+                        </span>
+                      </div>
                       <p className="mt-2 text-sm leading-snug">{t.text}</p>
                       <p className="mt-1 font-mono text-[11px] text-muted">
                         {t.citation_ids.length
-                          ? `${t.citation_ids.length} citation(s)`
+                          ? t.citation_ids.join(" · ")
                           : "needs check"}
                       </p>
                     </article>

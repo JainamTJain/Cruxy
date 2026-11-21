@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Keypad } from "@/components/keypad";
+import { SAMPLE_MEMBER_STARTER } from "@/lib/constants";
+import { validatePersonalPasscode } from "@/lib/auth/passcode-shape";
 
 export default function SettingsPage() {
   const [email, setEmail] = useState("");
@@ -9,7 +12,14 @@ export default function SettingsPage() {
   const [digestOptIn, setDigestOptIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [hideFloat, setHideFloat] = useState(false);
+  const [recordingOk, setRecordingOk] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
+
+  const [passStep, setPassStep] = useState<"idle" | "current" | "next" | "confirm">(
+    "idle",
+  );
+  const [currentCode, setCurrentCode] = useState<string | null>(null);
+  const [nextCode, setNextCode] = useState<string | null>(null);
 
   useEffect(() => {
     void fetch("/api/auth/me")
@@ -22,11 +32,13 @@ export default function SettingsPage() {
             email_reminders_opt_in?: boolean;
             digest_opt_in?: boolean;
             role?: string;
+            recording_ok?: boolean;
           };
         }) => {
           setEmail(d.person?.email ?? "");
           setOptIn(Boolean(d.person?.email_reminders_opt_in));
           setDigestOptIn(Boolean(d.person?.digest_opt_in));
+          setRecordingOk(d.person?.recording_ok !== false);
           const role = d.person?.role ?? d.session?.role;
           setIsAdmin(role === "tech_admin" || role === "coach_admin");
         },
@@ -58,7 +70,74 @@ export default function SettingsPage() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ hide_floating_cruxy: hideFloat }),
     });
+    if (res.ok) {
+      window.dispatchEvent(
+        new CustomEvent("cruxy-prefs", {
+          detail: { hide_floating_cruxy: hideFloat },
+        }),
+      );
+    }
     setMsg(res.ok ? "Cruxy preference saved." : "Could not save Cruxy preference.");
+  }
+
+  async function saveConsent(next: boolean) {
+    const res = await fetch("/api/auth/consent-update", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ recordingOk: next, deleteVoice: !next }),
+    });
+    if (res.ok) {
+      setRecordingOk(next);
+      setMsg(
+        next
+          ? "Consent updated. You can be recorded in practice."
+          : "Consent withdrawn. Voice sample deleted. Text only from now on.",
+      );
+    } else {
+      setMsg("Could not update consent.");
+    }
+  }
+
+  async function onPasscodeDigit(code: string) {
+    setMsg(null);
+    if (passStep === "current") {
+      setCurrentCode(code);
+      setPassStep("next");
+      return;
+    }
+    if (passStep === "next") {
+      const bad = validatePersonalPasscode(code, SAMPLE_MEMBER_STARTER);
+      if (bad) {
+        setMsg(bad);
+        return;
+      }
+      setNextCode(code);
+      setPassStep("confirm");
+      return;
+    }
+    if (passStep === "confirm" && currentCode && nextCode) {
+      const res = await fetch("/api/auth/change-passcode", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          current: currentCode,
+          next: nextCode,
+          confirm: code,
+        }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setMsg(data.error ?? "Could not change passcode.");
+        setPassStep("idle");
+        setCurrentCode(null);
+        setNextCode(null);
+        return;
+      }
+      setMsg("Passcode changed.");
+      setPassStep("idle");
+      setCurrentCode(null);
+      setNextCode(null);
+    }
   }
 
   return (
@@ -99,6 +178,63 @@ export default function SettingsPage() {
         </label>
       ) : null}
       <Button onClick={() => void saveReminders()}>Save reminders</Button>
+
+      <div className="border-t border-ink/10 pt-4">
+        <h2 className="font-display text-lg font-semibold">Consent</h2>
+        <p className="mt-1 text-sm text-muted">
+          {recordingOk
+            ? "You agreed to be recorded in practice."
+            : "Text only. You will not be recorded."}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button
+            variant={recordingOk ? "default" : "outline"}
+            onClick={() => void saveConsent(true)}
+          >
+            I agree to be recorded in practice
+          </Button>
+          <Button
+            variant={!recordingOk ? "default" : "outline"}
+            onClick={() => void saveConsent(false)}
+          >
+            Not now: text only
+          </Button>
+        </div>
+      </div>
+
+      <div className="border-t border-ink/10 pt-4">
+        <h2 className="font-display text-lg font-semibold">Passcode</h2>
+        <p className="mt-1 text-sm text-muted">
+          Enter your current passcode, then choose a new one twice.
+        </p>
+        {passStep === "idle" ? (
+          <Button className="mt-3" variant="outline" onClick={() => setPassStep("current")}>
+            Change passcode
+          </Button>
+        ) : (
+          <div className="mt-3 max-w-sm rounded-2xl bg-[#E8F5F1] p-4">
+            <p className="mb-3 text-sm font-semibold">
+              {passStep === "current"
+                ? "Current passcode"
+                : passStep === "next"
+                  ? "New passcode"
+                  : "Type the new one again"}
+            </p>
+            <Keypad onSubmit={(c) => void onPasscodeDigit(c)} />
+            <Button
+              variant="ghost"
+              className="mt-2"
+              onClick={() => {
+                setPassStep("idle");
+                setCurrentCode(null);
+                setNextCode(null);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
+      </div>
 
       <div className="border-t border-ink/10 pt-4">
         <h2 className="font-display text-lg font-semibold">Cruxy</h2>
