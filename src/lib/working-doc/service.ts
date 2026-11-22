@@ -203,7 +203,7 @@ export async function getWorkingDocumentHub(opts: {
 
   let passages: TeamDocPassageRow[] = [];
   let sections: Awaited<ReturnType<typeof listWorkingSections>> = [];
-  let openSocratic: Record<
+  const openSocratic: Record<
     string,
     { id: string; question: string } | null
   > = {};

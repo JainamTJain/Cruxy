@@ -63,6 +63,7 @@ type Hub = {
   }>;
   crossedCount: number;
   viewer: { personId: string; teamId: string };
+  canEdit?: boolean;
 };
 
 const KIND_LABEL: Record<string, string> = {
@@ -171,6 +172,8 @@ export function WorkingDocument({
   }
 
   const path = data.brief.working_path;
+  const canEdit = data.canEdit !== false;
+  const editBusy = busy || !canEdit;
 
   return (
     <div className="flex flex-col gap-4">
@@ -180,9 +183,16 @@ export function WorkingDocument({
         </p>
       ) : null}
 
+      {!canEdit ? (
+        <p className="m-0 rounded-xl bg-[#F7F8FA] px-3.5 py-2 text-sm text-muted">
+          Viewing another team&apos;s document. Tick and edits stay on your own
+          team.
+        </p>
+      ) : null}
+
       {!path ? (
         <EmptyChoice
-          busy={busy}
+          busy={editBusy}
           driveUrl={driveUrl}
           setDriveUrl={setDriveUrl}
           onImport={() =>
@@ -195,7 +205,7 @@ export function WorkingDocument({
       {path === "imported" ? (
         <ImportedDoc
           data={data}
-          busy={busy}
+          busy={editBusy}
           suggestionsByAnchor={suggestionsByAnchor}
           crossReasons={crossReasons}
           setCrossReasons={setCrossReasons}
@@ -213,7 +223,7 @@ export function WorkingDocument({
       {path === "crux" ? (
         <CruxDoc
           data={data}
-          busy={busy}
+          busy={editBusy}
           sectionDrafts={sectionDrafts}
           setSectionDrafts={setSectionDrafts}
           socraticAnswers={socraticAnswers}
@@ -258,7 +268,7 @@ export function WorkingDocument({
           <ChecklistPanel data={data} />
           <EvidenceLibraryPanel
             data={data}
-            busy={busy}
+            busy={editBusy}
             factText={factText}
             setFactText={setFactText}
             factCite={factCite}

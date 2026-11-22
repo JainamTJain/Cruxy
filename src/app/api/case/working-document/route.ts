@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
+import { isAdminRole } from "@/lib/admin/permissions";
 import { getPersonById } from "@/lib/db/repository";
 import type { WorkingSectionKey } from "@/lib/db/supabase/working-doc-extra";
 import { WORKING_SECTION_KEYS } from "@/lib/db/supabase/working-doc-extra";
@@ -15,6 +16,7 @@ import {
   suggestLibraryFact,
   tickSuggestion,
 } from "@/lib/working-doc/service";
+import type { Person, Role } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -25,26 +27,72 @@ function isSectionKey(v: unknown): v is WorkingSectionKey {
   );
 }
 
+/** Own team by default. Coach/tech in admin view may pick another team. */
+function resolveTeamId(
+  person: { team_id: string | null; role: Role },
+  session: { teamId: string | null; adminView: boolean; role: Role },
+  requested: string | null,
+): string | null {
+  if (
+    session.adminView &&
+    isAdminRole(session.role) &&
+    requested
+  ) {
+    return requested;
+  }
+  return person.team_id ?? session.teamId ?? null;
+}
+
+/** Members may read another team's doc (shared visibility); writes stay on own team. */
+function canWriteWorkingDoc(
+  person: Person,
+  session: { teamId: string | null; adminView: boolean; role: Role },
+  teamId: string,
+): boolean {
+  if (session.adminView && isAdminRole(session.role)) return true;
+  const own = person.team_id ?? session.teamId;
+  return Boolean(own && own === teamId);
+}
+
 export async function GET(req: Request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Sign in required" }, { status: 401 });
   }
+  const person = await getPersonById(session.personId);
+  if (!person) {
+    return NextResponse.json({ error: "Unknown person" }, { status: 401 });
+  }
+
   const url = new URL(req.url);
   const caseId = url.searchParams.get("caseId");
-  const teamId = url.searchParams.get("teamId") ?? session.teamId;
+  const requested = url.searchParams.get("teamId");
+  const ownTeam = person.team_id ?? session.teamId;
+  // Default own team. Admin view may pick another. Members may also pass
+  // another USC team id for shared read; POST still blocks their writes.
+  const teamId =
+    session.adminView && isAdminRole(session.role) && requested
+      ? requested
+      : requested && ownTeam
+        ? requested
+        : ownTeam;
+
   if (!caseId || !teamId) {
     return NextResponse.json(
       { error: "caseId and teamId are required." },
       { status: 400 },
     );
   }
+
   const hub = await getWorkingDocumentHub({
     caseId,
     teamId,
     personId: session.personId,
   });
-  return NextResponse.json(hub);
+  return NextResponse.json({
+    ...hub,
+    canEdit: canWriteWorkingDoc(person, session, teamId),
+  });
 }
 
 export async function POST(req: Request) {
@@ -75,11 +123,17 @@ export async function POST(req: Request) {
   };
 
   const caseId = body.caseId;
-  const teamId = body.teamId ?? session.teamId ?? person.team_id;
+  const teamId = resolveTeamId(person, session, body.teamId ?? null);
   if (!caseId || !teamId) {
     return NextResponse.json(
       { error: "caseId and teamId are required." },
       { status: 400 },
+    );
+  }
+  if (!canWriteWorkingDoc(person, session, teamId)) {
+    return NextResponse.json(
+      { error: "You can only edit your own team's working document." },
+      { status: 403 },
     );
   }
 
@@ -229,7 +283,10 @@ export async function POST(req: Request) {
       teamId,
       personId: session.personId,
     });
-    return NextResponse.json(hub);
+    return NextResponse.json({
+      ...hub,
+      canEdit: true,
+    });
   } catch (e) {
     return NextResponse.json(
       {
