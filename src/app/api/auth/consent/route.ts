@@ -37,7 +37,10 @@ export async function POST(req: Request) {
     recordingOk,
     voiceSamplePath: voicePath,
   });
-  await updateSession({ mustConsent: false });
+  await updateSession({
+    mustConsent: false,
+    mustSetLearningProfile: true,
+  });
 
   return NextResponse.json({ ok: true });
 }

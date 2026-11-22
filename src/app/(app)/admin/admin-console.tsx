@@ -100,6 +100,7 @@ type Overview = {
       thingsToCare: string[];
       spendLine: string | null;
       errors: string[];
+      errorsNote: string;
       recipients: { name: string; email: string; includeSpend: boolean }[];
     };
   };
@@ -606,6 +607,10 @@ export function AdminConsole() {
           <h1 className="font-display m-0 text-[40px] font-extrabold leading-none tracking-[-0.02em] sm:text-[48px]">
             People and readiness
           </h1>
+          <p className="m-0 max-w-xl text-sm text-muted">
+            People, consent, readiness and sessions for all three teams. Open a
+            panel below to take attendance, fix a roster, or check spend.
+          </p>
         </div>
         <p className="max-w-[280px] text-right text-[13px] text-muted">
           Yellow{" "}
@@ -1493,8 +1498,18 @@ export function AdminConsole() {
               {tech && data.weekly.preview.spendLine ? (
                 <p>Spend: {data.weekly.preview.spendLine}</p>
               ) : null}
-              {tech && data.weekly.preview.errors.length ? (
-                <p>Errors: {data.weekly.preview.errors.join("; ")}</p>
+              {tech ? (
+                <div className="space-y-1">
+                  <p>
+                    Health (last 24 hours):{" "}
+                    {data.weekly.preview.errors.length
+                      ? data.weekly.preview.errors.join("; ")
+                      : "No refused Cruxy calls."}
+                  </p>
+                  <p className="text-xs text-[#9AA0AA]">
+                    {data.weekly.preview.errorsNote}
+                  </p>
+                </div>
               ) : null}
             </div>
           ) : null}

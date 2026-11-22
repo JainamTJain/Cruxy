@@ -62,7 +62,7 @@ export default function ConsentPage() {
     setError(null);
     try {
       await postConsent(true, voice);
-      router.push("/choose-passcode");
+      router.push("/learning-profile");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save consent.");
       setBusy(false);
@@ -74,7 +74,7 @@ export default function ConsentPage() {
     setError(null);
     try {
       await postConsent(false, null);
-      router.push("/choose-passcode");
+      router.push("/learning-profile");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save consent.");
       setBusy(false);
@@ -87,12 +87,16 @@ export default function ConsentPage() {
         <CruxWordmark as="p" className="text-4xl sm:text-5xl" />
       </div>
       <p className="mt-6 text-xs font-bold uppercase tracking-[0.12em] text-muted">
-        Step 2 of 3
+        Step 2 of 4
       </p>
       <p className="text-xs text-muted">First time only</p>
       <h1 className="mt-2 font-display text-3xl font-extrabold text-ink sm:text-4xl">
         Meet Cruxy
       </h1>
+      <p className="mt-2 max-w-xl text-sm text-muted">
+        Read what Crux records in practice, then choose a voice sample or stay
+        text only. You can change this later in Settings.
+      </p>
 
       <div className="mt-6 flex gap-3.5 rounded-2xl border-2 border-genie/30 bg-[#FFF7DB] p-4">
         <Image

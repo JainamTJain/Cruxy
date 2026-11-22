@@ -78,6 +78,7 @@ const session: SessionPayload = {
   teamId: null,
   adminView: true,
   mustConsent: false,
+  mustSetLearningProfile: false,
   mustChoosePasscode: false,
   sessionVersion: 0,
 };

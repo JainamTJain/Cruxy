@@ -11,6 +11,10 @@ import {
 import { VersionConfirm } from "@/components/case-brain/version-confirm";
 import { TeamDocImport } from "@/components/team-doc-import";
 import { FindingCard } from "@/components/cruxy/finding-card";
+import {
+  ClaimResearchDossierView,
+  ResearchBriefCard,
+} from "@/components/cruxy/claim-research-dossier";
 import { emitMood } from "@/components/cruxy/mood/bus";
 import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
 import { coverageFromFindings } from "@/lib/cruxy/research-gaps";
@@ -53,6 +57,8 @@ type ResearchPayload = {
     citation?: string | null;
     open_access?: boolean | null;
   }>;
+  claim_dossiers?: import("@/lib/library/types").ClaimSourceDossier[] | null;
+  brief?: import("@/lib/library/types").ResearchBrief | null;
 };
 
 type Payload = {
@@ -803,14 +809,39 @@ export function CaseBrainClient({
                   brain={brain}
                   research={data.research ?? null}
                 />
+                {data.research?.brief ? (
+                  <ResearchBriefCard
+                    summary={data.research.brief.summary}
+                    judgmentChanges={data.research.brief.judgment_changes}
+                    judgmentDoesNot={data.research.brief.judgment_does_not}
+                  />
+                ) : null}
+                {data.research?.claim_dossiers?.length ? (
+                  <section className="space-y-3">
+                    <h3 className="font-display m-0 text-xl font-extrabold">
+                      Sources by claim
+                    </h3>
+                    <p className="m-0 text-sm text-muted">
+                      At most three sources per claim, ranked. The strongest
+                      opposing source is shown as a steelman. Everything else
+                      folds under More.
+                    </p>
+                    {data.research.claim_dossiers.map((d) => (
+                      <ClaimResearchDossierView
+                        key={d.claim_ref}
+                        dossier={d}
+                      />
+                    ))}
+                  </section>
+                ) : null}
                 <section className="space-y-3 rounded-[20px] bg-white p-5">
                   <h3 className="font-display text-xl font-extrabold">
-                    Latest findings
+                    Tonight&apos;s findings
                   </h3>
                   {!data.research?.findings?.length ? (
                     <p className="text-sm text-muted">
-                      No research findings yet. Nightly research posts cards
-                      here when gaps close.
+                      No research findings yet. Nightly research posts at most
+                      three cards here with Cruxy&apos;s judgment.
                     </p>
                   ) : (
                     data.research.findings.map((f) => (

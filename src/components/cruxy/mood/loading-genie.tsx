@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { usePrefersReducedMotion } from "@/components/motion/reduced-motion";
 import { GeniePose } from "@/components/cruxy/mood/genie-pose";
 import {
+  GENIE_FIGURE_DESKTOP,
   LOADING_CYCLE,
   preloadCruxyPoses,
   type CruxyPose,
@@ -12,7 +13,7 @@ import {
 
 type Props = {
   label?: string;
-  /** Figure width; default 72. */
+  /** Figure width; default 72. Never above GENIE_FIGURE_DESKTOP. */
   size?: number;
   className?: string;
   /** Compact inline for panels / answers. */
@@ -44,6 +45,10 @@ export function LoadingGenie({
   }, [reduced]);
 
   const pose: CruxyPose = reduced ? "curious" : (LOADING_CYCLE[i] ?? "curious");
+  const figureW = Math.min(
+    compact ? Math.min(size, 56) : size,
+    GENIE_FIGURE_DESKTOP,
+  );
 
   return (
     <div
@@ -58,7 +63,7 @@ export function LoadingGenie({
     >
       <GeniePose
         pose={pose}
-        width={compact ? Math.min(size, 56) : size}
+        width={figureW}
         imgClassName="drop-shadow-[0_8px_14px_rgba(17,19,24,0.18)]"
       />
       <span>{label}</span>
