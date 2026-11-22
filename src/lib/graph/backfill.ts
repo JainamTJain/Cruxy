@@ -436,7 +436,7 @@ export async function reembedStubPassages(opts?: {
   const limit = opts?.limit ?? 400;
 
   // 1) Rows already flagged as stub
-  let flagged =
+  const flagged =
     (
       await sb
         .from("passages")
