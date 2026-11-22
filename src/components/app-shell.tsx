@@ -11,10 +11,10 @@ import { CruxyLamp } from "@/components/cruxy/cruxy-lamp";
 import { FloatingCruxy } from "@/components/cruxy/floating-cruxy";
 import { preloadCruxyPoses } from "@/components/cruxy/mood/poses";
 import { ConfettiHost } from "@/components/motion/confetti";
+import { FirstVisitTour } from "@/components/product/first-visit-tour";
 import { NotificationBell } from "@/components/notification-bell";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/types";
-import { PRACTICE_FIXTURE_IDS } from "@/lib/practice/fixture-ids";
 
 type Me = {
   authenticated: boolean;
@@ -33,17 +33,11 @@ type Me = {
 };
 
 const SIDE_NAV: { href: string; label: string; match?: string }[] = [
+  { href: "/today", label: "Today" },
   { href: "/home", label: "Program map" },
   { href: "/revision/roadmap", label: "My roadmap" },
-  { href: "/mastery", label: "Mastery map" },
   { href: "/case-brain", label: "Cases" },
-  { href: "/library", label: "Reading room" },
   { href: "/practice", label: "Practice" },
-  {
-    href: `/practice/rounds/${PRACTICE_FIXTURE_IDS.roundReport}/report`,
-    label: "Reports",
-    match: "/report",
-  },
   { href: "/team/chat", label: "Team chat" },
 ];
 
@@ -53,11 +47,11 @@ const ADMIN_SIDE_NAV: { href: string; label: string; match?: string }[] = [
   { href: "/admin", label: "People and teams" },
   { href: "/admin/flywheel", label: "Program analytics", match: "analytics" },
   { href: "/revision/questions", label: "Question bank" },
-  { href: "/home", label: "Back to member view" },
+  { href: "/today", label: "Back to member view" },
 ];
 
 const PHONE_TABS = [
-  { href: "/home", label: "Today" },
+  { href: "/today", label: "Today" },
   { href: "/case-brain", label: "Cases" },
   { href: "/practice", label: "Practice" },
   { href: "/team", label: "Team" },
@@ -65,6 +59,9 @@ const PHONE_TABS = [
 
 function navActive(pathname: string, href: string, match?: string) {
   if (match) return pathname.includes(match);
+  if (href === "/today") {
+    return pathname === "/today" || pathname.startsWith("/today/");
+  }
   if (href === "/home") return pathname === "/home" || pathname === "/";
   if (href === "/practice") {
     return (
@@ -335,6 +332,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <CruxyLamp />
       <CruxyDrawer />
       <ConfettiHost />
+      <FirstVisitTour />
     </div>
   );
 }
