@@ -265,40 +265,23 @@ export default function SettingsPage() {
         : what Crux stores about you, with download and delete.
       </p>
 
-      <div className="border-t border-ink/10 pt-4">
-        <DisplaySettings />
-      </div>
-      <label className="block text-sm">
-        Email
-        <input
-          className="mt-1 w-full rounded-xl border border-ink/15 bg-white/80 px-3 py-2"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="optional"
-          type="email"
-        />
-      </label>
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={optIn}
-          onChange={(e) => setOptIn(e.target.checked)}
-        />
-        Email reminders (opt in)
-      </label>
-      {isAdmin ? (
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={digestOptIn}
-            onChange={(e) => setDigestOptIn(e.target.checked)}
-          />
-          Weekly summary email (admins)
-        </label>
-      ) : null}
-      <Button onClick={() => void saveReminders()}>Save reminders</Button>
-
-      <AlertSettings />
+      <nav aria-label="Settings sections" className="flex flex-wrap gap-2 text-sm">
+        {[
+          ["#my-profile", "My profile"],
+          ["#display", "Display"],
+          ["#email", "Email"],
+          ["#alerts", "Alerts"],
+          ["#devices", "Devices and passcode"],
+        ].map(([href, label]) => (
+          <a
+            key={href}
+            href={href}
+            className="rounded-full border border-ink/15 bg-white px-3 py-1 font-semibold text-ink"
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
 
       <div
         id="my-profile"
@@ -380,7 +363,47 @@ export default function SettingsPage() {
         </section>
       </div>
 
-      <div className="border-t border-ink/10 pt-4">
+      <div id="display" className="scroll-mt-20 border-t border-ink/10 pt-4">
+        <DisplaySettings />
+      </div>
+      <div id="email" className="scroll-mt-20 space-y-3 border-t border-ink/10 pt-4">
+        <h2 className="font-display text-lg font-semibold">Email</h2>
+      <label className="block text-sm">
+        Email
+        <input
+          className="mt-1 w-full rounded-xl border border-ink/15 bg-white/80 px-3 py-2"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="optional"
+          type="email"
+        />
+      </label>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={optIn}
+          onChange={(e) => setOptIn(e.target.checked)}
+        />
+        Email reminders (opt in)
+      </label>
+      {isAdmin ? (
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={digestOptIn}
+            onChange={(e) => setDigestOptIn(e.target.checked)}
+          />
+          Weekly summary email (admins)
+        </label>
+      ) : null}
+      <Button onClick={() => void saveReminders()}>Save email settings</Button>
+      </div>
+
+      <div id="alerts" className="scroll-mt-20">
+        <AlertSettings />
+      </div>
+
+      <div id="devices" className="scroll-mt-20 border-t border-ink/10 pt-4">
         <h2 className="font-display text-lg font-semibold">Signed-in devices</h2>
         <p className="mt-1 text-sm text-muted">
           Browsers where you are signed in. Sign out others if you used a shared
