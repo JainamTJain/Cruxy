@@ -235,6 +235,7 @@ export interface ClaimGraphScore {
   attacks_answered: number;
   attacks_open: number;
   open_from_rounds: string[];
+  open_from_round_dates: string[];
   support_strength: number;
   attack_strength: number;
 }

@@ -58,20 +58,24 @@ export const DATA_MODEL_TABLES = [
 
 export type DataModelTable = (typeof DATA_MODEL_TABLES)[number];
 
-/** Free research sources from the Stack section (F-381). Researcher uses Gateway web search; these are the preferred corpora. */
+/** Free research sources (Wave 7 H + F-381). Wired in literature search + Gateway web. */
 export const FREE_RESEARCH_SOURCES = [
   { id: "openalex", name: "OpenAlex", kind: "academic" },
   { id: "semantic_scholar", name: "Semantic Scholar", kind: "academic" },
+  { id: "core", name: "CORE", kind: "academic" },
+  { id: "arxiv", name: "arXiv", kind: "academic" },
+  { id: "pubmed_central", name: "PubMed Central", kind: "academic" },
+  { id: "doaj", name: "DOAJ", kind: "academic" },
+  { id: "philpapers", name: "PhilPapers (open access)", kind: "academic" },
   { id: "crossref", name: "Crossref", kind: "academic" },
+  { id: "unpaywall", name: "Unpaywall", kind: "open_copy" },
+  { id: "web", name: "Gateway web search", kind: "news_reports_gov" },
   { id: "open_library", name: "Open Library", kind: "books" },
-  { id: "google_books", name: "Google Books", kind: "books" },
   { id: "gutenberg", name: "Project Gutenberg", kind: "public_domain" },
   { id: "sep", name: "Stanford Encyclopedia of Philosophy", kind: "frameworks" },
   { id: "iep", name: "Internet Encyclopedia of Philosophy", kind: "frameworks" },
   { id: "courtlistener", name: "CourtListener", kind: "court" },
   { id: "wikipedia", name: "Wikipedia", kind: "orientation_only" },
-  { id: "arxiv", name: "arXiv", kind: "academic" },
-  { id: "guardian", name: "The Guardian API", kind: "news" },
 ] as const;
 
 export type TableCountMap = Record<string, number>;

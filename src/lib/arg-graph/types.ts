@@ -16,6 +16,8 @@ export type ClaimRobustnessScore = {
   attacks_open: number;
   /** Round ids for open attacks. */
   open_from_rounds: string[];
+  /** Display dates for those rounds (e.g. 21 Nov). */
+  open_from_round_dates: string[];
   support_strength: number;
   attack_strength: number;
 };

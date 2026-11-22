@@ -4,6 +4,11 @@ import { createProposal } from "@/lib/case-brain/service";
 import { getCaseBrain } from "@/lib/case-brain/service";
 import { runAgent } from "@/lib/cruxy/agents/runAgent";
 import { COPYRIGHT_PROMPT_LINE, clipQuoteForStorage } from "@/lib/cruxy/copyright";
+import {
+  literatureBriefForPrompt,
+  searchOpenLiterature,
+} from "@/lib/cruxy/literature/search";
+import { isOpenLicence } from "@/lib/cruxy/literature/types";
 import { digestOpenBook, isOpenAccessUrl } from "@/lib/cruxy/open-books";
 import { gapsFromClaimMaps } from "@/lib/cruxy/research-gaps";
 import { dedupeFindings } from "@/lib/cruxy/research-dedupe";
@@ -21,6 +26,7 @@ import {
   researcherVerifySchema,
   type ResearcherSearchOutput,
 } from "@/lib/cruxy/schemas/researcher";
+import { createMaterialRequest } from "@/lib/db/supabase/material-requests-extra";
 import {
   listBookRequests,
   listLibraryFiles,
@@ -64,16 +70,50 @@ function stubSearch(caseNumber: number, title: string): ResearcherSearchOutput {
         needs_check: true,
         source_ids: ["sep-stub"],
         citation_ids: [],
+        title: "Stanford Encyclopedia of Philosophy",
+        authors: [],
+        year: null,
+        doi: null,
+        licence: "open access encyclopedia",
+        open_access: true,
+        citation: `Stanford Encyclopedia of Philosophy (n.d.). ${title}. https://plato.stanford.edu/`,
       },
     ],
     book_request: null,
+    material_requests: [],
     claims: [],
   };
 }
 
+function matchLitHit(
+  finding: { link?: string; doi?: string | null; title?: string | null },
+  hits: Awaited<ReturnType<typeof searchOpenLiterature>>,
+) {
+  const doi = finding.doi?.toLowerCase() ?? null;
+  if (doi) {
+    const byDoi = hits.find((h) => h.doi?.toLowerCase() === doi);
+    if (byDoi) return byDoi;
+  }
+  const link = finding.link ?? "";
+  if (link) {
+    const byUrl = hits.find(
+      (h) =>
+        h.url === link ||
+        h.oa_url === link ||
+        (h.doi && link.includes(h.doi)),
+    );
+    if (byUrl) return byUrl;
+  }
+  if (finding.title) {
+    const t = finding.title.toLowerCase().slice(0, 40);
+    return hits.find((h) => h.title.toLowerCase().includes(t)) ?? null;
+  }
+  return null;
+}
+
 /**
- * Nightly Researcher: gap finding → search → full read of top links →
- * verify → dedupe → proposals / book requests / open-book digest.
+ * Nightly Researcher: gap finding → open literature + Gateway web search →
+ * full read of open copies → verify → dedupe → proposals / material requests.
  */
 export async function runNightlyResearcher(opts?: {
   personId?: string | null;
@@ -81,6 +121,7 @@ export async function runNightlyResearcher(opts?: {
 }): Promise<{
   runs: ResearchRun[];
   bookRequestsCreated: number;
+  materialRequestsCreated: number;
   proposalsCreated: number;
   openBooksDigested: number;
   skippedDuplicates: number;
@@ -105,6 +146,7 @@ export async function runNightlyResearcher(opts?: {
 
   const runs: ResearchRun[] = [];
   let bookRequestsCreated = 0;
+  let materialRequestsCreated = 0;
   let proposalsCreated = 0;
   let openBooksDigested = 0;
   let skippedDuplicates = 0;
@@ -125,12 +167,19 @@ export async function runNightlyResearcher(opts?: {
     const seed = stubSearch(c.number, c.title);
     seed.gaps = deterministicGaps.length ? deterministicGaps : seed.gaps;
 
+    const queryBits = [
+      c.title,
+      ...deterministicGaps.slice(0, 3).map((g) => g.detail.slice(0, 80)),
+    ].join(" ");
+    const litHits = await searchOpenLiterature(queryBits, { limit: 16 });
+    const litBrief = literatureBriefForPrompt(litHits);
+
     const search = await runAgent({
       agent: "researcher",
       feature: "research_night_search",
       tier: "small",
-      system: `${researcherSearchSystemPrompt()}\n\n${COPYRIGHT_PROMPT_LINE}`,
-      user: `Case ${c.number}: ${c.title}. Drive files: ${related.map((f) => f.name).join("; ") || "none"}. Seed gaps: ${JSON.stringify(seed.gaps)}`,
+      system: `${researcherSearchSystemPrompt()}\n\n${COPYRIGHT_PROMPT_LINE}\nPrefer the open-literature hits below (OpenAlex, Semantic Scholar, CORE, arXiv, PubMed Central, DOAJ, PhilPapers OA, Crossref/Unpaywall). Use Gateway web search for news, reports, court and government documents. Every finding needs title, authors, year, link, DOI when known, licence, open_access, and a citation line. Store only a short quote unless the source is open licence or public domain. For paywalled sources or books that matter, add material_requests (do not invent full text).`,
+      user: `Case ${c.number}: ${c.title}. Drive files: ${related.map((f) => f.name).join("; ") || "none"}. Seed gaps: ${JSON.stringify(seed.gaps)}\n\nOpen literature hits:\n${litBrief}`,
       schema: researcherSearchSchema,
       personId: opts?.personId,
       webSearch: true,
@@ -144,9 +193,24 @@ export async function runNightlyResearcher(opts?: {
     const gaps: ResearchGap[] = search.ok ? search.data.gaps : seed.gaps;
     if (search.ok && !search.stub) stub = false;
 
-    // F-096: read best 3–5 result links in full, then verify with that corpus.
-    const links = findings.map((f) => f.link).filter(Boolean);
-    const pages = await readBestResults(links, 5);
+    // Read only open-access / open-licence links in full.
+    const openLinks = findings
+      .map((f) => {
+        const lit = matchLitHit(f, litHits);
+        if (lit?.oa_url && (lit.open_access || isOpenLicence(lit.licence))) {
+          return lit.oa_url;
+        }
+        if (f.open_access || isOpenAccessUrl(f.link) || isOpenLicence(f.licence)) {
+          return f.link;
+        }
+        return null;
+      })
+      .filter((u): u is string => Boolean(u));
+
+    const pages = await readBestResults(
+      [...new Set([...openLinks, ...findings.map((f) => f.link).filter(Boolean)])],
+      5,
+    );
     const readSources = pagesToCitationSources(pages);
     const readCorpus =
       pages.length > 0
@@ -156,14 +220,14 @@ export async function runNightlyResearcher(opts?: {
                 `[${p.url}] ${p.title}\n${p.text.slice(0, 2500)}`,
             )
             .join("\n\n")
-        : "(No full pages fetched; verify from search findings only.)";
+        : "(No full open pages fetched; verify from citations and short quotes only.)";
 
     const verify = await runAgent({
       agent: "researcher",
       feature: "research_night_verify",
       tier: "strong",
-      system: `${researcherVerifySystemPrompt()}\n\n${COPYRIGHT_PROMPT_LINE}`,
-      user: `Verify these findings for Case ${c.number}. Prefer two independent sources or one primary. Cap each point at 40 words. Short quotes only.\n\nFindings JSON:\n${JSON.stringify(findings)}\n\nFull pages read:\n${readCorpus}`,
+      system: `${researcherVerifySystemPrompt()}\n\n${COPYRIGHT_PROMPT_LINE}\nKeep bibliographic fields. Cap each point at 40 words. Short quotes only unless the page is open licence.`,
+      user: `Verify these findings for Case ${c.number}. Prefer two independent sources or one primary.\n\nFindings JSON:\n${JSON.stringify(findings)}\n\nFull pages read (open copies only):\n${readCorpus}`,
       schema: researcherVerifySchema,
       personId: opts?.personId,
       sources: readSources,
@@ -181,19 +245,49 @@ export async function runNightlyResearcher(opts?: {
       if (!verify.stub) stub = false;
     }
 
-    let researchFindings: ResearchFinding[] = findings.map((f) => ({
-      id: randomUUID(),
-      point: capFindingPoint(f.point),
-      why_it_matters: f.why_it_matters,
-      claim_ref: f.claim_ref,
-      quote: clipQuoteForStorage(f.quote),
-      link: f.link,
-      verified: f.verified,
-      needs_check: f.needs_check,
-      source_ids: f.source_ids,
-    }));
+    let researchFindings: ResearchFinding[] = findings.map((f) => {
+      const lit = matchLitHit(f, litHits);
+      const open =
+        Boolean(f.open_access) ||
+        Boolean(lit?.open_access) ||
+        isOpenAccessUrl(f.link) ||
+        isOpenLicence(f.licence ?? lit?.licence);
+      const title = f.title ?? lit?.title ?? null;
+      const authors = f.authors ?? lit?.authors ?? null;
+      const year = f.year ?? lit?.year ?? null;
+      const doi = f.doi ?? lit?.doi ?? null;
+      const licence = f.licence ?? lit?.licence ?? null;
+      const citation =
+        f.citation ??
+        lit?.citation ??
+        [authors?.join(", "), year ? `(${year})` : null, title, f.link]
+          .filter(Boolean)
+          .join(". ");
+      return {
+        id: randomUUID(),
+        point: capFindingPoint(f.point),
+        why_it_matters: f.why_it_matters,
+        claim_ref: f.claim_ref,
+        quote: clipQuoteForStorage(f.quote),
+        link: lit?.oa_url && open ? lit.oa_url : f.link,
+        verified: f.verified,
+        needs_check: f.needs_check,
+        source_ids: [
+          ...new Set([
+            ...(f.source_ids ?? []),
+            ...(lit ? [lit.source] : []),
+          ]),
+        ],
+        title,
+        authors,
+        year,
+        doi,
+        licence,
+        open_access: open,
+        citation,
+      };
+    });
 
-    // F-099: dedupe against library + yesterday's findings for this case.
     const yesterdayCutoff = Date.now() - 36 * 60 * 60 * 1000;
     const priorFindings = priorRuns
       .filter(
@@ -224,7 +318,6 @@ export async function runNightlyResearcher(opts?: {
     researchFindings = deduped.kept;
     skippedDuplicates += deduped.skipped;
 
-    // Stop rule: drop findings for gaps that already have 2 verified sources.
     researchFindings = researchFindings.filter((f) => {
       const prior = priorFindings.filter(
         (p) =>
@@ -261,12 +354,14 @@ export async function runNightlyResearcher(opts?: {
       }
     }
 
-    // F-106: auto-digest open-access links.
     for (const finding of researchFindings) {
-      if (!isOpenAccessUrl(finding.link)) continue;
+      if (!finding.open_access || !finding.link) continue;
+      if (!isOpenAccessUrl(finding.link) && !isOpenLicence(finding.licence)) {
+        continue;
+      }
       const digested = await digestOpenBook({
         url: finding.link,
-        title: finding.point.slice(0, 80),
+        title: finding.title ?? finding.point.slice(0, 80),
         caseId: c.id,
         personId: opts?.personId ?? null,
       });
@@ -275,14 +370,63 @@ export async function runNightlyResearcher(opts?: {
       }
     }
 
+    const modelMaterials =
+      (search.ok && search.data.material_requests) || [];
+    for (const m of modelMaterials) {
+      await createMaterialRequest({
+        title: m.title,
+        citation: m.citation,
+        whyItMatters: m.why_it_matters,
+        caseId: c.id,
+        claimRef: m.claim_ref,
+        whereToLook: m.where_to_look ?? "USC Libraries; publisher; author page",
+        authors: m.authors,
+        year: m.year,
+        doi: m.doi,
+        url: m.url,
+        personId: opts?.personId ?? null,
+      });
+      materialRequestsCreated += 1;
+    }
+
+    // Heuristic: closed / book hits that matter for open gaps.
+    for (const finding of researchFindings) {
+      const lit = matchLitHit(finding, litHits);
+      const paywalled =
+        finding.open_access === false ||
+        (lit && !lit.open_access) ||
+        lit?.is_book;
+      if (!paywalled) continue;
+      if (!gaps.some((g) => g.claim_ref === finding.claim_ref)) continue;
+      await createMaterialRequest({
+        title: finding.title ?? finding.point.slice(0, 80),
+        citation:
+          finding.citation ??
+          lit?.citation ??
+          finding.link,
+        whyItMatters: `${finding.why_it_matters} (${finding.claim_ref})`,
+        caseId: c.id,
+        claimRef: finding.claim_ref,
+        whereToLook: lit?.is_book
+          ? "USC Libraries; publisher; author page"
+          : "USC Libraries; publisher site; Unpaywall / author page",
+        authors: finding.authors?.join(", ") ?? lit?.authors.join(", ") ?? null,
+        year: finding.year ?? lit?.year ?? null,
+        doi: finding.doi ?? lit?.doi ?? null,
+        url: finding.link ?? lit?.url ?? null,
+        personId: opts?.personId ?? null,
+      });
+      materialRequestsCreated += 1;
+    }
+
     const bookReq =
       (search.ok && search.data.book_request) ||
       (gaps.some((g) => g.kind === "unsupported_support") &&
-      researchFindings.every((f) => !isOpenAccessUrl(f.link))
+      researchFindings.every((f) => !f.open_access)
         ? {
             title: `Ethics Bowl companion reading for Case ${c.number}`,
             reason: `Gap check on "${c.title}" points to a chapter the team does not own.`,
-            chapter: "Ch. 3 — Values in tension",
+            chapter: "Ch. 3: Values in tension",
           }
         : null);
 
@@ -306,6 +450,16 @@ export async function runNightlyResearcher(opts?: {
         };
         await saveBookRequest(row);
         bookRequestsCreated += 1;
+        await createMaterialRequest({
+          title: bookReq.title,
+          citation: bookReq.title,
+          whyItMatters: bookReq.reason,
+          caseId: c.id,
+          claimRef: gaps[0]?.claim_ref ?? null,
+          whereToLook: "USC Libraries",
+          personId: opts?.personId ?? null,
+        });
+        materialRequestsCreated += 1;
       }
     }
   }
@@ -317,6 +471,7 @@ export async function runNightlyResearcher(opts?: {
     meta: {
       cases: target.map((c) => c.number),
       bookRequestsCreated,
+      materialRequestsCreated,
       proposalsCreated,
       openBooksDigested,
       skippedDuplicates,
@@ -328,6 +483,7 @@ export async function runNightlyResearcher(opts?: {
   return {
     runs,
     bookRequestsCreated,
+    materialRequestsCreated,
     proposalsCreated,
     openBooksDigested,
     skippedDuplicates,

@@ -21,6 +21,7 @@ import {
   dfQuadScore,
   formatAttackSummary,
   isAttackAnswered,
+  recursiveNodeStrength,
   scoreClaimFromEdges,
 } from "../src/lib/arg-graph/df-quad";
 import type { ArgEdge } from "../src/lib/arg-graph/types";
@@ -115,6 +116,7 @@ async function runDfQuadUnitTests(): Promise<number> {
     teamId: "t1",
     caseId: "case1",
     edges: [attack],
+    roundDateLabels: { "round-abc": "21 Nov" },
   });
   assert(openScore.attacks_open === 1, "one open attack");
   assert(openScore.attacks_answered === 0, "zero answered");
@@ -123,8 +125,8 @@ async function runDfQuadUnitTests(): Promise<number> {
     "summary mentions open",
   );
   assert(
-    formatAttackSummary(openScore).includes("round"),
-    "summary mentions round",
+    formatAttackSummary(openScore).includes("21 Nov"),
+    "summary uses round date",
   );
   passed += 1;
 
@@ -137,6 +139,59 @@ async function runDfQuadUnitTests(): Promise<number> {
   assert(answeredScore.attacks_answered === 1, "one answered");
   assert(answeredScore.attacks_open === 0, "zero open after answer");
   assert(answeredScore.score > openScore.score, "answering raises score");
+  passed += 1;
+
+  // Recursive: a support that is itself attacked counts less.
+  const support: ArgEdge = {
+    id: "s1",
+    edge_key: "support|sup1|supports|claim|c2||",
+    from_kind: "support",
+    from_id: "sup1",
+    to_kind: "claim",
+    to_id: "c2",
+    type: "supports",
+    weight: 1,
+    source_kind: "claim_map",
+    source_id: "sup1",
+    round_id: null,
+    line_id: null,
+    team_id: "t1",
+    case_id: "case1",
+    created_by: null,
+    created_at: "2026-01-01T00:00:00.000Z",
+  };
+  const attackOnSupport: ArgEdge = {
+    ...support,
+    id: "as1",
+    edge_key: "question|q2|attacks|support|sup1||",
+    from_kind: "question",
+    from_id: "q2",
+    to_kind: "support",
+    to_id: "sup1",
+    type: "attacks",
+    weight: 0.9,
+  };
+  const clean = scoreClaimFromEdges({
+    claimId: "c2",
+    teamId: "t1",
+    caseId: "case1",
+    edges: [support],
+  });
+  const weakened = scoreClaimFromEdges({
+    claimId: "c2",
+    teamId: "t1",
+    caseId: "case1",
+    edges: [support, attackOnSupport],
+  });
+  assert(
+    weakened.score < clean.score,
+    "attacked support lowers claim score",
+  );
+  assert(
+    recursiveNodeStrength("support", "sup1", [support, attackOnSupport]) <
+      recursiveNodeStrength("support", "sup1", [support]),
+    "recursive strength drops when node is attacked",
+  );
   passed += 1;
 
   return passed;

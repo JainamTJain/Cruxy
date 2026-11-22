@@ -48,6 +48,8 @@ type ResearchPayload = {
     link: string;
     verified: boolean;
     needs_check: boolean;
+    citation?: string | null;
+    open_access?: boolean | null;
   }>;
 };
 
@@ -801,6 +803,8 @@ export function CaseBrainClient({
                         link={f.link}
                         verified={f.verified}
                         needsCheck={f.needs_check}
+                        citation={f.citation}
+                        openAccess={f.open_access}
                       />
                     ))
                   )}

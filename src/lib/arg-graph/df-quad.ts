@@ -1,17 +1,16 @@
 /**
  * DF-QuAD style gradual semantics (Rago / Baroni et al.).
- * Computed in code only — never ask a model for the number.
+ * Computed in code only. Never ask a model for the number.
  *
  * Aggregation σ(E) = 1 - ∏(1 - v(e))
  * Combination (DF-QuAD): if σ⁻ >= σ⁺ then b - b·(σ⁻ - σ⁺), else b + (1 - b)·(σ⁺ - σ⁻)
- * A supporter or attacker contributes its own strength: a leaf argument starts
- * at the base score (0.5) times its edge weight, so one support does not
- * saturate a claim at 100%.
- * Supporters raise the score; unanswered attacks lower it.
+ *
+ * Recursive: a support that is itself attacked contributes less strength.
  */
-import type { ArgEdge, ClaimRobustnessScore } from "@/lib/arg-graph/types";
+import type { ArgEdge, ArgNodeKind, ClaimRobustnessScore } from "@/lib/arg-graph/types";
 
 const BASE = 0.5;
+const MAX_DEPTH = 6;
 
 /** Product-based aggregation used by DF-QuAD (values in [0,1]). */
 export function dfQuadAggregate(strengths: number[]): number {
@@ -37,16 +36,15 @@ export function dfQuadScore(input: {
   return Math.min(1, Math.max(0, score));
 }
 
-/** Strength of the argument on the far end of an edge: leaf base score times edge weight. */
-function edgeStrength(e: ArgEdge): number {
+function edgeWeight(e: ArgEdge): number {
   const w = Number(e.weight);
-  const weight = !Number.isFinite(w) || w <= 0 ? 1 : Math.min(1, w);
-  return Math.max(0.05, BASE * weight);
+  if (!Number.isFinite(w) || w <= 0) return 1;
+  return Math.min(1, w);
 }
 
 /**
- * An attack on claim C is answered when there is a concedes / distinguishes /
- * rebuts edge whose to_id is the attacking node (or the attack edge id).
+ * An attack is answered when there is a concedes / distinguishes / rebuts
+ * edge targeting the attacking node (or the attack edge id).
  */
 export function isAttackAnswered(
   attack: ArgEdge,
@@ -62,11 +60,74 @@ export function isAttackAnswered(
   });
 }
 
+/**
+ * Recursive gradual strength of a node. Supporters raise it; unanswered
+ * attacks lower it. Cycles and depth caps fall back to the base score.
+ */
+export function recursiveNodeStrength(
+  kind: ArgNodeKind | string,
+  id: string,
+  edges: ArgEdge[],
+  depth = 0,
+  visiting: Set<string> = new Set(),
+): number {
+  const key = `${kind}:${id}`;
+  if (depth > MAX_DEPTH || visiting.has(key)) return BASE;
+  const nextVisit = new Set(visiting);
+  nextVisit.add(key);
+
+  const supports = edges.filter(
+    (e) => e.type === "supports" && e.to_kind === kind && e.to_id === id,
+  );
+  const attacks = edges.filter(
+    (e) => e.type === "attacks" && e.to_kind === kind && e.to_id === id,
+  );
+  const open = attacks.filter((a) => !isAttackAnswered(a, edges));
+
+  const supportStrengths = supports.map((e) => {
+    const child = recursiveNodeStrength(
+      e.from_kind,
+      e.from_id,
+      edges,
+      depth + 1,
+      nextVisit,
+    );
+    return Math.max(0.05, child * edgeWeight(e));
+  });
+  const unansweredAttackStrengths = open.map((e) => {
+    const child = recursiveNodeStrength(
+      e.from_kind,
+      e.from_id,
+      edges,
+      depth + 1,
+      nextVisit,
+    );
+    return Math.max(0.05, child * edgeWeight(e));
+  });
+
+  if (!supportStrengths.length && !unansweredAttackStrengths.length) {
+    return BASE;
+  }
+  return dfQuadScore({
+    base: BASE,
+    supportStrengths,
+    unansweredAttackStrengths,
+  });
+}
+
+/** Strength contributed along an edge into a claim (recursive from source). */
+export function edgeStrength(e: ArgEdge, edges: ArgEdge[]): number {
+  const child = recursiveNodeStrength(e.from_kind, e.from_id, edges, 1);
+  return Math.max(0.05, child * edgeWeight(e));
+}
+
 export function scoreClaimFromEdges(input: {
   claimId: string;
   teamId: string;
   caseId: string;
   edges: ArgEdge[];
+  /** Optional map of round_id → display date label (e.g. 21 Nov). */
+  roundDateLabels?: Record<string, string>;
 }): ClaimRobustnessScore {
   const { claimId, teamId, caseId, edges } = input;
 
@@ -90,8 +151,8 @@ export function scoreClaimFromEdges(input: {
     else open.push(a);
   }
 
-  const supportStrengths = supports.map(edgeStrength);
-  const unansweredAttackStrengths = open.map(edgeStrength);
+  const supportStrengths = supports.map((e) => edgeStrength(e, edges));
+  const unansweredAttackStrengths = open.map((e) => edgeStrength(e, edges));
   const score = dfQuadScore({
     supportStrengths,
     unansweredAttackStrengths,
@@ -104,6 +165,10 @@ export function scoreClaimFromEdges(input: {
         .filter((id): id is string => Boolean(id)),
     ),
   ];
+  const open_from_round_dates = roundIds.map((id) => {
+    const label = input.roundDateLabels?.[id];
+    return label ?? id.slice(0, 8);
+  });
 
   return {
     claim_id: claimId,
@@ -114,6 +179,7 @@ export function scoreClaimFromEdges(input: {
     attacks_answered: answered.length,
     attacks_open: open.length,
     open_from_rounds: roundIds,
+    open_from_round_dates,
     support_strength: dfQuadAggregate(supportStrengths),
     attack_strength: dfQuadAggregate(unansweredAttackStrengths),
   };
@@ -123,8 +189,20 @@ export function formatAttackSummary(row: ClaimRobustnessScore): string {
   if (row.attacks_answered === 0 && row.attacks_open === 0) {
     return "No attacks recorded yet.";
   }
-  const n = row.open_from_rounds.length;
+  const dates = row.open_from_round_dates?.filter(Boolean) ?? [];
   const roundPart =
-    n > 0 ? ` (from ${n === 1 ? "a practice round" : `${n} practice rounds`})` : "";
+    dates.length > 0
+      ? ` (from ${dates.join(", ")})`
+      : row.open_from_rounds.length > 0
+        ? ` (from ${row.open_from_rounds.length === 1 ? "a practice round" : `${row.open_from_rounds.length} practice rounds`})`
+        : "";
   return `${row.attacks_answered} attack${row.attacks_answered === 1 ? "" : "s"} answered, ${row.attacks_open} open${row.attacks_open ? roundPart : ""}`;
+}
+
+/** Format a round timestamp for the attack summary (e.g. 21 Nov). */
+export function formatRoundDateLabel(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
