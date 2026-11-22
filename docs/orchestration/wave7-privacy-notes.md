@@ -43,4 +43,13 @@ Helpers treat these (and public domain / CC0 / CC BY / CC BY-SA and common open-
 
 | PR | Verdict |
 | --- | --- |
-| #59 voice enrollment (D) | Wave 6 OK; Wave 7 voice criteria re-checked on this branch |
+| #59 voice enrollment (D) | OK (merged): private bucket + Done-to-save + self-delete |
+| #60 flywheel (K) | OK: admin/tech-gated backfill; shared graph only |
+| #62 Genie mood (G) | OK: bus events are keys + generic bubbles; no person ids |
+| #63 Roles board (E) | Mostly OK; notify previous holder when a slot is reassigned |
+| #64 Research reach (H) | Fix: do not fetch closed finding links; use openLinks / `readOpenResultsOnly` |
+
+## I-side fixes on this branch
+
+- `readBestResults` / `fetchPageText` refuse known paywall hosts and login-wall HTML.
+- `readOpenResultsOnly` for nightly research to pass only OA links.
