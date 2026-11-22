@@ -55,7 +55,8 @@ const ASLEEP_KEY = "cruxy-asleep";
 
 export function CruxyProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [awake, setAwake] = useState(true);
+  // Start asleep so the genie never flashes before the stored choice loads.
+  const [awake, setAwake] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [mood, setMood] = useState<CruxyMood>("curious");
   const [hideFigure, setHideFigure] = useState(false);
@@ -72,10 +73,10 @@ export function CruxyProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-      if (localStorage.getItem(ASLEEP_KEY) === "1") {
-        setAwake(false);
-        setBubble(null);
-      }
+      // Cruxy rests in the lamp until someone calls it. A stored "0" means
+      // this person woke Cruxy before and wants it out.
+      if (localStorage.getItem(ASLEEP_KEY) === "0") setAwake(true);
+      else setBubble(null);
     } catch {
       // ignore
     }

@@ -145,7 +145,8 @@ export function CruxyLamp() {
   return (
     <div
       className={cn(
-        "fixed z-30 touch-none select-none",
+        // Phones call Cruxy from the tab bar, so the lamp stays off the page.
+        "fixed z-30 touch-none select-none max-sm:hidden",
         dragging && "cursor-grabbing",
         // Instant tuck when Genie is out so a second figure never lingers.
         tucked && "pointer-events-none opacity-0 scale-50",

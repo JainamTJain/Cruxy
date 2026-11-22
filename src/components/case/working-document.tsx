@@ -941,6 +941,8 @@ function CruxBody({
   onAsk: (key: string) => void;
   onAnswer: (key: string, socraticId: string) => void;
 }) {
+  // One view per section: read (highlight, right click) or edit, never both.
+  const [editing, setEditing] = useState<string | null>(null);
   return (
     <div className="flex flex-col gap-4">
       <section className="rounded-[20px] bg-white p-5">
@@ -948,12 +950,14 @@ function CruxBody({
           Working document
         </h2>
         <p className="mt-1 text-sm text-muted">
-          Edit on the left. Suggestions stay on the right.
+          Read and highlight here, or press Edit on a section. Suggestions stay
+          on the right.
         </p>
       </section>
 
       {data.sections.map((sec) => {
         const empty = !(sectionDrafts[sec.key] ?? "").trim();
+        const isEditing = editing === sec.key || !sec.body.trim();
         return (
           <section key={sec.key} className="rounded-[20px] bg-white p-5">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -1006,7 +1010,7 @@ function CruxBody({
               </button>
             ) : null}
 
-            {!empty ? (
+            {!isEditing ? (
               <AnnotateSurface
                 className="mt-3"
                 resolvePassageId={(el) =>
@@ -1032,31 +1036,63 @@ function CruxBody({
               </AnnotateSurface>
             ) : null}
 
-            <textarea
-              rows={empty ? 3 : 5}
-              className={cn(
-                "mt-3 w-full rounded-[10px] border border-mist px-3 py-2 text-sm",
-                empty && sec.socratic ? "opacity-70" : "",
-              )}
-              value={sectionDrafts[sec.key] ?? ""}
-              disabled={busy}
-              onChange={(e) =>
-                setSectionDrafts((m) => ({ ...m, [sec.key]: e.target.value }))
-              }
-              placeholder={
-                empty
-                  ? "Write here, or answer Cruxy's question above."
-                  : undefined
-              }
-            />
-            <button
-              type="button"
-              disabled={busy}
-              className="mt-2 rounded-xl border border-mist bg-white px-4 py-2 text-sm font-semibold disabled:opacity-60"
-              onClick={() => onSave(sec.key)}
-            >
-              Save section
-            </button>
+            {!isEditing ? (
+              <button
+                type="button"
+                disabled={busy}
+                className="mt-2 rounded-xl border border-mist bg-white px-4 py-2 text-sm font-semibold disabled:opacity-60"
+                onClick={() => setEditing(sec.key)}
+              >
+                Edit
+              </button>
+            ) : (
+              <>
+                <textarea
+                  rows={empty ? 3 : 5}
+                  className={cn(
+                    "mt-3 w-full rounded-[10px] border border-mist px-3 py-2 text-sm",
+                    empty && sec.socratic ? "opacity-70" : "",
+                  )}
+                  value={sectionDrafts[sec.key] ?? ""}
+                  disabled={busy}
+                  onChange={(e) =>
+                    setSectionDrafts((m) => ({
+                      ...m,
+                      [sec.key]: e.target.value,
+                    }))
+                  }
+                  placeholder={
+                    empty
+                      ? "Write here, or answer Cruxy's question above."
+                      : undefined
+                  }
+                />
+                <button
+                  type="button"
+                  disabled={busy}
+                  className="mt-2 rounded-xl border border-mist bg-white px-4 py-2 text-sm font-semibold disabled:opacity-60"
+                  onClick={() => {
+                    onSave(sec.key);
+                    setEditing(null);
+                  }}
+                >
+                  Save section
+                </button>
+                {editing === sec.key ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="ml-2 mt-2 rounded-xl px-3 py-2 text-sm font-semibold text-muted underline disabled:opacity-60"
+                    onClick={() => {
+                      setSectionDrafts((m) => ({ ...m, [sec.key]: sec.body }));
+                      setEditing(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                ) : null}
+              </>
+            )}
           </section>
         );
       })}
