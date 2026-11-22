@@ -916,7 +916,7 @@ function ChatBubble(props: {
     linkBits.push(`at ${refs.timestamp}`);
   }
   if (typeof refs.truth_source_id === "string") {
-    linkBits.push("Truth Source linked");
+    linkBits.push("Evidence Library linked");
   }
 
   return (

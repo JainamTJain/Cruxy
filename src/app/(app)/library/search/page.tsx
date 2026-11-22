@@ -148,7 +148,7 @@ export default function LibrarySearchPage() {
                   )}
                   <span className="text-[11px] font-semibold text-muted">
                     {h.kind === "truth"
-                      ? "Truth Source"
+                      ? "Evidence Library"
                       : h.kind === "comment"
                         ? "Comment"
                         : "Passage"}

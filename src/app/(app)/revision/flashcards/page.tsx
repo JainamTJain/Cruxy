@@ -349,7 +349,7 @@ export default function FlashcardsPage() {
                 </p>
                 {card.citation_ids.length ? (
                   <span className="self-start rounded-md bg-paper px-1.5 py-0.5 font-mono text-[11px] font-medium">
-                    Truth Source, {card.citation_ids.length} cite
+                    Evidence Library, {card.citation_ids.length} cite
                     {card.citation_ids.length === 1 ? "" : "s"}
                   </span>
                 ) : (
