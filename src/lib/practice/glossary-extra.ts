@@ -136,7 +136,7 @@ export async function setPronunciationNote(opts: {
 }
 
 /**
- * F-226: rebuild glossary from case set title, Truth Sources, claim text,
+ * F-226: rebuild glossary from case set title, Evidence Library, claim text,
  * Drive file names for the case, plus roster and team names.
  */
 export async function refreshCaseGlossary(opts: {

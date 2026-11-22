@@ -283,7 +283,7 @@ export async function finalizeRound(opts: {
     }
   }
 
-  // F-276: ideas from the transcript → Truth Sources queue.
+  // F-276: ideas from the transcript → Evidence Library queue.
   const ideas = suggestIdeasFromTranscript(lines);
   if (ideas.length && round.team_ids[0]) {
     await queueRoundIdeasToTruthSources({

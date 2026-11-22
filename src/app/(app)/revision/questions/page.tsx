@@ -178,8 +178,9 @@ export default function ModeratorBankPage() {
     <main className="animate-fade-up space-y-8">
       <div>
         <h1 className="font-display text-3xl font-semibold">Moderator bank</h1>
-        <p className="mt-1 text-sm text-muted">
-          Shared per case. Paste unstructured text. Cruxy splits and tags for confirm.
+        <p className="mt-1 max-w-xl text-sm text-muted">
+          Questions a moderator or judge might ask on this case. Paste a list,
+          confirm what Cruxy splits out, then practise answering out loud.
         </p>
       </div>
 

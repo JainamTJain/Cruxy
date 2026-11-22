@@ -1,4 +1,3 @@
-
 import { runAgent } from "@/lib/cruxy/agents/runAgent";
 import {
   coachCardsSystemPrompt,
@@ -43,7 +42,7 @@ export async function runCoachCards(input: {
     feature: "coach_cards",
     tier: "small",
     system: coachCardsSystemPrompt(),
-    user: `Claim: ${input.claimText}\nTruth Sources:\n${input.truthSnippets.slice(0, 6).join("\n")}`,
+    user: `Claim: ${input.claimText}\nEvidence Library:\n${input.truthSnippets.slice(0, 6).join("\n")}`,
     schema: coachCardsSchema,
     personId: input.personId,
     sources: input.sources,

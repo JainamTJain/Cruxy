@@ -144,6 +144,21 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
     aiCalls += digested.aiCalls;
     await saveLibraryFile(digested.file);
     await replaceFilePassages(digested.file.id, digested.passages);
+    try {
+      const { distillFileSegments } = await import("@/lib/library/segments");
+      const { replaceFileSegments } = await import(
+        "@/lib/db/supabase/file-segments"
+      );
+      const segments = distillFileSegments({
+        file: digested.file,
+        passages: digested.passages,
+        caseId: digested.file.case_ids[0] ?? null,
+        personId: opts.personId,
+      });
+      await replaceFileSegments(digested.file.id, segments);
+    } catch {
+      // Segments are a speed aid; digest still succeeds without them.
+    }
     filesProcessed += 1;
     if (wasNew) newFileIds.push(digested.file.id);
 
@@ -226,9 +241,28 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
     /* migration 00040 may not be applied yet */
   }
 
+  // Wave 8 C: re-read linked Team Brief docs (Crux never writes to them).
+  let briefsSynced = 0;
+  let briefsUnchanged = 0;
+  try {
+    const { syncAllOwnDocBriefs } = await import(
+      "@/lib/case-brain/team-brief"
+    );
+    const briefSync = await syncAllOwnDocBriefs();
+    briefsSynced = briefSync.synced;
+    briefsUnchanged = briefSync.unchanged;
+    if (briefSync.errors.length) {
+      notes = [notes, `Brief sync notes: ${briefSync.errors.slice(0, 3).join("; ")}`]
+        .filter(Boolean)
+        .join(" ");
+    }
+  } catch {
+    /* migration 00050 may not be applied yet */
+  }
+
   const message = stub
     ? `Sync complete (stub). Seen ${filesSeen}, processed ${filesProcessed}, skipped unchanged ${filesSkipped}, AI calls ${aiCalls}. ${notes ?? ""}`.trim()
-    : `Sync complete. Seen ${filesSeen}, processed ${filesProcessed}, skipped unchanged ${filesSkipped}, AI calls ${aiCalls}${materialsFulfilled ? `, material requests closed ${materialsFulfilled}` : ""}.`;
+    : `Sync complete. Seen ${filesSeen}, processed ${filesProcessed}, skipped unchanged ${filesSkipped}, AI calls ${aiCalls}${materialsFulfilled ? `, material requests closed ${materialsFulfilled}` : ""}${briefsSynced || briefsUnchanged ? `, team briefs re-read ${briefsSynced} (unchanged ${briefsUnchanged})` : ""}.`;
 
   return { run, message, newFileIds };
 }

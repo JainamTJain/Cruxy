@@ -16,7 +16,7 @@ export type LibrarianTagResult = LibrarianTagOutput & {
 };
 
 /**
- * Librarian: sort files, write cards, extract ideas for Truth Sources.
+ * Librarian: sort files, write cards, extract ideas for Evidence Library.
  */
 export async function runLibrarianTag(input: {
   listed: DriveListedFile;

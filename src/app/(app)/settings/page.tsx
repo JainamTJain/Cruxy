@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Keypad } from "@/components/keypad";
+import { LearningProfileForm } from "@/components/learning-profile-form";
+import { VoiceEnrollment } from "@/components/voice-enrollment";
 import { SAMPLE_MEMBER_STARTER } from "@/lib/constants";
 import { validatePersonalPasscode } from "@/lib/auth/passcode-shape";
 
@@ -14,6 +16,8 @@ export default function SettingsPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [hideFloat, setHideFloat] = useState(false);
   const [recordingOk, setRecordingOk] = useState(true);
+  const [reRecord, setReRecord] = useState(false);
+  const [voiceBusy, setVoiceBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [socraticOutcomes, setSocraticOutcomes] = useState<
     {
@@ -118,6 +122,7 @@ export default function SettingsPage() {
     });
     if (res.ok) {
       setRecordingOk(next);
+      setReRecord(false);
       setMsg(
         next
           ? "Consent updated. You can be recorded in practice."
@@ -125,6 +130,27 @@ export default function SettingsPage() {
       );
     } else {
       setMsg("Could not update consent.");
+    }
+  }
+
+  async function saveVoiceSample(voice: Blob) {
+    setVoiceBusy(true);
+    setMsg(null);
+    const form = new FormData();
+    form.set("recordingOk", "true");
+    const ext = voice.type.includes("mp4") ? "mp4" : "webm";
+    form.set("voice", voice, `sample.${ext}`);
+    const res = await fetch("/api/auth/consent-update", {
+      method: "POST",
+      body: form,
+    });
+    setVoiceBusy(false);
+    if (res.ok) {
+      setRecordingOk(true);
+      setReRecord(false);
+      setMsg("Voice sample updated.");
+    } else {
+      setMsg("Could not save the new voice sample.");
     }
   }
 
@@ -214,7 +240,14 @@ export default function SettingsPage() {
       <Button onClick={() => void saveReminders()}>Save reminders</Button>
 
       <div className="border-t border-ink/10 pt-4">
-        <h2 className="font-display text-lg font-semibold">Consent</h2>
+        <h2 className="font-display text-lg font-semibold">Learning profile</h2>
+        <div className="mt-3">
+          <LearningProfileForm />
+        </div>
+      </div>
+
+      <div className="border-t border-ink/10 pt-4">
+        <h2 className="font-display text-lg font-semibold">Consent and voice</h2>
         <p className="mt-1 text-sm text-muted">
           {recordingOk
             ? "You agreed to be recorded in practice."
@@ -233,7 +266,27 @@ export default function SettingsPage() {
           >
             Not now: text only
           </Button>
+          {recordingOk ? (
+            <Button
+              variant="outline"
+              onClick={() => setReRecord((v) => !v)}
+            >
+              {reRecord ? "Hide re-record" : "Re-record voice sample"}
+            </Button>
+          ) : null}
         </div>
+        {reRecord ? (
+          <div className="mt-4">
+            <VoiceEnrollment
+              busy={voiceBusy}
+              onDone={(blob) => void saveVoiceSample(blob)}
+              onCancelTextOnly={() => {
+                setReRecord(false);
+                void saveConsent(false);
+              }}
+            />
+          </div>
+        ) : null}
       </div>
 
       <div className="border-t border-ink/10 pt-4">

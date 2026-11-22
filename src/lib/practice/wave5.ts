@@ -269,7 +269,7 @@ export async function setRoundRecordingLayout(opts: {
 }
 
 /**
- * F-276: ideas raised in the round → team's Truth Sources queue.
+ * F-276: ideas raised in the round → team's Evidence Library queue.
  * Uses cited transcript lines as origin.
  */
 export async function queueRoundIdeasToTruthSources(opts: {

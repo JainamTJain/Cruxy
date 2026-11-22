@@ -13,15 +13,15 @@ export default async function ImportTeamDocPage() {
           Import a team doc
         </h1>
         <p className="mt-2 text-[var(--crux-muted)]">
-          Bring your team&apos;s working notes into the Truth Sources queue.
-          Cruxy cites the doc passages. Strong ideas are offered to the other
-          teams as Inspired by recommendations.
+          Link a Google Doc from the Ethics Bowl Drive. Crux reads it on sync
+          and can turn clear facts into Evidence Library candidates. Other teams
+          see the fact, not your full stance, unless you share more.
         </p>
       </header>
 
       <TeamDocImport
         teamId={session.teamId}
-        label="Choose a doc"
+        label="Choose a Drive doc"
         className="w-full"
       />
     </div>

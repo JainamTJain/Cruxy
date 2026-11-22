@@ -22,7 +22,7 @@ type Props = {
 
 /**
  * Small "Import a team doc" action: Drive link or paste.
- * Ideas land in that team's Truth Sources queue (origin Team doc).
+ * Ideas land in that team's Evidence Library queue (origin Team doc).
  */
 export function TeamDocImport({
   teamId: initialTeamId,

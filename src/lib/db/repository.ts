@@ -25,6 +25,7 @@ import type {
   Team,
   WeeklyEmailPreview,
 } from "@/lib/types";
+import { AI_ERRORS_LAST_24H_NOTE } from "@/lib/types";
 import type { BookRequest } from "@/lib/library/types";
 import { nowIso } from "@/lib/utils";
 import {
@@ -634,10 +635,17 @@ export async function buildWeeklyEmailPreview(): Promise<WeeklyEmailPreview> {
       "Confirm Case 10 lead assignment",
     ],
     spendLine: `$${spent.toFixed(2)} / $${caps.monthly_usd} this month`,
-    errors: store.ai_calls
-      .filter((c) => c.refused)
-      .slice(0, 5)
-      .map((c) => `${c.feature}: ${c.refuse_reason ?? "refused"}`),
+    errors: (() => {
+      const since = Date.now() - 24 * 60 * 60 * 1000;
+      return store.ai_calls
+        .filter(
+          (c) =>
+            c.refused && new Date(c.created_at).getTime() >= since,
+        )
+        .slice(0, 5)
+        .map((c) => `${c.feature}: ${c.refuse_reason ?? "refused"}`);
+    })(),
+    errorsNote: AI_ERRORS_LAST_24H_NOTE,
     recipients: opted.map((p) => ({
       name: p.name,
       email: p.email!,

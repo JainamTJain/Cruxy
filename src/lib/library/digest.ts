@@ -92,7 +92,7 @@ export function heuristicTag(
     newLine: lines[1]?.slice(0, 120) ?? "See passages.",
     openLine:
       type === "practice_transcript"
-        ? "Ideas for Truth Sources?"
+        ? "Ideas for Evidence Library?"
         : "Any gaps vs claim maps?",
   });
 
@@ -187,7 +187,7 @@ export async function librarianTag(input: {
   ];
 
   // Coach decisions and moderator-style questions become ideas too so they
-  // can enter the Truth Sources proposal queue when relevant.
+  // can enter the Evidence Library proposal queue when relevant.
   for (const text of tagged.coach_decisions ?? []) {
     ideas.push({
       text: `Coach decision: ${text}`,
