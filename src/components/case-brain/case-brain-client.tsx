@@ -3,33 +3,20 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CaseMoreList, type MoreSection } from "@/components/case/case-more-panel";
-import { OnePagerPanel } from "@/components/case/one-pager-panel";
 import { CaseReadings } from "@/components/case/case-readings";
+import { ExtraReadingSection } from "@/components/case/extra-reading-section";
 import { IdeasOverTime } from "@/components/case/ideas-over-time";
+import { OnePagerPanel } from "@/components/case/one-pager-panel";
+import { ReadingResearchSection } from "@/components/case/reading-research-section";
+import { SaveShareMenu } from "@/components/case/save-share-menu";
 import { TheCaseTab } from "@/components/case/the-case-tab";
 import { WorkingDocument } from "@/components/case/working-document";
-import { SaveShareMenu } from "@/components/case/save-share-menu";
-import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
-import type { CaseHomePayload } from "@/lib/case-home/types";
-import { ClaimRobustness } from "@/components/case-brain/claim-robustness";
 import { OriginTag } from "@/components/case-brain/origin-tag";
-import {
-  backingChip,
-  supportLabel,
-} from "@/components/case-brain/support-label";
-import { VersionConfirm } from "@/components/case-brain/version-confirm";
-import {
-  TeamBriefPanel,
-  suggestionKindFromOrigin,
-} from "@/components/case-brain/team-brief-panel";
-import { FindingCard } from "@/components/cruxy/finding-card";
-import {
-  ClaimResearchDossierView,
-  ResearchBriefCard,
-} from "@/components/cruxy/claim-research-dossier";
+import { suggestionKindFromOrigin } from "@/components/case-brain/team-brief-panel";
 import { emitMood } from "@/components/cruxy/mood/bus";
 import { coverageFromFindings } from "@/lib/cruxy/research-gaps";
+import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
+import type { CaseHomePayload } from "@/lib/case-home/types";
 import type {
   CaseBrainSnapshot,
   CaseRoleKind,
@@ -40,33 +27,18 @@ import { cn } from "@/lib/utils";
 
 type PrimaryTab = "reading" | "working" | "one_pager" | "more";
 
-const MORE_SECTIONS = new Set<MoreSection>([
-  "brief",
-  "ideas",
-  "map",
-  "truth",
-  "flashcards",
-  "questions",
-  "research",
-]);
-
-function resolveTabParam(raw: string | null): {
-  primary: PrimaryTab;
-  more: MoreSection | null;
-} {
-  if (!raw) return { primary: "reading", more: null };
-  if (raw === "reading" || raw === "case" || raw === "readings") {
-    return { primary: "reading", more: null };
+function resolveTabParam(raw: string | null): PrimaryTab {
+  if (!raw) return "reading";
+  if (raw === "reading" || raw === "case" || raw === "readings" || raw === "research" || raw === "truth") {
+    return "reading";
   }
-  if (raw === "working") return { primary: "working", more: null };
-  if (raw === "one_pager" || raw === "one-pager") {
-    return { primary: "one_pager", more: null };
+  if (raw === "working" || raw === "brief") return "working";
+  if (raw === "one_pager" || raw === "one-pager" || raw === "map") {
+    return "one_pager";
   }
-  if (raw === "more") return { primary: "more", more: null };
-  if (MORE_SECTIONS.has(raw as MoreSection)) {
-    return { primary: "more", more: raw as MoreSection };
-  }
-  return { primary: "reading", more: null };
+  if (raw === "more" || raw === "ideas") return "more";
+  if (raw === "flashcards" || raw === "questions") return "more";
+  return "reading";
 }
 
 type PersonLite = { id: string; name: string; team_id: string | null };
@@ -211,10 +183,8 @@ export function CaseBrainClient({
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab");
   const focusFileId = searchParams.get("file");
-  const resolved = resolveTabParam(initialTab);
-  const [tab, setTab] = useState<PrimaryTab>(resolved.primary);
-  const [moreSection, setMoreSection] = useState<MoreSection | null>(
-    resolved.more,
+  const [tab, setTab] = useState<PrimaryTab>(() =>
+    resolveTabParam(initialTab),
   );
   const [rolesOpen, setRolesOpen] = useState(false);
   const [compare, setCompare] = useState(false);
@@ -224,9 +194,7 @@ export function CaseBrainClient({
   );
 
   useEffect(() => {
-    const next = resolveTabParam(initialTab);
-    setTab(next.primary);
-    setMoreSection(next.more);
+    setTab(resolveTabParam(initialTab));
   }, [initialTab]);
 
   const load = useCallback(
@@ -389,12 +357,6 @@ export function CaseBrainClient({
   const lead1 = brain.case_roles.find((r) => r.role === "lead_1");
   const lead2 = brain.case_roles.find((r) => r.role === "lead_2");
   const counter = brain.case_roles.find((r) => r.role === "counter_arguer");
-  const allCounterclaims = brain.claims.flatMap((n) =>
-    n.counterclaims.map((cc) => ({
-      ...cc,
-      owner: personName(data.people, counter?.person_id),
-    })),
-  );
 
   const leadNames = [lead1, lead2]
     .map((r) => personName(data.people, r?.person_id))
@@ -592,10 +554,7 @@ export function CaseBrainClient({
           <button
             key={id}
             type="button"
-            onClick={() => {
-              setTab(id);
-              if (id !== "more") setMoreSection(null);
-            }}
+            onClick={() => setTab(id)}
             className={cn(
               "inline-flex items-center gap-1.5 border-b-[3px] px-3.5 py-2.5 text-sm font-semibold",
               tab === id
@@ -614,7 +573,7 @@ export function CaseBrainClient({
         <div className="flex flex-wrap items-start gap-6">
           <div className="flex min-w-0 flex-[999_1_620px] flex-col gap-4">
             {tab === "reading" ? (
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-8">
                 {!caseHome ? (
                   <div className="flex flex-col gap-3" aria-busy>
                     <Skeleton className="h-8 w-56" />
@@ -622,20 +581,30 @@ export function CaseBrainClient({
                     <SkeletonBlock lines={3} />
                   </div>
                 ) : (
-                  <>
-                    <TheCaseTab
-                      caseId={caseId}
-                      teamId={teamId || brain.team_id}
-                      initial={caseHome}
-                    />
-                    <CaseReadings
-                      caseId={caseId}
-                      teamId={teamId || brain.team_id}
-                      focusFileId={focusFileId}
-                      initial={caseHome}
-                    />
-                  </>
+                  <TheCaseTab
+                    caseId={caseId}
+                    teamId={teamId || brain.team_id}
+                    initial={caseHome}
+                  />
                 )}
+                <ExtraReadingSection
+                  caseId={caseId}
+                  teamId={teamId || brain.team_id}
+                  truthItems={brain.truth_items}
+                  canEdit={canEdit}
+                />
+                {caseHome ? (
+                  <CaseReadings
+                    caseId={caseId}
+                    teamId={teamId || brain.team_id}
+                    focusFileId={focusFileId}
+                    initial={caseHome}
+                  />
+                ) : null}
+                <ReadingResearchSection
+                  brain={brain}
+                  research={data.research ?? null}
+                />
               </div>
             ) : null}
 
@@ -647,563 +616,53 @@ export function CaseBrainClient({
             ) : null}
 
             {tab === "one_pager" ? (
-              <OnePagerPanel
-                caseId={caseId}
-                teamId={teamId || brain.team_id}
-                embedded
-              />
+              <div className="flex flex-col gap-3">
+                <p className="m-0 text-sm text-muted">
+                  Claim structure: claims, supports, counterclaim and reply.
+                  Flashcards and questions are in{" "}
+                  <Link
+                    href="/practice"
+                    className="font-semibold text-cardinal underline"
+                  >
+                    Practice
+                  </Link>
+                  .
+                </p>
+                <OnePagerPanel
+                  caseId={caseId}
+                  teamId={teamId || brain.team_id}
+                  embedded
+                />
+              </div>
             ) : null}
 
             {tab === "more" ? (
               <div className="flex flex-col gap-4">
                 <div>
                   <h2 className="font-display m-0 text-xl font-extrabold">
-                    More for this case
+                    Ideas over time
                   </h2>
                   <p className="mt-1 text-sm text-muted">
-                    Claim map, evidence, cards, questions, research and history.
+                    How this case&apos;s ideas grew. Flashcards and questions
+                    live in{" "}
+                    <Link
+                      href="/practice"
+                      className="font-semibold text-cardinal underline"
+                    >
+                      Practice
+                    </Link>
+                    .
                   </p>
                 </div>
-                <CaseMoreList
-                  active={moreSection}
-                  onPick={setMoreSection}
-                  counts={{
-                    truth: meta.truth_count,
-                    flashcard: meta.flashcard_count,
-                    question: meta.question_count,
-                    reading: meta.reading_count,
-                  }}
+                <IdeasOverTime
+                  caseId={caseId}
+                  teamId={teamId || brain.team_id}
                 />
-              </div>
-            ) : null}
-
-            {tab === "more" && moreSection === "brief" ? (
-              <TeamBriefPanel
-                caseId={caseId}
-                teamId={teamId}
-                canEdit={canEdit}
-                busy={busy}
-                onBusy={setBusy}
-                onError={setError}
-                onChanged={() => {
-                  void load(teamId);
-                  void fetch(
-                    `/api/case-brain/brief?caseId=${encodeURIComponent(caseId)}&teamId=${encodeURIComponent(teamId)}`,
-                  )
-                    .then((r) => r.json())
-                    .then((j: { brief?: { mode?: "own_doc" | "build_in_crux" } }) => {
-                      if (j.brief?.mode) setBriefMode(j.brief.mode);
-                    })
-                    .catch(() => undefined);
-                }}
-              />
-            ) : null}
-
-            {tab === "more" && moreSection === "map" ? (
-              <>
-                {Object.keys(brain.peer_claim_scores ?? {}).length > 0 ? (
-                  <div className="rounded-[14px] bg-[#F7F8FA] px-3.5 py-3 text-[12px] text-[#3B404A]">
-                    <p className="m-0 font-semibold text-ink">
-                      Robustness across teams
-                    </p>
-                    <ul className="mt-1.5 m-0 list-none space-y-1 p-0">
-                      {Object.values(brain.peer_claim_scores).map((peer) => {
-                        const open = peer.scores.reduce(
-                          (n, s) => n + s.attacks_open,
-                          0,
-                        );
-                        const answered = peer.scores.reduce(
-                          (n, s) => n + s.attacks_answered,
-                          0,
-                        );
-                        const avg =
-                          peer.scores.length === 0
-                            ? 0
-                            : Math.round(
-                                peer.scores.reduce(
-                                  (n, s) => n + s.score_pct,
-                                  0,
-                                ) / peer.scores.length,
-                              );
-                        return (
-                          <li key={peer.team_name}>
-                            {peer.team_name}: {avg}% avg, {answered} attacks
-                            answered, {open} open
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                ) : null}
-                {brain.claims.map((node, idx) => {
-                  const backed = node.supports.filter(
-                    (s) => s.backings.length > 0,
-                  ).length;
-                  const ownerId =
-                    idx === 0 ? lead1?.person_id : lead2?.person_id;
-                  return (
-                    <section
-                      key={node.claim.id}
-                      className="flex flex-col gap-3.5 rounded-[20px] bg-white p-[22px]"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <span className="flex items-center gap-2.5">
-                          <span className="font-display rounded-lg bg-ink px-2.5 py-1 text-[15px] font-extrabold text-white">
-                            C{idx + 1}
-                          </span>
-                          <span className="text-[13px] text-muted">
-                            {personName(data.people, ownerId)
-                              ? `${personName(data.people, ownerId)}, `
-                              : ""}
-                            {backed} of {node.supports.length || 3} supports
-                            backed
-                          </span>
-                        </span>
-                        <ClaimRobustness
-                          backed={backed}
-                          total={node.supports.length || 3}
-                          graphScore={brain.claim_scores?.[node.claim.id]}
-                        />
-                      </div>
-                      <h2 className="font-display m-0 text-[26px] font-semibold leading-[1.15]">
-                        {node.claim.text}
-                      </h2>
-                      {node.claim.logic_line ? (
-                        <p className="m-0 font-mono text-sm font-medium text-[#3B404A]">
-                          {node.claim.logic_line.startsWith("Because")
-                            ? node.claim.logic_line
-                            : `Because ${node.claim.logic_line}`}
-                        </p>
-                      ) : null}
-                      <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">
-                        {[0, 1, 2].map((j) => {
-                          const s = node.supports[j];
-                          if (!s) {
-                            return (
-                              <div
-                                key={`empty-${j}`}
-                                className="flex flex-col gap-2 rounded-[14px] border-2 border-dashed border-[#C62828] bg-white p-3.5"
-                              >
-                                <strong className="flex items-center gap-2 text-sm">
-                                  <span className="rounded-md bg-ink px-1.5 py-0.5 font-mono text-[11px] font-bold text-white">
-                                    S{j + 1}
-                                  </span>
-                                  Waiting
-                                </strong>
-                                <span className="text-[13px] font-semibold text-[#C62828]">
-                                  No backing yet
-                                </span>
-                              </div>
-                            );
-                          }
-                          const { title, body } = supportLabel(s.support.text);
-                          const missing = s.backings.length === 0;
-                          return (
-                            <div
-                              key={s.support.id}
-                              className={cn(
-                                "flex flex-col gap-2 rounded-[14px] p-3.5",
-                                missing
-                                  ? "border-2 border-dashed border-[#C62828] bg-white"
-                                  : "bg-[#F7F8FA]",
-                              )}
-                            >
-                              <strong className="flex items-center gap-2 text-sm">
-                                <span className="rounded-md bg-ink/90 px-1.5 py-0.5 font-mono text-[11px] font-bold text-white">
-                                  S{j + 1}
-                                </span>
-                                {title}
-                              </strong>
-                              {body ? (
-                                <span className="text-sm leading-snug text-[#3B404A]">
-                                  {body}
-                                </span>
-                              ) : null}
-                              {missing ? (
-                                <span className="text-[13px] font-semibold text-[#C62828]">
-                                  No backing yet
-                                  {s.support.id === firstMissingSupportId &&
-                                  pending.length
-                                    ? `, ${pending.length} waiting in the queue`
-                                    : ""}
-                                </span>
-                              ) : (
-                                <div className="flex flex-wrap gap-1.5">
-                                  {s.backings.map((b) => (
-                                    <span
-                                      key={b.id}
-                                      className="inline-flex items-center rounded-md bg-paper px-2 py-0.5 font-mono text-[12px] font-medium text-[#3B404A]"
-                                    >
-                                      {backingChip(b)}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  );
-                })}
-
-                {allCounterclaims[0] ? (
-                  <section className="flex flex-col gap-2.5 rounded-[20px] bg-ink p-[22px] text-white">
-                    <span className="flex items-center gap-2.5">
-                      <span className="font-display rounded-lg bg-white px-2.5 py-1 text-[15px] font-extrabold text-ink">
-                        vs
-                      </span>
-                      <span className="text-[13px] text-[#9AA0AA]">
-                        Counterclaim
-                        <span className="ml-2 rounded-md bg-white/10 px-2 py-0.5 font-semibold text-white">
-                          {allCounterclaims[0].owner}
-                        </span>
-                      </span>
-                    </span>
-                    <h2 className="font-display m-0 text-2xl font-semibold leading-tight">
-                      {allCounterclaims[0].text.startsWith('"') ||
-                      allCounterclaims[0].text.startsWith("\u201C")
-                        ? allCounterclaims[0].text
-                        : `\u201C${allCounterclaims[0].text}\u201D`}
-                    </h2>
-                    <p className="m-0 text-[15px] leading-relaxed text-[#D6D9DF]">
-                      <strong className="text-white">Concede</strong>{" "}
-                      {allCounterclaims[0].concede || "—"}.{" "}
-                      <strong className="text-white">Distinguish:</strong>{" "}
-                      {allCounterclaims[0].distinguish || "—"}.{" "}
-                      <strong className="text-white">Rebut:</strong>{" "}
-                      {allCounterclaims[0].rebut || "—"}.
-                    </p>
-                  </section>
-                ) : null}
-
-                <VersionConfirm
-                  version={meta.map_version?.version ?? null}
-                  changeSummary={meta.map_version?.change_summary ?? null}
-                  confirmedCount={meta.map_version?.confirmed_count ?? 0}
-                  teamSize={meta.map_version?.team_size ?? teamPeople.length}
-                  unconfirmedNames={meta.map_version?.unconfirmed_names ?? []}
-                  diffLines={meta.map_version?.diff_lines ?? []}
-                  canConfirm={
-                    Boolean(
-                      canEdit &&
-                        meta.map_version &&
-                        !meta.map_version.viewer_confirmed,
-                    )
-                  }
-                  canPublish={canEdit}
-                  busy={busy}
-                  onConfirm={() => {
-                    if (!meta.map_version) return;
-                    void api(`/api/case-brain/${caseId}`, {
-                      method: "POST",
-                      body: JSON.stringify({
-                        action: "confirm_version",
-                        versionId: meta.map_version.id,
-                      }),
-                    });
-                  }}
-                  onPublish={(changeSummary) => {
-                    void api(`/api/case-brain/${caseId}`, {
-                      method: "POST",
-                      body: JSON.stringify({
-                        action: "publish_version",
-                        changeSummary,
-                      }),
-                    });
-                  }}
-                  onEnsure={
-                    canEdit
-                      ? () => {
-                          void api(`/api/case-brain/${caseId}`, {
-                            method: "POST",
-                            body: JSON.stringify({ action: "ensure_version" }),
-                          });
-                        }
-                      : undefined
-                  }
-                />
-
-                <section className="flex flex-wrap items-center justify-between gap-4 rounded-[20px] bg-white px-[22px] py-[18px]">
-                  <span className="text-sm leading-snug">
-                    <strong>
-                      Flashcards from these readings, {meta.flashcard_count}{" "}
-                      cards.
-                    </strong>{" "}
-                    {leadNames.length
-                      ? `Leads ${leadNames.join(" and ")} get them automatically`
-                      : "Leads get them automatically"}
-                    {meta.also_studying.length
-                      ? `. Also studying: ${meta.also_studying.join(", ")} `
-                      : ". "}
-                    {meta.also_studying.length ? (
-                      <span className="font-semibold text-[#8A6500]">
-                        (not assigned)
-                      </span>
-                    ) : null}
-                  </span>
-                  <Link
-                    href={`/revision/flashcards?caseId=${caseId}`}
-                    className="rounded-xl bg-ink px-[18px] py-3 text-sm font-semibold text-white"
-                  >
-                    Study the deck
-                  </Link>
-                </section>
-              </>
-            ) : null}
-
-            {tab === "more" && moreSection === "truth" ? (
-              <section className="space-y-3">
-                <div className="rounded-[20px] bg-white p-5">
-                  <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
-                    Evidence Library
-                  </div>
-                  <p className="mt-1 text-sm text-muted">
-                    Shared facts, sources and citations. Evidence only, never a
-                    stance.
-                  </p>
-                  <p className="mt-2 flex flex-wrap gap-2 text-base leading-snug">
-                    <span className="rounded-md bg-[#E8F5E9] px-2 py-0.5 text-sm font-semibold text-[#1B5E20]">
-                      {meta.truth_accepted} accepted
-                    </span>
-                    <span className="rounded-md bg-[#FFEBEE] px-2 py-0.5 text-sm font-semibold text-[#C62828]">
-                      {meta.truth_rejected} rejected
-                    </span>
-                    <span className="rounded-md bg-[#FFF8E1] px-2 py-0.5 text-sm font-semibold text-[#8A6500]">
-                      {meta.truth_waiting} waiting for{" "}
-                      {viewingTeam?.name ?? "this team"}
-                    </span>
-                  </p>
-                </div>
-                {brain.truth_items.length === 0 ? (
-                  <p className="text-sm text-muted">
-                    No Evidence Library entries yet.
-                  </p>
-                ) : (
-                  brain.truth_items.map((t) => (
-                    <article
-                      key={t.id}
-                      className="rounded-[20px] bg-white p-5"
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <OriginTag label={t.kind} />
-                        <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
-                          {t.status}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm leading-snug">{t.text}</p>
-                      <p className="mt-1 font-mono text-[11px] text-muted">
-                        {t.citation_ids.length
-                          ? t.citation_ids.join(", ")
-                          : "needs check"}
-                      </p>
-                    </article>
-                  ))
-                )}
-              </section>
-            ) : null}
-
-            {tab === "more" && moreSection === "flashcards" ? (
-              <section className="rounded-[20px] bg-white p-5">
-                <p className="text-sm">
-                  {meta.flashcard_count} cards for this case. Leads get the deck
-                  automatically.
-                </p>
-                <Link
-                  href={`/revision/flashcards?caseId=${caseId}`}
-                  className="mt-3 inline-flex rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-white"
-                >
-                  Study the deck
-                </Link>
-              </section>
-            ) : null}
-
-            {tab === "more" && moreSection === "questions" ? (
-              <section className="rounded-[20px] bg-white p-5">
-                <p className="text-sm">
-                  {meta.question_count} questions in the bank for this case.
-                </p>
-                <Link
-                  href={`/revision/questions?caseId=${caseId}`}
-                  className="mt-3 inline-flex rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-white"
-                >
-                  Open the bank
-                </Link>
-              </section>
-            ) : null}
-
-            {tab === "more" && moreSection === "ideas" ? (
-              <IdeasOverTime caseId={caseId} teamId={teamId || brain.team_id} />
-            ) : null}
-
-            {tab === "more" && moreSection === "research" ? (
-              <div className="space-y-4">
-                <ResearchCoverage
-                  brain={brain}
-                  research={data.research ?? null}
-                />
-                {data.research?.brief ? (
-                  <ResearchBriefCard
-                    summary={data.research.brief.summary}
-                    judgmentChanges={data.research.brief.judgment_changes}
-                    judgmentDoesNot={data.research.brief.judgment_does_not}
-                  />
-                ) : null}
-                {data.research?.claim_dossiers?.length ? (
-                  <section className="space-y-3">
-                    <h3 className="font-display m-0 text-xl font-extrabold">
-                      Sources by claim
-                    </h3>
-                    <p className="m-0 text-sm text-muted">
-                      At most three sources per claim, ranked. The strongest
-                      opposing source is shown as a steelman. Everything else
-                      folds under More.
-                    </p>
-                    {data.research.claim_dossiers.map((d) => (
-                      <ClaimResearchDossierView
-                        key={d.claim_ref}
-                        dossier={d}
-                      />
-                    ))}
-                  </section>
-                ) : null}
-                <section className="space-y-3 rounded-[20px] bg-white p-5">
-                  <h3 className="font-display text-xl font-extrabold">
-                    Tonight&apos;s findings
-                  </h3>
-                  {!data.research?.findings?.length ? (
-                    <p className="text-sm text-muted">
-                      No research findings yet. Nightly research posts at most
-                      three cards here with Cruxy&apos;s judgment.
-                    </p>
-                  ) : (
-                    data.research.findings.map((f) => (
-                      <FindingCard
-                        key={f.id}
-                        point={f.point}
-                        whyItMatters={f.why_it_matters}
-                        quote={f.quote}
-                        link={f.link}
-                        verified={f.verified}
-                        needsCheck={f.needs_check}
-                        citation={f.citation}
-                        openAccess={f.open_access}
-                      />
-                    ))
-                  )}
-                </section>
-                <section className="rounded-[20px] bg-white p-5">
-                  <h3 className="font-display text-xl font-extrabold">
-                    Likely opposing positions
-                  </h3>
-                  <p className="mt-1 text-sm text-muted">
-                    What other universities are most likely to bring, for
-                    commenter prep.
-                  </p>
-                  <div className="mt-3 space-y-3">
-                    {brain.opposing_positions.length === 0 ? (
-                      <p className="text-sm text-muted">None yet.</p>
-                    ) : (
-                      brain.opposing_positions.map((o) => (
-                        <article
-                          key={o.id}
-                          className="rounded-[14px] bg-[#F7F8FA] p-3.5"
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="font-display text-base font-extrabold">
-                              {o.title}
-                            </h4>
-                            <OriginTag label={o.origin} />
-                          </div>
-                          <p className="mt-2 text-sm">
-                            <span className="text-muted">Strongest: </span>
-                            {o.strongest_support}
-                          </p>
-                          <p className="mt-1 text-sm">
-                            <span className="text-muted">Weak point: </span>
-                            {o.weak_point}
-                          </p>
-                          <ul className="mt-2 list-disc pl-5 text-xs text-muted">
-                            {o.commentary_angles.map((a) => (
-                              <li key={a}>{a}</li>
-                            ))}
-                          </ul>
-                        </article>
-                      ))
-                    )}
-                  </div>
-                </section>
-
-                <section className="rounded-[20px] bg-white p-5">
-                  <h3 className="font-display text-xl font-extrabold">
-                    Consistency and change the facts
-                  </h3>
-                  {brain.consistency_flags.length === 0 ? (
-                    <p className="mt-2 text-sm text-muted">
-                      No cross-case clashes flagged for this case yet.
-                    </p>
-                  ) : (
-                    <ul className="mt-2 space-y-2">
-                      {brain.consistency_flags.map((f) => (
-                        <li
-                          key={f.id}
-                          className="rounded-xl border border-cardinal/20 bg-cardinal/5 p-3 text-sm"
-                        >
-                          {f.note}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {brain.change_the_facts.length ? (
-                    <ul className="mt-3 space-y-2">
-                      {brain.change_the_facts.map((c) => (
-                        <li
-                          key={c.id}
-                          className="rounded-xl bg-gold/10 px-3 py-2 text-sm"
-                        >
-                          <p className="font-medium">{c.fact}</p>
-                          <p className="text-xs text-muted">{c.why_flips}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-2 text-sm text-muted">
-                      No change-the-facts flips listed yet.
-                    </p>
-                  )}
-                </section>
-
-                <section className="rounded-[20px] bg-white p-5">
-                  <h3 className="font-display text-xl font-extrabold">
-                    History
-                  </h3>
-                  {brain.history.length === 0 ? (
-                    <p className="mt-2 text-sm text-muted">No history yet.</p>
-                  ) : (
-                    <ul className="mt-2 max-h-80 space-y-2 overflow-y-auto">
-                      {brain.history.slice(0, 40).map((h) => (
-                        <li
-                          key={h.id}
-                          className="rounded-xl bg-[#F7F8FA] px-3 py-2 text-xs"
-                        >
-                          <p className="font-mono text-muted">
-                            {new Date(h.at).toLocaleString()}
-                            <span className="ml-2 rounded bg-white px-1.5 py-0.5 font-sans text-[10px] font-bold uppercase tracking-wide text-[#3B404A]">
-                              {h.action}
-                            </span>
-                          </p>
-                          {h.reason ? (
-                            <p className="mt-1">Reason: {h.reason}</p>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
               </div>
             ) : null}
           </div>
 
+          {tab === "working" ? (
           <aside className="flex flex-[1_1_340px] flex-col gap-4">
             <section
               aria-labelledby="queue-heading"
@@ -1451,6 +910,7 @@ export function CaseBrainClient({
               research={data.research ?? null}
             />
           </aside>
+          ) : null}
         </div>
       )}
 
