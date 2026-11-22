@@ -50,7 +50,7 @@ function must<T>(
 
 // ---------- row mappers ----------
 
-function mapSession(r: Row): PracticeSession {
+export function mapSession(r: Row): PracticeSession {
   return {
     id: r.id,
     kind: r.kind,
@@ -67,7 +67,7 @@ function mapSession(r: Row): PracticeSession {
   };
 }
 
-function mapRound(r: Row): PracticeRound {
+export function mapRound(r: Row): PracticeRound {
   return {
     id: r.id,
     session_id: r.session_id,

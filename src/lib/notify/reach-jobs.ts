@@ -107,12 +107,14 @@ async function listUpcomingSessions(now: Date): Promise<PracticeSession[]> {
       (s) => s.date === today && s.status !== "ended",
     );
   }
+  // Practice sessions live in the `sessions` table in Postgres.
   const sb = getServiceSupabase();
   const { data, error } = await sb
-    .from("practice_sessions")
+    .from("sessions")
     .select("*")
     .eq("date", today)
     .neq("status", "ended");
   if (error) throw new Error(`listUpcomingSessions: ${error.message}`);
-  return (data ?? []) as PracticeSession[];
+  const { mapSession } = await import("@/lib/db/supabase/practice");
+  return (data ?? []).map((r) => mapSession(r as Record<string, unknown>));
 }
