@@ -319,6 +319,15 @@ export interface SampleStore {
   }[];
   /** Wave 9 G: report a problem / suggest something. */
   product_feedback?: import("@/lib/db/supabase/product-feedback-extra").ProductFeedback[];
+  /** Wave 9 I: cached cited framework-on-case lines. */
+  framework_case_applies?: {
+    term_id: string;
+    case_id: string;
+    apply_text: string;
+    citation_ids: string[];
+    source_url: string;
+    created_at: string;
+  }[];
 }
 
 function emptyCaseBrainFields(): Pick<
@@ -876,6 +885,7 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     availability_poll_votes: raw.availability_poll_votes ?? [],
     calendar_feed_tokens: raw.calendar_feed_tokens ?? [],
     product_feedback: raw.product_feedback ?? [],
+    framework_case_applies: raw.framework_case_applies ?? [],
   };
 }
 

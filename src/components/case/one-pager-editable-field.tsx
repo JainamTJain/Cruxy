@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { LinkedText } from "@/components/frameworks/linked-text";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -11,6 +12,8 @@ type Props = {
   displayClassName?: string;
   placeholder?: string;
   label?: string;
+  /** When set, technical phrases get quiet in-place explainers. */
+  caseId?: string | null;
   onSave: (next: string) => Promise<void> | void;
 };
 
@@ -25,6 +28,7 @@ export function OnePagerEditableField({
   displayClassName,
   placeholder = "Tap to add",
   label,
+  caseId,
   onSave,
 }: Props) {
   const [editing, setEditing] = useState(false);
@@ -35,12 +39,14 @@ export function OnePagerEditableField({
     if (!editing) setDraft(value);
   }, [value, editing]);
 
+  const display = value.trim() ? (
+    <LinkedText text={value} caseId={caseId} preWrap={multiline} />
+  ) : (
+    <span className="text-muted">{placeholder}</span>
+  );
+
   if (!canEdit) {
-    return (
-      <span className={cn(displayClassName, className)}>
-        {value.trim() ? value : <span className="text-muted">{placeholder}</span>}
-      </span>
-    );
+    return <span className={cn(displayClassName, className)}>{display}</span>;
   }
 
   if (!editing) {
@@ -58,11 +64,7 @@ export function OnePagerEditableField({
         }}
         aria-label={label ? `Edit ${label}` : "Edit"}
       >
-        {value.trim() ? (
-          value
-        ) : (
-          <span className="text-muted">{placeholder}</span>
-        )}
+        {display}
       </button>
     );
   }
