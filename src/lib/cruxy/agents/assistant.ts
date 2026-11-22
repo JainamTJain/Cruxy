@@ -81,7 +81,7 @@ export async function runAssistant(input: {
       ? null
       : "What would the other side say against that?",
     answer: lookup
-      ? `From your team's Truth Sources: ${input.truthSources[0]?.text ?? ""}`
+      ? `From your team's Evidence Library: ${input.truthSources[0]?.text ?? ""}`
       : null,
     quiet: false,
     claims: input.truthSources[0]

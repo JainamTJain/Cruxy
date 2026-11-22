@@ -354,8 +354,8 @@ const TEMPLATES: Record<string, Template> = {
       const label = caseLabel(caseId, ctx.casesById);
       return {
         text: label
-          ? `${ctx.personName} sent a reading highlight to Truth Sources for ${label}`
-          : `${ctx.personName} sent a reading highlight to Truth Sources`,
+          ? `${ctx.personName} sent a reading highlight to Evidence Library for ${label}`
+          : `${ctx.personName} sent a reading highlight to Evidence Library`,
         href: caseId ? `/case-brain/${caseId}` : "/library",
         caseId,
       };
@@ -489,7 +489,7 @@ const TEMPLATES: Record<string, Template> = {
   },
   chat_idea_queued: {
     sentence: (e, ctx) => ({
-      text: `${ctx.personName} queued a chat idea for Truth Sources`,
+      text: `${ctx.personName} queued a chat idea for Evidence Library`,
       href: "/team/chat",
       caseId: metaCaseId(e),
     }),

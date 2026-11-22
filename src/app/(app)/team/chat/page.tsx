@@ -184,7 +184,7 @@ export default function TeamChatPage() {
                     className="mt-1 text-[11px] text-cardinal underline"
                     onClick={() => void markIdea(m.id)}
                   >
-                    Mark as idea → Truth Sources queue
+                    Mark as idea → Evidence Library queue
                   </button>
                 ) : null}
               </div>

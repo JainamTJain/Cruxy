@@ -13,7 +13,7 @@ export default async function ImportTeamDocPage() {
           Import a team doc
         </h1>
         <p className="mt-2 text-[var(--crux-muted)]">
-          Bring your team&apos;s working notes into the Truth Sources queue.
+          Bring your team&apos;s working notes into the Evidence Library queue.
           Cruxy cites the doc passages. Strong ideas are offered to the other
           teams as Inspired by recommendations.
         </p>

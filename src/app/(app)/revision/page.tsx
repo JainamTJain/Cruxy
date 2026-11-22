@@ -47,7 +47,7 @@ export default function RevisionHubPage() {
         </p>
         <h1 className="font-display text-3xl font-semibold text-ink">Revision</h1>
         <p className="mt-1 max-w-xl text-sm text-muted">
-          Tools built from your team&apos;s Truth Sources. Memorize what the team
+          Tools built from your team&apos;s Evidence Library. Memorize what the team
           actually agreed on.
         </p>
       </div>

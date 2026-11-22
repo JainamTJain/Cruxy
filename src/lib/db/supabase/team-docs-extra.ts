@@ -171,6 +171,23 @@ export async function replaceTeamDocPassages(
   if (error) throw new Error(`team_doc_passages insert: ${error.message}`);
 }
 
+export async function listTeamDocPassages(
+  importId: string,
+): Promise<TeamDocPassageRow[]> {
+  if (isSampleDataMode()) {
+    return samplePassages
+      .filter((p) => p.import_id === importId)
+      .sort((a, b) => a.ord - b.ord);
+  }
+  const { data, error } = await getServiceSupabase()
+    .from("team_doc_passages")
+    .select("*")
+    .eq("import_id", importId)
+    .order("ord", { ascending: true });
+  if (error) throw new Error(`team_doc_passages list: ${error.message}`);
+  return (data ?? []) as TeamDocPassageRow[];
+}
+
 export async function listTeamDocImports(input: {
   teamId: string;
   caseId?: string | null;

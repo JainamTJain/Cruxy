@@ -9,7 +9,10 @@ import {
   supportLabel,
 } from "@/components/case-brain/support-label";
 import { VersionConfirm } from "@/components/case-brain/version-confirm";
-import { TeamDocImport } from "@/components/team-doc-import";
+import {
+  TeamBriefPanel,
+  suggestionKindFromOrigin,
+} from "@/components/case-brain/team-brief-panel";
 import { FindingCard } from "@/components/cruxy/finding-card";
 import { emitMood } from "@/components/cruxy/mood/bus";
 import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
@@ -155,9 +158,18 @@ export function CaseBrainClient({
   const [editDrafts, setEditDrafts] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tab, setTab] = useState<
-    "map" | "truth" | "readings" | "flashcards" | "questions" | "research"
-  >("map");
+    | "brief"
+    | "map"
+    | "truth"
+    | "readings"
+    | "flashcards"
+    | "questions"
+    | "research"
+  >("brief");
   const [compare, setCompare] = useState(false);
+  const [briefMode, setBriefMode] = useState<"own_doc" | "build_in_crux" | null>(
+    null,
+  );
 
   const load = useCallback(
     async (tid?: string) => {
@@ -178,6 +190,18 @@ export function CaseBrainClient({
   useEffect(() => {
     void load(initialTeamId);
   }, [load, initialTeamId]);
+
+  useEffect(() => {
+    if (!teamId || !caseId) return;
+    void fetch(
+      `/api/case-brain/brief?caseId=${encodeURIComponent(caseId)}&teamId=${encodeURIComponent(teamId)}`,
+    )
+      .then((r) => r.json())
+      .then((j: { brief?: { mode?: "own_doc" | "build_in_crux" } }) => {
+        if (j.brief?.mode) setBriefMode(j.brief.mode);
+      })
+      .catch(() => undefined);
+  }, [caseId, teamId]);
 
   const teamPeople = useMemo(() => {
     if (!data) return [];
@@ -216,6 +240,26 @@ export function CaseBrainClient({
       setError("A reason is required for every accept, reject or edit.");
       return;
     }
+    const proposal = data?.brain.proposals.find((p) => p.id === proposalId);
+    // Accept / edit go through Team Brief so own-doc mode becomes a checklist item.
+    if (verdict === "accept" || verdict === "edit") {
+      await api("/api/case-brain/brief", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "accept_suggestion",
+          caseId,
+          teamId,
+          proposalId,
+          reason,
+          text: proposal?.text ?? "",
+          editedText:
+            verdict === "edit" ? (editDrafts[proposalId] ?? null) : null,
+          kind: suggestionKindFromOrigin(proposal?.origin ?? "member"),
+        }),
+      });
+      emitMood({ type: "idea.accepted" });
+      return;
+    }
     await api("/api/case-brain/decisions", {
       method: "POST",
       body: JSON.stringify({
@@ -225,9 +269,6 @@ export function CaseBrainClient({
         editedText: editDrafts[proposalId] ?? null,
       }),
     });
-    if (verdict === "accept") {
-      emitMood({ type: "idea.accepted" });
-    }
   }
 
   if (!data) {
@@ -412,8 +453,9 @@ export function CaseBrainClient({
       >
         {(
           [
+            ["brief", "Team Brief", null],
             ["map", "Claim map", null],
-            ["truth", "Truth Sources", meta.truth_count],
+            ["truth", "Evidence Library", meta.truth_count],
             ["readings", "Readings", meta.reading_count || null],
             ["flashcards", "Flashcards", meta.flashcard_count],
             ["questions", "Questions", meta.question_count],
@@ -459,6 +501,28 @@ export function CaseBrainClient({
       ) : (
         <div className="flex flex-wrap items-start gap-6">
           <div className="flex min-w-0 flex-[999_1_620px] flex-col gap-4">
+            {tab === "brief" ? (
+              <TeamBriefPanel
+                caseId={caseId}
+                teamId={teamId}
+                canEdit={canEdit}
+                busy={busy}
+                onBusy={setBusy}
+                onError={setError}
+                onChanged={() => {
+                  void load(teamId);
+                  void fetch(
+                    `/api/case-brain/brief?caseId=${encodeURIComponent(caseId)}&teamId=${encodeURIComponent(teamId)}`,
+                  )
+                    .then((r) => r.json())
+                    .then((j: { brief?: { mode?: "own_doc" | "build_in_crux" } }) => {
+                      if (j.brief?.mode) setBriefMode(j.brief.mode);
+                    })
+                    .catch(() => undefined);
+                }}
+              />
+            ) : null}
+
             {tab === "map" ? (
               <>
                 {Object.keys(brain.peer_claim_scores ?? {}).length > 0 ? (
@@ -712,9 +776,13 @@ export function CaseBrainClient({
               <section className="space-y-3">
                 <div className="rounded-[20px] bg-white p-5">
                   <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
-                    Truth Sources
+                    Evidence Library
                   </div>
-                  <p className="mt-1 flex flex-wrap gap-2 text-base leading-snug">
+                  <p className="mt-1 text-sm text-muted">
+                    Shared facts, sources and citations. Evidence only, never a
+                    stance.
+                  </p>
+                  <p className="mt-2 flex flex-wrap gap-2 text-base leading-snug">
                     <span className="rounded-md bg-[#E8F5E9] px-2 py-0.5 text-sm font-semibold text-[#1B5E20]">
                       {meta.truth_accepted} accepted
                     </span>
@@ -728,7 +796,9 @@ export function CaseBrainClient({
                   </p>
                 </div>
                 {brain.truth_items.length === 0 ? (
-                  <p className="text-sm text-muted">No Truth Sources yet.</p>
+                  <p className="text-sm text-muted">
+                    No Evidence Library entries yet.
+                  </p>
                 ) : (
                   brain.truth_items.map((t) => (
                     <article
@@ -950,24 +1020,25 @@ export function CaseBrainClient({
                   id="queue-heading"
                   className="font-display m-0 text-[22px] font-extrabold"
                 >
-                  Waiting for {viewingTeam?.name ?? "team"}
+                  Suggestions
                 </h2>
                 <span className="font-display text-[22px] font-extrabold text-cardinal">
                   {pending.length}
                 </span>
               </div>
-              <TeamDocImport
-                teamId={teamId}
-                caseId={caseId}
-                label="Import a team doc"
-                onImported={() => void load()}
-              />
+              <p className="m-0 text-[13px] leading-snug text-muted">
+                New evidence, Cruxy&apos;s questions, counter-arguments, and
+                Inspired by another team. Nothing changes the Brief until you
+                accept
+                {briefMode === "own_doc"
+                  ? ". In Our own doc mode, accept adds a checklist item."
+                  : "."}
+              </p>
 
               {pending.length === 0 ? (
                 <p className="text-sm leading-snug text-muted">
                   Nothing waiting. Ideas from practice, research, the reading
-                  room and Inspired-by edits will show up here for a tick or
-                  cross.
+                  room and Inspired-by edits will show up here.
                 </p>
               ) : (
                 pending.map((p, i) => {
@@ -1092,11 +1163,17 @@ export function CaseBrainClient({
                             <button
                               type="button"
                               disabled={busy}
-                              aria-label="Accept"
+                              aria-label={
+                                briefMode === "own_doc"
+                                  ? "Add to checklist"
+                                  : "Accept"
+                              }
                               className="flex h-[42px] items-center justify-center gap-1.5 rounded-xl border border-mist bg-white text-sm font-semibold"
                               onClick={() => void decide(p.id, "accept")}
                             >
-                              ✅ Accept
+                              {briefMode === "own_doc"
+                                ? "✅ Checklist"
+                                : "✅ Accept"}
                             </button>
                             <button
                               type="button"

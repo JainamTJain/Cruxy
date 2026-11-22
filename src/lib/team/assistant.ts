@@ -47,7 +47,7 @@ function detectIntent(question: string): Intent {
 }
 
 /**
- * Cite-or-quiet assistant: answers from team Truth Sources first.
+ * Cite-or-quiet assistant: answers from team Evidence Library first.
  * Workstream H: uses the Assistant agent (asks before it answers).
  * F-176: explain, quiz, find, draft, summarize, next.
  * F-179–183: admin mode answers from Crux records only.

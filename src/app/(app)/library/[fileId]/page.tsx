@@ -461,7 +461,7 @@ export default function ReadingRoomPage() {
                 onClick={() => void turnInto("proposal")}
                 className="h-[38px] rounded-[10px] border border-[#E3E5E9] bg-white px-3 text-left text-[13px] font-semibold text-ink"
               >
-                Propose to Truth Sources
+                Propose to Evidence Library
               </button>
             </div>
             <button

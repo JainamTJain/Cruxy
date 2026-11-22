@@ -332,7 +332,7 @@ export async function markMessageIdea(
   }
   if (!saved) throw new Error("Message not found");
 
-  // Send to the team's Truth Sources queue (assignments stay explicit; chat only queues ideas).
+  // Send to the team's Evidence Library queue (assignments stay explicit; chat only queues ideas).
   if (saved.case_id) {
     const { getPersonById } = await import("@/lib/db/repository");
     const person = await getPersonById(actorId);

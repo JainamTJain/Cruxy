@@ -141,7 +141,7 @@ export const ROLE_SUMMARY = {
       "Set and change case roles (leads, counter-arguer, supporter)",
       "Read, comment on and borrow from every other team",
     ],
-    cannot: ["Edit another team's Truth Sources", "See session codes"],
+    cannot: ["Edit another team's Evidence Library", "See session codes"],
   },
   judge: {
     can: ["Score the session they were let into"],
