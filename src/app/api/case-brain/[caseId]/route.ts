@@ -18,7 +18,6 @@ import {
   getCaseBrain,
 } from "@/lib/case-brain/service";
 import {
-  getPersonById,
   listCases,
   listPeopleFull,
   listTeams,
@@ -46,14 +45,11 @@ export async function GET(_req: Request, { params }: Params) {
 
   const { caseId } = await params;
   const url = new URL(_req.url);
-  const me = await getPersonById(auth.session.personId);
-  if (!me) {
-    return NextResponse.json({ error: "Unknown person" }, { status: 401 });
-  }
+  const me = auth.person;
   const { teamId } = resolveVisibleTeamId({
     person: me,
     session: auth.session,
-    requested: url.searchParams.get("teamId"),
+    requested: url.searchParams.get("teamId") ?? auth.teamId,
   });
   if (!teamId) {
     return NextResponse.json(

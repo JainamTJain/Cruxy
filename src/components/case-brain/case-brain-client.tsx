@@ -149,8 +149,11 @@ const TEAM_COLOUR: Record<string, string> = {
 function originLabel(
   proposal: CaseBrainSnapshot["proposals"][number],
   teams: Team[],
+  seeAllTeams: boolean,
 ) {
   if (proposal.origin === "inspired_by_team") {
+    // Members never learn which USC team an idea came from.
+    if (!seeAllTeams) return "A strong idea from elsewhere";
     const t = teams.find((x) => x.id === proposal.inspired_from_team_id);
     return t ? `Inspired by ${t.name}` : "Inspired by Team";
   }
@@ -1231,7 +1234,13 @@ export function CaseBrainClient({
                           : "",
                       )}
                     >
-                      <OriginTag label={originLabel(p, teams)} />
+                      <OriginTag
+                        label={originLabel(
+                          p,
+                          teams,
+                          Boolean(data.canSeeAllTeams),
+                        )}
+                      />
                       <p className="m-0 text-[15px] font-medium leading-snug">
                         {p.text}
                       </p>
