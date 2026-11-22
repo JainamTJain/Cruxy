@@ -41,7 +41,13 @@ export const KIND_LABELS: Record<NotifyKind, string> = {
 /** Map free-form notification.kind strings into a settings bucket. */
 export function bucketForStoredKind(kind: string): NotifyKind | null {
   const k = kind.toLowerCase();
-  if (k === "chat_mention" || k === "mention") return "mention";
+  if (
+    k === "chat_mention" ||
+    k === "mention" ||
+    k === "discussion_mention"
+  ) {
+    return "mention";
+  }
   if (
     k === "case_role" ||
     k === "role_or_task" ||
