@@ -89,6 +89,14 @@ export default function TodayPage() {
           >
             Round card and timer
           </Link>
+          {Date.now() >= Date.UTC(2026, 11, 5, 8) ? (
+            <Link
+              href="/season"
+              className="inline-flex items-center justify-center rounded-xl border border-ink/15 bg-white px-4 py-3 text-sm font-semibold text-ink"
+            >
+              After the regional
+            </Link>
+          ) : null}
         </div>
       </section>
 

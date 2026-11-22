@@ -78,12 +78,31 @@ service role server-side. Secrets only in Vercel env (name any new env var in th
 add it; features must degrade quietly without it). No em dashes or middle dots in copy. Follow
 docs/design/writing.md. New pieces in new files where another row owns the page.
 
-## C → H handoff: real-round log fields (for the retrospective)
+## Agreed field names: real-round log (C owns, H reads)
 
+H reads `competition_logs` (and any Wave 9 C round-day writes into the same table). Do not rename
+these columns without updating both rows:
+
+| Field | Meaning |
+| --- | --- |
+| `id` | Round log id (cited from retro themes) |
+| `competition_id` | Competition (e.g. California Regional) |
+| `case_id`, `case_number` | Drawn / assigned case |
+| `opponent` | Opposing school name |
+| `moderator_question` | Moderator question text |
+| `judges_questions` | Judges' questions (free text) |
+| `judge_comments` | Judge comments (free text; H groups into themes) |
+| `score_us`, `score_them` | Numeric scores |
+| `result` | `win` / `loss` / `tie` / `pending` |
+| `team_id` | USC team |
+| `created_at`, `created_by` | Audit |
+
+Team-level advancement and win/loss rollups for the hub live in H's `competition_team_results`
+(migration `00060`), entered only by Dr. B or Jainam.
+## C → H handoff: real-round log fields (for the retrospective)
 Row C writes competition-day round logs into `competition_logs` (migration `00055` adds columns;
 `00065` simplifies logistics to plain text lists). H should read these for the after-regional
 retrospective. Empty logistics fields mean "Dr. B will add this" and are never invented.
-
 | Field | Column | Meaning |
 | --- | --- | --- |
 | Competition | `competition_id` | Usually California Regional 2026-12-05 |
@@ -101,16 +120,12 @@ retrospective. Empty logistics fields mean "Dr. B will add this" and are never i
 | Debrief change | `debrief_change` | One thing to change (between-round) |
 | Round card link | `day_round_id` | Optional link to `competition_day_rounds` |
 | Who logged | `created_by`, `created_at` | Person and time |
-
 Related tables for the day itself (not the retrospective core, but useful):
-
 - `competition_day_logistics`: one plain page Dr. B fills (schedule, departure, meeting,
   dress, venue, rooms, packing list text, carpool list text). Empty = "Dr. B will add this".
 - `competition_day_rounds`: round-day card (drawn case, side, speakers, key points, room)
-
 No carpool sign-up system and no per-person packing ticks: carpool is a simple list field
 on the logistics page. No new nav items for `/regional`; entry is a quiet link from Today.
-
 Member hub: `/regional`. Tab order (solo-first): Round day → APPE timer → Real-round log →
 Debrief → Day info. APPE timer phases (offline): presentation 10:00, conferral 1:00,
 commentary 5:00, response 3:00, judges' questions 10:00 (from `docs/domain/ethics-bowl.md` ranges).
