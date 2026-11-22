@@ -99,7 +99,10 @@ export function AlertSettings() {
         setBusy(false);
         return;
       }
-      const reg = await navigator.serviceWorker.register("/sw-push.js");
+      // Use the shared offline worker so push and offline share one scope.
+      const reg = await navigator.serviceWorker.register("/sw.js", {
+        scope: "/",
+      });
       await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
@@ -130,7 +133,7 @@ export function AlertSettings() {
     setBusy(true);
     let endpoint: string | undefined;
     try {
-      const reg = await navigator.serviceWorker.getRegistration("/sw-push.js");
+      const reg = await navigator.serviceWorker.getRegistration("/");
       const sub = await reg?.pushManager.getSubscription();
       endpoint = sub?.endpoint;
       await sub?.unsubscribe();
