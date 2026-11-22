@@ -83,7 +83,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-064 Every reveal and reset goes in the activity log. Dr. B and members can't open the panel, and Jainam's own passcode never appears in it. [`src/app/(app)/admin/admin-console.tsx`]
 - [x] F-065 **Consent (first sign in only, re-shown if the wording changes)** [`CONSENT_VERSION` gate on sign-in]
 - [x] F-066 One screen, plain words: what is recorded, when, why, who sees it, where it goes, how long it stays, and what Cruxy is. [`src/app/consent/page.tsx`]
-- [x] F-067 Two choices: "I agree to be recorded in practice" or "Not now: text only". Agreeing includes a 20 second voice sample, recorded right there, so transcripts can label who spoke. [`consent/page.tsx` + `uploadVoiceSample`]
+- [x] F-067 Two choices: "I agree: record my voice sample" or "Not now: text only". Agreeing opens guided enrollment (passages, level meter, voiced-speech target ~30s, review before Done) so transcripts can label who spoke. [`consent/page.tsx`, `voice-enrollment.tsx`, `uploadVoiceSample`]
 - [x] F-068 Text only members use everything except being recorded; a session that includes them shows a banner so the room knows. [`sessionHasTextOnlyMembers` in `src/lib/attendance`; D Session screen consumes `/api/attendance`]
 - [x] F-069 Consent, the date and the wording version are stored; anyone can change it in Settings; withdrawing deletes their voice sample. [`saveConsent` + `updateConsentChoice` + Settings + `deleteVoiceSample`]
 - [x] F-070 Dr. B's weekly summary email is a separate opt in on her first admin sign in. [`/api/auth/digest-opt-in` + prompt in `app-shell.tsx`]

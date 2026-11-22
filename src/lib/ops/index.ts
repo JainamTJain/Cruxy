@@ -46,3 +46,15 @@ export {
   filterDriftFlagsForViewer,
   type PrivacyClass,
 } from "@/lib/ops/privacy-scope";
+export {
+  MAX_CLOSED_QUOTE_WORDS,
+  isOpenOrPublicDomainLicence,
+  canStoreFullText,
+  clipClosedQuote,
+  researchStoragePlan,
+  canViewMaterialRequests,
+  canCreateMaterialRequest,
+  canEditRolesBoard,
+  roleChangeNotifyPersonIds,
+  assertMoodEventHasNoPersonalData,
+} from "@/lib/ops/privacy-licence";

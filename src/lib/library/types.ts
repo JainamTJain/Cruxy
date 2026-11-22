@@ -44,6 +44,8 @@ export interface Passage {
   anchor: string;
   text: string;
   embedding: number[] | null;
+  /** True when the vector is a local stub (gateway refused / missing). */
+  embedding_stub?: boolean;
   ord: number;
   created_at: string;
   created_by: string | null;

@@ -146,7 +146,7 @@ The first time, everyone signs in with their name and a one-time starter code (t
 **Consent (first sign in only, re-shown if the wording changes)**
 
 - One screen, plain words: what is recorded, when, why, who sees it, where it goes, how long it stays, and what Cruxy is.
-- Two choices: "I agree to be recorded in practice" or "Not now: text only". Agreeing includes a 20 second voice sample, recorded right there, so transcripts can label who spoke.
+- Two choices: "I agree: record my voice sample" or "Not now: text only". Agreeing opens guided voice enrollment: read short passages, a live level meter, and about 30 seconds of clear (voiced) speech, with review playback before Done, so transcripts can label who spoke.
 - Text only members use everything except being recorded; a session that includes them shows a banner so the room knows.
 - Consent, the date and the wording version are stored; anyone can change it in Settings; withdrawing deletes their voice sample.
 - Dr. B's weekly summary email is a separate opt in on her first admin sign in.

@@ -15,7 +15,11 @@ import { listCaseRoles } from "@/lib/team/repository";
  *   redo scores, moderator drill answer text.
  *
  * Always private (tech admin only, or never to members):
- *   auth_codes, passcode copies, ai_calls, book_requests, judge weights.
+ *   auth_codes, passcode copies, ai_calls, book_requests, material_requests,
+ *   judge weights, voice sample bytes.
+ *
+ * Wave 7 also: research full text only for open / public domain licences;
+ * mood events carry no personal fields (see privacy-licence.ts).
  */
 
 export type PrivacyClass =
@@ -31,8 +35,10 @@ export function privacyClassFor(field: string): PrivacyClass {
     f.includes("passcode") ||
     f.includes("ai_call") ||
     f.includes("book_request") ||
+    f.includes("material_request") ||
     f.includes("judge_weight") ||
-    f.includes("calibration")
+    f.includes("calibration") ||
+    f.includes("voice_sample")
   ) {
     return "tech_only";
   }

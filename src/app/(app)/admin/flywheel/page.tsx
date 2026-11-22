@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
 import { LiftCard } from "@/components/motion/lift-card";
 import { TabFade } from "@/components/motion/tab-fade";
+import { GraphSpinePanel } from "@/components/admin/graph-spine-panel";
 
 type Row = {
   id: string;
@@ -196,6 +197,8 @@ function FlywheelInner() {
         </section>
         </TabFade>
       ) : null}
+
+      <GraphSpinePanel />
 
       <Link href="/admin" className="text-sm underline">
         Back to admin

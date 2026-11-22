@@ -355,6 +355,19 @@ export function CaseBrainClient({
         </p>
       ) : null}
 
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="m-0 text-sm text-muted">
+          Case roles for this team. Change one here, or set every case on the
+          roles board.
+        </p>
+        <Link
+          href="/team/roles"
+          className="text-sm font-semibold text-cardinal underline"
+        >
+          Roles board
+        </Link>
+      </div>
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {ROLE_KEYS.map((role) => {
           const current = brain.case_roles.find((r) => r.role === role);
@@ -816,7 +829,7 @@ export function CaseBrainClient({
                     Likely opposing positions
                   </h3>
                   <p className="mt-1 text-sm text-muted">
-                    What other universities are most likely to bring — commenter
+                    What other universities are most likely to bring. Commenter
                     prep.
                   </p>
                   <div className="mt-3 space-y-3">

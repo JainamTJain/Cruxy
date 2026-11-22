@@ -4,6 +4,12 @@ import { isSampleDataMode } from "@/lib/db/config";
 import { readStore } from "@/lib/db/sample-store";
 import { assertOk, getServiceSupabase } from "@/lib/db/supabase/client";
 import {
+  cosine,
+  embedPassageText,
+  stubEmbed,
+} from "@/lib/library/embeddings";
+import { EMBEDDING_DIM } from "@/lib/library/types";
+import {
   wireBackingLink,
   wireCounterclaimLinks,
   wireFeedbackComment,
@@ -26,7 +32,9 @@ export type GraphBackfillCounts = {
   embeddings_claims: number;
   embeddings_supports: number;
   embeddings_counterclaims: number;
+  embeddings_passages: number;
   embeddings_skipped_stub: number;
+  passages_marked_stub: number;
 };
 
 function emptyCounts(): GraphBackfillCounts {
@@ -43,7 +51,9 @@ function emptyCounts(): GraphBackfillCounts {
     embeddings_claims: 0,
     embeddings_supports: 0,
     embeddings_counterclaims: 0,
+    embeddings_passages: 0,
     embeddings_skipped_stub: 0,
+    passages_marked_stub: 0,
   };
 }
 
@@ -58,6 +68,34 @@ async function countEdgesAfter(): Promise<number> {
     .select("*", { count: "exact", head: true });
   assertOk(error, "countEdgesAfter");
   return count ?? 0;
+}
+
+function parseEmbedding(raw: unknown): number[] | null {
+  if (!raw) return null;
+  if (Array.isArray(raw)) return raw.map(Number);
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (Array.isArray(parsed)) return parsed.map(Number);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/** True when stored vector matches the deterministic local stub for this text. */
+export function looksLikeStubEmbedding(
+  text: string,
+  embedding: number[] | null,
+): boolean {
+  if (!embedding || embedding.length === 0) return true;
+  const stub = stubEmbed(text || "empty", EMBEDDING_DIM);
+  const a =
+    embedding.length === EMBEDDING_DIM
+      ? embedding
+      : embedding.concat(new Array(Math.max(0, EMBEDDING_DIM - embedding.length)).fill(0)).slice(0, EMBEDDING_DIM);
+  return cosine(a, stub) > 0.999;
 }
 
 /**
@@ -303,7 +341,7 @@ export async function backfillArgEdges(opts?: {
 
 type EmbedTable = "claims" | "supports" | "counterclaims";
 
-async function embedMissingForTable(
+async function embedMissingOrStubForTable(
   table: EmbedTable,
   personId?: string | null,
 ): Promise<{ written: number; stub: number }> {
@@ -311,7 +349,6 @@ async function embedMissingForTable(
   let stub = 0;
 
   if (isSampleDataMode()) {
-    // Sample mode has no vector column; count rows that would need embeds.
     const store = await readStore();
     const rows =
       table === "claims"
@@ -323,38 +360,164 @@ async function embedMissingForTable(
   }
 
   const sb = getServiceSupabase();
-  const { data, error } = await sb
-    .from(table)
-    .select("id,text")
-    .is("embedding", null)
-    .limit(200);
-  assertOk(error, `embedMissing.${table}`);
+  // Prefer flagged stubs / nulls; fall back to null-only if column missing.
+  let data: { id: string; text: string }[] | null = null;
+  {
+    const res = await sb
+      .from(table)
+      .select("id,text")
+      .or("embedding.is.null,embedding_stub.eq.true")
+      .limit(400);
+    if (res.error) {
+      const fallback = await sb
+        .from(table)
+        .select("id,text")
+        .is("embedding", null)
+        .limit(400);
+      assertOk(fallback.error, `embedMissing.${table}`);
+      data = fallback.data;
+    } else {
+      data = res.data;
+    }
+  }
 
   for (const row of data ?? []) {
     const text = String(row.text ?? "").trim();
     if (!text) continue;
     const result = await embedCruxy({
       feature: `graph_embed_${table}`,
-      value: text,
+      value: text.slice(0, 6000),
       personId: personId ?? null,
     });
     if (!result.ok) continue;
     if (result.stub || !result.embedding.length) {
       stub += 1;
+      await sb
+        .from(table)
+        .update({ embedding_stub: true })
+        .eq("id", row.id);
       continue;
+    }
+    let embedding = result.embedding;
+    if (embedding.length < EMBEDDING_DIM) {
+      embedding = embedding.concat(
+        new Array(EMBEDDING_DIM - embedding.length).fill(0),
+      );
+    } else if (embedding.length > EMBEDDING_DIM) {
+      embedding = embedding.slice(0, EMBEDDING_DIM);
     }
     const { error: upErr } = await sb
       .from(table)
-      .update({ embedding: result.embedding })
-      .eq("id", row.id)
-      .is("embedding", null);
+      .update({ embedding, embedding_stub: false })
+      .eq("id", row.id);
     assertOk(upErr, `embedMissing.update.${table}`);
     written += 1;
   }
   return { written, stub };
 }
 
-/** Embed claims / supports / counterclaims that still lack a vector. */
+/**
+ * Re-embed passages that only have a stub vector (gateway was down / refused).
+ * Also marks undetected stubs via cosine match to stubEmbed(text).
+ */
+export async function reembedStubPassages(opts?: {
+  personId?: string | null;
+  limit?: number;
+}): Promise<{ written: number; skipped_stub: number; marked: number }> {
+  let written = 0;
+  let skipped_stub = 0;
+  let marked = 0;
+
+  if (isSampleDataMode()) {
+    return { written: 0, skipped_stub: 0, marked: 0 };
+  }
+
+  const sb = getServiceSupabase();
+  const limit = opts?.limit ?? 400;
+
+  // 1) Rows already flagged as stub
+  const flagged =
+    (
+      await sb
+        .from("passages")
+        .select("id,text")
+        .eq("embedding_stub", true)
+        .limit(limit)
+    ).data ?? [];
+
+  // 2) Detect unflagged stubs by comparing to stubEmbed (batch of recent passages)
+  if (flagged.length < limit) {
+    const { data: candidates, error } = await sb
+      .from("passages")
+      .select("id,text,embedding,embedding_stub")
+      .eq("embedding_stub", false)
+      .not("embedding", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(Math.min(500, limit * 2));
+    if (!error) {
+      for (const row of candidates ?? []) {
+        if (flagged.length >= limit) break;
+        const emb = parseEmbedding(row.embedding);
+        if (!looksLikeStubEmbedding(String(row.text ?? ""), emb)) continue;
+        await sb
+          .from("passages")
+          .update({ embedding_stub: true })
+          .eq("id", row.id);
+        marked += 1;
+        flagged.push({ id: row.id, text: row.text });
+      }
+    }
+  }
+
+  // Also include null embeddings
+  if (flagged.length < limit) {
+    const { data: nulls } = await sb
+      .from("passages")
+      .select("id,text")
+      .is("embedding", null)
+      .limit(limit - flagged.length);
+    for (const row of nulls ?? []) {
+      if (flagged.some((f) => f.id === row.id)) continue;
+      flagged.push(row);
+    }
+  }
+
+  const BATCH = 8;
+  for (let i = 0; i < flagged.length; i += BATCH) {
+    const batch = flagged.slice(i, i + BATCH);
+    await Promise.all(
+      batch.map(async (row) => {
+        const text = String(row.text ?? "").trim();
+        if (!text) return;
+        const emb = await embedPassageText(text, {
+          personId: opts?.personId ?? null,
+          feature: "passage_reembed",
+        });
+        if (emb.stub || !emb.embedding.length) {
+          skipped_stub += 1;
+          await sb
+            .from("passages")
+            .update({ embedding_stub: true })
+            .eq("id", row.id);
+          return;
+        }
+        const { error } = await sb
+          .from("passages")
+          .update({
+            embedding: emb.embedding,
+            embedding_stub: false,
+          })
+          .eq("id", row.id);
+        assertOk(error, "reembedStubPassages.update");
+        written += 1;
+      }),
+    );
+  }
+
+  return { written, skipped_stub, marked };
+}
+
+/** Embed claims / supports / counterclaims that still lack a real vector. */
 export async function backfillNodeEmbeddings(opts?: {
   personId?: string | null;
 }): Promise<Pick<
@@ -362,23 +525,29 @@ export async function backfillNodeEmbeddings(opts?: {
   | "embeddings_claims"
   | "embeddings_supports"
   | "embeddings_counterclaims"
+  | "embeddings_passages"
   | "embeddings_skipped_stub"
+  | "passages_marked_stub"
 >> {
-  const claims = await embedMissingForTable("claims", opts?.personId);
-  const supports = await embedMissingForTable("supports", opts?.personId);
-  const counterclaims = await embedMissingForTable(
+  const claims = await embedMissingOrStubForTable("claims", opts?.personId);
+  const supports = await embedMissingOrStubForTable("supports", opts?.personId);
+  const counterclaims = await embedMissingOrStubForTable(
     "counterclaims",
     opts?.personId,
   );
+  const passages = await reembedStubPassages(opts);
   return {
     embeddings_claims: claims.written,
     embeddings_supports: supports.written,
     embeddings_counterclaims: counterclaims.written,
-    embeddings_skipped_stub: claims.stub + supports.stub + counterclaims.stub,
+    embeddings_passages: passages.written,
+    embeddings_skipped_stub:
+      claims.stub + supports.stub + counterclaims.stub + passages.skipped_stub,
+    passages_marked_stub: passages.marked,
   };
 }
 
-/** Full spine backfill: edges then embeddings. */
+/** Full spine backfill: edges then embeddings (nodes + stub passages). */
 export async function runGraphSpineBackfill(opts?: {
   personId?: string | null;
 }): Promise<GraphBackfillCounts> {
