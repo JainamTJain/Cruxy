@@ -214,6 +214,7 @@ export async function finalizeRound(opts: {
     round.judges.humans.length === 0;
 
   let judgment = null;
+  let bankAdded = 0;
   if (wantCruxy) {
     // Ensure every team gets a Cruxy card
     const teams =
@@ -237,7 +238,6 @@ export async function finalizeRound(opts: {
     });
 
     // Bank: one "Things to take care of" entry per fix that still has a citation.
-    let bankAdded = 0;
     for (const f of judgment.feedback.filter((x) => x.kind === "fix")) {
       const entry = proposeBankEntry({
         lesson: f.reasoning.slice(0, 200) || "Answer the moral tension first.",
@@ -302,11 +302,38 @@ export async function finalizeRound(opts: {
     await computeBrierAfterJudging({ roundId: opts.roundId });
   }
 
+  // Move roadmap "practiced" (and Today/progress sources) for everyone who spoke.
+  if (round.case_id) {
+    const { recordPracticeSpeak } = await import("@/lib/revision/repository");
+    const speakerIds = [
+      ...new Set(
+        [
+          ...lines
+            .map((l) => l.speaker_person_id)
+            .filter((id): id is string => Boolean(id)),
+          ...presentIds,
+          opts.personId ?? null,
+        ].filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    for (const personId of speakerIds) {
+      try {
+        await recordPracticeSpeak({
+          personId,
+          caseId: round.case_id,
+        });
+      } catch {
+        // Roadmap update is best-effort; transcript/judge already saved.
+      }
+    }
+  }
+
   return {
     recording,
     lines,
     judgment,
     transcriptStub: transcript.stub,
+    bankAdded,
   };
 }
 

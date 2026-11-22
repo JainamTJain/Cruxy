@@ -9,7 +9,7 @@ import { useDrillSession } from "../use-drill-session";
 const ANSWER_SECONDS = 90;
 
 export default function ModeratorDrillPage() {
-  const { session, start, error, busy } = useDrillSession();
+  const { session, start, error, busy, saveCheckpoint } = useDrillSession();
   const [question, setQuestion] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(ANSWER_SECONDS);
@@ -20,6 +20,17 @@ export default function ModeratorDrillPage() {
     void (async () => {
       const s = await start("moderator_drill");
       if (!s) return;
+      if (s.resumed && s.checkpoint?.prompt) {
+        setQuestion(s.checkpoint.prompt);
+        setSeconds(
+          typeof s.checkpoint.seconds_left === "number"
+            ? s.checkpoint.seconds_left
+            : ANSWER_SECONDS,
+        );
+        setRunning(Boolean(s.checkpoint.running));
+        if (s.checkpoint.running) speakText(s.checkpoint.prompt);
+        return;
+      }
       const res = await fetch("/api/practice/drills/moderator", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -36,6 +47,12 @@ export default function ModeratorDrillPage() {
       setQuestion(data.question.text);
       speakText(data.question.text);
       setRunning(true);
+      saveCheckpoint({
+        phase: "answer",
+        prompt: data.question.text,
+        seconds_left: ANSWER_SECONDS,
+        running: true,
+      });
     })();
     return () => stopSpeaking();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -48,13 +65,28 @@ export default function ModeratorDrillPage() {
         if (s <= 1) {
           setRunning(false);
           stopSpeaking();
+          saveCheckpoint({
+            phase: "answer",
+            prompt: question,
+            seconds_left: 0,
+            running: false,
+          });
           return 0;
         }
-        return s - 1;
+        const next = s - 1;
+        if (next % 5 === 0) {
+          saveCheckpoint({
+            phase: "answer",
+            prompt: question,
+            seconds_left: next,
+            running: true,
+          });
+        }
+        return next;
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [running]);
+  }, [running, question, saveCheckpoint]);
 
   return (
     <DrillShell

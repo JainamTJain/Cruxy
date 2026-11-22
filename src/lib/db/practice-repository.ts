@@ -150,6 +150,8 @@ export async function createSession(
     created_at: at,
     created_by: input.createdBy,
     recording_layout: input.online ? "own_device" : "room",
+    drill_checkpoint: null,
+    phase_entered_at: null,
   }));
 
   await updateStore((s) => {
@@ -269,8 +271,10 @@ export async function startRound(roundId: string): Promise<PracticeRound | null>
   await updateStore((s) => {
     const r = s.practice_rounds.find((x) => x.id === roundId);
     if (!r) return;
+    const at = nowIso();
     r.phase = "presentation";
-    r.started_at = nowIso();
+    r.started_at = at;
+    r.phase_entered_at = at;
     const session = s.practice_sessions.find((x) => x.id === r.session_id);
     if (session) session.status = "live";
     round = { ...r };
@@ -287,9 +291,11 @@ export async function advanceRoundPhase(
   await updateStore((s) => {
     const r = s.practice_rounds.find((x) => x.id === roundId);
     if (!r) return;
+    const at = nowIso();
     r.phase = phase;
+    r.phase_entered_at = at;
     if (phase === "done") {
-      r.ended_at = nowIso();
+      r.ended_at = at;
       const siblings = s.practice_rounds.filter(
         (x) => x.session_id === r.session_id,
       );
@@ -298,6 +304,61 @@ export async function advanceRoundPhase(
         if (session) session.status = "ended";
       }
     }
+    round = { ...r };
+  });
+  return round;
+}
+
+const OPEN_DRILL_PHASES = new Set(["setup", "presentation", "commentary", "response", "judges_qa"]);
+
+/**
+ * Resume an unfinished member drill for this person + mode instead of
+ * creating a new orphan session every time the page mounts.
+ */
+export async function findOpenDrillRound(opts: {
+  personId: string;
+  mode: PracticeMode;
+  caseId?: string | null;
+}): Promise<{ session: PracticeSession; round: PracticeRound } | null> {
+  if (!isSampleDataMode()) return sb.findOpenDrillRound(opts);
+  const store = await readStore();
+  const sessions = store.practice_sessions
+    .filter(
+      (s) =>
+        s.kind === "member_practice" &&
+        s.created_by === opts.personId &&
+        s.status !== "ended" &&
+        (s.mode === opts.mode || s.mode == null),
+    )
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  for (const session of sessions) {
+    const round = store.practice_rounds
+      .filter(
+        (r) =>
+          r.session_id === session.id &&
+          r.mode === opts.mode &&
+          OPEN_DRILL_PHASES.has(r.phase) &&
+          (!opts.caseId || r.case_id === opts.caseId),
+      )
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+    if (round) return { session, round };
+  }
+  return null;
+}
+
+export async function saveDrillCheckpoint(
+  roundId: string,
+  checkpoint: NonNullable<PracticeRound["drill_checkpoint"]>,
+): Promise<PracticeRound | null> {
+  if (!isSampleDataMode()) return sb.saveDrillCheckpoint(roundId, checkpoint);
+  let round: PracticeRound | null = null;
+  await updateStore((s) => {
+    const r = s.practice_rounds.find((x) => x.id === roundId);
+    if (!r) return;
+    r.drill_checkpoint = {
+      ...checkpoint,
+      updated_at: nowIso(),
+    };
     round = { ...r };
   });
   return round;

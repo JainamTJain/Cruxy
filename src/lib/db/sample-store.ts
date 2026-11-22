@@ -319,6 +319,12 @@ export interface SampleStore {
   }[];
   /** Wave 9 G: report a problem / suggest something. */
   product_feedback?: import("@/lib/db/supabase/product-feedback-extra").ProductFeedback[];
+  /** Wave 9 E solo async soft bags (solo-prep-repository). */
+  solo_part_progress?: unknown[];
+  solo_recordings?: unknown[];
+  solo_review_comments?: unknown[];
+  solo_handoffs?: unknown[];
+  solo_case_visits?: unknown[];
 }
 
 function emptyCaseBrainFields(): Pick<
@@ -876,6 +882,11 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     availability_poll_votes: raw.availability_poll_votes ?? [],
     calendar_feed_tokens: raw.calendar_feed_tokens ?? [],
     product_feedback: raw.product_feedback ?? [],
+    solo_part_progress: raw.solo_part_progress ?? [],
+    solo_recordings: raw.solo_recordings ?? [],
+    solo_review_comments: raw.solo_review_comments ?? [],
+    solo_handoffs: raw.solo_handoffs ?? [],
+    solo_case_visits: raw.solo_case_visits ?? [],
   };
 }
 

@@ -45,6 +45,7 @@ export {
   isTechAdminViewer,
   isCaseLead,
   canViewPersonalLearning,
+  canViewScorePredictions,
   canViewMasteryMap,
   redactPredictions,
   filterDriftFlagsForViewer,
