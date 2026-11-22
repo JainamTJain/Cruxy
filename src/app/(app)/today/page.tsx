@@ -75,11 +75,18 @@ export default function TodayPage() {
           Win Dec 5 helpers
         </h2>
         <p className="m-0 text-xs text-muted">
-          Warm up the morning of a round. Drill Judges&apos; Q&A often.
+          Warm up the morning of a round. Drill Judges&apos; Q&A often. On the
+          day, open your round card and the APPE timer on your phone.
         </p>
         <div className="mt-2 flex flex-col gap-2 sm:flex-row">
           <PreRoundWarmupCta caseId={data.leadCase?.id} />
           <OneTapJudgeDrill caseId={data.leadCase?.id} />
+          <Link
+            href="/regional"
+            className="inline-flex items-center justify-center rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-white"
+          >
+            Round card and timer
+          </Link>
         </div>
       </section>
 

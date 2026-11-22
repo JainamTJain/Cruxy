@@ -1,5 +1,6 @@
 /**
  * Wave 9 C: Competition Day persistence (*-extra for shared boundary).
+ * Personal tools first; logistics is one plain page.
  */
 import "server-only";
 import { randomUUID } from "crypto";
@@ -15,36 +16,11 @@ export type LogisticsRow = {
   dress_guidance: string | null;
   venue_notes: string | null;
   room_notes: string | null;
-  packing_items: string[];
+  packing_list: string | null;
+  carpool_list: string | null;
   created_at: string;
   updated_at: string;
   updated_by: string | null;
-};
-
-export type CarpoolRow = {
-  id: string;
-  competition_id: string;
-  driver_person_id: string;
-  seats: number;
-  notes: string | null;
-  created_at: string;
-  created_by: string | null;
-};
-
-export type CarpoolRiderRow = {
-  id: string;
-  carpool_id: string;
-  person_id: string;
-  created_at: string;
-};
-
-export type PackingTickRow = {
-  id: string;
-  competition_id: string;
-  person_id: string;
-  item_key: string;
-  done: boolean;
-  updated_at: string;
 };
 
 export type DayRoundSpeaker = {
@@ -93,9 +69,6 @@ export type DayLogRow = {
 };
 
 const sampleLogistics: LogisticsRow[] = [];
-const sampleCarpools: CarpoolRow[] = [];
-const sampleRiders: CarpoolRiderRow[] = [];
-const sampleTicks: PackingTickRow[] = [];
 const sampleRounds: DayRoundRow[] = [];
 const sampleLogs: DayLogRow[] = [];
 
@@ -103,15 +76,23 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-const DEFAULT_PACKING = [
-  "Passcode written down",
-  "Printed one pager for each case",
-  "Water bottle",
-  "Snack",
-  "Phone charger",
-  "Comfortable dress clothes",
-  "Team contact list",
-];
+function normalizeLogistics(r: Record<string, unknown>): LogisticsRow {
+  return {
+    id: String(r.id),
+    competition_id: String(r.competition_id),
+    schedule_text: (r.schedule_text as string | null) ?? null,
+    departure_time: (r.departure_time as string | null) ?? null,
+    meeting_point: (r.meeting_point as string | null) ?? null,
+    dress_guidance: (r.dress_guidance as string | null) ?? null,
+    venue_notes: (r.venue_notes as string | null) ?? null,
+    room_notes: (r.room_notes as string | null) ?? null,
+    packing_list: (r.packing_list as string | null) ?? null,
+    carpool_list: (r.carpool_list as string | null) ?? null,
+    created_at: String(r.created_at),
+    updated_at: String(r.updated_at),
+    updated_by: (r.updated_by as string | null) ?? null,
+  };
+}
 
 export async function getOrCreateLogistics(
   competitionId: string,
@@ -128,7 +109,8 @@ export async function getOrCreateLogistics(
         dress_guidance: null,
         venue_notes: null,
         room_notes: null,
-        packing_items: [...DEFAULT_PACKING],
+        packing_list: null,
+        carpool_list: null,
         created_at: nowIso(),
         updated_at: nowIso(),
         updated_by: null,
@@ -149,31 +131,11 @@ export async function getOrCreateLogistics(
   }
   const { data, error } = await sb
     .from("competition_day_logistics")
-    .insert({
-      competition_id: competitionId,
-      packing_items: DEFAULT_PACKING,
-    })
+    .insert({ competition_id: competitionId })
     .select("*")
     .single();
   if (error) throw new Error(`getOrCreateLogistics: ${error.message}`);
   return normalizeLogistics(data as Record<string, unknown>);
-}
-
-function normalizeLogistics(r: Record<string, unknown>): LogisticsRow {
-  return {
-    id: String(r.id),
-    competition_id: String(r.competition_id),
-    schedule_text: (r.schedule_text as string | null) ?? null,
-    departure_time: (r.departure_time as string | null) ?? null,
-    meeting_point: (r.meeting_point as string | null) ?? null,
-    dress_guidance: (r.dress_guidance as string | null) ?? null,
-    venue_notes: (r.venue_notes as string | null) ?? null,
-    room_notes: (r.room_notes as string | null) ?? null,
-    packing_items: (r.packing_items as string[] | null) ?? [],
-    created_at: String(r.created_at),
-    updated_at: String(r.updated_at),
-    updated_by: (r.updated_by as string | null) ?? null,
-  };
 }
 
 export async function updateLogistics(input: {
@@ -186,14 +148,14 @@ export async function updateLogistics(input: {
     dress_guidance: string | null;
     venue_notes: string | null;
     room_notes: string | null;
-    packing_items: string[];
+    packing_list: string | null;
+    carpool_list: string | null;
   }>;
 }): Promise<LogisticsRow> {
   const current = await getOrCreateLogistics(input.competitionId);
   const next: LogisticsRow = {
     ...current,
     ...input.patch,
-    packing_items: input.patch.packing_items ?? current.packing_items,
     updated_at: nowIso(),
     updated_by: input.personId,
   };
@@ -213,7 +175,8 @@ export async function updateLogistics(input: {
       dress_guidance: next.dress_guidance,
       venue_notes: next.venue_notes,
       room_notes: next.room_notes,
-      packing_items: next.packing_items,
+      packing_list: next.packing_list,
+      carpool_list: next.carpool_list,
       updated_at: next.updated_at,
       updated_by: next.updated_by,
     })
@@ -222,243 +185,6 @@ export async function updateLogistics(input: {
     .single();
   if (error) throw new Error(`updateLogistics: ${error.message}`);
   return normalizeLogistics(data as Record<string, unknown>);
-}
-
-export async function listCarpools(
-  competitionId: string,
-): Promise<{ carpool: CarpoolRow; riders: CarpoolRiderRow[] }[]> {
-  if (isSampleDataMode()) {
-    return sampleCarpools
-      .filter((c) => c.competition_id === competitionId)
-      .map((carpool) => ({
-        carpool,
-        riders: sampleRiders.filter((r) => r.carpool_id === carpool.id),
-      }));
-  }
-  const sb = getServiceSupabase();
-  const { data: cars, error } = await sb
-    .from("competition_carpools")
-    .select("*")
-    .eq("competition_id", competitionId)
-    .order("created_at", { ascending: true });
-  if (error) throw new Error(`listCarpools: ${error.message}`);
-  const list = (cars ?? []) as CarpoolRow[];
-  if (!list.length) return [];
-  const { data: riders, error: rErr } = await sb
-    .from("competition_carpool_riders")
-    .select("*")
-    .in(
-      "carpool_id",
-      list.map((c) => c.id),
-    );
-  if (rErr) throw new Error(`listCarpools riders: ${rErr.message}`);
-  const all = (riders ?? []) as CarpoolRiderRow[];
-  return list.map((carpool) => ({
-    carpool,
-    riders: all.filter((r) => r.carpool_id === carpool.id),
-  }));
-}
-
-export async function upsertCarpool(input: {
-  competitionId: string;
-  driverPersonId: string;
-  seats: number;
-  notes?: string | null;
-  personId: string;
-}): Promise<CarpoolRow> {
-  if (isSampleDataMode()) {
-    const existing = sampleCarpools.find(
-      (c) =>
-        c.competition_id === input.competitionId &&
-        c.driver_person_id === input.driverPersonId,
-    );
-    if (existing) {
-      existing.seats = input.seats;
-      existing.notes = input.notes ?? null;
-      return existing;
-    }
-    const row: CarpoolRow = {
-      id: randomUUID(),
-      competition_id: input.competitionId,
-      driver_person_id: input.driverPersonId,
-      seats: input.seats,
-      notes: input.notes ?? null,
-      created_at: nowIso(),
-      created_by: input.personId,
-    };
-    sampleCarpools.push(row);
-    return row;
-  }
-
-  const sb = getServiceSupabase();
-  const { data: existing } = await sb
-    .from("competition_carpools")
-    .select("*")
-    .eq("competition_id", input.competitionId)
-    .eq("driver_person_id", input.driverPersonId)
-    .maybeSingle();
-  if (existing) {
-    const { data, error } = await sb
-      .from("competition_carpools")
-      .update({ seats: input.seats, notes: input.notes ?? null })
-      .eq("id", (existing as CarpoolRow).id)
-      .select("*")
-      .single();
-    if (error) throw new Error(`upsertCarpool update: ${error.message}`);
-    return data as CarpoolRow;
-  }
-  const { data, error } = await sb
-    .from("competition_carpools")
-    .insert({
-      competition_id: input.competitionId,
-      driver_person_id: input.driverPersonId,
-      seats: input.seats,
-      notes: input.notes ?? null,
-      created_by: input.personId,
-    })
-    .select("*")
-    .single();
-  if (error) throw new Error(`upsertCarpool insert: ${error.message}`);
-  return data as CarpoolRow;
-}
-
-export async function joinCarpool(input: {
-  carpoolId: string;
-  personId: string;
-}): Promise<CarpoolRiderRow> {
-  if (isSampleDataMode()) {
-    const existing = sampleRiders.find(
-      (r) =>
-        r.carpool_id === input.carpoolId && r.person_id === input.personId,
-    );
-    if (existing) return existing;
-    // Leave other cars first
-    for (let i = sampleRiders.length - 1; i >= 0; i--) {
-      if (sampleRiders[i]!.person_id === input.personId) {
-        sampleRiders.splice(i, 1);
-      }
-    }
-    const row: CarpoolRiderRow = {
-      id: randomUUID(),
-      carpool_id: input.carpoolId,
-      person_id: input.personId,
-      created_at: nowIso(),
-    };
-    sampleRiders.push(row);
-    return row;
-  }
-
-  const sb = getServiceSupabase();
-  await sb
-    .from("competition_carpool_riders")
-    .delete()
-    .eq("person_id", input.personId);
-  const { data, error } = await sb
-    .from("competition_carpool_riders")
-    .upsert(
-      {
-        carpool_id: input.carpoolId,
-        person_id: input.personId,
-      },
-      { onConflict: "carpool_id,person_id" },
-    )
-    .select("*")
-    .single();
-  if (error) throw new Error(`joinCarpool: ${error.message}`);
-  return data as CarpoolRiderRow;
-}
-
-export async function leaveCarpool(input: {
-  carpoolId: string;
-  personId: string;
-}): Promise<void> {
-  if (isSampleDataMode()) {
-    for (let i = sampleRiders.length - 1; i >= 0; i--) {
-      if (
-        sampleRiders[i]!.carpool_id === input.carpoolId &&
-        sampleRiders[i]!.person_id === input.personId
-      ) {
-        sampleRiders.splice(i, 1);
-      }
-    }
-    return;
-  }
-  const { error } = await getServiceSupabase()
-    .from("competition_carpool_riders")
-    .delete()
-    .eq("carpool_id", input.carpoolId)
-    .eq("person_id", input.personId);
-  if (error) throw new Error(`leaveCarpool: ${error.message}`);
-}
-
-export async function listPackingTicks(
-  competitionId: string,
-  personId: string,
-): Promise<PackingTickRow[]> {
-  if (isSampleDataMode()) {
-    return sampleTicks.filter(
-      (t) =>
-        t.competition_id === competitionId && t.person_id === personId,
-    );
-  }
-  const { data, error } = await getServiceSupabase()
-    .from("competition_packing_ticks")
-    .select("*")
-    .eq("competition_id", competitionId)
-    .eq("person_id", personId);
-  if (error) throw new Error(`listPackingTicks: ${error.message}`);
-  return (data ?? []) as PackingTickRow[];
-}
-
-export async function setPackingTick(input: {
-  competitionId: string;
-  personId: string;
-  itemKey: string;
-  done: boolean;
-}): Promise<PackingTickRow> {
-  if (isSampleDataMode()) {
-    const i = sampleTicks.findIndex(
-      (t) =>
-        t.competition_id === input.competitionId &&
-        t.person_id === input.personId &&
-        t.item_key === input.itemKey,
-    );
-    if (i >= 0) {
-      sampleTicks[i] = {
-        ...sampleTicks[i]!,
-        done: input.done,
-        updated_at: nowIso(),
-      };
-      return sampleTicks[i]!;
-    }
-    const row: PackingTickRow = {
-      id: randomUUID(),
-      competition_id: input.competitionId,
-      person_id: input.personId,
-      item_key: input.itemKey,
-      done: input.done,
-      updated_at: nowIso(),
-    };
-    sampleTicks.push(row);
-    return row;
-  }
-
-  const { data, error } = await getServiceSupabase()
-    .from("competition_packing_ticks")
-    .upsert(
-      {
-        competition_id: input.competitionId,
-        person_id: input.personId,
-        item_key: input.itemKey,
-        done: input.done,
-        updated_at: nowIso(),
-      },
-      { onConflict: "competition_id,person_id,item_key" },
-    )
-    .select("*")
-    .single();
-  if (error) throw new Error(`setPackingTick: ${error.message}`);
-  return data as PackingTickRow;
 }
 
 export async function listDayRounds(input: {
@@ -516,10 +242,12 @@ export async function upsertDayRound(input: {
   room?: string | null;
   startsAt?: string | null;
 }): Promise<DayRoundRow> {
-  const existing = (await listDayRounds({
-    competitionId: input.competitionId,
-    teamId: input.teamId,
-  })).find((r) => r.round_number === input.roundNumber);
+  const existing = (
+    await listDayRounds({
+      competitionId: input.competitionId,
+      teamId: input.teamId,
+    })
+  ).find((r) => r.round_number === input.roundNumber);
 
   const row: DayRoundRow = {
     id: existing?.id ?? randomUUID(),
