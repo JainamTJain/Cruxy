@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
 import type { TruthItem } from "@/lib/case-brain/types";
 import type { ExtraReadingItem } from "@/lib/case-home/extra-reading";
@@ -39,13 +39,15 @@ export function ExtraReadingSection({
   const [items, setItems] = useState<ExtraReadingItem[]>([]);
   const [available, setAvailable] = useState<ExtraReadingItem[]>([]);
   const [loading, setLoading] = useState(true);
+  // Show the skeleton only on first load; later refreshes stay quiet.
+  const loadedOnce = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    if (!loadedOnce.current) setLoading(true);
     setError(null);
     const res = await fetch(
       `/api/case/extra-reading?caseId=${encodeURIComponent(caseId)}&teamId=${encodeURIComponent(teamId)}`,
@@ -57,11 +59,13 @@ export function ExtraReadingSection({
     };
     if (!res.ok) {
       setError(json.error ?? "Could not load Extra reading.");
+      loadedOnce.current = true;
       setLoading(false);
       return;
     }
     setItems(json.items ?? []);
     setAvailable(json.available_shared ?? []);
+    loadedOnce.current = true;
     setLoading(false);
   }, [caseId, teamId]);
 
@@ -170,8 +174,9 @@ export function ExtraReadingSection({
           Extra reading
         </h2>
         <p className="mt-1 text-sm text-muted">
-          Facts, quotes, examples, frameworks and materials for this case. Import
-          your own; share only if you want other teams to be able to add it.
+          Facts, quotes, examples, frameworks and materials for this case.
+          Import your own; share only if you want other teams to be able to add
+          it.
         </p>
       </div>
 

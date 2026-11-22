@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import {
   AnnotateSurface,
   ReadingToolbar,
@@ -27,10 +27,17 @@ type Props = {
  * The case: full case text with Highlighter toggle, context menu, and
  * per-person coloured highlights that stay visible.
  */
-export function TheCaseTab({ caseId, teamId, initial = null, className }: Props) {
+export function TheCaseTab({
+  caseId,
+  teamId,
+  initial = null,
+  className,
+}: Props) {
   const [data, setData] = useState<CaseHomePayload | null>(initial);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(!initial);
+  // Show the skeleton only on first load; later refreshes stay quiet.
+  const loadedOnce = useRef(false);
   const [showSources, setShowSources] = useState(false);
   const [showAllNotes, setShowAllNotes] = useState(false);
 
@@ -38,20 +45,23 @@ export function TheCaseTab({ caseId, teamId, initial = null, className }: Props)
     async (force = false) => {
       if (initial && !force) {
         setData(initial);
+        loadedOnce.current = true;
         setLoading(false);
         return;
       }
-      setLoading(true);
+      if (!loadedOnce.current) setLoading(true);
       setError(null);
       const q = teamId ? `?teamId=${encodeURIComponent(teamId)}` : "";
       const res = await fetch(`/api/case-home/${caseId}${q}`);
       const json = (await res.json()) as CaseHomePayload & { error?: string };
       if (!res.ok) {
         setError(json.error ?? "Could not load the case.");
+        loadedOnce.current = true;
         setLoading(false);
         return;
       }
       setData(json);
+      loadedOnce.current = true;
       setLoading(false);
     },
     [caseId, teamId, initial],
@@ -231,7 +241,8 @@ export function TheCaseTab({ caseId, teamId, initial = null, className }: Props)
                     kind="annotation"
                     targetId={q.id}
                     title={
-                      q.body.replace(/^Question: /, "").slice(0, 80) || "Question"
+                      q.body.replace(/^Question: /, "").slice(0, 80) ||
+                      "Question"
                     }
                   />
                 </li>
