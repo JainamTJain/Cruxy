@@ -7,6 +7,7 @@ import { createSession, listCases } from "@/lib/db/practice-repository";
 import { getPersonById } from "@/lib/db/repository";
 import { cannotDoYet, type ActPlanResult } from "@/lib/cruxy/actions/types";
 import type { PracticeMode } from "@/lib/practice/types";
+import { appToday } from "@/lib/time/app-day";
 
 export type DrillStartData = {
   mode: PracticeMode;
@@ -99,7 +100,7 @@ export async function applyDrillStart(input: {
   const created = await createSession({
     kind: "member_practice",
     title: input.data.label,
-    date: new Date().toISOString().slice(0, 10),
+    date: appToday(),
     place: null,
     online: true,
     createdBy: person.id,

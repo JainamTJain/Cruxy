@@ -7,6 +7,7 @@ import {
 } from "@/lib/db/practice-repository";
 import { listTeams } from "@/lib/db/repository";
 import type { PracticeMode, SessionKind } from "@/lib/practice/types";
+import { appToday } from "@/lib/time/app-day";
 
 export async function GET() {
   const session = await getSession();
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
   const created = await createSession({
     kind,
     title: body.title ?? (kind === "admin" ? "Admin session" : "Practice"),
-    date: body.date ?? new Date().toISOString().slice(0, 10),
+    date: body.date ?? appToday(),
     place: body.place ?? null,
     online: body.online ?? false,
     createdBy: session.personId,

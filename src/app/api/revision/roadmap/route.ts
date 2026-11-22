@@ -11,6 +11,7 @@ import {
   studyingLabels,
 } from "@/lib/revision/repository";
 import { listAssignments } from "@/lib/team/repository";
+import { appToday } from "@/lib/time/app-day";
 
 export async function GET() {
   const auth = await requireSession();
@@ -42,7 +43,7 @@ export async function GET() {
     rolesByCase.set(r.case_id, label);
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = appToday();
   let overdueCount = 0;
   const cases = view.cases.map((row) => {
     overdueCount += row.stages.filter(

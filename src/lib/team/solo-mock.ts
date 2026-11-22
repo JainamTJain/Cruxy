@@ -17,6 +17,7 @@ import {
 } from "@/lib/db/practice-repository";
 import { getPersonById, logActivity } from "@/lib/db/repository";
 import { runCruxyJudge } from "@/lib/practice/cruxy-judge";
+import { appToday } from "@/lib/time/app-day";
 
 export type SoloMockPhaseId =
   | "moderator"
@@ -85,7 +86,7 @@ export async function startSoloMockRound(input: {
   const created = await createSession({
     kind: "member_practice",
     title: "Solo mock round",
-    date: new Date().toISOString().slice(0, 10),
+    date: appToday(),
     place: null,
     online: true,
     createdBy: person.id,

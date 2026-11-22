@@ -5,6 +5,7 @@ import { getServiceSupabase } from "@/lib/db/supabase/client";
 import { readStore } from "@/lib/db/sample-store";
 import { listPeopleFull } from "@/lib/db/repository";
 import type { PracticeSession } from "@/lib/practice/types";
+import { appToday } from "@/lib/time/app-day";
 
 const REGIONAL_ISO = "2026-12-05";
 
@@ -97,7 +98,7 @@ function sessionStart(session: PracticeSession): Date | null {
 }
 
 async function listUpcomingSessions(now: Date): Promise<PracticeSession[]> {
-  const today = now.toISOString().slice(0, 10);
+  const today = appToday(now);
   if (isSampleDataMode()) {
     const store = await readStore();
     const sessions =

@@ -7,6 +7,7 @@ import {
 } from "@/lib/db/practice-repository";
 import { getPersonById } from "@/lib/db/repository";
 import type { PracticeMode } from "@/lib/practice/types";
+import { appToday } from "@/lib/time/app-day";
 
 const DRILL_MODES: PracticeMode[] = [
   "moderator_drill",
@@ -87,7 +88,7 @@ export async function POST(req: Request) {
   const created = await createSession({
     kind: "member_practice",
     title: labels[body.mode] ?? "Drill",
-    date: new Date().toISOString().slice(0, 10),
+    date: appToday(),
     place: null,
     online: true,
     createdBy: person.id,
