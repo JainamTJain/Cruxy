@@ -82,7 +82,14 @@ export default function RolesBoardPage() {
   }, [board]);
 
   async function post(body: Record<string, unknown>) {
-    if (!board?.canEdit) return;
+    if (!board) return;
+    const selfActions = new Set(["save_preferences", "set_any_case"]);
+    const action = String(body.action ?? "");
+    if (!board.canEdit && !selfActions.has(action)) return;
+    if (board.lock && !selfActions.has(action)) {
+      setStatus(`Roles are locked for ${board.lock.label}.`);
+      return;
+    }
     setBusy(true);
     try {
       const res = await fetch("/api/team/roles-board", {
@@ -140,8 +147,8 @@ export default function RolesBoardPage() {
             Roles board
           </h1>
           <p className="m-0 max-w-xl text-sm text-muted">
-            People by case. Tap a cell to cycle roles, or use a template. Gaps
-            and lead load show on the side.
+            People by case. Mark Any case is fine or rank cases, then use Random
+            fair split. Lock for Regionals 2026 when leads are set.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -175,6 +182,18 @@ export default function RolesBoardPage() {
 
       {status ? <p className="text-sm text-muted">{status}</p> : null}
 
+      {board.lock ? (
+        <section className="rounded-[20px] bg-[#E6F4F1] px-4 py-3">
+          <p className="m-0 text-sm font-semibold text-ink">
+            Locked for {board.lock.label}
+          </p>
+          <p className="m-0 mt-1 text-sm text-muted">
+            Season leads are saved as a snapshot and stay put. Live edits are
+            off.
+          </p>
+        </section>
+      ) : null}
+
       <div className="flex flex-wrap gap-3 text-xs text-muted">
         {(Object.keys(CHIP) as RoleChip[]).map((k) => (
           <span key={k} className="inline-flex items-center gap-1.5">
@@ -185,12 +204,164 @@ export default function RolesBoardPage() {
             {CHIP[k].label}
           </span>
         ))}
-        {!board.canEdit ? (
+        {board.lock ? (
+          <span className="font-semibold text-ink">Locked</span>
+        ) : !board.canEdit ? (
           <span className="font-semibold text-ink">View only</span>
         ) : (
           <span>Tap to cycle. Drag a name onto a case column to assign.</span>
         )}
       </div>
+
+      {/* My preferences */}
+      <section className="flex flex-col gap-3 rounded-[20px] bg-white p-4">
+        <h2 className="font-display m-0 text-lg font-extrabold">
+          My case preferences
+        </h2>
+        <p className="m-0 text-sm text-muted">
+          Mark Any case is fine, or rank the cases you want to lead (top is
+          first choice). Random fair split honors rankings first, then fills
+          leads for the Any case people.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            className={`h-9 rounded-xl px-3 text-xs font-semibold ${
+              board.anyCaseOk?.[meId]
+                ? "bg-ink text-white"
+                : "border border-mist bg-[#F7F8FA] text-ink"
+            }`}
+            onClick={() =>
+              void post({
+                action: "set_any_case",
+                personId: meId,
+                anyCaseOk: true,
+              })
+            }
+          >
+            Any case is fine
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            className={`h-9 rounded-xl px-3 text-xs font-semibold ${
+              !board.anyCaseOk?.[meId]
+                ? "bg-ink text-white"
+                : "border border-mist bg-[#F7F8FA] text-ink"
+            }`}
+            onClick={() =>
+              void post({
+                action: "set_any_case",
+                personId: meId,
+                anyCaseOk: false,
+              })
+            }
+          >
+            I will rank cases
+          </button>
+        </div>
+        {!board.anyCaseOk?.[meId] ? (
+          <>
+            <ol className="m-0 flex list-decimal flex-col gap-1 pl-5 text-sm">
+              {prefDraft.map((caseId, idx) => {
+                const c = board.cases.find((x) => x.id === caseId);
+                return (
+                  <li key={caseId} className="flex items-center gap-2">
+                    <span className="flex-1">
+                      {c ? `${c.number}. ${c.title}` : caseId}
+                    </span>
+                    <button
+                      type="button"
+                      className="text-xs font-semibold text-muted"
+                      disabled={idx === 0}
+                      onClick={() =>
+                        setPrefDraft((d) => {
+                          const next = [...d];
+                          const t = next[idx - 1]!;
+                          next[idx - 1] = next[idx]!;
+                          next[idx] = t;
+                          return next;
+                        })
+                      }
+                    >
+                      Up
+                    </button>
+                    <button
+                      type="button"
+                      className="text-xs font-semibold text-muted"
+                      disabled={idx === prefDraft.length - 1}
+                      onClick={() =>
+                        setPrefDraft((d) => {
+                          const next = [...d];
+                          const t = next[idx + 1]!;
+                          next[idx + 1] = next[idx]!;
+                          next[idx] = t;
+                          return next;
+                        })
+                      }
+                    >
+                      Down
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+            <button
+              type="button"
+              disabled={busy}
+              className="h-10 w-fit rounded-xl border border-mist bg-[#F7F8FA] px-4 text-sm font-semibold"
+              onClick={() =>
+                void post({
+                  action: "save_preferences",
+                  personId: meId,
+                  ranks: prefDraft.map((caseId, i) => ({
+                    caseId,
+                    rank: i + 1,
+                  })),
+                })
+              }
+            >
+              Save my ranking
+            </button>
+          </>
+        ) : (
+          <p className="m-0 text-sm text-muted">
+            You will be placed where leads are still open after rankings are
+            honored.
+          </p>
+        )}
+        {board.canEdit && !board.lock ? (
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button
+              type="button"
+              disabled={busy}
+              className="h-11 rounded-xl bg-cardinal px-5 text-sm font-semibold text-white disabled:opacity-50"
+              onClick={() => void post({ action: "random_fair_split" })}
+            >
+              Random fair split
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className="h-11 rounded-xl border border-ink bg-white px-5 text-sm font-semibold text-ink disabled:opacity-50"
+              onClick={() => {
+                if (
+                  typeof window !== "undefined" &&
+                  !window.confirm(
+                    "Lock leads for Regionals 2026? The snapshot stays put and edits turn off.",
+                  )
+                ) {
+                  return;
+                }
+                void post({ action: "lock_regionals_2026" });
+              }}
+            >
+              Lock for Regionals 2026
+            </button>
+          </div>
+        ) : null}
+      </section>
 
       {/* Gaps */}
       {board.gaps.length > 0 ? (
@@ -318,7 +489,7 @@ export default function RolesBoardPage() {
                       >
                         <button
                           type="button"
-                          disabled={!board.canEdit || busy}
+                          disabled={!board.canEdit || !!board.lock || busy}
                           onClick={() => cycleCell(p.id, c.id)}
                           className="flex h-10 w-full items-center justify-center rounded-lg border border-ink/5 text-[11px] font-semibold disabled:cursor-default"
                           style={{ background: style.bg }}
@@ -351,7 +522,7 @@ export default function RolesBoardPage() {
       </section>
 
       {/* Templates */}
-      {board.canEdit ? (
+      {board.canEdit && !board.lock ? (
         <section className="flex flex-col gap-3 rounded-[20px] bg-white p-4">
           <h2 className="font-display m-0 text-lg font-extrabold">Templates</h2>
           <div className="flex flex-wrap gap-2">

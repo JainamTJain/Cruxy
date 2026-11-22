@@ -29,6 +29,13 @@ export type RoleGap = {
   suggestion: { role: CaseRoleSlot; personId: string } | null;
 };
 
+export type RolesLockSnapshot = {
+  seasonKey: string;
+  label: string;
+  lockedAt: string;
+  lockedBy: string | null;
+};
+
 export type RolesBoardView = {
   teamId: string;
   teamName: string;
@@ -40,7 +47,14 @@ export type RolesBoardView = {
   load: { personId: string; leadCount: number; roleCount: number }[];
   gaps: RoleGap[];
   preferences: CaseRolePreference[];
+  /** personId -> any case is fine */
+  anyCaseOk: Record<string, boolean>;
+  /** Regionals lock; when set, live edits are blocked */
+  lock: RolesLockSnapshot | null;
 };
+
+export const REGIONALS_2026_SEASON = "regionals-2026";
+export const REGIONALS_2026_LABEL = "Regionals 2026";
 
 export const ROLE_CYCLE: RoleChip[] = [
   "none",
@@ -219,6 +233,157 @@ export function planCopyCase(input: {
     }
   }
   return out;
+}
+
+/**
+ * Random fair split: honor ranked preferences first, then fill remaining
+ * lead slots from people who marked "any case is fine", balancing lead load.
+ * Deterministic when seed is provided (tests); otherwise shuffled.
+ */
+export function planRandomFairSplit(input: {
+  caseIds: string[];
+  personIds: string[];
+  prefs: { personId: string; caseId: string; rank: number }[];
+  anyCasePersonIds: string[];
+  /** Existing roles to keep (non-lead slots / already set leads). */
+  existing?: { caseId: string; role: CaseRoleSlot; personId: string }[];
+  seed?: number;
+}): { caseId: string; role: CaseRoleSlot; personId: string }[] {
+  const out: { caseId: string; role: CaseRoleSlot; personId: string }[] = [];
+  const leadCount = new Map(input.personIds.map((id) => [id, 0]));
+  const caseLeads = new Map<string, string[]>();
+
+  for (const caseId of input.caseIds) {
+    caseLeads.set(caseId, []);
+  }
+
+  // Keep existing lead assignments if present
+  for (const e of input.existing ?? []) {
+    if (e.role !== "lead_1" && e.role !== "lead_2") continue;
+    if (!input.caseIds.includes(e.caseId)) continue;
+    const leads = caseLeads.get(e.caseId) ?? [];
+    if (leads.includes(e.personId) || leads.length >= 2) continue;
+    leads.push(e.personId);
+    caseLeads.set(e.caseId, leads);
+    leadCount.set(e.personId, (leadCount.get(e.personId) ?? 0) + 1);
+    out.push(e);
+  }
+
+  const rankedPeople = new Set(input.prefs.map((p) => p.personId));
+  const anySet = new Set(input.anyCasePersonIds);
+
+  // Pass 1: honor preferences (people who ranked, not "any case")
+  const prefPeople = input.personIds.filter(
+    (id) => rankedPeople.has(id) && !anySet.has(id),
+  );
+  // Sort each person's cases by rank
+  const prefsByPerson = new Map<string, { caseId: string; rank: number }[]>();
+  for (const p of input.prefs) {
+    if (anySet.has(p.personId)) continue;
+    const list = prefsByPerson.get(p.personId) ?? [];
+    list.push({ caseId: p.caseId, rank: p.rank });
+    prefsByPerson.set(p.personId, list);
+  }
+  for (const list of prefsByPerson.values()) {
+    list.sort((a, b) => a.rank - b.rank);
+  }
+
+  // Assign preferred people in order of lightest current load, walking their ranks
+  const prefOrder = [...prefPeople].sort(
+    (a, b) => (leadCount.get(a) ?? 0) - (leadCount.get(b) ?? 0),
+  );
+  for (const personId of prefOrder) {
+    const wants = prefsByPerson.get(personId) ?? [];
+    for (const w of wants) {
+      const leads = caseLeads.get(w.caseId) ?? [];
+      if (leads.length >= 2) continue;
+      if (leads.includes(personId)) continue;
+      const role: CaseRoleSlot = leads.length === 0 ? "lead_1" : "lead_2";
+      leads.push(personId);
+      caseLeads.set(w.caseId, leads);
+      leadCount.set(personId, (leadCount.get(personId) ?? 0) + 1);
+      out.push({ caseId: w.caseId, role, personId });
+      break; // one preferred lead assignment per pass; balance via round
+    }
+  }
+
+  // Second walk for preference people who still want another lead slot
+  for (const personId of prefOrder) {
+    const wants = prefsByPerson.get(personId) ?? [];
+    for (const w of wants) {
+      const leads = caseLeads.get(w.caseId) ?? [];
+      if (leads.length >= 2 || leads.includes(personId)) continue;
+      // Prefer filling cases that still need a first lead
+      if (leads.length === 0 || (leadCount.get(personId) ?? 0) < 2) {
+        const role: CaseRoleSlot = leads.length === 0 ? "lead_1" : "lead_2";
+        leads.push(personId);
+        caseLeads.set(w.caseId, leads);
+        leadCount.set(personId, (leadCount.get(personId) ?? 0) + 1);
+        out.push({ caseId: w.caseId, role, personId });
+      }
+    }
+  }
+
+  // Pass 2: fill remaining lead slots from "any case" pool
+  const pool = shuffleIds(
+    input.anyCasePersonIds.filter((id) => input.personIds.includes(id)),
+    input.seed ?? Date.now() % 1_000_000,
+  );
+
+  for (const caseId of input.caseIds) {
+    const leads = caseLeads.get(caseId) ?? [];
+    while (leads.length < 2) {
+      const candidates = [...pool].sort(
+        (a, b) =>
+          (leadCount.get(a) ?? 0) - (leadCount.get(b) ?? 0) ||
+          a.localeCompare(b),
+      );
+      const pick = candidates.find((id) => !leads.includes(id));
+      if (!pick) break;
+      const role: CaseRoleSlot = leads.length === 0 ? "lead_1" : "lead_2";
+      leads.push(pick);
+      caseLeads.set(caseId, leads);
+      leadCount.set(pick, (leadCount.get(pick) ?? 0) + 1);
+      out.push({ caseId, role, personId: pick });
+    }
+  }
+
+  // Counter-arguer: lightest load not already on the case
+  for (const caseId of input.caseIds) {
+    const used = new Set(caseLeads.get(caseId) ?? []);
+    const existingCounter = (input.existing ?? []).find(
+      (e) => e.caseId === caseId && e.role === "counter_arguer",
+    );
+    if (existingCounter) {
+      out.push(existingCounter);
+      continue;
+    }
+    const counter = [...input.personIds]
+      .filter((id) => !used.has(id))
+      .sort(
+        (a, b) =>
+          (leadCount.get(a) ?? 0) - (leadCount.get(b) ?? 0) ||
+          a.localeCompare(b),
+      )[0];
+    if (counter) {
+      out.push({ caseId, role: "counter_arguer", personId: counter });
+    }
+  }
+
+  return out;
+}
+
+function shuffleIds(ids: string[], seed: number): string[] {
+  const arr = [...ids];
+  let s = seed || 1;
+  for (let i = arr.length - 1; i > 0; i--) {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    const j = s % (i + 1);
+    const tmp = arr[i]!;
+    arr[i] = arr[j]!;
+    arr[j] = tmp;
+  }
+  return arr;
 }
 
 /**

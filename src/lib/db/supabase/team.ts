@@ -111,6 +111,11 @@ function mapChat(r: Row): ChatChannel {
     channel: r.channel,
     team_id: r.team_id ?? null,
     created_at: iso(r.created_at),
+    title: (r.title as string | null | undefined) ?? null,
+    purpose: (r.purpose as string | null | undefined) ?? null,
+    audience: (r.audience as string | null | undefined) ?? null,
+    case_id: (r.case_id as string | null | undefined) ?? null,
+    kind: (r.kind as string | null | undefined) ?? null,
   };
 }
 
@@ -633,6 +638,18 @@ export async function postMessage(input: {
   if (!canPost) throw new Error("Cannot post to this channel");
 
   const mentionIds = [...(input.mentionIds ?? [])];
+  // Resolve @Name mentions from the body against known people
+  const { data: peopleRows } = await sb.from("people").select("id,name");
+  for (const p of peopleRows ?? []) {
+    const needle = `@${p.name as string}`;
+    if (
+      input.body.toLowerCase().includes(needle.toLowerCase()) &&
+      !mentionIds.includes(p.id as string)
+    ) {
+      mentionIds.push(p.id as string);
+    }
+  }
+
   const link_refs: Record<string, unknown> = { ...(input.linkRefs ?? {}) };
   if (mentionIds.length) link_refs.mentions = mentionIds;
   if (input.caseId) link_refs.case_id = input.caseId;

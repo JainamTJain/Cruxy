@@ -195,7 +195,7 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-154 Question drill · Dec 2 [src/lib/revision/types.ts DEFAULT_STAGE_DEADLINES, src/app/(app)/revision/roadmap/page.tsx]
 - [x] F-155 Practiced · Dec 3 [src/lib/revision/types.ts DEFAULT_STAGE_DEADLINES, src/app/(app)/revision/roadmap/page.tsx]
 - [x] F-156 Judged · Dec 4 [src/lib/revision/types.ts DEFAULT_STAGE_DEADLINES, src/app/(app)/revision/roadmap/page.tsx]
-- [x] F-157 A track per case with seven stations, a "today" line and a flag on each deadline; stations fill as work happens, and overdue ones turn red. [src/app/(app)/revision/roadmap/page.tsx]
+- [x] F-157 One timeline to Dec 5 per person; stages as rows with due date, status and the one next action (readable at 390px). [src/app/(app)/revision/roadmap/page.tsx]
 - [x] F-158 A readiness number per case (share of required stages done, weighted toward judged and practiced) and per team. [src/lib/revision/roadmap-extra.ts, src/app/(app)/revision/roadmap/page.tsx]
 - [x] F-159 "Do next": the three most useful actions for this person today, picked from overdue stages, weak feedback areas, and assignments. [src/lib/revision/roadmap-extra.ts, src/app/(app)/revision/roadmap/page.tsx]
 
@@ -204,9 +204,9 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-160 An Assign button on every case, flashcard deck, one pager, reading and practice slot. Pick a person (or several), a role or task, and an optional due date. [src/components/assign-button.tsx, src/app/(app)/team/cases/[caseId]/page.tsx] NOTE: shared AssignButton covers all five target kinds on the case page; other surfaces import the same control
 - [x] F-161 Case roles (Lead 1, Lead 2, counter-arguer, supporter) are set per team per case; any team member can change them, in two taps, from the case brain or the team board. The change is logged and announced in team chat. [src/app/(app)/team/page.tsx]
 - [x] F-162 Everything assigned appears on the person's profile and roadmap, with who assigned it. [src/lib/team/repository.ts]
-- [x] F-163 A team board shows the 12 cases by role and person, so gaps (a case with no lead) are visible at a glance. [src/app/(app)/team/page.tsx]
-- [x] F-164 One channel per team plus one all-program channel; every channel is readable by everyone; posting is for members of that team (admins can post anywhere). [src/lib/team/repository.ts]
-- [x] F-165 Messages can mention people, link a case, a passage, a timestamp or a Truth Source. [src/app/(app)/team/page.tsx, src/app/(app)/team/chat/page.tsx]
+- [x] F-163 Roles board: people by case, gaps, Any case is fine or ranks, Random fair split, Lock for Regionals 2026 snapshot. [src/app/(app)/team/roles/page.tsx, migration 00049]
+- [x] F-164 Named conversations: Whole team, one per case (Case N: title), Leads only, plus all-program; each states who can see it and what it is for. [src/lib/team/chat-conversations.ts, src/app/(app)/team/chat/page.tsx]
+- [x] F-165 @mentions autocomplete names, notify in bell and on Home, message shows who was notified; unread counts per conversation; newest at bottom; jump to a mention. [src/app/(app)/team/chat/page.tsx, src/lib/team/chat-conversations.ts]
 - [x] F-166 Chat does not create tasks by itself; assignments stay explicit. [src/app/(app)/team/page.tsx]
 - [x] F-167 **One current position per case.** The claim map is versioned (v1, v2, ...). Any change to a claim, logic line or counterclaim response creates a new version with a one line "what changed and why", written by whoever changed it. [src/components/case-brain/version-confirm.tsx, src/lib/case-brain/publish-from-brain.ts] NOTE: case-brain publish path; team-chat/home fan-out remains E
 - [x] F-168 **Changes reach everyone.** A new version posts to team chat and to each member's home screen as a short diff (old wording struck through, new wording shown). [src/app/(app)/team/page.tsx] (chat diff shown; home surface owned by F)

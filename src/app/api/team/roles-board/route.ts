@@ -7,8 +7,11 @@ import {
   clearColumn,
   clearRow,
   getRolesBoard,
+  lockForRegionals2026,
+  runRandomFairSplit,
   runTemplate,
   savePreferences,
+  setAnyCaseOk,
   setBoardCell,
 } from "@/lib/team/roles-board-repository";
 import { CASE_ROLE_SLOTS, type CaseRoleSlot } from "@/lib/team/types";
@@ -86,6 +89,7 @@ export async function POST(req: Request) {
     sourceCaseId?: string;
     ranks?: { caseId: string; rank: number }[];
     assignments?: { caseId: string; role: string; personId: string }[];
+    anyCaseOk?: boolean;
   };
 
   const teamId = resolveTeamId(person, session, body.teamId ?? null);
@@ -233,6 +237,39 @@ export async function POST(req: Request) {
         actorId: session.personId,
         assignments,
         replaceCases: true,
+      });
+      return NextResponse.json({ board });
+    }
+
+    if (action === "set_any_case") {
+      const targetPersonId =
+        person.role === "tech_admin" || person.role === "coach_admin"
+          ? (body.personId ?? session.personId)
+          : session.personId;
+      await setAnyCaseOk({
+        teamId,
+        personId: targetPersonId,
+        anyCaseOk: Boolean(body.anyCaseOk),
+        actorId: session.personId,
+      });
+      const board = await getRolesBoard({ teamId, canEdit: true });
+      return NextResponse.json({ board });
+    }
+
+    if (action === "random_fair_split") {
+      const board = await runRandomFairSplit({
+        teamId,
+        actorId: session.personId,
+        caseIds: body.caseIds,
+        personIds: body.personIds,
+      });
+      return NextResponse.json({ board });
+    }
+
+    if (action === "lock_regionals_2026") {
+      const board = await lockForRegionals2026({
+        teamId,
+        actorId: session.personId,
       });
       return NextResponse.json({ board });
     }
