@@ -258,7 +258,7 @@ export default function SettingsPage() {
         <Link href="/practice/calibration" className="underline">
           Your score prediction trend
         </Link>{" "}
-        stays private to you.{" "}
+        is visible to you, Dr. B and Jainam.{" "}
         <Link href="/settings/privacy" className="underline">
           Privacy centre
         </Link>

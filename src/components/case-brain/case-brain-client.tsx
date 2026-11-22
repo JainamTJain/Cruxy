@@ -10,8 +10,9 @@ import { IdeasOverTime } from "@/components/case/ideas-over-time";
 import { TheCaseTab } from "@/components/case/the-case-tab";
 import { WorkingDocument } from "@/components/case/working-document";
 import { DiscussionPanel } from "@/components/discussion/discussion-panel";
-import { OfflineCaseButton } from "@/components/offline/offline-case-button";
+import { SaveShareMenu } from "@/components/case/save-share-menu";
 import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
+import type { CaseHomePayload } from "@/lib/case-home/types";
 import { ClaimRobustness } from "@/components/case-brain/claim-robustness";
 import { OriginTag } from "@/components/case-brain/origin-tag";
 import {
@@ -223,6 +224,7 @@ export function CaseBrainClient({
   const [discussionOpen, setDiscussionOpen] = useState(
     discussionParam === "1" || discussionParam === "true",
   );
+  const [caseHome, setCaseHome] = useState<CaseHomePayload | null>(null);
   const [briefMode, setBriefMode] = useState<"own_doc" | "build_in_crux" | null>(
     null,
   );
@@ -258,7 +260,15 @@ export function CaseBrainClient({
   const load = useCallback(
     async (tid?: string) => {
       setError(null);
+      setCaseHome(null);
       const q = tid ? `?teamId=${encodeURIComponent(tid)}` : "";
+      // Kick case-home in parallel with the brain payload.
+      const homePromise = fetch(`/api/case-home/${caseId}${q}`)
+        .then(async (r) => {
+          if (!r.ok) return null;
+          return (await r.json()) as CaseHomePayload;
+        })
+        .catch(() => null);
       const res = await fetch(`/api/case-brain/${caseId}${q}`);
       const json = (await res.json()) as Payload & { error?: string };
       if (!res.ok) {
@@ -267,6 +277,8 @@ export function CaseBrainClient({
       }
       setData(json);
       setTeamId(json.brain.team_id);
+      const home = await homePromise;
+      if (home) setCaseHome(home);
     },
     [caseId],
   );
@@ -286,6 +298,23 @@ export function CaseBrainClient({
       })
       .catch(() => undefined);
   }, [caseId, teamId]);
+
+  // Refresh case-home when the team switcher changes after the first load.
+  useEffect(() => {
+    if (!teamId || !caseId || tab !== "reading") return;
+    if (caseHome) return;
+    let cancelled = false;
+    void (async () => {
+      const q = `?teamId=${encodeURIComponent(teamId)}`;
+      const res = await fetch(`/api/case-home/${caseId}${q}`);
+      if (!res.ok || cancelled) return;
+      const json = (await res.json()) as CaseHomePayload;
+      if (!cancelled) setCaseHome(json);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [caseId, teamId, tab, caseHome]);
 
   const teamPeople = useMemo(() => {
     if (!data) return [];
@@ -443,17 +472,13 @@ export function CaseBrainClient({
             <h1 className="font-display m-0 text-[44px] font-extrabold leading-none tracking-[-0.02em]">
               {caseRow?.title ?? "Case"}
             </h1>
-            <div className="mt-2 flex flex-wrap items-center gap-3">
-              <OfflineCaseButton
+            <div className="mt-2">
+              <SaveShareMenu
                 caseId={caseId}
                 teamId={teamId || brain.team_id}
+                canSaveDrive={canEdit}
+                onePagerId={null}
               />
-              <Link
-                href={`/case-brain/${caseId}/packet?team=${encodeURIComponent(teamId || brain.team_id)}`}
-                className="rounded-xl border border-[#E3E5E9] bg-white px-3 py-2 text-sm font-semibold"
-              >
-                Print packet
-              </Link>
             </div>
             {crux.left ? (
               <p className="m-0 text-base text-[#3B404A]">
@@ -631,15 +656,27 @@ export function CaseBrainClient({
           <div className="flex min-w-0 flex-[999_1_620px] flex-col gap-4">
             {tab === "reading" ? (
               <div className="flex flex-col gap-6">
-                <TheCaseTab
-                  caseId={caseId}
-                  teamId={teamId || brain.team_id}
-                />
-                <CaseReadings
-                  caseId={caseId}
-                  teamId={teamId || brain.team_id}
-                  focusFileId={focusFileId}
-                />
+                {!caseHome ? (
+                  <div className="flex flex-col gap-3" aria-busy>
+                    <Skeleton className="h-8 w-56" />
+                    <Skeleton className="h-48 w-full" rounded="lg" />
+                    <SkeletonBlock lines={3} />
+                  </div>
+                ) : (
+                  <>
+                    <TheCaseTab
+                      caseId={caseId}
+                      teamId={teamId || brain.team_id}
+                      initial={caseHome}
+                    />
+                    <CaseReadings
+                      caseId={caseId}
+                      teamId={teamId || brain.team_id}
+                      focusFileId={focusFileId}
+                      initial={caseHome}
+                    />
+                  </>
+                )}
               </div>
             ) : null}
 

@@ -145,7 +145,7 @@ export function RegionalClient() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-5 animate-fade-up">
       <PageIntro
-        eyebrow={`${data.competition.place ?? "UCSB"} · ${data.competition.date}`}
+        eyebrow={`${data.competition.place ?? "UCSB"}, ${data.competition.date}`}
         title="Competition Day"
         titleClassName="font-display text-[40px] font-extrabold tracking-[-0.02em] text-ink sm:text-[48px]"
       >
@@ -536,7 +536,7 @@ function RoundDayPanel({
                 setSide(e.target.value as "presenting" | "commenting" | "")
               }
             >
-              <option value="">Not set</option>
+              <option value="">Choose...</option>
               <option value="presenting">Presenting</option>
               <option value="commenting">Commenting</option>
             </select>
@@ -607,7 +607,7 @@ function RoundDayPanel({
                   );
                 }}
               >
-                <option value="">Not set</option>
+                <option value="">Choose...</option>
                 {teamPeople.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -711,7 +711,7 @@ function LogPanel({
                 }))
               }
             >
-              <option value="">Not set</option>
+              <option value="">Choose...</option>
               <option value="presenting">Presenting</option>
               <option value="commenting">Commenting</option>
             </select>
@@ -860,12 +860,12 @@ function LogPanel({
                 className="rounded-[14px] bg-[#F7F8FA] px-3.5 py-3"
               >
                 <p className="m-0 text-sm font-semibold">
-                  {log.round_number ? `Round ${log.round_number} · ` : ""}
+                  {log.round_number ? `Round ${log.round_number}, ` : ""}
                   vs {log.opponent}
                   {log.case_number != null
-                    ? ` · Case ${log.case_number}`
+                    ? `, Case ${log.case_number}`
                     : ""}
-                  {log.side ? ` · ${log.side}` : ""}
+                  {log.side ? `, ${log.side}` : ""}
                 </p>
                 {log.moderator_question ? (
                   <p className="m-0 mt-1 text-sm">
@@ -879,7 +879,7 @@ function LogPanel({
                 ) : null}
                 <p className="m-0 mt-1 text-[13px] text-muted">
                   Score {log.score_us ?? "—"} to {log.score_them ?? "—"}
-                  {log.result ? ` · ${log.result}` : ""}
+                  {log.result ? `, ${log.result}` : ""}
                 </p>
               </li>
             ))
@@ -920,7 +920,7 @@ function DebriefPanel({
                 className="rounded-[14px] bg-[#F7F8FA] px-3.5 py-3"
               >
                 <p className="m-0 text-sm font-semibold">
-                  {log.round_number ? `Round ${log.round_number} · ` : ""}
+                  {log.round_number ? `Round ${log.round_number}, ` : ""}
                   vs {log.opponent}
                 </p>
                 <p className="m-0 mt-2 text-sm">

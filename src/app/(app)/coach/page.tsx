@@ -62,7 +62,7 @@ export default function CoachIndexPage() {
                   {t.staleCount
                     ? `${t.staleCount} behind (5+ days)`
                     : "All practised recently"}{" "}
-                  · {t.memberCount} people
+                  , {t.memberCount} people
                 </span>
               </Link>
             </li>

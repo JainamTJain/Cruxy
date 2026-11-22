@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { ThreadInline } from "@/components/discussion/thread-inline";
+import { LinkedText } from "@/components/frameworks/linked-text";
 import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
 import type { CaseHomePayload } from "@/lib/case-home/types";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ type Props = {
 function markText(
   text: string,
   marks: { needle: string; kind: "highlight" | "comment" }[],
+  caseId: string,
 ) {
   const hits: { from: number; to: number; kind: "highlight" | "comment" }[] =
     [];
@@ -34,32 +36,50 @@ function markText(
     if (idx >= 0) hits.push({ from: idx, to: idx + needle.length, kind: m.kind });
   }
   hits.sort((a, b) => a.from - b.from);
-  if (hits.length === 0) return text;
+  if (hits.length === 0) {
+    return <LinkedText text={text} caseId={caseId} />;
+  }
 
   const nodes: ReactNode[] = [];
   let cursor = 0;
   let key = 0;
   for (const h of hits) {
     if (h.from < cursor) continue;
-    if (h.from > cursor) nodes.push(text.slice(cursor, h.from));
+    if (h.from > cursor) {
+      nodes.push(
+        <LinkedText
+          key={`l-${key++}`}
+          text={text.slice(cursor, h.from)}
+          caseId={caseId}
+        />,
+      );
+    }
     const slice = text.slice(h.from, h.to);
     nodes.push(
       h.kind === "highlight" ? (
         <mark key={key++} className="rounded-[3px] bg-[#FFE58A] px-0.5">
-          {slice}
+          <LinkedText text={slice} caseId={caseId} />
         </mark>
       ) : (
         <span
           key={key++}
           className="border-b-2 border-[#0F7B6C] bg-[#D8EEEB]"
         >
-          {slice}
+          <LinkedText text={slice} caseId={caseId} />
         </span>
       ),
     );
     cursor = h.to;
   }
-  if (cursor < text.length) nodes.push(text.slice(cursor));
+  if (cursor < text.length) {
+    nodes.push(
+      <LinkedText
+        key={`l-${key++}`}
+        text={text.slice(cursor)}
+        caseId={caseId}
+      />,
+    );
+  }
   return nodes;
 }
 
@@ -245,7 +265,7 @@ export function TheCaseTab({ caseId, teamId, initial = null, className }: Props)
               className="m-0"
               data-passage-id={p.passage_id ?? (data.source === "case_set" ? p.id : undefined)}
             >
-              {markText(p.text, marks)}
+              {markText(p.text, marks, caseId)}
             </p>
           ))}
 

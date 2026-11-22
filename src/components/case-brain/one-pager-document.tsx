@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LinkedText } from "@/components/frameworks/linked-text";
 import type { OnePager } from "@/lib/revision/types";
 import type { CaseRow, Team } from "@/lib/types";
 import { supportLabel } from "@/components/case-brain/support-label";
@@ -215,7 +216,7 @@ export function OnePagerDocument({
             Our answer in one sentence
           </div>
           <p className="font-display mt-1.5 mb-0 text-[22px] font-semibold leading-snug">
-            {thesis}
+            <LinkedText text={thesis} caseId={page.case_id} />
           </p>
         </section>
 
@@ -227,7 +228,9 @@ export function OnePagerDocument({
                 <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#8A6500]">
                   Claim {i + 1}
                 </span>
-                <div className="mt-1 text-[15px] font-semibold">{c.text}</div>
+                <div className="mt-1 text-[15px] font-semibold">
+                  <LinkedText text={c.text} caseId={page.case_id} />
+                </div>
               </div>
               <div className="flex gap-2.5">
                 {c.supports.map((s, j) => {
@@ -243,14 +246,15 @@ export function OnePagerDocument({
                       key={j}
                       className="relative flex-1 rounded-[10px] border-[1.5px] border-ink bg-white p-2.5 text-[13px] leading-snug before:absolute before:left-1/2 before:top-[-14px] before:h-[14px] before:w-[1.5px] before:bg-ink before:content-['']"
                     >
-                      <strong>S{j + 1}</strong> {title}
+                      <strong>S{j + 1}</strong>{" "}
+                      <LinkedText text={title} caseId={page.case_id} />
                       {mono ? (
                         <span className="mt-1 block font-mono text-[11px] text-muted">
-                          {mono}
+                          <LinkedText text={mono} caseId={page.case_id} />
                         </span>
                       ) : backing && backing !== title ? (
                         <span className="mt-1 block font-mono text-[11px] text-muted">
-                          {backing}
+                          <LinkedText text={backing} caseId={page.case_id} />
                         </span>
                       ) : null}
                     </div>
@@ -267,28 +271,42 @@ export function OnePagerDocument({
               Counterclaim and our answer
             </span>
             <span className="text-[15px] font-semibold">
-              {cc?.text
-                ? cc.text.startsWith('"')
-                  ? cc.text
-                  : `"${cc.text}"`
-                : "No counterclaim yet"}
+              {cc?.text ? (
+                <LinkedText
+                  text={
+                    cc.text.startsWith('"') ? cc.text : `"${cc.text}"`
+                  }
+                  caseId={page.case_id}
+                />
+              ) : (
+                "No counterclaim yet"
+              )}
             </span>
             {cc ? (
               <div className="grid grid-cols-1 gap-2 text-[13px] leading-snug sm:grid-cols-3">
                 <div className="rounded-xl bg-[#F7F8FA] p-3">
                   <strong>Concede</strong>
                   <br />
-                  {cc.concede || "Not set"}
+                  <LinkedText
+                    text={cc.concede || "Not written yet"}
+                    caseId={page.case_id}
+                  />
                 </div>
                 <div className="rounded-xl bg-[#F7F8FA] p-3">
                   <strong>Distinguish</strong>
                   <br />
-                  {cc.distinguish || "Not set"}
+                  <LinkedText
+                    text={cc.distinguish || "Not written yet"}
+                    caseId={page.case_id}
+                  />
                 </div>
                 <div className="rounded-xl bg-[#F7F8FA] p-3">
                   <strong>Rebut</strong>
                   <br />
-                  {cc.rebut || "Not set"}
+                  <LinkedText
+                    text={cc.rebut || "Not written yet"}
+                    caseId={page.case_id}
+                  />
                 </div>
               </div>
             ) : null}
@@ -380,8 +398,17 @@ export function OnePagerDocument({
                   key={f.name}
                   className="rounded-xl bg-[#F7F8FA] p-3 text-[13px] leading-snug"
                 >
-                  <strong>{f.name.replace(/:$/, "")}:</strong>{" "}
-                  {stripName(f.one_line, f.name)}
+                  <strong>
+                    <LinkedText
+                      text={f.name.replace(/:$/, "")}
+                      caseId={page.case_id}
+                    />
+                    :
+                  </strong>{" "}
+                  <LinkedText
+                    text={stripName(f.one_line, f.name)}
+                    caseId={page.case_id}
+                  />
                 </div>
               ))}
             </div>
@@ -399,9 +426,14 @@ export function OnePagerDocument({
                 {(questions?.rows ?? []).slice(0, 6).map((row) => (
                   <tr key={row.q} className="border-t border-mist last:border-b">
                     <td className="w-[42%] py-2 pr-2 font-semibold align-top">
-                      {row.q}
+                      <LinkedText text={row.q} caseId={page.case_id} />
                     </td>
-                    <td className="py-2 align-top">{row.a || "Not set"}</td>
+                    <td className="py-2 align-top">
+                      <LinkedText
+                        text={row.a || "Not written yet"}
+                        caseId={page.case_id}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -28,6 +28,7 @@ type Round = {
   };
   sides: { presenting: string | null; commenting: string | null };
   recording_layout?: RecordingLayout;
+  phase_entered_at?: string | null;
 };
 
 type Line = {
@@ -120,6 +121,15 @@ export default function RoundPage() {
       .then((d) => setPersonId(d?.person?.id ?? d?.session?.personId ?? null))
       .catch(() => undefined);
   }, []);
+
+  // Resume timer from phase_entered_at so leave/return keeps wall-clock progress.
+  useEffect(() => {
+    if (!round?.phase_entered_at) return;
+    if (round.phase === "done" || round.phase === "setup") return;
+    const started = Date.parse(round.phase_entered_at);
+    if (!Number.isFinite(started)) return;
+    setElapsed(Math.max(0, Math.floor((Date.now() - started) / 1000)));
+  }, [round?.phase, round?.phase_entered_at]);
 
   useEffect(() => {
     if (paused || round?.phase === "done" || round?.phase === "setup") return;

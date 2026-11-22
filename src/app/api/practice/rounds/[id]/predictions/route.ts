@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { getRoundById } from "@/lib/db/practice-repository";
-import { getPersonById } from "@/lib/db/repository";
+import { getPersonById, listPeopleFull } from "@/lib/db/repository";
+import { isAdminRole } from "@/lib/admin/permissions";
 import { isAdminViewer } from "@/lib/ops/privacy-scope";
 import type { AppeItemKey, ItemPredictionInput } from "@/lib/practice/types";
 import {
@@ -46,11 +47,12 @@ export async function GET(
   );
   const canPredict = onRound;
   const admin = isAdminViewer(me, session);
+  // Decisions: score predictions visible to the person, Dr. B and Jainam.
+  const coachOrTech = Boolean(me && isAdminRole(me.role));
 
-  // Personal: item scores stay in `mine` only. Who still needs to predict is
-  // visible to round participants and admins (needed to start the round), not
-  // to arbitrary members with a round id.
-  if (!admin && !onRound) {
+  // Who still needs to predict is visible to round participants and admins
+  // (needed to start the round), not to arbitrary members with a round id.
+  if (!admin && !coachOrTech && !onRound) {
     return NextResponse.json({
       gate: {
         ready: gate.ready,
@@ -63,11 +65,36 @@ export async function GET(
     });
   }
 
+  let coachPredictions:
+    | {
+        id: string;
+        person_id: string;
+        person_name: string | null;
+        item_scores: (typeof predictions)[number]["item_scores"];
+        expected_question: string;
+        created_at: string;
+      }[]
+    | undefined;
+  if (coachOrTech) {
+    const people = await listPeopleFull();
+    const names = new Map(people.map((p) => [p.id, p.name]));
+    coachPredictions = predictions.map((p) => ({
+      id: p.id,
+      person_id: p.person_id,
+      person_name: names.get(p.person_id) ?? null,
+      item_scores: p.item_scores,
+      expected_question: p.expected_question,
+      created_at: p.created_at,
+    }));
+  }
+
   return NextResponse.json({
     gate,
     mine,
     canPredict,
     predictedPersonIds: predictions.map((p) => p.person_id),
+    // Full item scores for Dr. B / Jainam (and self via mine).
+    ...(coachOrTech ? { predictions: coachPredictions } : {}),
   });
 }
 

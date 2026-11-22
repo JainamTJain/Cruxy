@@ -25,10 +25,7 @@ export function OneTapJudgeDrill({ caseId, className, compact }: Props) {
         className,
       )}
     >
-      Judges&apos; Q&A
-      {!compact ? (
-        <span className="ml-2 font-normal text-white/80">one tap</span>
-      ) : null}
+      Judges&apos; Q&A drill
     </Link>
   );
 }

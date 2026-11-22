@@ -12,6 +12,7 @@ import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
 import { GeniePose } from "@/components/cruxy/mood/genie-pose";
 import { emitMood } from "@/components/cruxy/mood/bus";
 import { useCruxyMood } from "@/components/cruxy/mood/use-cruxy-mood";
+import { LinkedText } from "@/components/frameworks/linked-text";
 import { TailoredLine } from "@/components/learning/tailored-line";
 import { Button } from "@/components/ui/button";
 import { looksLikeActRequest } from "@/lib/cruxy/actions/detect";
@@ -337,7 +338,9 @@ export function CruxyDrawer() {
 
         {answer ? (
           <div className="space-y-2" aria-live="polite">
-            <p className="rounded-2xl bg-white px-3 py-3 shadow-sm">{answer}</p>
+            <p className="rounded-2xl bg-white px-3 py-3 shadow-sm">
+              <LinkedText text={answer} caseId={caseId} preWrap />
+            </p>
             {plan ? (
               <div className="rounded-2xl border border-ink/10 bg-paper px-3 py-3">
                 {plan.lines.length ? (

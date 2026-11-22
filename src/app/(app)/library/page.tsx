@@ -432,7 +432,7 @@ export default function LibraryPage() {
                     <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
                       {f.type?.replace(/_/g, " ") ?? "file"}
                       {f.case_numbers.length
-                        ? ` · case ${f.case_numbers.join(", ")}`
+                        ? `, case ${f.case_numbers.join(", ")}`
                         : ""}
                     </span>
                   </div>
