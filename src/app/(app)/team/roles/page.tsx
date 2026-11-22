@@ -63,6 +63,13 @@ export default function RolesBoardPage() {
     void load();
   }, [load]);
 
+  // Reload when Cruxy applies a change from the chat.
+  useEffect(() => {
+    const onChange = () => void load(board?.teamId);
+    window.addEventListener("crux:data-changed", onChange);
+    return () => window.removeEventListener("crux:data-changed", onChange);
+  }, [load, board?.teamId]);
+
   useEffect(() => {
     if (!board || !meId) return;
     const mine = board.preferences
