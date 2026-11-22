@@ -1,11 +1,19 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["argon2"],
+  serverExternalPackages: ["argon2", "onnxruntime-node"],
   // Case prep (the truth source) is read from disk at runtime by the
   // working-document start and the critique engine.
   outputFileTracingIncludes: {
     "/api/**/*": ["./docs/domain/**/*.md"],
+    // Speaker model runtime (Linux build only) for voice enrollment and the
+    // practice pipeline's speaker matching.
+    "/api/voice/**/*": [
+      "./node_modules/onnxruntime-node/bin/napi-v3/linux/x64/**",
+    ],
+    "/api/practice/**/*": [
+      "./node_modules/onnxruntime-node/bin/napi-v3/linux/x64/**",
+    ],
   },
   async headers() {
     return [

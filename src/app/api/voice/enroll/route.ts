@@ -14,6 +14,8 @@ const PARTS: EnrollmentPartId[] = ["read", "natural", "competition"];
  * Multipart fields: read, natural, competition (audio), heardText (read transcript).
  * Replaces the previous voiceprint only when all quality checks pass.
  */
+export const maxDuration = 120;
+
 export async function POST(req: Request) {
   const session = await getSession();
   if (!session) {
@@ -73,10 +75,18 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true, meta: result.meta });
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  // Admin health check: which speaker model is live on this server.
+  if (new URL(req.url).searchParams.get("health") === "1") {
+    const { requireAdmin } = await import("@/lib/auth/require-session");
+    const denied = requireAdmin(session);
+    if (denied) return denied;
+    const { voiceBackendStatus } = await import("@/lib/voice/embed");
+    return NextResponse.json(await voiceBackendStatus());
   }
   const { getVoiceprint } = await import("@/lib/voice/repository");
   const vp = await getVoiceprint(session.personId);
