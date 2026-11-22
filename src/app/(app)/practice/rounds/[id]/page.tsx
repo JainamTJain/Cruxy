@@ -257,7 +257,7 @@ export default function RoundPage() {
             </Link>
             <div className="flex flex-col gap-1">
               <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#8C929D]">
-                Full round, Case {round.case_number ?? "Not set"}
+                Full round, Case {round.case_number ?? "unknown"}
               </span>
               <span className="font-display text-[26px] font-extrabold">
                 {presentTeam}{" "}

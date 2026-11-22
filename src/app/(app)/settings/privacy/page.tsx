@@ -140,7 +140,7 @@ export default function PrivacyCentrePage() {
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="font-medium">{item.label}</span>
                 <span className="text-xs text-muted">
-                  {item.present ? "On file" : "Not set yet"}
+                  {item.present ? "On file" : "None yet"}
                 </span>
               </div>
               <p className="mt-1 text-sm text-muted">{item.stored}</p>

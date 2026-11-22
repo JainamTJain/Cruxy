@@ -115,7 +115,7 @@ export default function QaRoutingPage() {
                 value={assignments[k.id] ?? ""}
                 onChange={(e) => void save(k.id, e.target.value)}
               >
-                <option value="">Not set</option>
+                <option value="">Nobody yet</option>
                 {members.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.name}

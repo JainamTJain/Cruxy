@@ -375,7 +375,7 @@ export default function PracticePage() {
                     </span>
                   </span>
                   <span className="font-mono text-xs text-muted">
-                    {s.rounds[0]?.mode ?? s.mode ?? "Not set"}
+                    {s.rounds[0]?.mode ?? s.mode ?? "Practice"}
                   </span>
                 </Link>
               </li>

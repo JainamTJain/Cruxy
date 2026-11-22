@@ -1051,7 +1051,7 @@ export function AdminConsole() {
             </div>
           ) : null}
 
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full min-w-[640px] border-collapse text-sm">
               <thead>
                 <tr className="text-left text-xs text-muted">

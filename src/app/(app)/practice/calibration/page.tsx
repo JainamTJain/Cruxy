@@ -93,7 +93,7 @@ export default function CalibrationPage() {
               Latest Brier
             </span>
             <p className="font-display m-0 mt-2 text-4xl font-extrabold">
-              {latest != null ? latest.toFixed(3) : "Not set"}
+              {latest != null ? latest.toFixed(3) : "No rounds yet"}
             </p>
             <p className="mt-2 text-sm text-[#C9CCD3]">
               {vsOwnPast === "better"
@@ -104,7 +104,7 @@ export default function CalibrationPage() {
                     ? "About the same as your previous round."
                     : vsOwnPast === "first"
                       ? "First scored prediction. Your trend starts here."
-                      : "Not set"}
+                      : "No rounds yet"}
             </p>
           </section>
 

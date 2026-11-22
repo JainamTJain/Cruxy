@@ -165,7 +165,7 @@ export default function ModeratorBankPage() {
       answer: { feedback: string | null; score: number | null };
     };
     const score =
-      data.answer.score != null ? data.answer.score.toFixed(2) : "Not set";
+      data.answer.score != null ? data.answer.score.toFixed(2) : "Not scored yet";
     setFeedback(`${data.answer.feedback ?? ""} (score ${score})`);
     await load();
   }
