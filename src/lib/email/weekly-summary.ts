@@ -39,8 +39,12 @@ function formatBody(preview: WeeklyEmailPreview, includeSpend: boolean): string 
   ];
   if (includeSpend) {
     lines.push("", "Spend", `- ${preview.spendLine ?? "n/a"}`);
+    lines.push("", "Health (last 24 hours)");
+    lines.push(`- ${preview.errorsNote}`);
     if (preview.errors.length) {
-      lines.push("", "Errors", ...preview.errors.map((e) => `- ${e}`));
+      lines.push(...preview.errors.map((e) => `- ${e}`));
+    } else {
+      lines.push("- No refused Cruxy calls.");
     }
   }
   lines.push("", "Open Crux: each line links into the app.");

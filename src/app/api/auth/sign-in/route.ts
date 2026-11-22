@@ -24,6 +24,7 @@ export async function POST(req: Request) {
   return NextResponse.json({
     ok: true,
     mustConsent: result.session.mustConsent,
+    mustSetLearningProfile: result.session.mustSetLearningProfile,
     mustChoosePasscode: result.session.mustChoosePasscode,
     name: result.person.name,
     role: result.person.role,

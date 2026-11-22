@@ -39,7 +39,7 @@ export default function FreeRecordPage() {
     setIdeas(data.ideas ?? []);
     setMsg(
       data.created
-        ? `Saved ${data.created} idea(s) to your Truth Sources queue.`
+        ? `Saved ${data.created} idea(s) to your Evidence Library queue.`
         : "No clear ideas in the transcript yet. Keep talking, then try again after finalize.",
     );
   }
@@ -49,7 +49,7 @@ export default function FreeRecordPage() {
       eyebrow={`FREE RECORD${
         session?.caseNumber != null ? `, CASE ${session.caseNumber}` : ""
       }`}
-      subtitle="Record any discussion. Cruxy pulls ideas into Truth Sources."
+      subtitle="Record any discussion. Cruxy pulls ideas into Evidence Library."
       recording={recording}
     >
       {busy ? <p className="text-sm text-[#8C929D]">Starting…</p> : null}
@@ -72,7 +72,7 @@ export default function FreeRecordPage() {
         className="h-[46px] rounded-xl bg-[#F2F3F5] px-4 text-sm font-semibold text-[#0C0D11] disabled:opacity-50"
         onClick={() => void pullIdeas()}
       >
-        {extracting ? "Pulling ideas…" : "Pull ideas for Truth Sources"}
+        {extracting ? "Pulling ideas…" : "Pull ideas for Evidence Library"}
       </button>
       {msg ? <p className="text-sm text-[#8C929D]">{msg}</p> : null}
       {ideas.length > 0 ? (

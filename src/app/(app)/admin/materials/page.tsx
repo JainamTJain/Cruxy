@@ -26,12 +26,16 @@ export default function MaterialRequestsPage() {
   async function load() {
     const me = await fetch("/api/auth/me").then((r) => r.json());
     if (me.session?.role !== "tech_admin" || !me.session?.adminView) {
-      setError("Tech admin + Admin switch required.");
+      setError(
+        "Only Jainam can open material requests. Turn on Admin view as tech admin.",
+      );
       return;
     }
     const res = await fetch("/api/research/materials");
     if (!res.ok) {
-      setError("Could not load material requests.");
+      setError(
+        "Could not load material requests. Refresh, or run research again.",
+      );
       return;
     }
     const data = (await res.json()) as { materials: Material[] };
@@ -61,10 +65,10 @@ export default function MaterialRequestsPage() {
           <h1 className="font-display text-3xl font-semibold">
             Material requests
           </h1>
-          <p className="mt-1 text-sm text-muted">
-            Paywalled papers and books Cruxy needs. Fetch via USC Libraries or
-            the publisher. Requests close when a matching file appears in the
-            Ethics Bowl Drive after sync. Also see{" "}
+          <p className="mt-1 max-w-xl text-sm text-muted">
+            Sources that matter for a case but sit behind a paywall or in a
+            book. Find them at USC Libraries or the publisher. A request closes
+            when the file shows up in the Ethics Bowl Drive. Uploads live under{" "}
             <Link href="/admin/books" className="underline">
               book uploads
             </Link>

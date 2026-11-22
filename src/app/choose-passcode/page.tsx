@@ -136,16 +136,20 @@ export default function ChoosePasscodePage() {
       <section className="flex flex-1 flex-col gap-5 bg-white px-8 py-10 sm:px-14 sm:py-12">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
-            Step 3 of 3
+            Step 4 of 4
           </p>
           <p className="text-xs text-muted">First time only</p>
           <h2 className="mt-2 font-display text-[40px] font-extrabold leading-none tracking-[-0.02em]">
             Choose your passcode
           </h2>
+          <p className="mt-2 max-w-[520px] text-sm text-muted">
+            Pick six digits you will remember on Dec 5. You will use this
+            passcode every time you sign in.
+          </p>
         </div>
         <p className="max-w-[520px] text-sm text-muted">
-          From now on you&apos;ll sign in with your name and this passcode. The
-          member code stops working for you.
+          After you save it, the shared starter code stops working for you.
+          Change this later in Settings if you need to.
         </p>
         <div className="flex max-w-[520px] gap-3 rounded-[14px] bg-[#FFF7DB] px-4 py-3.5">
           <p className="text-sm text-ink">

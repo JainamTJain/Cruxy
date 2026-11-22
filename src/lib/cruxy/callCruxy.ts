@@ -323,7 +323,7 @@ export async function callCruxy(
     const costUsd = estimateCost(tokensIn, tokensOut);
     const text =
       "[Cruxy stub] AI gateway key not configured yet. " +
-      "I would answer from your Truth Sources once AI_GATEWAY_API_KEY is set. " +
+      "I would answer from your Evidence Library once AI_GATEWAY_API_KEY is set. " +
       "For now: what are you trying to figure out?";
 
     await insertAiCall({

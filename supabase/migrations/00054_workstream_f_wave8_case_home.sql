@@ -30,15 +30,7 @@ create index if not exists file_segments_case_idx on file_segments (case_id, kin
 alter table file_segments enable row level security;
 revoke all on table file_segments from anon, authenticated;
 
-do $$
-begin
-  if not exists (
-    select 1 from pg_policies
-    where policyname = 'file_segments_read' and tablename = 'file_segments'
-  ) then
-    create policy file_segments_read on file_segments for select using (true);
-  end if;
-end $$;
+-- No client policies: deny by default; the server reads with the service role.
 
 comment on table file_segments is
   'Short distilled bits from a Drive file, organised per case. Full file remains on files.';

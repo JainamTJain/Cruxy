@@ -74,6 +74,23 @@ export async function getSession(): Promise<SessionPayload | null> {
   } catch {
     // If the version check cannot run, keep the cookie so sample/dev still works.
   }
+
+  // Older cookies predate Wave 8; fill the learning-profile gate.
+  if (typeof payload.mustSetLearningProfile !== "boolean") {
+    if (payload.mustConsent) {
+      payload.mustSetLearningProfile = true;
+    } else {
+      try {
+        const { hasLearningProfile } = await import("@/lib/learning/profile");
+        payload.mustSetLearningProfile = !(await hasLearningProfile(
+          payload.personId,
+        ));
+      } catch {
+        payload.mustSetLearningProfile = false;
+      }
+    }
+  }
+
   return payload;
 }
 

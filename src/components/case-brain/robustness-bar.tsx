@@ -22,7 +22,7 @@ export function RobustnessBar({ scores }: { scores: RobustnessScores }) {
           {scores.counterclaims_total}
         </li>
         <li>
-          Truth Sources verified: {scores.truth_verified}/{scores.truth_total}
+          Evidence Library verified: {scores.truth_verified}/{scores.truth_total}
         </li>
         <li>Unverified open: {scores.unverified_open}</li>
       </ul>

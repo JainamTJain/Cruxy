@@ -264,6 +264,8 @@ export interface SampleStore {
   }[];
   /** Workstream K Wave 6: argument graph (recordEdge). Optional until seeded/backfilled. */
   arg_edges?: import("@/lib/graph/types").ArgEdge[];
+  /** Wave 8 D: personal learning profiles. */
+  learning_profiles?: import("@/lib/learning/types").LearningProfile[];
 }
 
 function emptyCaseBrainFields(): Pick<
@@ -803,6 +805,7 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
       raw.mastery_map_cells ?? admin.mastery_map_cells ?? [],
     case_role_preferences: raw.case_role_preferences ?? [],
     arg_edges: raw.arg_edges ?? [],
+    learning_profiles: raw.learning_profiles ?? [],
   };
 }
 

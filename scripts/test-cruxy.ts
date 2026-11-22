@@ -25,6 +25,13 @@ import {
   scoreClaimFromEdges,
 } from "../src/lib/arg-graph/df-quad";
 import type { ArgEdge } from "../src/lib/arg-graph/types";
+import {
+  buildClaimDossiers,
+  clearsRubricBar,
+  rubricComposite,
+  selectNightlyFindings,
+} from "../src/lib/cruxy/research-rubric";
+import type { ResearchFinding } from "../src/lib/library/types";
 import { runCoachSocratic } from "../src/lib/cruxy/agents/coach";
 import { runAnalystNote, detectProposalProblems } from "../src/lib/cruxy/agents/analyst";
 import { runJudgeAgent } from "../src/lib/cruxy/agents/judge";
@@ -504,6 +511,103 @@ async function runCitationUnitTests(): Promise<number> {
     libraryTexts: [],
   });
   assert(deduped.kept.length === 1, "dedupe by link");
+  passed += 1;
+
+  // Wave 8 H: cogent research rubric
+  assert(
+    clearsRubricBar({
+      relevance: 80,
+      argumentative_force: 70,
+      credibility: 70,
+    }),
+    "composite 73 clears the bar",
+  );
+  assert(
+    !clearsRubricBar({
+      relevance: 60,
+      argumentative_force: 60,
+      credibility: 60,
+    }),
+    "composite 60 fails the bar",
+  );
+  assert(rubricComposite({ relevance: 90, argumentative_force: 60, credibility: 75 }) === 75, "composite rounds");
+  passed += 1;
+
+  const rf = (partial: Partial<ResearchFinding> & Pick<ResearchFinding, "id" | "point" | "claim_ref">): ResearchFinding => ({
+    why_it_matters: "matters",
+    quote: "q",
+    link: `https://example.com/${partial.id}`,
+    verified: true,
+    needs_check: false,
+    source_ids: ["openalex"],
+    title: partial.point,
+    authors: ["Ada"],
+    year: 2024,
+    doi: null,
+    licence: "cc-by",
+    open_access: true,
+    citation: partial.point,
+    ...partial,
+  });
+  const dossierFindings = [
+    rf({ id: "a", point: "Primary support for claim one", claim_ref: "Case 1, Claim 1" }),
+    rf({ id: "b", point: "Second support for claim one", claim_ref: "Case 1, Claim 1" }),
+    rf({ id: "c", point: "Third support for claim one", claim_ref: "Case 1, Claim 1" }),
+    rf({ id: "d", point: "Fourth extra paper", claim_ref: "Case 1, Claim 1" }),
+    rf({
+      id: "e",
+      point: "Strong counter against claim one",
+      claim_ref: "Case 1, Claim 1",
+      why_it_matters: "opposes the claim",
+    }),
+  ];
+  const dossiers = buildClaimDossiers({
+    findings: dossierFindings,
+    modelRanks: [
+      {
+        finding_id: "a",
+        claim_ref: "Case 1, Claim 1",
+        role: "support",
+        why_place: "Best primary source for the claim.",
+        scores: { relevance: 92, argumentative_force: 88, credibility: 90 },
+      },
+      {
+        finding_id: "b",
+        claim_ref: "Case 1, Claim 1",
+        role: "support",
+        why_place: "Solid peer reviewed backing.",
+        scores: { relevance: 84, argumentative_force: 80, credibility: 86 },
+      },
+      {
+        finding_id: "c",
+        claim_ref: "Case 1, Claim 1",
+        role: "support",
+        why_place: "Useful secondary confirmation.",
+        scores: { relevance: 78, argumentative_force: 74, credibility: 80 },
+      },
+      {
+        finding_id: "d",
+        claim_ref: "Case 1, Claim 1",
+        role: "more",
+        why_place: "Below the top three.",
+        scores: { relevance: 72, argumentative_force: 70, credibility: 70 },
+      },
+      {
+        finding_id: "e",
+        claim_ref: "Case 1, Claim 1",
+        role: "steelman",
+        why_place: "Strongest opposing line to answer.",
+        scores: { relevance: 88, argumentative_force: 90, credibility: 82 },
+      },
+    ],
+  });
+  assert(dossiers.length === 1, "one dossier per claim");
+  assert(dossiers[0]!.top.length === 3, "at most three supporting sources");
+  assert(dossiers[0]!.best?.finding_id === "a", "best source first");
+  assert(dossiers[0]!.steelman?.finding_id === "e", "steelman set");
+  assert(dossiers[0]!.more.some((m) => m.finding_id === "d"), "rest under More");
+  const nightly = selectNightlyFindings(dossierFindings, dossiers, 3);
+  assert(nightly.length === 3, "nightly capped at 3");
   passed += 1;
 
   return passed;

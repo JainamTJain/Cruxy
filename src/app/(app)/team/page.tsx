@@ -916,7 +916,7 @@ function ChatBubble(props: {
     linkBits.push(`at ${refs.timestamp}`);
   }
   if (typeof refs.truth_source_id === "string") {
-    linkBits.push("Truth Source linked");
+    linkBits.push("Evidence Library linked");
   }
 
   return (
@@ -938,7 +938,7 @@ function ChatBubble(props: {
           Marked as idea
           {typeof refs.case_number === "number"
             ? ` → Case ${refs.case_number} queue`
-            : " → Truth Sources queue"}
+            : " → Evidence Library queue"}
         </span>
       ) : !m.from_cruxy ? (
         <button
@@ -946,7 +946,7 @@ function ChatBubble(props: {
           className="w-fit text-[12px] font-bold text-cardinal underline"
           onClick={props.onMarkIdea}
         >
-          Mark as idea → Truth Sources queue
+          Mark as idea → Evidence Library queue
         </button>
       ) : null}
     </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { PageIntro } from "@/components/page-intro";
 import { Button } from "@/components/ui/button";
 
 type Item = {
@@ -64,13 +65,12 @@ export default function ChecklistPage() {
 
   return (
     <main className="animate-fade-up space-y-6">
-      <div>
-        <h1 className="font-display text-3xl font-semibold">First-run checklist</h1>
-        <p className="mt-1 text-sm text-muted">
-          About 10 minutes. {done} of {items.length || 5} done
-          {complete ? ", complete" : ""}
-        </p>
-      </div>
+      <PageIntro title="First-run checklist">
+        A short tour of Crux so you know where cases, practice and reading live.
+        About 10 minutes. {done} of {items.length || 5} done
+        {complete ? ", and you are finished" : ""}. Open each item, then mark it
+        done.
+      </PageIntro>
       <ul className="space-y-3">
         {items.map((item) => (
           <li
@@ -80,7 +80,7 @@ export default function ChecklistPage() {
             <div>
               <p className="font-medium">{item.label}</p>
               <Link href={item.href} className="text-xs text-cardinal underline">
-                Open
+                Open this step
               </Link>
             </div>
             <Button
@@ -96,18 +96,18 @@ export default function ChecklistPage() {
       <div className="rounded-2xl border border-ink/10 bg-white/60 p-4">
         <h2 className="font-display text-lg font-semibold">Team champion</h2>
         <p className="mt-1 text-sm text-muted">
-          One person per team gets nudges when teammates have not finished this
-          checklist.
+          One person per team gets a gentle nudge when a teammate has not
+          finished this checklist. Optional.
         </p>
         <Button className="mt-3" variant="outline" onClick={() => void becomeChampion()}>
-          {championId ? "I am the champion" : "Choose me as champion"}
+          {championId ? "You are the champion" : "Make me the champion"}
         </Button>
       </div>
       <Link
         href="/home"
         className="inline-flex h-10 items-center justify-center rounded-xl bg-cardinal px-4 text-sm font-semibold text-white"
       >
-        Go to home
+        Go to the program map
       </Link>
     </main>
   );

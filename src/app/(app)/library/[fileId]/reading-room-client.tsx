@@ -242,7 +242,7 @@ export function ReadingRoomClient({
       res.ok
         ? action === "flashcard"
           ? "Flashcard created from highlight."
-          : "Truth Source proposal queued."
+          : "Sent to the Evidence Library queue."
         : "Action failed.",
     );
     if (res.ok) setMood("happy");
@@ -481,7 +481,7 @@ export function ReadingRoomClient({
                 onClick={() => void turnInto("proposal")}
                 className="h-[38px] rounded-[10px] border border-[#E3E5E9] bg-white px-3 text-left text-[13px] font-semibold text-ink"
               >
-                Propose to Truth Sources
+                Propose to Evidence Library
               </button>
             </div>
             <button

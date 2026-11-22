@@ -93,8 +93,18 @@ export async function runAgent<T extends z.ZodType>(
       stub: true,
     };
   } else {
+    const alreadyHasProfile = (input.contextMessages ?? []).some((m) =>
+      m.content.includes("--- Learning profile ---"),
+    );
+    const profileMsgs =
+      alreadyHasProfile || input.system.includes("--- Learning profile ---")
+        ? []
+        : await (
+            await import("@/lib/cruxy/context")
+          ).learningProfileSystemMessages(input.personId);
     const messages: CruxyMessage[] = [
       { role: "system", content: input.system },
+      ...profileMsgs,
       ...(input.contextMessages ?? []),
       {
         role: "user",

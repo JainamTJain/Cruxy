@@ -110,7 +110,7 @@ export default function LibrarySearchPage() {
           <option value="rules">Rules</option>
           <option value="research">Research</option>
           <option value="coach_guidance">Coach guidance</option>
-          <option value="truth">Truth Sources</option>
+          <option value="truth">Evidence Library</option>
         </select>
         <Button type="submit">Search</Button>
       </form>
@@ -148,7 +148,7 @@ export default function LibrarySearchPage() {
                   )}
                   <span className="text-[11px] font-semibold text-muted">
                     {h.kind === "truth"
-                      ? "Truth Source"
+                      ? "Evidence Library"
                       : h.kind === "comment"
                         ? "Comment"
                         : "Passage"}

@@ -163,6 +163,8 @@ export async function GET(_req: Request, { params }: Params) {
           created_at: latestResearch.created_at,
           gaps: latestResearch.gaps,
           findings: latestResearch.findings,
+          claim_dossiers: latestResearch.claim_dossiers ?? null,
+          brief: latestResearch.brief ?? null,
         }
       : null,
     canEdit,

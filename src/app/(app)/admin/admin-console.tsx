@@ -100,6 +100,7 @@ type Overview = {
       thingsToCare: string[];
       spendLine: string | null;
       errors: string[];
+      errorsNote: string;
       recipients: { name: string; email: string; includeSpend: boolean }[];
     };
   };
@@ -601,17 +602,22 @@ export function AdminConsole() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
-            Admin console
+            Admin
           </span>
-          <h1 className="font-display m-0 text-[48px] font-extrabold leading-none tracking-[-0.02em]">
-            Running the program
+          <h1 className="font-display m-0 text-[40px] font-extrabold leading-none tracking-[-0.02em] sm:text-[48px]">
+            People and readiness
           </h1>
+          <p className="m-0 max-w-xl text-sm text-muted">
+            People, consent, readiness and sessions for all three teams. Open a
+            panel below to take attendance, fix a roster, or check spend.
+          </p>
         </div>
-        <p className="max-w-[360px] text-right text-[13px] text-muted">
-          Dr. B sees everything here except the panels marked{" "}
+        <p className="max-w-[280px] text-right text-[13px] text-muted">
+          Yellow{" "}
           <span className="rounded-md bg-[#FFF3C4] px-1.5 py-0.5 text-[11px] font-bold tracking-[0.08em] text-[#8A6500]">
             ONLY JAINAM
-          </span>
+          </span>{" "}
+          panels are tech-only.
         </p>
       </div>
 
@@ -1492,8 +1498,18 @@ export function AdminConsole() {
               {tech && data.weekly.preview.spendLine ? (
                 <p>Spend: {data.weekly.preview.spendLine}</p>
               ) : null}
-              {tech && data.weekly.preview.errors.length ? (
-                <p>Errors: {data.weekly.preview.errors.join("; ")}</p>
+              {tech ? (
+                <div className="space-y-1">
+                  <p>
+                    Health (last 24 hours):{" "}
+                    {data.weekly.preview.errors.length
+                      ? data.weekly.preview.errors.join("; ")
+                      : "No refused Cruxy calls."}
+                  </p>
+                  <p className="text-xs text-[#9AA0AA]">
+                    {data.weekly.preview.errorsNote}
+                  </p>
+                </div>
               ) : null}
             </div>
           ) : null}
