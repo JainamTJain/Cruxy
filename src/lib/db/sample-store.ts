@@ -295,13 +295,20 @@ export interface SampleStore {
   round_reflections?: import("@/lib/learning/growth-types").RoundReflection[];
   personal_goals?: import("@/lib/learning/growth-types").PersonalGoal[];
   personal_goal_comments?: import("@/lib/learning/growth-types").PersonalGoalComment[];
-  /** Wave 9 E (soft-read when present): peer kudos. */
-  kudos?: {
-    id: string;
-    to_person_id: string;
-    from_person_id: string;
-    body: string;
+  /**
+   * Wave 9 E: peer kudos (calendar-repository writes `peer_kudos`).
+   * `kudos` is kept as an alias bag for older sample files; migrate maps it in.
+   */
+  peer_kudos?: import("@/lib/team/calendar-types").PeerKudos[];
+  kudos?: import("@/lib/team/calendar-types").PeerKudos[];
+  team_events?: import("@/lib/team/calendar-types").TeamEvent[];
+  availability_polls?: import("@/lib/team/calendar-types").AvailabilityPoll[];
+  availability_poll_votes?: import("@/lib/team/calendar-types").AvailabilityPollVote[];
+  calendar_feed_tokens?: {
+    person_id: string;
+    token: string;
     created_at: string;
+    rotated_at: string;
   }[];
   /** Wave 9 G: report a problem / suggest something. */
   product_feedback?: import("@/lib/db/supabase/product-feedback-extra").ProductFeedback[];
@@ -854,7 +861,13 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     round_reflections: raw.round_reflections ?? [],
     personal_goals: raw.personal_goals ?? [],
     personal_goal_comments: raw.personal_goal_comments ?? [],
-    kudos: raw.kudos ?? [],
+    // E calendar bags must survive migrate (calendar-repository casts onto these keys).
+    peer_kudos: raw.peer_kudos ?? raw.kudos ?? [],
+    kudos: raw.kudos ?? raw.peer_kudos ?? [],
+    team_events: raw.team_events ?? [],
+    availability_polls: raw.availability_polls ?? [],
+    availability_poll_votes: raw.availability_poll_votes ?? [],
+    calendar_feed_tokens: raw.calendar_feed_tokens ?? [],
     product_feedback: raw.product_feedback ?? [],
   };
 }
