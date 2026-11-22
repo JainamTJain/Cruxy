@@ -52,7 +52,7 @@ export default function SignInPage() {
 
   async function submitCode(code: string) {
     if (!selectedId) {
-      setError("Tap your name first.");
+      setError("Tap your name above, then enter your passcode.");
       return;
     }
     setError(null);
@@ -67,7 +67,10 @@ export default function SignInPage() {
       mustChoosePasscode?: boolean;
     };
     if (!res.ok) {
-      setError(data.error ?? "Sign in failed.");
+      setError(
+        data.error ??
+          "That passcode did not work. Try again, or ask Jainam if you are locked out.",
+      );
       return;
     }
     if (data.mustConsent) router.push("/consent");
@@ -77,11 +80,11 @@ export default function SignInPage() {
 
   const built = [
     [totals?.drive_files ?? "…", "Drive files read and cited"],
-    [totals?.ideas_accepted ?? "…", "ideas accepted into Truth Sources"],
-    [totals?.bank_questions ?? "…", "moderator questions in the bank"],
-    [totals?.rounds_graded ?? "…", "practice rounds graded"],
-    [totals?.sources_verified ?? "…", "new sources verified"],
-    [days ?? "…", "days to the regional"],
+    [totals?.ideas_accepted ?? "…", "ideas accepted into the Evidence Library"],
+    [totals?.bank_questions ?? "…", "moderator questions ready to practise"],
+    [totals?.rounds_graded ?? "…", "practice rounds with judge cards"],
+    [totals?.sources_verified ?? "…", "sources checked and cited"],
+    [days ?? "…", "days until the regional"],
   ] as const;
 
   return (
@@ -125,8 +128,9 @@ export default function SignInPage() {
                 className="inline-block max-w-full pb-2 pr-3 text-[clamp(3.5rem,12vw,8rem)]"
               />
               <p className="mt-4 max-w-md text-base leading-relaxed text-white/90">
-                Three teams, twelve cases, one place where every argument is
-                built, tested and backed by a source.
+                Three USC Ethics Bowl teams, twelve cases, one place to build
+                arguments, practise rounds and keep every claim backed by a
+                source.
               </p>
             </div>
           </div>
@@ -157,6 +161,9 @@ export default function SignInPage() {
           <h2 className="mt-2 font-display text-[40px] font-extrabold leading-none tracking-[-0.02em] text-ink">
             Tap your name
           </h2>
+          <p className="mt-2 text-sm text-muted">
+            Find your name under your team, then enter your six-digit passcode.
+          </p>
           <div className="mt-6">
             <NamePicker
               teams={teams}

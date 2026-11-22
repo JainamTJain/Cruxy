@@ -3,6 +3,7 @@
 The approved direction is v2: cardinal, Cruxy gold and ink; Bricolage Grotesque for display, Inter for text, IBM Plex Mono for numbers and citations. Jainam rejected a generic first version ("colours, text, order and placement super wrong"), so match these references closely rather than falling back to default shadcn styling.
 
 - Tokens: `tokens.css` (Track 0 copied these into `src/app/globals.css`; keep the two in sync). Rules: `.cursor/rules/10-design.mdc`.
+- Writing: `writing.md` is the plain-language style guide (same word for the same thing, humane errors, one-line explainers under page titles).
 - Screens: `screens/*.html` are the reference for every page. Open one in a browser to see it; image paths point to `/cruxy/...`, so they render when served from the app's `public/` folder. The markup is inline styled HTML inside a `<x-dc>` wrapper from the design tool: copy the structure, hierarchy, spacing and copy into React and Tailwind. All names and numbers in them are sample data.
 - The live design canvas (to view, comment and play prototypes): https://claude.ai/artifact/Wn6DyDVHszTeXyd61jh9rN
 
