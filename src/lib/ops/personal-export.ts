@@ -102,7 +102,7 @@ export async function getPrivacyInventory(
       label: "Recordings and transcripts",
       stored:
         "Practice audio is kept briefly, then deleted once the transcript is saved. Transcripts stay for the season.",
-      whoSees: "All three teams, Dr. B and Jainam see transcripts for practice rounds.",
+      whoSees: "Your team, Dr. B and Jainam see transcripts for practice rounds. Other teams do not.",
       present: true,
     },
     {

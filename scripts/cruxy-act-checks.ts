@@ -13,11 +13,13 @@ import { resetSampleStore, readStore, updateStore } from "../src/lib/db/sample-s
 import {
   looksLikeActRequest,
   looksLikeBriefDecide,
+  looksLikeCoherenceCheck,
   looksLikeDrillStart,
   looksLikeEvidenceQueue,
   looksLikeFlashcards,
   looksLikeLeadsCount,
   looksLikeRolesRequest,
+  looksLikeTellIdea,
   looksLikeTodayPlan,
 } from "../src/lib/cruxy/actions/detect";
 import {
@@ -76,6 +78,18 @@ async function main() {
   assert(looksLikeTodayPlan("Plan my next 20 minutes"), "today plan");
   assert(looksLikeActRequest("Shuffle the rest fairly"), "act request roles");
   assert(!looksLikeActRequest("Quiz me on this case"), "quiz is not an act");
+  assert(
+    looksLikeTellIdea("My idea is we should name the caregiver's duty first"),
+    "tell idea",
+  );
+  assert(
+    looksLikeCoherenceCheck("Check our working document for loose ends"),
+    "coherence check",
+  );
+  assert(
+    looksLikeActRequest("My idea is we should name the caregiver's duty first"),
+    "act request tell idea",
+  );
 
   // Chips
   assert(
@@ -83,10 +97,14 @@ async function main() {
     "roles chips",
   );
   assert(
+    suggestionChipsForPage(`/case-brain/${caseRow.id}`).includes("My idea is…"),
+    "case chips tell idea",
+  );
+  assert(
     suggestionChipsForPage(`/case-brain/${caseRow.id}`).includes(
-      "Quiz me on this case",
+      "Check our working document for loose ends",
     ),
-    "case chips quiz",
+    "case chips coherence",
   );
   assert(
     suggestionChipsForPage("/practice").includes("Start a 10 minute drill"),

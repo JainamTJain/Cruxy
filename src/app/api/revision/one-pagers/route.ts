@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getPersonById } from "@/lib/db/repository";
 import { canEditOnePager } from "@/lib/auth/capabilities";
+import {
+  canSeeAllTeams,
+  canWriteTeamData,
+  resolveVisibleTeamId,
+} from "@/lib/auth/team-privacy";
 import { requireSession } from "@/lib/revision/api-auth";
 import { withEmptyRows } from "@/lib/revision/one-pager-edit";
 import type { OnePagerBody } from "@/lib/revision/types";
@@ -37,19 +42,51 @@ export async function GET(req: Request) {
   const auth = await requireSession();
   if ("error" in auth) return auth.error;
   const url = new URL(req.url);
-  const teamId = url.searchParams.get("teamId");
+  const requestedTeamId = url.searchParams.get("teamId");
   const caseId = url.searchParams.get("caseId");
   const id = url.searchParams.get("id");
   const versions = url.searchParams.get("versions");
+  const person = await getPersonById(auth.session.personId);
+  if (!person) {
+    return NextResponse.json({ error: "Sign in required" }, { status: 401 });
+  }
 
   if (id) {
     const page = await getOnePagerById(id);
-    const diff = await onePagerDiff(id);
+    if (
+      page &&
+      !canSeeAllTeams(person, auth.session) &&
+      page.team_id !== (person.team_id ?? auth.session.teamId)
+    ) {
+      return NextResponse.json(
+        { error: "You can only open your own team's one pager." },
+        { status: 403 },
+      );
+    }
+    const diff = page ? await onePagerDiff(id) : [];
     return NextResponse.json({ onePager: page, diff });
   }
-  if (!teamId || !caseId) {
+  if (!requestedTeamId || !caseId) {
     const meta = await listCasesAndTeams();
+    if (!canSeeAllTeams(person, auth.session)) {
+      const own = person.team_id ?? auth.session.teamId;
+      return NextResponse.json({
+        ...meta,
+        teams: (meta.teams ?? []).filter(
+          (t: { id: string }) => t.id === own,
+        ),
+      });
+    }
     return NextResponse.json(meta);
+  }
+
+  const { teamId } = resolveVisibleTeamId({
+    person,
+    session: auth.session,
+    requested: requestedTeamId,
+  });
+  if (!teamId) {
+    return NextResponse.json({ error: "teamId required" }, { status: 400 });
   }
 
   if (versions === "1") {
@@ -59,10 +96,7 @@ export async function GET(req: Request) {
 
   const page = await latestOnePager(teamId, caseId);
   const diff = page ? await onePagerDiff(page.id) : [];
-  const person = await getPersonById(auth.session.personId);
-  const canEdit = person
-    ? canEditOnePager(person, auth.session, teamId)
-    : false;
+  const canEdit = canEditOnePager(person, auth.session, teamId);
   return NextResponse.json({ onePager: page, diff, canEdit });
 }
 
@@ -82,16 +116,27 @@ export async function POST(req: Request) {
   const editorName = person?.name?.split(" ")[0] ?? "someone";
 
   if (body.action === "draft") {
-    if (!body.teamId || !body.caseId) {
+    if (!body.teamId || !body.caseId || !person) {
       return NextResponse.json(
         { error: "teamId and caseId required" },
         { status: 400 },
       );
     }
-    const denied = await assertCanEditOnePager(auth.session, body.teamId);
+    const { teamId } = resolveVisibleTeamId({
+      person,
+      session: auth.session,
+      requested: body.teamId,
+    });
+    if (!teamId || !canWriteTeamData(person, auth.session, teamId)) {
+      return NextResponse.json(
+        { error: "You can only draft your own team's one pager." },
+        { status: 403 },
+      );
+    }
+    const denied = await assertCanEditOnePager(auth.session, teamId);
     if (denied) return denied;
     const page = await draftOnePager({
-      teamId: body.teamId,
+      teamId,
       caseId: body.caseId,
       personId: auth.session.personId,
     });

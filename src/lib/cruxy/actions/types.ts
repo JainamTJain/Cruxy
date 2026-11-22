@@ -24,7 +24,11 @@ export function suggestionChipsForPage(page: string): string[] {
     return ["Shuffle the rest fairly", "Who has the most leads?"];
   }
   if (page.startsWith("/case-brain") || page.startsWith("/team/cases")) {
-    return ["Quiz me on this case", "Make flashcards from the key points"];
+    return [
+      "My idea is…",
+      "Check our working document for loose ends",
+      "Make flashcards from the key points",
+    ];
   }
   if (page.startsWith("/practice")) {
     return ["Start a 10 minute drill", "One hint, please"];

@@ -26,7 +26,7 @@ const ROWS: [string, string][] = [
     "Your voice",
     `About ${VOICED_TARGET_SECONDS} seconds of clear speech so the transcript knows which lines are yours.`,
   ],
-  ["Who sees it", "All three teams, Dr. B and Jainam. Nobody else."],
+  ["Who sees it", "Your team, Dr. B and Jainam. Other teams do not see your work. Nobody else."],
   [
     "Where it goes",
     "Audio is stored briefly in Crux, then deleted once the transcript is saved.",

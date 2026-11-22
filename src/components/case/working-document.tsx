@@ -92,6 +92,58 @@ function Attr({
   );
 }
 
+function IdeaAndCoherenceBar({
+  busy,
+  ideaDraft,
+  setIdeaDraft,
+  onTellIdea,
+  onCoherence,
+}: {
+  busy: boolean;
+  ideaDraft: string;
+  setIdeaDraft: (v: string) => void;
+  onTellIdea: () => void;
+  onCoherence: () => void;
+}) {
+  return (
+    <section className="rounded-[20px] bg-white p-5">
+      <h3 className="font-display m-0 text-lg font-extrabold">
+        Tell Cruxy an idea
+      </h3>
+      <p className="mt-1 text-sm text-muted">
+        Cruxy writes it up as a suggestion with your name for the team to tick
+        or cross. Strong ideas may also reach other teams anonymously.
+      </p>
+      <textarea
+        rows={3}
+        className="mt-3 w-full rounded-[10px] border border-mist px-3 py-2 text-sm"
+        placeholder="My idea is…"
+        value={ideaDraft}
+        disabled={busy}
+        onChange={(e) => setIdeaDraft(e.target.value)}
+      />
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={busy || !ideaDraft.trim()}
+          className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          onClick={onTellIdea}
+        >
+          Add as suggestion
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          className="rounded-xl border border-mist bg-[#F7F8FA] px-4 py-2 text-sm font-semibold disabled:opacity-60"
+          onClick={onCoherence}
+        >
+          Check coherence
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export function WorkingDocument({
   caseId,
   teamId,
@@ -112,6 +164,7 @@ export function WorkingDocument({
   const [socraticAnswers, setSocraticAnswers] = useState<
     Record<string, string>
   >({});
+  const [ideaDraft, setIdeaDraft] = useState("");
 
   const load = useCallback(async () => {
     const res = await fetch(
@@ -188,9 +241,25 @@ export function WorkingDocument({
 
       {!canEdit ? (
         <p className="m-0 rounded-xl bg-[#F7F8FA] px-3.5 py-2 text-sm text-muted">
-          Viewing another team&apos;s document. Tick and edits stay on your own
-          team.
+          Read only. Only Dr. B and Jainam can open another team&apos;s document.
         </p>
+      ) : null}
+
+      {path && canEdit ? (
+        <IdeaAndCoherenceBar
+          busy={editBusy}
+          ideaDraft={ideaDraft}
+          setIdeaDraft={setIdeaDraft}
+          onTellIdea={() =>
+            void post({
+              action: "tell_idea",
+              text: ideaDraft.trim(),
+            }).then((ok) => {
+              if (ok) setIdeaDraft("");
+            })
+          }
+          onCoherence={() => void post({ action: "coherence_check" })}
+        />
       ) : null}
 
       {!path ? (
