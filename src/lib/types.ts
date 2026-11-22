@@ -90,6 +90,8 @@ export interface SessionPayload {
   mustChoosePasscode: boolean;
   /** Must match people.session_version or the cookie is rejected. */
   sessionVersion: number;
+  /** Wave 9: signed-in device row; revoke signs this browser out. */
+  deviceId?: string;
 }
 
 export interface TeamMembership {
@@ -201,6 +203,12 @@ export interface CompetitionLogEntry {
   score_them: number | null;
   result: "win" | "loss" | "tie" | "pending" | null;
   team_id: string | null;
+  /** Wave 9 C: Competition Day hub fields (nullable for older rows). */
+  round_number?: number | null;
+  side?: "presenting" | "commenting" | null;
+  debrief_worked?: string | null;
+  debrief_change?: string | null;
+  day_round_id?: string | null;
   created_at: string;
   created_by: string | null;
 }

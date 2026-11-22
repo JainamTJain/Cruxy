@@ -18,7 +18,8 @@ export type AdminArea =
   | "weekly_summary"
   | "competition_log"
   | "season_rollover"
-  | "cruxy_admin";
+  | "cruxy_admin"
+  | "product_feedback";
 
 const PERMISSIONS: Record<
   AdminArea,
@@ -41,6 +42,7 @@ const PERMISSIONS: Record<
   competition_log: { tech: "yes", coach: "yes" },
   season_rollover: { tech: "yes", coach: "no" },
   cruxy_admin: { tech: "yes", coach: "yes" },
+  product_feedback: { tech: "yes", coach: "no" },
 };
 
 export function permissionFor(
@@ -128,5 +130,10 @@ export const PERMISSION_TABLE = [
     area: "Activity log",
     jainam: "Yes",
     drB: "Read only",
+  },
+  {
+    area: "Product feedback queue",
+    jainam: "Yes",
+    drB: "No",
   },
 ] as const;

@@ -5,11 +5,12 @@ import { useCruxy } from "@/components/cruxy/cruxy-context";
 import { GeniePose } from "@/components/cruxy/mood/genie-pose";
 import {
   POSE_ASPECT,
-  POSE_LABEL,
   genieFigureWidth,
 } from "@/components/cruxy/mood/poses";
+import { usePathname } from "next/navigation";
 import { useCruxyMood } from "@/components/cruxy/mood/use-cruxy-mood";
-import { CALL_QUESTION, HINT_FALLBACK } from "@/lib/cruxy/character";
+import { usePrefersReducedMotion } from "@/components/motion/reduced-motion";
+import { CALL_QUESTION } from "@/lib/cruxy/character";
 import { cn } from "@/lib/utils";
 
 const POS_KEY = "cruxy-float-pos";
@@ -108,10 +109,101 @@ export function FloatingCruxy() {
   const [moved, setMoved] = useState(false);
   const [vw, setVw] = useState(1440);
   const [draft, setDraft] = useState("");
+  const pathname = usePathname();
+  const [asked, setAsked] = useState<string | null>(null);
+  const [thinking, setThinking] = useState(false);
+  const [sources, setSources] = useState<number>(0);
+  const [plan, setPlan] = useState<{
+    planId: string;
+    summary: string;
+    lines: string[];
+  } | null>(null);
+  const [planBusy, setPlanBusy] = useState(false);
+
+  /** Send what the person typed to Cruxy, with the page they are on. */
+  async function send(text: string) {
+    const question = text.trim();
+    if (!question || thinking) return;
+    setAsked(question);
+    setPlan(null);
+    setSources(0);
+    setThinking(true);
+    setBubble("Thinking...");
+    emitCruxyEvent("listen.typing");
+    const caseMatch = pathname.match(/\/(?:case-brain|team\/cases)\/([0-9a-f-]{36})/);
+    try {
+      const res = await fetch("/api/cruxy/act", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          message: question,
+          page: pathname,
+          caseId: caseMatch?.[1] ?? null,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        kind?: "answer" | "plan";
+        text?: string;
+        citations?: unknown[];
+        planId?: string;
+        summary?: string;
+        lines?: string[];
+        error?: string;
+      };
+      if (!res.ok) {
+        setBubble(
+          data.error ??
+            "I could not reach Cruxy just now. Try again in a moment, or tap Expand.",
+        );
+        return;
+      }
+      if (data.kind === "plan" && data.planId) {
+        setPlan({
+          planId: data.planId,
+          summary: data.summary ?? "Here is what I would change.",
+          lines: data.lines ?? [],
+        });
+        setBubble(data.summary ?? "Here is what I would change.");
+        return;
+      }
+      setSources(Array.isArray(data.citations) ? data.citations.length : 0);
+      setBubble(data.text ?? "I do not have an answer for that yet.");
+      emitCruxyEvent("feedback.answered_well");
+    } catch {
+      setBubble("I could not reach Cruxy just now. Try again in a moment.");
+    } finally {
+      setThinking(false);
+    }
+  }
+
+  async function applyPlan() {
+    if (!plan || planBusy) return;
+    setPlanBusy(true);
+    try {
+      const res = await fetch("/api/cruxy/act/apply", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ planId: plan.planId }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        message?: string;
+        error?: string;
+      };
+      setPlan(null);
+      setBubble(
+        res.ok
+          ? (data.message ?? "Done. The page now shows the change.")
+          : (data.error ?? "That did not go through. Nothing was changed."),
+      );
+      if (res.ok) {
+        window.dispatchEvent(new CustomEvent("crux:data-changed"));
+      }
+    } finally {
+      setPlanBusy(false);
+    }
+  }
   const dragRef = useRef<{ ox: number; oy: number } | null>(null);
-  const reduced =
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reduced = usePrefersReducedMotion();
 
   useEffect(() => {
     const w = window.innerWidth;
@@ -259,8 +351,8 @@ export function FloatingCruxy() {
           onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="mb-2 flex items-start justify-between gap-2">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-              {POSE_LABEL[mood as keyof typeof POSE_LABEL] ?? mood}
+            <p className="text-[11px] font-semibold text-muted">
+              {asked ? `You asked: ${asked.length > 60 ? `${asked.slice(0, 57)}...` : asked}` : "Cruxy"}
             </p>
             <button
               type="button"
@@ -289,48 +381,99 @@ export function FloatingCruxy() {
               </svg>
             </button>
           </div>
-          <p className="text-[13px] leading-snug text-ink">{bubble}</p>
-          <label className="mt-3 block">
-            <span className="sr-only">Your answer</span>
-            <input
-              className="w-full rounded-lg border border-ink/15 bg-paper px-2 py-1.5 text-[12px]"
-              placeholder="Type a short try…"
-              value={draft}
-              onChange={(e) => {
-                setDraft(e.target.value);
-                emitCruxyEvent("listen.typing");
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && draft.trim()) {
-                  e.preventDefault();
-                  setDraft("");
-                  emitCruxyEvent("feedback.answered_well");
-                  setBubble("Nice try. Tap Expand for a fuller chat with Cruxy.");
-                }
-              }}
-            />
-          </label>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <p
+            className="max-h-[40vh] overflow-y-auto whitespace-pre-wrap text-[13px] leading-snug text-ink"
+            aria-live="polite"
+          >
+            {bubble}
+          </p>
+          {sources > 0 ? (
+            <p className="mt-1 text-[11px] text-muted">
+              Based on {sources} source{sources === 1 ? "" : "s"}. Tap Expand to see them.
+            </p>
+          ) : null}
+          {plan ? (
+            <div className="mt-3 rounded-lg border border-ink/10 bg-paper p-2">
+              {plan.lines.length ? (
+                <ul className="m-0 list-none space-y-1 p-0 text-[12px] text-ink">
+                  {plan.lines.slice(0, 12).map((l) => (
+                    <li key={l}>{l}</li>
+                  ))}
+                  {plan.lines.length > 12 ? (
+                    <li className="text-muted">
+                      and {plan.lines.length - 12} more
+                    </li>
+                  ) : null}
+                </ul>
+              ) : null}
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  disabled={planBusy}
+                  className="rounded-lg bg-cardinal px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-60"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void applyPlan();
+                  }}
+                >
+                  {planBusy ? "Applying..." : "Apply"}
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg px-3 py-1.5 text-[12px] text-muted underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPlan(null);
+                    setBubble("Okay, nothing changed. Tell me what to do differently.");
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : null}
+          <form
+            className="mt-3 flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const t = draft;
+              setDraft("");
+              void send(t);
+            }}
+          >
+            <label className="min-w-0 flex-1">
+              <span className="sr-only">Ask Cruxy or tell it what to do</span>
+              <input
+                className="w-full rounded-lg border border-ink/15 bg-paper px-2 py-1.5 text-[13px]"
+                placeholder="Ask Cruxy, or tell it what to do here"
+                value={draft}
+                disabled={thinking}
+                onChange={(e) => {
+                  setDraft(e.target.value);
+                  emitCruxyEvent("listen.typing");
+                }}
+              />
+            </label>
             <button
-              type="button"
-              className="rounded-lg bg-gold/30 px-2 py-1 text-[11px] font-medium"
-              onClick={(e) => {
-                e.stopPropagation();
-                emitCruxyEvent("hint.given");
-                setBubble(HINT_FALLBACK);
-              }}
+              type="submit"
+              disabled={thinking || !draft.trim()}
+              className="rounded-lg bg-ink px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-40"
             >
-              One hint, please
+              {thinking ? "..." : "Send"}
             </button>
+          </form>
+          <div className="mt-2 flex justify-end">
             <button
               type="button"
               className="rounded-lg px-2 py-1 text-[11px] text-muted underline"
               onClick={(e) => {
                 e.stopPropagation();
+                setAsked(null);
+                setPlan(null);
                 sleep();
               }}
             >
-              Back to the lamp
+              Close
             </button>
           </div>
         </div>

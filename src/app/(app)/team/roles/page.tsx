@@ -63,6 +63,13 @@ export default function RolesBoardPage() {
     void load();
   }, [load]);
 
+  // Reload when Cruxy applies a change from the chat.
+  useEffect(() => {
+    const onChange = () => void load(board?.teamId);
+    window.addEventListener("crux:data-changed", onChange);
+    return () => window.removeEventListener("crux:data-changed", onChange);
+  }, [load, board?.teamId]);
+
   useEffect(() => {
     if (!board || !meId) return;
     const mine = board.preferences
@@ -181,6 +188,45 @@ export default function RolesBoardPage() {
       </div>
 
       {status ? <p className="text-sm text-muted">{status}</p> : null}
+
+      {/* Workload balance */}
+      {(board.workload?.length ?? 0) > 0 ? (
+        <details className="rounded-[20px] bg-white p-4">
+          <summary className="cursor-pointer font-display text-base font-bold">
+            Workload balance
+          </summary>
+          <p className="mt-1 text-sm text-muted">
+            Roles and open tasks per person. When one person carries far more,
+            we suggest a fair swap. No ranking against other teams.
+          </p>
+          <ul className="mt-3 m-0 list-none divide-y divide-[#ECEEF1] p-0">
+            {board.workload.map((w) => (
+              <li
+                key={w.personId}
+                className={`flex flex-col gap-1 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between ${
+                  w.heavy ? "bg-[#FFF7DB] px-2 rounded-xl" : ""
+                }`}
+              >
+                <div>
+                  <span className="font-semibold">{w.name}</span>
+                  <span className="mt-0.5 block text-[12px] text-muted">
+                    {w.leadCount} lead{w.leadCount === 1 ? "" : "s"},{" "}
+                    {w.roleCount} role{w.roleCount === 1 ? "" : "s"},{" "}
+                    {w.openTaskCount} open task
+                    {w.openTaskCount === 1 ? "" : "s"}
+                  </span>
+                </div>
+                {w.heavy && w.suggestSwapWith ? (
+                  <p className="m-0 text-[12px] font-semibold text-[#C2410C]">
+                    Carrying a lot. A fair swap: ask {w.suggestSwapWith.name}{" "}
+                    to take one role.
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
 
       {board.lock ? (
         <section className="rounded-[20px] bg-[#E6F4F1] px-4 py-3">

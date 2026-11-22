@@ -3,7 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { AccessProvider } from "@/components/access/access-provider";
+import { AccessLiveRegions } from "@/components/access/live-region";
+import { ExplainTermListener } from "@/components/access/explain-term";
+import { SkipLink } from "@/components/access/skip-link";
+import { SpokenTranscriptHost } from "@/components/access/spoken-transcript";
+import { useFocusTrap } from "@/components/access/focus-trap";
 import { CruxWordmark } from "@/components/crux-wordmark";
 import { CruxyProvider, useCruxy } from "@/components/cruxy/cruxy-context";
 import { CruxyDrawer } from "@/components/cruxy/cruxy-drawer";
@@ -12,7 +18,13 @@ import { FloatingCruxy } from "@/components/cruxy/floating-cruxy";
 import { preloadCruxyPoses } from "@/components/cruxy/mood/poses";
 import { ConfettiHost } from "@/components/motion/confetti";
 import { FirstVisitTour } from "@/components/product/first-visit-tour";
+import { ReportProblemButton } from "@/components/help/report-problem-button";
 import { NotificationBell } from "@/components/notification-bell";
+import {
+  GlobalSearchHost,
+  SearchOpenButton,
+} from "@/components/search/command-palette";
+import { registerCruxServiceWorker } from "@/lib/offline/register-sw";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/types";
 
@@ -39,12 +51,12 @@ const SIDE_NAV: { href: string; label: string; match?: string }[] = [
   { href: "/case-brain", label: "Cases" },
   { href: "/practice", label: "Practice" },
   { href: "/team/chat", label: "Team chat" },
-  { href: "/season", label: "After regional" },
 ];
 
 /** Admin.html sidebar when Admin switch is on and route is under /admin. */
 const ADMIN_SIDE_NAV: { href: string; label: string; match?: string }[] = [
   { href: "/practice/admin", label: "Sessions" },
+  { href: "/coach", label: "Coach view" },
   { href: "/admin", label: "People and teams" },
   { href: "/admin/flywheel", label: "Program analytics", match: "analytics" },
   { href: "/revision/questions", label: "Question bank" },
@@ -79,6 +91,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const [me, setMe] = useState<Me | null>(null);
   const [teamLabel, setTeamLabel] = useState<string | null>(null);
   const [digestPrompt, setDigestPrompt] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { wake, awake } = useCruxy();
 
   async function refresh() {
@@ -108,6 +121,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     preloadCruxyPoses();
   }, []);
 
+  useEffect(() => {
+    registerCruxServiceWorker();
+  }, []);
+
   async function toggleAdmin(adminView: boolean) {
     await fetch("/api/auth/admin-view", {
       method: "POST",
@@ -121,7 +138,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     } else {
       setDigestPrompt(false);
     }
-    router.push(adminView ? "/admin" : "/home");
+    router.push(adminView ? "/coach" : "/today");
   }
 
   async function answerDigest(optIn: boolean) {
@@ -133,6 +150,12 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     setDigestPrompt(false);
   }
 
+  const closeDigest = useCallback(() => setDigestPrompt(false), []);
+  const digestTrapRef = useFocusTrap({
+    active: digestPrompt,
+    onEscape: closeDigest,
+  });
+
   async function signOut() {
     await fetch("/api/auth/sign-out", { method: "POST" });
     router.replace("/sign-in");
@@ -143,7 +166,8 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const displayName = me?.session?.name ?? me?.person?.name ?? "";
   const initial = displayName.slice(0, 1).toUpperCase() || "?";
   const onAdminScreen =
-    Boolean(me?.session?.adminView) && pathname.startsWith("/admin");
+    (Boolean(me?.session?.adminView) && pathname.startsWith("/admin")) ||
+    (isAdminRole && pathname.startsWith("/coach"));
   const sideItems = onAdminScreen ? ADMIN_SIDE_NAV : SIDE_NAV;
 
   // Workstream D: live practice room and thesis drill are full-bleed (no shell chrome).
@@ -152,15 +176,28 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     pathname.includes("/practice/drills/");
 
   if (immersive) {
-    return <div className="min-h-dvh bg-[#0C0D11]">{children}</div>;
+    return (
+      <div className="min-h-dvh bg-[#0C0D11]">
+        <SkipLink />
+        <AccessLiveRegions />
+        <SpokenTranscriptHost />
+        <div id="main-content">{children}</div>
+      </div>
+    );
   }
 
   return (
     <div className="flex min-h-dvh bg-paper text-ink">
+      <SkipLink />
+      <AccessLiveRegions />
       <aside className="hidden w-[248px] shrink-0 flex-col gap-7 bg-ink px-4 pb-7 pt-[28px] text-white sm:flex">
         <Link href="/home" className="mx-1 inline-block px-1 py-1">
           <CruxWordmark className="text-[38px]" />
         </Link>
+        <SearchOpenButton
+          showShortcut
+          className="mx-1 inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-left text-sm text-white/80 hover:bg-white/10"
+        />
         {onAdminScreen ? (
           <span className="ml-3 self-start rounded-md bg-gold px-2 py-1 text-xs font-bold tracking-[0.1em] text-ink">
             ADMIN
@@ -209,9 +246,15 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             </>
           ) : null}
         </nav>
-        <div className="mt-auto flex flex-col gap-2.5">
+        <div className="relative mt-auto flex flex-col gap-2.5">
           <NotificationBell />
-          <div className="flex items-center gap-2.5 px-1.5 py-2">
+          <button
+            type="button"
+            className="flex items-center gap-2.5 rounded-xl px-1.5 py-2 text-left hover:bg-white/10"
+            aria-expanded={userMenuOpen}
+            aria-haspopup="menu"
+            onClick={() => setUserMenuOpen((o) => !o)}
+          >
             <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#C2410C] text-sm font-bold">
               {initial}
             </span>
@@ -228,38 +271,147 @@ function ShellInner({ children }: { children: React.ReactNode }) {
                 ) : null}
               </span>
             </span>
-          </div>
-          <div className="flex gap-2 px-1">
-            {isAdminRole ? (
+          </button>
+          {userMenuOpen ? (
+            <div
+              role="menu"
+              className="absolute bottom-[4.5rem] left-0 right-0 z-30 flex flex-col gap-0.5 rounded-xl border border-white/10 bg-[#1A1C22] p-1.5 shadow-lg"
+            >
+              <Link
+                role="menuitem"
+                href="/progress"
+                className="rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+                onClick={() => setUserMenuOpen(false)}
+              >
+                Progress
+              </Link>
+              <Link
+                role="menuitem"
+                href="/settings"
+                className="rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+                onClick={() => setUserMenuOpen(false)}
+              >
+                Settings
+              </Link>
+              <Link
+                role="menuitem"
+                href="/help"
+                className="rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+                onClick={() => setUserMenuOpen(false)}
+              >
+                Help
+              </Link>
+              <Link
+                role="menuitem"
+                href="/help/whats-new"
+                className="rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+                onClick={() => setUserMenuOpen(false)}
+              >
+                What&apos;s new
+              </Link>
+              {isAdminRole ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="rounded-lg px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    void toggleAdmin(!me?.session?.adminView);
+                  }}
+                >
+                  {me?.session?.adminView ? "Member view" : "Admin switch"}
+                </button>
+              ) : null}
               <button
                 type="button"
-                onClick={() => void toggleAdmin(!me?.session?.adminView)}
-                className="text-[11px] text-[#9AA0AA] underline"
+                role="menuitem"
+                className="rounded-lg px-3 py-2 text-left text-sm text-[#C9CCD3] hover:bg-white/10"
+                onClick={() => {
+                  setUserMenuOpen(false);
+                  void signOut();
+                }}
               >
-                {me?.session?.adminView ? "Member view" : "Admin switch"}
+                Sign out
               </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => void signOut()}
-              className="text-[11px] text-[#9AA0AA] underline"
-            >
-              Sign out
-            </button>
-          </div>
+            </div>
+          ) : null}
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-3 bg-ink px-4 pb-3 pt-4 sm:hidden">
+        <header className="relative flex items-center justify-between gap-3 bg-ink px-4 pb-3 pt-4 sm:hidden">
           <Link href="/home" className="inline-block py-0.5">
             <CruxWordmark className="text-2xl" />
           </Link>
-          <p className="text-xs text-white/70">{displayName}</p>
+          <div className="flex items-center gap-2">
+            <SearchOpenButton className="rounded-lg px-2 py-1 text-sm font-semibold text-white/85 hover:bg-white/10" />
+            <button
+              type="button"
+              className="text-xs text-white/70 underline"
+              aria-expanded={userMenuOpen}
+              onClick={() => setUserMenuOpen((o) => !o)}
+            >
+              {displayName || "You"}
+            </button>
+            {userMenuOpen ? (
+              <div
+                role="menu"
+                className="absolute right-3 top-12 z-40 flex min-w-[10rem] flex-col gap-0.5 rounded-xl border border-white/10 bg-[#1A1C22] p-1.5 shadow-lg"
+              >
+                <Link
+                  role="menuitem"
+                  href="/progress"
+                  className="rounded-lg px-3 py-2 text-sm text-white"
+                  onClick={() => setUserMenuOpen(false)}
+                >
+                  Progress
+                </Link>
+                <Link
+                  role="menuitem"
+                  href="/settings"
+                  className="rounded-lg px-3 py-2 text-sm text-white"
+                  onClick={() => setUserMenuOpen(false)}
+                >
+                  Settings
+                </Link>
+                <Link
+                  role="menuitem"
+                  href="/help"
+                  className="rounded-lg px-3 py-2 text-sm text-white"
+                  onClick={() => setUserMenuOpen(false)}
+                >
+                  Help
+                </Link>
+                <Link
+                  role="menuitem"
+                  href="/help/whats-new"
+                  className="rounded-lg px-3 py-2 text-sm text-white"
+                  onClick={() => setUserMenuOpen(false)}
+                >
+                  What&apos;s new
+                </Link>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="rounded-lg px-3 py-2 text-left text-sm text-[#C9CCD3]"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    void signOut();
+                  }}
+                >
+                  Sign out
+                </button>
+              </div>
+            ) : null}
+          </div>
         </header>
-        <main className="min-w-0 flex-1 px-4 pb-24 pt-4 sm:px-10 sm:pb-10 sm:pt-8">
+        <div
+          id="main-content"
+          tabIndex={-1}
+          className="min-w-0 flex-1 px-4 pb-24 pt-4 outline-none sm:px-10 sm:pb-10 sm:pt-8"
+        >
           {children}
-        </main>
+        </div>
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-mist bg-paper/95 px-1 py-2 backdrop-blur sm:hidden">
@@ -300,9 +452,21 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       </nav>
 
       {digestPrompt ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/40 p-4">
-          <div className="max-w-md rounded-2xl bg-white p-6 text-ink shadow-xl">
-            <h2 className="font-display text-xl font-extrabold">
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/40 p-4"
+          role="presentation"
+        >
+          <div
+            ref={digestTrapRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="digest-prompt-title"
+            className="max-w-md rounded-2xl bg-white p-6 text-ink shadow-xl"
+          >
+            <h2
+              id="digest-prompt-title"
+              className="font-display text-xl font-extrabold"
+            >
               Weekly summary email?
             </h2>
             <p className="mt-2 text-sm text-muted">
@@ -312,14 +476,14 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
-                className="rounded-xl bg-cardinal px-4 py-2 text-sm font-semibold text-white"
+                className="min-h-11 rounded-xl bg-cardinal px-4 py-2 text-sm font-semibold text-white"
                 onClick={() => void answerDigest(true)}
               >
                 Yes, send it
               </button>
               <button
                 type="button"
-                className="rounded-xl border border-mist px-4 py-2 text-sm"
+                className="min-h-11 rounded-xl border border-mist px-4 py-2 text-sm"
                 onClick={() => void answerDigest(false)}
               >
                 Not now
@@ -334,14 +498,20 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <CruxyDrawer />
       <ConfettiHost />
       <FirstVisitTour />
+      <ExplainTermListener />
+      <SpokenTranscriptHost />
+      <GlobalSearchHost />
+      <ReportProblemButton />
     </div>
   );
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <CruxyProvider>
-      <ShellInner>{children}</ShellInner>
-    </CruxyProvider>
+    <AccessProvider>
+      <CruxyProvider>
+        <ShellInner>{children}</ShellInner>
+      </CruxyProvider>
+    </AccessProvider>
   );
 }

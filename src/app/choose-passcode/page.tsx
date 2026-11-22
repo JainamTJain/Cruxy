@@ -84,7 +84,8 @@ export default function ChoosePasscodePage() {
         <section className="flex flex-1 flex-col justify-center bg-white px-10 py-12 sm:px-14">
           <h2 className="font-display text-3xl font-extrabold">Passcode saved</h2>
           <p className="mt-2 text-sm text-muted">
-            Change it any time in Settings. Forgot it? Ask Jainam.
+            Change it any time in Settings. Forgot it? Tap Forgot passcode on
+            sign in.
           </p>
           <Button
             className="mt-8 w-fit"

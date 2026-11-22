@@ -27,6 +27,15 @@ export default function SignInPage() {
   const [days, setDays] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [forgotStatus, setForgotStatus] = useState<
+    "none" | "pending" | "approved"
+  >("none");
+  const [forgotMsg, setForgotMsg] = useState<string | null>(null);
+  const [forgotBusy, setForgotBusy] = useState(false);
+  const [resetStep, setResetStep] = useState<"idle" | "next" | "confirm">(
+    "idle",
+  );
+  const [resetNext, setResetNext] = useState<string | null>(null);
 
   useEffect(() => {
     preloadCruxyPoses();
@@ -70,7 +79,7 @@ export default function SignInPage() {
     if (!res.ok) {
       setError(
         data.error ??
-          "That passcode did not work. Try again, or ask Jainam if you are locked out.",
+          "That passcode did not work. Try again, or tap Forgot passcode.",
       );
       return;
     }
@@ -174,30 +183,154 @@ export default function SignInPage() {
               onSelect={(id) => {
                 setSelectedId(id);
                 setError(null);
+                setForgotMsg(null);
+                setResetStep("idle");
+                setResetNext(null);
+                void fetch(
+                  `/api/auth/forgot-passcode?personId=${encodeURIComponent(id)}`,
+                )
+                  .then((r) => r.json())
+                  .then(
+                    (d: {
+                      status?: "none" | "pending" | "approved";
+                      message?: string;
+                    }) => {
+                      setForgotStatus(d.status ?? "none");
+                      if (d.status === "pending" || d.status === "approved") {
+                        setForgotMsg(d.message ?? null);
+                      }
+                    },
+                  )
+                  .catch(() => undefined);
               }}
             />
           </div>
 
           <div className="mt-8 border-t border-mist pt-6">
             <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[15px] font-semibold">Passcode</p>
+              <p className="text-[15px] font-semibold">
+                {forgotStatus === "approved" ? "New passcode" : "Passcode"}
+              </p>
               <p className="text-xs text-muted">
-                First time? Use the starter code Jainam gave you.
+                {forgotStatus === "approved"
+                  ? "Reset approved. Choose a new six-digit passcode."
+                  : "First time? Use the starter code Jainam gave you."}
               </p>
             </div>
-            <Keypad
-              onSubmit={submitCode}
-              disabled={!selectedId}
-              footer={
-                <>
-                  After that, your own passcode. Forgot your passcode? Ask
-                  Jainam.
-                  {error ? (
-                    <span className="mt-2 block text-cardinal">{error}</span>
-                  ) : null}
-                </>
-              }
-            />
+            {forgotStatus === "approved" ? (
+              <Keypad
+                key={`reset-${resetStep}`}
+                onSubmit={(code) => {
+                  void (async () => {
+                    if (!selectedId) return;
+                    if (resetStep === "idle" || resetStep === "next") {
+                      setResetNext(code);
+                      setResetStep("confirm");
+                      setError(null);
+                      return;
+                    }
+                    setForgotBusy(true);
+                    const res = await fetch("/api/auth/forgot-passcode", {
+                      method: "POST",
+                      headers: { "content-type": "application/json" },
+                      body: JSON.stringify({
+                        personId: selectedId,
+                        action: "complete",
+                        code: resetNext,
+                        confirm: code,
+                      }),
+                    });
+                    const j = (await res.json()) as {
+                      error?: string;
+                      message?: string;
+                    };
+                    setForgotBusy(false);
+                    if (!res.ok) {
+                      setError(j.error ?? "Could not save passcode.");
+                      setResetStep("next");
+                      setResetNext(null);
+                      return;
+                    }
+                    setForgotStatus("none");
+                    setForgotMsg(j.message ?? "Passcode saved. Sign in now.");
+                    setResetStep("idle");
+                    setResetNext(null);
+                    setError(null);
+                  })();
+                }}
+                disabled={!selectedId || forgotBusy}
+                footer={
+                  <>
+                    {resetStep === "confirm"
+                      ? "Type it again to confirm."
+                      : "Choose a passcode that is not the starter code."}
+                    {error ? (
+                      <span className="mt-2 block text-cardinal">{error}</span>
+                    ) : null}
+                    {forgotMsg && !error ? (
+                      <span className="mt-2 block text-muted">{forgotMsg}</span>
+                    ) : null}
+                  </>
+                }
+              />
+            ) : (
+              <Keypad
+                onSubmit={submitCode}
+                disabled={!selectedId}
+                footer={
+                  <>
+                    After that, your own passcode.
+                    <span className="mt-2 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={!selectedId || forgotBusy}
+                        className="font-semibold text-cardinal underline disabled:opacity-50"
+                        onClick={() => {
+                          if (!selectedId) return;
+                          void (async () => {
+                            setForgotBusy(true);
+                            setError(null);
+                            const res = await fetch(
+                              "/api/auth/forgot-passcode",
+                              {
+                                method: "POST",
+                                headers: { "content-type": "application/json" },
+                                body: JSON.stringify({
+                                  personId: selectedId,
+                                  action: "request",
+                                }),
+                              },
+                            );
+                            const j = (await res.json()) as {
+                              error?: string;
+                              message?: string;
+                            };
+                            setForgotBusy(false);
+                            if (!res.ok) {
+                              setError(j.error ?? "Could not request a reset.");
+                              return;
+                            }
+                            setForgotStatus("pending");
+                            setForgotMsg(
+                              j.message ??
+                                "Asked Dr. B and Jainam. Come back after they approve.",
+                            );
+                          })();
+                        }}
+                      >
+                        Forgot passcode
+                      </button>
+                    </span>
+                    {forgotMsg ? (
+                      <span className="mt-2 block text-muted">{forgotMsg}</span>
+                    ) : null}
+                    {error ? (
+                      <span className="mt-2 block text-cardinal">{error}</span>
+                    ) : null}
+                  </>
+                }
+              />
+            )}
           </div>
         </div>
       </section>

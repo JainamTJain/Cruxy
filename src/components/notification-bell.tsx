@@ -5,17 +5,20 @@ import Link from "next/link";
 
 type Note = {
   id: string;
+  kind?: string;
   title: string;
   body: string | null;
   href: string | null;
   read_at: string | null;
+  payload?: Record<string, unknown>;
 };
 
-/** In-app reminders (F-074). Reminders still go here while Cruxy sleeps. */
+/** In-app reminders (F-074). Full list lives on /notifications. */
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
   const [unread, setUnread] = useState(0);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   async function load() {
     const res = await fetch("/api/notifications?unread=0");
@@ -43,6 +46,29 @@ export function NotificationBell() {
     void load();
   }
 
+  async function markAll() {
+    await fetch("/api/notifications", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ markAll: true }),
+    });
+    void load();
+  }
+
+  async function approveReset(n: Note) {
+    const requestId =
+      typeof n.payload?.requestId === "string" ? n.payload.requestId : null;
+    if (!requestId) return;
+    setBusyId(n.id);
+    await fetch("/api/auth/forgot-passcode/approve", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ requestId, notificationId: n.id }),
+    });
+    setBusyId(null);
+    void load();
+  }
+
   return (
     <div className="relative">
       <button
@@ -58,9 +84,20 @@ export function NotificationBell() {
       </button>
       {open ? (
         <div className="absolute bottom-full left-0 z-50 mb-2 w-72 rounded-xl border border-mist bg-white p-3 text-ink shadow-lg">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
-            Reminders
-          </p>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+              Reminders
+            </p>
+            {unread > 0 ? (
+              <button
+                type="button"
+                className="text-[11px] text-muted underline"
+                onClick={() => void markAll()}
+              >
+                Mark all read
+              </button>
+            ) : null}
+          </div>
           {notes.length === 0 ? (
             <p className="text-sm text-muted">Nothing waiting.</p>
           ) : (
@@ -71,7 +108,17 @@ export function NotificationBell() {
                   {n.body ? (
                     <p className="mt-0.5 text-xs text-muted">{n.body}</p>
                   ) : null}
-                  <div className="mt-1 flex gap-2 text-xs">
+                  <div className="mt-1 flex flex-wrap gap-2 text-xs">
+                    {n.kind === "passcode_reset_request" && !n.read_at ? (
+                      <button
+                        type="button"
+                        disabled={busyId === n.id}
+                        className="font-semibold text-cardinal underline disabled:opacity-50"
+                        onClick={() => void approveReset(n)}
+                      >
+                        {busyId === n.id ? "Approving…" : "Approve reset"}
+                      </button>
+                    ) : null}
                     {n.href ? (
                       <Link href={n.href} className="text-cardinal underline">
                         Open
@@ -80,7 +127,7 @@ export function NotificationBell() {
                     {!n.read_at ? (
                       <button
                         type="button"
-                        className="underline text-muted"
+                        className="text-muted underline"
                         onClick={() => void markRead(n.id)}
                       >
                         Mark read
@@ -91,6 +138,13 @@ export function NotificationBell() {
               ))}
             </ul>
           )}
+          <Link
+            href="/notifications"
+            className="mt-3 block text-center text-xs font-semibold text-cardinal underline"
+            onClick={() => setOpen(false)}
+          >
+            See all notifications
+          </Link>
         </div>
       ) : null}
     </div>

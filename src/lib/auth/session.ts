@@ -75,6 +75,22 @@ export async function getSession(): Promise<SessionPayload | null> {
     // If the version check cannot run, keep the cookie so sample/dev still works.
   }
 
+  if (payload.deviceId) {
+    try {
+      const { isDeviceActive, touchAuthDevice } = await import(
+        "@/lib/auth/devices"
+      );
+      const active = await isDeviceActive(payload.personId, payload.deviceId);
+      if (!active) {
+        await clearSessionCookie();
+        return null;
+      }
+      await touchAuthDevice(payload.deviceId);
+    } catch {
+      // Device table may be missing before migration; keep the cookie.
+    }
+  }
+
   // Older cookies predate Wave 8; fill the learning-profile gate.
   if (typeof payload.mustSetLearningProfile !== "boolean") {
     if (payload.mustConsent) {

@@ -836,6 +836,17 @@ export function AdminConsole() {
 
           <section className="flex flex-col gap-3 rounded-[20px] bg-white p-5">
             <OnlyJainam />
+            <strong>Feedback from the team</strong>
+            <p className="m-0 text-xs text-muted">
+              <Link href="/admin/feedback" className="underline">
+                Open feedback queue
+              </Link>
+              . Report button on every page. Mark fixed to notify the person.
+            </p>
+          </section>
+
+          <section className="flex flex-col gap-3 rounded-[20px] bg-white p-5">
+            <OnlyJainam />
             <strong>Books and materials Cruxy asked for</strong>
             <p className="m-0 text-xs text-muted">
               <Link href="/admin/materials" className="underline">
