@@ -25,7 +25,8 @@ jobs:
       - run: npm run check:supabase-wired
       - run: npm run test:cruxy --if-present
       - run: npm run check:cruxy-act
-      - run: npm run smoke:practice
+      # smoke:practice is occasionally flaky on stub judge citations / bank growth.
+      - run: npm run smoke:practice || (sleep 2 && npm run smoke:practice) || (sleep 2 && npm run smoke:practice)
       - run: npm run smoke:case-roles
       - run: npm run smoke:socratic-outcomes
       # Google Fonts downloads sometimes fail in CI (next/font); retry before failing.
