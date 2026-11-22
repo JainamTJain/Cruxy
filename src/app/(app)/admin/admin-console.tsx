@@ -673,7 +673,7 @@ export function AdminConsole() {
 
       {tech ? <GraphSpinePanel /> : null}
 
-      <div className="grid gap-3 lg:grid-cols-3">
+      <div className="grid gap-3 lg:grid-cols-3 [&>*]:min-w-0">
         {data.teams.map((t) => (
           <section
             key={t.id}
@@ -782,7 +782,7 @@ export function AdminConsole() {
       ) : null}
 
       {tech ? (
-        <div className="grid gap-3 lg:grid-cols-3">
+        <div className="grid gap-3 lg:grid-cols-3 [&>*]:min-w-0">
           {data.spend ? (
             <section className="flex flex-col gap-3 rounded-[20px] bg-white p-5">
               <OnlyJainam />
@@ -946,7 +946,7 @@ export function AdminConsole() {
 
       {tech ? (
         <section
-          className="flex flex-col gap-3 rounded-[20px] bg-white p-5"
+          className="flex min-w-0 flex-col gap-3 rounded-[20px] bg-white p-5"
           aria-labelledby="pc"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1182,7 +1182,7 @@ export function AdminConsole() {
             </Link>{" "}
             for job, tier and run counts.
           </p>
-          <div className="grid gap-3 lg:grid-cols-3">
+          <div className="grid gap-3 lg:grid-cols-3 [&>*]:min-w-0">
             {(["small", "strong", "embed"] as ModelTier[]).map((tier) => (
               <div
                 key={tier}
@@ -1253,7 +1253,7 @@ export function AdminConsole() {
       ) : null}
 
       {tech ? (
-        <div className="grid gap-3 lg:grid-cols-3">
+        <div className="grid gap-3 lg:grid-cols-3 [&>*]:min-w-0">
           <section className="flex flex-col gap-3 rounded-[20px] bg-white p-5">
             <OnlyJainam />
             <strong>Delete a person&apos;s private data</strong>

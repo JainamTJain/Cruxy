@@ -71,7 +71,7 @@ export default function SocraticPage() {
 
       <div className="flex flex-wrap gap-2">
         <select
-          className="rounded-xl border border-ink/15 bg-white/80 px-3 py-2 text-sm"
+          className="w-full max-w-full rounded-xl border border-ink/15 bg-white/80 px-3 py-2 text-sm sm:w-auto sm:max-w-md"
           value={teamId}
           onChange={(e) => setTeamId(e.target.value)}
         >
@@ -82,7 +82,7 @@ export default function SocraticPage() {
           ))}
         </select>
         <select
-          className="rounded-xl border border-ink/15 bg-white/80 px-3 py-2 text-sm"
+          className="w-full max-w-full rounded-xl border border-ink/15 bg-white/80 px-3 py-2 text-sm sm:w-auto sm:max-w-md"
           value={caseId}
           onChange={(e) => setCaseId(e.target.value)}
         >
