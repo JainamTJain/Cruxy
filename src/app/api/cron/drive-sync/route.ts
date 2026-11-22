@@ -17,12 +17,21 @@ export async function GET(req: Request) {
 
   try {
     const result = await runDriveSync({ mode: "cron", personId: null });
+    // Keep the search index fresh with whatever changed this hour.
+    let searchIndexed = 0;
+    try {
+      const { rebuildSearchIndex } = await import("@/lib/search/global");
+      searchIndexed = (await rebuildSearchIndex()).upserted;
+    } catch {
+      // Search falls back to a live scan; a failed rebuild never fails the sync.
+    }
     const failed = Boolean(result.run.notes && result.run.files_seen === 0 && result.run.files_processed === 0 && /not visible|missing|could not/i.test(result.run.notes));
     return NextResponse.json({
       ok: !failed,
       run: result.run,
       message: result.message,
       newFileIds: result.newFileIds,
+      searchIndexed,
     }, { status: failed ? 502 : 200 });
   } catch (err) {
     if (err instanceof DriveAccessError) {
