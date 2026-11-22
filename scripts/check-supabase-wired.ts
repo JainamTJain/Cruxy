@@ -120,6 +120,63 @@ const WRITE_SURFACE_CONTRACTS: WriteSurfaceContract[] = [
       /24\s*\*\s*60\s*\*\s*60\s*\*\s*1000|24 hours/i,
     ],
   },
+  {
+    id: "forgot_passcode_service",
+    description:
+      "Forgot passcode service: request, approve, complete; never stores old plaintext",
+    files: ["src/lib/auth/forgot-passcode.ts"],
+    patterns: [
+      /requestForgotPasscode/,
+      /approveForgotPasscode/,
+      /completeForgotPasscode/,
+      /encrypted_copy:\s*null/,
+      /MAX_REQUESTS_PER_DAY/,
+    ],
+  },
+  {
+    id: "forgot_passcode_ui",
+    description: "Sign-in Forgot button and reminder Approve reset",
+    files: [
+      "src/app/sign-in/page.tsx",
+      "src/components/notification-bell.tsx",
+    ],
+    patterns: [/Forgot passcode|Approve reset|passcode_reset_request/],
+  },
+  {
+    id: "signed_in_devices_service",
+    description: "Device register and revoke-others helpers",
+    files: ["src/lib/auth/devices.ts"],
+    patterns: [/registerAuthDevice/, /revokeOtherDevices/, /isDeviceActive/],
+  },
+  {
+    id: "signed_in_devices_ui",
+    description: "Settings devices API and Signed-in devices panel",
+    files: [
+      "src/app/api/settings/devices/route.ts",
+      "src/app/(app)/settings/page.tsx",
+    ],
+    patterns: [/revoke_others|Signed-in devices/],
+  },
+  {
+    id: "coach_who_is_behind_service",
+    description: "Coach snapshot and nudge",
+    files: ["src/lib/coach/team-view.ts"],
+    patterns: [
+      /getCoachTeamSnapshot/,
+      /sendCoachNudge/,
+      /STALE_DAYS/,
+      /openBriefItems/,
+    ],
+  },
+  {
+    id: "coach_who_is_behind_ui",
+    description: "Coach team page nudge and Team Brief list",
+    files: [
+      "src/app/(app)/coach/[teamId]/page.tsx",
+      "src/app/api/coach/nudge/route.ts",
+    ],
+    patterns: [/Gentle nudge|sendCoachNudge|Open Team Brief/],
+  },
 ];
 
 function walk(dir: string, out: string[] = [], pred?: (name: string) => boolean): string[] {
@@ -377,7 +434,7 @@ ok(`UI → route: ${uiOk} call sites matched (${uniqueUi.size} unique)`);
 console.log("\n=== 3) Route → repository map ===");
 
 const REPO_IMPORT =
-  /from\s+["']@\/lib\/(?:db\/repository|team\/repository|team\/roles-board-repository|case-brain\/service|case-brain\/[^"']+|practice\/[^"']+|revision\/[^"']+|library\/[^"']+|graph\/[^"']+|cruxy\/[^"']+|auth\/[^"']+|admin\/[^"']+|email\/[^"']+|ops\/[^"']+|db\/supabase\/[^"']+)["']/;
+  /from\s+["']@\/lib\/(?:db\/repository|team\/repository|team\/roles-board-repository|case-brain\/service|case-brain\/[^"']+|practice\/[^"']+|revision\/[^"']+|library\/[^"']+|graph\/[^"']+|cruxy\/[^"']+|auth\/[^"']+|admin\/[^"']+|email\/[^"']+|ops\/[^"']+|coach\/[^"']+|learning\/[^"']+|product\/[^"']+|case-home\/[^"']+|home\/[^"']+|db\/supabase\/[^"']+)["']/;
 
 let routeRepoOk = 0;
 for (const route of routes) {

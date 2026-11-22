@@ -90,6 +90,8 @@ export interface SessionPayload {
   mustChoosePasscode: boolean;
   /** Must match people.session_version or the cookie is rejected. */
   sessionVersion: number;
+  /** Wave 9: signed-in device row; revoke signs this browser out. */
+  deviceId?: string;
 }
 
 export interface TeamMembership {

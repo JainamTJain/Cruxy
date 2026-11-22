@@ -35,6 +35,15 @@ export default function SettingsPage() {
   );
   const [currentCode, setCurrentCode] = useState<string | null>(null);
   const [nextCode, setNextCode] = useState<string | null>(null);
+  const [devices, setDevices] = useState<
+    {
+      id: string;
+      label: string;
+      lastSeenAt: string;
+      current: boolean;
+    }[]
+  >([]);
+  const [deviceMsg, setDeviceMsg] = useState<string | null>(null);
 
   useEffect(() => {
     void fetch("/api/auth/me")
@@ -83,7 +92,46 @@ export default function SettingsPage() {
         },
       )
       .catch(() => undefined);
+    void loadDevices();
   }, []);
+
+  async function loadDevices() {
+    const res = await fetch("/api/settings/devices");
+    if (!res.ok) return;
+    const d = (await res.json()) as {
+      devices?: {
+        id: string;
+        label: string;
+        lastSeenAt: string;
+        current: boolean;
+      }[];
+    };
+    setDevices(d.devices ?? []);
+  }
+
+  async function revokeOthers() {
+    setDeviceMsg(null);
+    const res = await fetch("/api/settings/devices", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "revoke_others" }),
+    });
+    const j = (await res.json()) as { error?: string; message?: string };
+    setDeviceMsg(j.message ?? j.error ?? null);
+    await loadDevices();
+  }
+
+  async function revokeOne(deviceId: string) {
+    setDeviceMsg(null);
+    const res = await fetch("/api/settings/devices", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "revoke_one", deviceId }),
+    });
+    const j = (await res.json()) as { error?: string; message?: string };
+    setDeviceMsg(j.message ?? j.error ?? null);
+    await loadDevices();
+  }
 
   async function saveReminders() {
     const res = await fetch("/api/settings/reminders", {
@@ -286,6 +334,59 @@ export default function SettingsPage() {
               }}
             />
           </div>
+        ) : null}
+      </div>
+
+      <div className="border-t border-ink/10 pt-4">
+        <h2 className="font-display text-lg font-semibold">Signed-in devices</h2>
+        <p className="mt-1 text-sm text-muted">
+          Browsers where you are signed in. Sign out others if you used a shared
+          computer.
+        </p>
+        {devices.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">
+            No device list yet. Sign out and back in after the update.
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {devices.map((d) => (
+              <li
+                key={d.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-ink/10 bg-white/70 px-3 py-2 text-sm"
+              >
+                <div>
+                  <p className="font-medium">
+                    {d.label}
+                    {d.current ? (
+                      <span className="ml-2 text-xs text-muted">This device</span>
+                    ) : null}
+                  </p>
+                  <p className="text-xs text-muted">
+                    Last seen {new Date(d.lastSeenAt).toLocaleString()}
+                  </p>
+                </div>
+                {!d.current ? (
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-cardinal underline"
+                    onClick={() => void revokeOne(d.id)}
+                  >
+                    Sign out
+                  </button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+        <Button
+          className="mt-3"
+          variant="outline"
+          onClick={() => void revokeOthers()}
+        >
+          Sign out of other devices
+        </Button>
+        {deviceMsg ? (
+          <p className="mt-2 text-sm text-muted">{deviceMsg}</p>
         ) : null}
       </div>
 
