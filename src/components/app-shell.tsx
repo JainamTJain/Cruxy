@@ -36,7 +36,6 @@ const SIDE_NAV: { href: string; label: string; match?: string }[] = [
   { href: "/today", label: "Today" },
   { href: "/home", label: "Program map" },
   { href: "/revision/roadmap", label: "My roadmap" },
-  { href: "/my-progress", label: "My progress" },
   { href: "/case-brain", label: "Cases" },
   { href: "/practice", label: "Practice" },
   { href: "/team/chat", label: "Team chat" },
@@ -79,6 +78,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const [me, setMe] = useState<Me | null>(null);
   const [teamLabel, setTeamLabel] = useState<string | null>(null);
   const [digestPrompt, setDigestPrompt] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { wake, awake } = useCruxy();
 
   async function refresh() {
@@ -209,9 +209,15 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             </>
           ) : null}
         </nav>
-        <div className="mt-auto flex flex-col gap-2.5">
+        <div className="relative mt-auto flex flex-col gap-2.5">
           <NotificationBell />
-          <div className="flex items-center gap-2.5 px-1.5 py-2">
+          <button
+            type="button"
+            className="flex items-center gap-2.5 rounded-xl px-1.5 py-2 text-left hover:bg-white/10"
+            aria-expanded={userMenuOpen}
+            aria-haspopup="menu"
+            onClick={() => setUserMenuOpen((o) => !o)}
+          >
             <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#C2410C] text-sm font-bold">
               {initial}
             </span>
@@ -228,34 +234,104 @@ function ShellInner({ children }: { children: React.ReactNode }) {
                 ) : null}
               </span>
             </span>
-          </div>
-          <div className="flex gap-2 px-1">
-            {isAdminRole ? (
+          </button>
+          {userMenuOpen ? (
+            <div
+              role="menu"
+              className="absolute bottom-[4.5rem] left-0 right-0 z-30 flex flex-col gap-0.5 rounded-xl border border-white/10 bg-[#1A1C22] p-1.5 shadow-lg"
+            >
+              <Link
+                role="menuitem"
+                href="/progress"
+                className="rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+                onClick={() => setUserMenuOpen(false)}
+              >
+                Progress
+              </Link>
+              <Link
+                role="menuitem"
+                href="/settings"
+                className="rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+                onClick={() => setUserMenuOpen(false)}
+              >
+                Settings
+              </Link>
+              {isAdminRole ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="rounded-lg px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    void toggleAdmin(!me?.session?.adminView);
+                  }}
+                >
+                  {me?.session?.adminView ? "Member view" : "Admin switch"}
+                </button>
+              ) : null}
               <button
                 type="button"
-                onClick={() => void toggleAdmin(!me?.session?.adminView)}
-                className="text-[11px] text-[#9AA0AA] underline"
+                role="menuitem"
+                className="rounded-lg px-3 py-2 text-left text-sm text-[#C9CCD3] hover:bg-white/10"
+                onClick={() => {
+                  setUserMenuOpen(false);
+                  void signOut();
+                }}
               >
-                {me?.session?.adminView ? "Member view" : "Admin switch"}
+                Sign out
               </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => void signOut()}
-              className="text-[11px] text-[#9AA0AA] underline"
-            >
-              Sign out
-            </button>
-          </div>
+            </div>
+          ) : null}
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-3 bg-ink px-4 pb-3 pt-4 sm:hidden">
+        <header className="relative flex items-center justify-between gap-3 bg-ink px-4 pb-3 pt-4 sm:hidden">
           <Link href="/home" className="inline-block py-0.5">
             <CruxWordmark className="text-2xl" />
           </Link>
-          <p className="text-xs text-white/70">{displayName}</p>
+          <button
+            type="button"
+            className="text-xs text-white/70 underline"
+            aria-expanded={userMenuOpen}
+            onClick={() => setUserMenuOpen((o) => !o)}
+          >
+            {displayName || "You"}
+          </button>
+          {userMenuOpen ? (
+            <div
+              role="menu"
+              className="absolute right-3 top-12 z-40 flex min-w-[10rem] flex-col gap-0.5 rounded-xl border border-white/10 bg-[#1A1C22] p-1.5 shadow-lg"
+            >
+              <Link
+                role="menuitem"
+                href="/progress"
+                className="rounded-lg px-3 py-2 text-sm text-white"
+                onClick={() => setUserMenuOpen(false)}
+              >
+                Progress
+              </Link>
+              <Link
+                role="menuitem"
+                href="/settings"
+                className="rounded-lg px-3 py-2 text-sm text-white"
+                onClick={() => setUserMenuOpen(false)}
+              >
+                Settings
+              </Link>
+              <button
+                type="button"
+                role="menuitem"
+                className="rounded-lg px-3 py-2 text-left text-sm text-[#C9CCD3]"
+                onClick={() => {
+                  setUserMenuOpen(false);
+                  void signOut();
+                }}
+              >
+                Sign out
+              </button>
+            </div>
+          ) : null}
         </header>
         <main className="min-w-0 flex-1 px-4 pb-24 pt-4 sm:px-10 sm:pb-10 sm:pt-8">
           {children}

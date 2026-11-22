@@ -15,13 +15,6 @@ import type {
 import { APPE_SCORE_ITEMS, type AppeItemKey } from "@/lib/practice/types";
 import { listPeopleFull } from "@/lib/db/repository";
 
-export type KudoNote = {
-  id: string;
-  from_name: string;
-  body: string;
-  created_at: string;
-};
-
 export type MyProgressView = {
   baselines: Partial<Record<AppeItemKey, number>>;
   series: ProgressItemSeries[];
@@ -35,57 +28,7 @@ export type MyProgressView = {
   } | null;
   reflections: RoundReflection[];
   goals: (PersonalGoal & { comments: PersonalGoalComment[] })[];
-  kudos: KudoNote[];
 };
-
-async function softListKudos(personId: string): Promise<KudoNote[]> {
-  try {
-    if (isSampleDataMode()) {
-      const store = await readStore();
-      const bag = store as unknown as {
-        kudos?: {
-          id: string;
-          to_person_id: string;
-          from_person_id: string;
-          body: string;
-          created_at: string;
-        }[];
-      };
-      const rows = (bag.kudos ?? []).filter((k) => k.to_person_id === personId);
-      if (!rows.length) return [];
-      const people = await listPeopleFull();
-      return rows
-        .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
-        .slice(0, 12)
-        .map((k) => ({
-          id: k.id,
-          from_name:
-            people.find((p) => p.id === k.from_person_id)?.name ?? "Teammate",
-          body: k.body,
-          created_at: k.created_at,
-        }));
-    }
-    const sb = getServiceSupabase();
-    // Soft-read E's table when present; ignore if missing.
-    const { data, error } = await sb
-      .from("kudos")
-      .select("id, from_person_id, body, created_at")
-      .eq("to_person_id", personId)
-      .order("created_at", { ascending: false })
-      .limit(12);
-    if (error) return [];
-    const people = await listPeopleFull();
-    return (data ?? []).map((k) => ({
-      id: String(k.id),
-      from_name:
-        people.find((p) => p.id === k.from_person_id)?.name ?? "Teammate",
-      body: String(k.body ?? ""),
-      created_at: String(k.created_at),
-    }));
-  } catch {
-    return [];
-  }
-}
 
 /**
  * Build personal APPE progress: baselines then per-round team means
@@ -281,8 +224,6 @@ export async function getMyProgressView(
     ...g,
     comments: comments.filter((c) => c.goal_id === g.id),
   }));
-  const kudos = await softListKudos(personId);
-
   return {
     baselines,
     series,
@@ -290,6 +231,5 @@ export async function getMyProgressView(
     movedMost,
     reflections,
     goals: goalsWithComments,
-    kudos,
   };
 }

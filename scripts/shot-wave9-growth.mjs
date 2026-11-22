@@ -14,19 +14,25 @@ const MEMBER = "159753";
 mkdirSync(OUT, { recursive: true });
 
 async function dismissCruxy(page) {
-  const skip = page.getByText("Skip", { exact: true });
-  if ((await skip.count()) > 0) {
-    await skip.first().click().catch(() => {});
-    await page.waitForTimeout(150);
-  }
-  const back = page.getByText("Back to the lamp");
-  if ((await back.count()) > 0) {
+  const back = page.getByRole("button", { name: /Back to the lamp/i });
+  if ((await back.count()) > 0 && (await back.first().isVisible())) {
     await back.first().click().catch(() => {});
-    await page.waitForTimeout(150);
+    await page.waitForTimeout(200);
+  }
+  const skip = page.getByRole("button", { name: /^Skip$/i });
+  if ((await skip.count()) > 0 && (await skip.first().isVisible())) {
+    await skip.first().click().catch(() => {});
+    await page.waitForTimeout(200);
+  }
+  // First-run checklist uses text links
+  const skipText = page.getByText("Skip", { exact: true });
+  if ((await skipText.count()) > 0) {
+    await skipText.first().click().catch(() => {});
+    await page.waitForTimeout(200);
   }
 }
 
-async function finishGates(ctx, page) {
+async function finishGates(ctx) {
   const j = { "content-type": "application/json" };
   const me = await (await ctx.request.get(`${BASE}/api/auth/me`)).json();
   if (me.session?.mustConsent || !me.person?.consent_version) {
@@ -35,7 +41,6 @@ async function finishGates(ctx, page) {
       headers: j,
     });
   }
-  // Learning profile
   await ctx.request.post(`${BASE}/api/learning-profile`, {
     data: {
       sliders: {
@@ -64,9 +69,15 @@ async function finishGates(ctx, page) {
     });
   }
   const existing = await (await ctx.request.get(`${BASE}/api/goals`)).json();
-  const openCount = (existing.goals ?? []).filter((g) => g.status === "open")
-    .length;
-  if (openCount === 0) {
+  const open = (existing.goals ?? []).filter((g) => g.status === "open");
+  // Keep a single open goal for the shot.
+  for (const g of open.slice(1)) {
+    await ctx.request.patch(`${BASE}/api/goals/${g.id}`, {
+      data: { status: "dropped" },
+      headers: j,
+    });
+  }
+  if (open.length === 0) {
     await ctx.request.post(`${BASE}/api/goals`, {
       data: {
         title: "Answer judges in under 20 seconds",
@@ -103,11 +114,10 @@ async function shoot(width, height, tag) {
     });
   }
   if (!sign.ok()) throw new Error(`sign-in failed ${sign.status()}`);
-  await finishGates(ctx, page);
+  await finishGates(ctx);
 
-  await page.goto(`${BASE}/my-progress`, { waitUntil: "networkidle" });
-  // Escape any leftover first-run gates.
-  for (let i = 0; i < 3; i++) {
+  await page.goto(`${BASE}/progress`, { waitUntil: "networkidle" });
+  for (let i = 0; i < 4; i++) {
     const url = page.url();
     if (url.includes("/consent")) {
       await page.getByRole("button", { name: /Not now: text only/i }).click();
@@ -116,20 +126,20 @@ async function shoot(width, height, tag) {
       await page.getByRole("button", { name: /Save and continue/i }).click();
       await page.waitForTimeout(800);
     } else if (url.includes("/choose-passcode")) {
-      break;
+      await page.goto(`${BASE}/progress`, { waitUntil: "networkidle" });
     } else break;
   }
-  if (page.url().includes("/choose-passcode")) {
-    // API should have cleared this; fallback navigate after cookie refresh.
-    await page.goto(`${BASE}/my-progress`, { waitUntil: "networkidle" });
-  }
-  await page.getByRole("heading", { name: "My progress" }).waitFor({
+  await page.getByRole("heading", { name: "Progress" }).waitFor({
     timeout: 20000,
   });
   await dismissCruxy(page);
-  await page.waitForTimeout(300);
+  await page
+    .getByText("Scoring card")
+    .waitFor({ state: "attached", timeout: 15000 });
+  await dismissCruxy(page);
+  await page.waitForTimeout(400);
   await page.screenshot({
-    path: join(OUT, `my-progress-${tag}.png`),
+    path: join(OUT, `progress-${tag}.png`),
     fullPage: true,
   });
 
@@ -137,8 +147,9 @@ async function shoot(width, height, tag) {
   await page.getByRole("heading", { name: "Privacy centre" }).waitFor({
     timeout: 15000,
   });
+  await page.getByText("What we store").waitFor({ timeout: 10000 });
   await dismissCruxy(page);
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(400);
   await page.screenshot({
     path: join(OUT, `privacy-${tag}.png`),
     fullPage: true,
@@ -149,7 +160,7 @@ async function shoot(width, height, tag) {
       tag,
       width,
       url: page.url(),
-      myProgress: join(OUT, `my-progress-${tag}.png`),
+      progress: join(OUT, `progress-${tag}.png`),
       privacy: join(OUT, `privacy-${tag}.png`),
       hasInventory: (await page.getByText("What we store").count()) > 0,
     }),
