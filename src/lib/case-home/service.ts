@@ -143,6 +143,7 @@ export async function getCaseHome(args: {
           kind: "highlight",
           body: h.body?.trim() || "Highlight",
           range: h.range,
+          person_id: h.person_id,
           person_name: names.get(h.person_id) ?? null,
           team_colour: null,
           passage_anchor:
@@ -157,6 +158,7 @@ export async function getCaseHome(args: {
           kind: "comment",
           body: c.body,
           range: c.range,
+          person_id: c.person_id,
           person_name: names.get(c.person_id) ?? null,
           team_colour: null,
           passage_anchor:
