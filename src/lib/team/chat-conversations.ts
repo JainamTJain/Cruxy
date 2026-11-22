@@ -445,15 +445,92 @@ export async function listConversationsForPerson(input: {
   };
 }
 
+/** Resolve a message's chat id without mutating it (for access gates). */
+export async function getMessageChatId(
+  messageId: string,
+): Promise<string | null> {
+  if (isSampleDataMode()) {
+    const store = await readStore();
+    return store.messages.find((m) => m.id === messageId)?.chat_id ?? null;
+  }
+  try {
+    const { getServiceSupabase } = await import("@/lib/db/supabase/client");
+    const { data } = await getServiceSupabase()
+      .from("messages")
+      .select("chat_id")
+      .eq("id", messageId)
+      .maybeSingle();
+    return (data?.chat_id as string | undefined) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** True when chatId is in the person's visible conversation list. */
+export async function personCanAccessChat(input: {
+  personId: string;
+  teamId: string | null;
+  isAdmin: boolean;
+  chatId: string;
+}): Promise<boolean> {
+  const payload = await listConversationsForPerson({
+    personId: input.personId,
+    teamId: input.teamId,
+    isAdmin: input.isAdmin,
+  });
+  return payload.conversations.some((c) => c.id === input.chatId);
+}
+
+/**
+ * People who may be @mentioned in this conversation.
+ * Leads-only: current leads (+ admins already have access via isAdmin lists).
+ * Other team chats: everyone on the team returned in the payload people list.
+ */
+export async function mentionablePersonIds(input: {
+  chatId: string;
+  teamId: string | null;
+  isAdmin: boolean;
+  actorId: string;
+}): Promise<Set<string>> {
+  // Use an admin-ish view only to discover the conversation kind; then
+  // compute who belongs. Prefer leads when kind is leads.
+  const viewer = await listConversationsForPerson({
+    personId: input.actorId,
+    teamId: input.teamId,
+    isAdmin: input.isAdmin,
+  });
+  const convo = viewer.conversations.find((c) => c.id === input.chatId);
+  if (!convo) return new Set();
+
+  if (convo.kind === "leads" && input.teamId) {
+    const roles = await listCaseRoles(input.teamId);
+    const ids = new Set<string>();
+    for (const r of roles) {
+      if (
+        r.team_id === input.teamId &&
+        (r.role === "lead_1" || r.role === "lead_2")
+      ) {
+        ids.add(r.person_id);
+      }
+    }
+    return ids;
+  }
+
+  return new Set(viewer.people.map((p) => p.id));
+}
+
 export async function notifyMentions(input: {
   message: ChatMessage;
   actorId: string;
   actorName: string;
   chatTitle: string;
+  /** When set, only these person ids may be notified (visibility gate). */
+  allowedPersonIds?: Set<string>;
 }): Promise<string[]> {
   const notified: string[] = [];
   for (const pid of input.message.mention_ids) {
     if (pid === input.actorId) continue;
+    if (input.allowedPersonIds && !input.allowedPersonIds.has(pid)) continue;
     try {
       await createNotification({
         personId: pid,
