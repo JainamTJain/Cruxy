@@ -3,20 +3,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCruxy } from "@/components/cruxy/cruxy-context";
 import { GeniePose } from "@/components/cruxy/mood/genie-pose";
-import { POSE_ASPECT, POSE_LABEL } from "@/components/cruxy/mood/poses";
+import {
+  POSE_ASPECT,
+  POSE_LABEL,
+  genieFigureWidth,
+} from "@/components/cruxy/mood/poses";
 import { useCruxyMood } from "@/components/cruxy/mood/use-cruxy-mood";
 import { CALL_QUESTION, HINT_FALLBACK } from "@/lib/cruxy/character";
 import { cn } from "@/lib/utils";
 
 const POS_KEY = "cruxy-float-pos";
-const FIGURE = 150;
-const FIGURE_PHONE = 96;
 const ASPECT = POSE_ASPECT;
 const TAB_BAR = 88;
 const DRAG_THRESHOLD = 6;
 
 function figureFor(w: number): number {
-  return w < 640 ? FIGURE_PHONE : FIGURE;
+  return genieFigureWidth(w);
 }
 
 type Pos = { x: number; y: number };
