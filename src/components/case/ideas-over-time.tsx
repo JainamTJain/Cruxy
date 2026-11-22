@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
 import type { CaseHomePayload, IdeaEvent } from "@/lib/case-home/types";
 import { cn } from "@/lib/utils";
@@ -43,25 +43,30 @@ export function IdeasOverTime({
 }: Props) {
   const [ideas, setIdeas] = useState<IdeaEvent[]>(initial?.ideas ?? []);
   const [loading, setLoading] = useState(!initial);
+  // Show the skeleton only on first load; later refreshes stay quiet.
+  const loadedOnce = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (initial) {
       setIdeas(initial.ideas);
+      loadedOnce.current = true;
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (!loadedOnce.current) setLoading(true);
     setError(null);
     const q = teamId ? `?teamId=${encodeURIComponent(teamId)}` : "";
     const res = await fetch(`/api/case-home/${caseId}${q}`);
     const json = (await res.json()) as CaseHomePayload & { error?: string };
     if (!res.ok) {
       setError(json.error ?? "Could not load ideas.");
+      loadedOnce.current = true;
       setLoading(false);
       return;
     }
     setIdeas(json.ideas);
+    loadedOnce.current = true;
     setLoading(false);
   }, [caseId, teamId, initial]);
 

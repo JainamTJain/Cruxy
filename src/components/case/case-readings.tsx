@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { AnnotatablePassages } from "@/components/case/annotatable-passages";
 import { LinkedText } from "@/components/frameworks/linked-text";
 import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
@@ -48,26 +48,31 @@ export function CaseReadings({
   const [data, setData] = useState<CaseHomePayload | null>(initial);
   const [openFull, setOpenFull] = useState<string | null>(focusFileId);
   const [loading, setLoading] = useState(!initial);
+  // Show the skeleton only on first load; later refreshes stay quiet.
+  const loadedOnce = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(
     async (force = false) => {
       if (initial && !force) {
         setData(initial);
+        loadedOnce.current = true;
         setLoading(false);
         return;
       }
-      setLoading(true);
+      if (!loadedOnce.current) setLoading(true);
       setError(null);
       const q = teamId ? `?teamId=${encodeURIComponent(teamId)}` : "";
       const res = await fetch(`/api/case-home/${caseId}${q}`);
       const json = (await res.json()) as CaseHomePayload & { error?: string };
       if (!res.ok) {
         setError(json.error ?? "Could not load readings.");
+        loadedOnce.current = true;
         setLoading(false);
         return;
       }
       setData(json);
+      loadedOnce.current = true;
       setLoading(false);
     },
     [caseId, teamId, initial],
@@ -164,7 +169,7 @@ export function CaseReadings({
                         : s.kind === "question"
                           ? "Question"
                           : s.kind === "speaker"
-                            ? s.speaker_name ?? "Speaker"
+                            ? (s.speaker_name ?? "Speaker")
                             : "Note"}
                     </span>
                     <p className="m-0 mt-0.5 text-ink">
