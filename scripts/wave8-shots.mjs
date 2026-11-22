@@ -75,6 +75,13 @@ for (const w of widths) {
     } else if (path.includes("chat")) {
       await page.getByRole("heading", { name: "Team chat" }).waitFor({ timeout: 30000 });
       await page.getByText("Whole team").first().waitFor({ timeout: 30000 });
+      // Wait until the thread has either messages or the empty state after load
+      await page
+        .locator("section")
+        .filter({ hasText: "Whole team" })
+        .last()
+        .waitFor({ timeout: 30000 });
+      await page.waitForTimeout(1500);
     }
     await page.waitForTimeout(500);
     const file = `${OUT}/${name}-${w}.png`;
