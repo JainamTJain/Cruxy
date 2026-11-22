@@ -1,6 +1,6 @@
 /**
  * DF-QuAD style gradual semantics (Rago / Baroni et al.).
- * Computed in code only — never ask a model for the number.
+ * Computed in code only. Never ask a model for the number.
  *
  * Aggregation σ(E) = 1 - ∏(1 - v(e))
  * Combination (DF-QuAD): if σ⁻ >= σ⁺ then b - b·(σ⁻ - σ⁺), else b + (1 - b)·(σ⁺ - σ⁻)
@@ -192,6 +192,7 @@ export function scoreClaimFromEdges(input: {
     attacks_answered: answered.length,
     attacks_open: open.length,
     open_from_rounds: roundIds,
+    open_from_round_dates: [],
     support_strength: dfQuadAggregate(supportStrengths),
     attack_strength: dfQuadAggregate(unansweredAttackStrengths),
   };
@@ -245,7 +246,7 @@ export function formatAttackSummary(row: ClaimRobustnessScore): string {
   if (row.attacks_answered === 0 && row.attacks_open === 0) {
     return "No attacks recorded yet.";
   }
-  const dated = joinDates(row.open_round_dates ?? []);
+  const dated = joinDates(row.open_from_round_dates ?? []);
   const n = row.open_from_rounds.length;
   const roundPart = !row.attacks_open
     ? ""

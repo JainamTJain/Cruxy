@@ -10,6 +10,7 @@ export type AdminArea =
   | "passcodes"
   | "spend"
   | "book_requests"
+  | "material_requests"
   | "calibration"
   | "models"
   | "activity_log"
@@ -31,6 +32,7 @@ const PERMISSIONS: Record<
   passcodes: { tech: "yes", coach: "no" },
   spend: { tech: "yes", coach: "no" },
   book_requests: { tech: "yes", coach: "no" },
+  material_requests: { tech: "yes", coach: "no" },
   calibration: { tech: "yes", coach: "no" },
   models: { tech: "yes", coach: "no" },
   activity_log: { tech: "yes", coach: "read" },
@@ -108,7 +110,7 @@ export const PERMISSION_TABLE = [
     drB: "No",
   },
   {
-    area: "Book requests / Drive sorting",
+    area: "Book and material requests / Drive sorting",
     jainam: "Yes",
     drB: "No",
   },

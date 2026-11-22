@@ -203,9 +203,32 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
     },
   });
 
+  // Wave 7: close material requests when a matching file lands in Drive.
+  let materialsFulfilled = 0;
+  try {
+    const { fulfillMaterialRequestsFromFiles } = await import(
+      "@/lib/db/supabase/material-requests-extra"
+    );
+    const { listLibraryFiles } = await import("@/lib/db/library-repository");
+    const allFiles = await listLibraryFiles();
+    const candidates = allFiles.filter(
+      (f) => newFileIds.includes(f.id) || filesProcessed > 0,
+    );
+    materialsFulfilled = await fulfillMaterialRequestsFromFiles(
+      candidates.map((f) => ({
+        id: f.id,
+        drive_id: f.drive_id,
+        name: f.name,
+        path: f.path,
+      })),
+    );
+  } catch {
+    /* migration 00040 may not be applied yet */
+  }
+
   const message = stub
     ? `Sync complete (stub). Seen ${filesSeen}, processed ${filesProcessed}, skipped unchanged ${filesSkipped}, AI calls ${aiCalls}. ${notes ?? ""}`.trim()
-    : `Sync complete. Seen ${filesSeen}, processed ${filesProcessed}, skipped unchanged ${filesSkipped}, AI calls ${aiCalls}.`;
+    : `Sync complete. Seen ${filesSeen}, processed ${filesProcessed}, skipped unchanged ${filesSkipped}, AI calls ${aiCalls}${materialsFulfilled ? `, material requests closed ${materialsFulfilled}` : ""}.`;
 
   return { run, message, newFileIds };
 }

@@ -97,7 +97,12 @@ export default function BookRequestsPage() {
           <p className="mt-1 text-sm text-muted">
             Jainam only. Upload the PDF (or paste the chapter). It lands in
             Crux uploads and is digested like any library file. Short quotes
-            only in the UI; the rest is paraphrased.
+            only in the UI; the rest is paraphrased. Paywalled papers and
+            books from research also open{" "}
+            <Link href="/admin/materials" className="underline">
+              material requests
+            </Link>
+            .
           </p>
         </div>
         <Button type="button" variant="outline" onClick={() => void runResearch()}>

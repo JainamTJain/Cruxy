@@ -236,7 +236,7 @@ export interface ClaimGraphScore {
   attacks_open: number;
   open_from_rounds: string[];
   /** Display dates for open attacks, like "Nov 21". */
-  open_round_dates?: string[];
+  open_from_round_dates: string[];
   support_strength: number;
   attack_strength: number;
 }

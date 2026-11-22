@@ -363,7 +363,7 @@ async function runDfQuadUnitTests(): Promise<number> {
 
   const dated = formatAttackSummary({
     ...oneAttack,
-    open_round_dates: ["Nov 21", "Nov 21", "Nov 18"],
+    open_from_round_dates: ["Nov 21", "Nov 21", "Nov 18"],
   });
   assert(dated.includes("from Nov 21 and Nov 18"), "summary shows round dates");
   assert(!dated.includes("round-abc"), "summary does not print the round id");

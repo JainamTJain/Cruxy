@@ -830,7 +830,16 @@ export function AdminConsole() {
 
           <section className="flex flex-col gap-3 rounded-[20px] bg-white p-5">
             <OnlyJainam />
-            <strong>Books Cruxy asked for</strong>
+            <strong>Books and materials Cruxy asked for</strong>
+            <p className="m-0 text-xs text-muted">
+              <Link href="/admin/materials" className="underline">
+                Material requests
+              </Link>
+              {", "}
+              <Link href="/admin/books" className="underline">
+                book uploads
+              </Link>
+            </p>
             {(data.books ?? []).length === 0 ? (
               <p className="text-sm text-muted">No book requests yet.</p>
             ) : (

@@ -12,11 +12,13 @@ type Props = {
   link?: string | null;
   verified?: boolean;
   needsCheck?: boolean;
+  citation?: string | null;
+  openAccess?: boolean | null;
   className?: string;
 };
 
 /**
- * F-102: finding card at most 40 words; full source one tap away.
+ * Finding card at most 40 words, with a proper citation line.
  */
 export function FindingCard({
   point,
@@ -25,6 +27,8 @@ export function FindingCard({
   link,
   verified,
   needsCheck,
+  citation,
+  openAccess,
   className,
 }: Props) {
   const words = countWords(point);
@@ -49,6 +53,11 @@ export function FindingCard({
             Needs check
           </span>
         ) : null}
+        {openAccess ? (
+          <span className="text-[11px] font-semibold text-[var(--crux-ink)]">
+            Open access
+          </span>
+        ) : null}
       </div>
       <p className="m-0 text-sm leading-snug text-[var(--crux-ink)]">{point}</p>
       {words > 40 ? (
@@ -63,6 +72,11 @@ export function FindingCard({
         <blockquote className="m-0 border-l-2 border-[var(--crux-line)] pl-3 text-xs italic text-[var(--crux-ink)]">
           “{displayQuote}”
         </blockquote>
+      ) : null}
+      {citation ? (
+        <p className="m-0 text-[11px] leading-snug text-[var(--crux-muted)]">
+          {citation}
+        </p>
       ) : null}
       {link ? (
         <a

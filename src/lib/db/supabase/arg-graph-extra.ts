@@ -237,6 +237,7 @@ export async function upsertClaimRobustnessScores(
     attacks_answered: r.attacks_answered,
     attacks_open: r.attacks_open,
     open_from_rounds: r.open_from_rounds,
+    open_from_round_dates: r.open_from_round_dates ?? [],
     support_strength: r.support_strength,
     attack_strength: r.attack_strength,
     updated_at: nowIso(),
@@ -261,5 +262,6 @@ export async function listClaimRobustnessScoresForCase(
   return ((data as ClaimRobustnessScore[]) ?? []).map((r) => ({
     ...r,
     open_from_rounds: r.open_from_rounds ?? [],
+    open_from_round_dates: r.open_from_round_dates ?? [],
   }));
 }

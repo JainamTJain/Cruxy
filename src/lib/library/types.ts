@@ -89,6 +89,14 @@ export interface ResearchFinding {
   verified: boolean;
   needs_check: boolean;
   source_ids: string[];
+  /** Bibliographic fields (Wave 7). */
+  title?: string | null;
+  authors?: string[] | null;
+  year?: number | null;
+  doi?: string | null;
+  licence?: string | null;
+  open_access?: boolean | null;
+  citation?: string | null;
 }
 
 export interface ResearchRun {

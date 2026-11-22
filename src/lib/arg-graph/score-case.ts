@@ -68,7 +68,7 @@ export async function scoreClaimsForTeamCase(input: {
   ]);
   const scores = scored.map((s) => ({
     ...s,
-    open_round_dates: s.open_from_rounds
+    open_from_round_dates: s.open_from_rounds
       .map((id) => labels[id])
       .filter((d): d is string => Boolean(d)),
   }));

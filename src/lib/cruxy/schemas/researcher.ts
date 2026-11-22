@@ -17,15 +17,33 @@ export const researchFindingSchema = z.object({
   point: z.string().max(280),
   why_it_matters: z.string(),
   claim_ref: z.string(),
-  /** Short quote only (F-107). */
+  /** Short quote only (F-107). Store longer passages only for open licence. */
   quote: z.string().max(280),
   link: z.string(),
   verified: z.boolean(),
   needs_check: z.boolean(),
   source_ids: z.array(z.string()),
   citation_ids: z.array(z.string()).default([]),
-  /** Optional even-handed lean note (F-024). */
   lean_flag: z.string().optional().nullable(),
+  title: z.string().optional().nullable(),
+  authors: z.array(z.string()).optional().nullable(),
+  year: z.number().int().optional().nullable(),
+  doi: z.string().optional().nullable(),
+  licence: z.string().optional().nullable(),
+  open_access: z.boolean().optional().nullable(),
+  citation: z.string().optional().nullable(),
+});
+
+export const materialRequestSchema = z.object({
+  title: z.string(),
+  citation: z.string(),
+  why_it_matters: z.string(),
+  claim_ref: z.string().optional().nullable(),
+  where_to_look: z.string().optional().nullable(),
+  authors: z.string().optional().nullable(),
+  year: z.number().int().optional().nullable(),
+  doi: z.string().optional().nullable(),
+  url: z.string().optional().nullable(),
 });
 
 export const researcherSearchSchema = z.object({
@@ -39,6 +57,7 @@ export const researcherSearchSchema = z.object({
     })
     .optional()
     .nullable(),
+  material_requests: z.array(materialRequestSchema).optional().default([]),
   claims: z.array(citedClaimSchema).default([]),
 });
 
