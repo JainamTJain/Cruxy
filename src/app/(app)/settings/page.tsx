@@ -206,7 +206,11 @@ export default function SettingsPage() {
           <Link href="/practice/calibration" className="underline">
             Your score prediction trend
           </Link>{" "}
-          stays private to you.
+          stays private to you.{" "}
+          <Link href="/settings/privacy" className="underline">
+            Privacy centre
+          </Link>
+          : what we store, download, delete.
         </p>
       </div>
       <label className="block text-sm">

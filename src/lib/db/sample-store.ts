@@ -266,6 +266,18 @@ export interface SampleStore {
   arg_edges?: import("@/lib/graph/types").ArgEdge[];
   /** Wave 8 D: personal learning profiles. */
   learning_profiles?: import("@/lib/learning/types").LearningProfile[];
+  /** Wave 9 D: round reflections and personal goals. */
+  round_reflections?: import("@/lib/learning/growth-types").RoundReflection[];
+  personal_goals?: import("@/lib/learning/growth-types").PersonalGoal[];
+  personal_goal_comments?: import("@/lib/learning/growth-types").PersonalGoalComment[];
+  /** Wave 9 E (soft-read when present): peer kudos. */
+  kudos?: {
+    id: string;
+    to_person_id: string;
+    from_person_id: string;
+    body: string;
+    created_at: string;
+  }[];
 }
 
 function emptyCaseBrainFields(): Pick<
@@ -806,6 +818,10 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     case_role_preferences: raw.case_role_preferences ?? [],
     arg_edges: raw.arg_edges ?? [],
     learning_profiles: raw.learning_profiles ?? [],
+    round_reflections: raw.round_reflections ?? [],
+    personal_goals: raw.personal_goals ?? [],
+    personal_goal_comments: raw.personal_goal_comments ?? [],
+    kudos: raw.kudos ?? [],
   };
 }
 

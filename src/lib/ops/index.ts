@@ -19,6 +19,10 @@ export {
   voiceSampleObjectPath,
 } from "@/lib/ops/voice-samples";
 export { adminDeletePersonPrivateData } from "@/lib/ops/privacy-delete";
+export {
+  buildPersonalDataExport,
+  getPrivacyInventory,
+} from "@/lib/ops/personal-export";
 export { runSeasonEndExport } from "@/lib/ops/season-export";
 export { runSupabaseKeepalive } from "@/lib/ops/keepalive";
 export {

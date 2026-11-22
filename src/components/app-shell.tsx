@@ -36,6 +36,7 @@ const SIDE_NAV: { href: string; label: string; match?: string }[] = [
   { href: "/today", label: "Today" },
   { href: "/home", label: "Program map" },
   { href: "/revision/roadmap", label: "My roadmap" },
+  { href: "/my-progress", label: "My progress" },
   { href: "/case-brain", label: "Cases" },
   { href: "/practice", label: "Practice" },
   { href: "/team/chat", label: "Team chat" },

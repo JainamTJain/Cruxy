@@ -52,7 +52,13 @@ export function privacyClassFor(field: string): PrivacyClass {
     f.includes("outcome") ||
     f.includes("redo") ||
     f.includes("learning_profile") ||
-    f.includes("learning profile")
+    f.includes("learning profile") ||
+    f.includes("reflection") ||
+    f.includes("personal_goal") ||
+    f.includes("goal_comment") ||
+    f.includes("personal_export") ||
+    f.includes("my_progress") ||
+    f.includes("my progress")
   ) {
     return "personal_learning";
   }
