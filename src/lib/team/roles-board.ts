@@ -289,3 +289,22 @@ export function plainRoleChange(input: {
   }
   return `${input.actorName} set ${input.personName} as ${CASE_ROLE_LABELS[input.role]} on Case ${input.caseNumber} (${input.caseTitle}).`;
 }
+
+/**
+ * Who should get a role-change notification.
+ * Previous holder and new assignee (never the actor about their own edit).
+ * Matches Workstream I helper roleChangeNotifyPersonIds (#61).
+ */
+export function roleChangeNotifyPersonIds(opts: {
+  actorId: string;
+  previousPersonId: string | null | undefined;
+  nextPersonId: string | null | undefined;
+}): string[] {
+  const ids = new Set<string>();
+  const prev = opts.previousPersonId ?? null;
+  const next = opts.nextPersonId ?? null;
+  if (prev && prev !== next) ids.add(prev);
+  if (next && next !== prev) ids.add(next);
+  ids.delete(opts.actorId);
+  return [...ids];
+}

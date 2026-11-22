@@ -12,6 +12,7 @@ import {
   planRoundRobin,
   planByPreference,
   nextRoleInCycle,
+  roleChangeNotifyPersonIds,
 } from "../src/lib/team/roles-board";
 import {
   getRolesBoard,
@@ -35,6 +36,24 @@ async function main() {
 
   assert(nextRoleInCycle("none") === "lead_1", "cycle none to lead_1");
   assert(nextRoleInCycle("supporter") === "none", "cycle wraps");
+
+  const notifyBoth = roleChangeNotifyPersonIds({
+    actorId: "actor",
+    previousPersonId: "prev",
+    nextPersonId: "next",
+  });
+  assert(
+    notifyBoth.includes("prev") && notifyBoth.includes("next"),
+    "notify previous and next holders",
+  );
+  assert(
+    !roleChangeNotifyPersonIds({
+      actorId: "prev",
+      previousPersonId: "prev",
+      nextPersonId: "next",
+    }).includes("prev"),
+    "skip actor in notify list",
+  );
 
   const board0 = await getRolesBoard({ teamId: team3.id, canEdit: true });
   assert(board0.people.length === people.length, "board people");

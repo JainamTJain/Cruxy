@@ -25,6 +25,7 @@ import {
   planCopyCase,
   planRoundRobin,
   planSamePairs,
+  roleChangeNotifyPersonIds,
   roleForPersonOnCase,
   type CaseRolePreference,
   type RoleChip,
@@ -355,6 +356,15 @@ export async function setBoardCell(input: {
       actorId: input.actorId,
     });
   } else {
+    const before = await listCaseRoles(input.teamId);
+    const previousHolder =
+      before.find(
+        (r) =>
+          r.team_id === input.teamId &&
+          r.case_id === input.caseId &&
+          r.role === input.role,
+      )?.person_id ?? null;
+
     const result = await setCaseRole({
       teamId: input.teamId,
       caseId: input.caseId,
@@ -362,13 +372,31 @@ export async function setBoardCell(input: {
       personId: input.personId,
       actorId: input.actorId,
     });
-    await notifyRoleChange({
-      personId: input.personId,
+
+    const notifyIds = roleChangeNotifyPersonIds({
       actorId: input.actorId,
-      title: `You are ${CASE_ROLE_LABELS[input.role]}`,
-      body: result.chatMessage.body,
-      caseId: input.caseId,
+      previousPersonId: previousHolder,
+      nextPersonId: input.personId,
     });
+    for (const pid of notifyIds) {
+      if (pid === input.personId) {
+        await notifyRoleChange({
+          personId: pid,
+          actorId: input.actorId,
+          title: `You are ${CASE_ROLE_LABELS[input.role]}`,
+          body: result.chatMessage.body,
+          caseId: input.caseId,
+        });
+      } else {
+        await notifyRoleChange({
+          personId: pid,
+          actorId: input.actorId,
+          title: "Role reassigned",
+          body: `Your ${CASE_ROLE_LABELS[input.role]} role on this case was given to someone else.`,
+          caseId: input.caseId,
+        });
+      }
+    }
   }
   return getRolesBoard({ teamId: input.teamId, canEdit: true });
 }
@@ -395,6 +423,15 @@ export async function applyRolePlan(input: {
     }
   }
   for (const a of input.assignments) {
+    const before = await listCaseRoles(input.teamId);
+    const previousHolder =
+      before.find(
+        (r) =>
+          r.team_id === input.teamId &&
+          r.case_id === a.caseId &&
+          r.role === a.role,
+      )?.person_id ?? null;
+
     await setCaseRole({
       teamId: input.teamId,
       caseId: a.caseId,
@@ -402,13 +439,31 @@ export async function applyRolePlan(input: {
       personId: a.personId,
       actorId: input.actorId,
     });
-    await notifyRoleChange({
-      personId: a.personId,
+
+    const notifyIds = roleChangeNotifyPersonIds({
       actorId: input.actorId,
-      title: `You are ${CASE_ROLE_LABELS[a.role]}`,
-      body: `You were set as ${CASE_ROLE_LABELS[a.role]} on a case from the roles board.`,
-      caseId: a.caseId,
+      previousPersonId: previousHolder,
+      nextPersonId: a.personId,
     });
+    for (const pid of notifyIds) {
+      if (pid === a.personId) {
+        await notifyRoleChange({
+          personId: pid,
+          actorId: input.actorId,
+          title: `You are ${CASE_ROLE_LABELS[a.role]}`,
+          body: `You were set as ${CASE_ROLE_LABELS[a.role]} on a case from the roles board.`,
+          caseId: a.caseId,
+        });
+      } else {
+        await notifyRoleChange({
+          personId: pid,
+          actorId: input.actorId,
+          title: "Role reassigned",
+          body: `Your ${CASE_ROLE_LABELS[a.role]} role on this case was given to someone else.`,
+          caseId: a.caseId,
+        });
+      }
+    }
   }
   await logActivity({
     person_id: input.actorId,
