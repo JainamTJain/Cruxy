@@ -666,6 +666,7 @@ export async function buildSeedStore(): Promise<SampleStore> {
     glossary: [],
     speaker_confirms: [],
     ...emptyAdminFields(),
+    arg_edges: [],
     case_stakeholders: content.stakeholders,
     scoring_card_items: content.scoring_card_items,
     program_totals: {

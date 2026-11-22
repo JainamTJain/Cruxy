@@ -814,7 +814,7 @@ export function CaseBrainClient({
                     Likely opposing positions
                   </h3>
                   <p className="mt-1 text-sm text-muted">
-                    What other universities are most likely to bring — commenter
+                    What other universities are most likely to bring. Commenter
                     prep.
                   </p>
                   <div className="mt-3 space-y-3">

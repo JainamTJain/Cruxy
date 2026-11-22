@@ -21,7 +21,7 @@ import {
   dfQuadScore,
   formatAttackSummary,
   isAttackAnswered,
-  recursiveNodeStrength,
+  practiceRoundDateLabel,
   scoreClaimFromEdges,
 } from "../src/lib/arg-graph/df-quad";
 import type { ArgEdge } from "../src/lib/arg-graph/types";
@@ -116,7 +116,6 @@ async function runDfQuadUnitTests(): Promise<number> {
     teamId: "t1",
     caseId: "case1",
     edges: [attack],
-    roundDateLabels: { "round-abc": "21 Nov" },
   });
   assert(openScore.attacks_open === 1, "one open attack");
   assert(openScore.attacks_answered === 0, "zero answered");
@@ -125,8 +124,8 @@ async function runDfQuadUnitTests(): Promise<number> {
     "summary mentions open",
   );
   assert(
-    formatAttackSummary(openScore).includes("21 Nov"),
-    "summary uses round date",
+    formatAttackSummary(openScore).includes("round"),
+    "summary mentions round",
   );
   passed += 1;
 
@@ -141,56 +140,236 @@ async function runDfQuadUnitTests(): Promise<number> {
   assert(answeredScore.score > openScore.score, "answering raises score");
   passed += 1;
 
-  // Recursive: a support that is itself attacked counts less.
-  const support: ArgEdge = {
-    id: "s1",
-    edge_key: "support|sup1|supports|claim|c2||",
-    from_kind: "support",
-    from_id: "sup1",
-    to_kind: "claim",
-    to_id: "c2",
-    type: "supports",
-    weight: 1,
-    source_kind: "claim_map",
-    source_id: "sup1",
-    round_id: null,
-    line_id: null,
-    team_id: "t1",
-    case_id: "case1",
-    created_by: null,
-    created_at: "2026-01-01T00:00:00.000Z",
-  };
-  const attackOnSupport: ArgEdge = {
-    ...support,
-    id: "as1",
-    edge_key: "question|q2|attacks|support|sup1||",
-    from_kind: "question",
-    from_id: "q2",
-    to_kind: "support",
-    to_id: "sup1",
-    type: "attacks",
-    weight: 0.9,
-  };
-  const clean = scoreClaimFromEdges({
-    claimId: "c2",
+  function leafEdge(
+    partial: Pick<ArgEdge, "id" | "from_kind" | "from_id" | "to_kind" | "to_id" | "type"> &
+      Partial<ArgEdge>,
+  ): ArgEdge {
+    return {
+      edge_key: partial.id,
+      weight: 1,
+      source_kind: null,
+      source_id: null,
+      round_id: null,
+      line_id: null,
+      team_id: "t1",
+      case_id: "case1",
+      created_by: null,
+      created_at: "2026-01-01T00:00:00.000Z",
+      ...partial,
+    };
+  }
+
+  const oneSupport = scoreClaimFromEdges({
+    claimId: "c1",
     teamId: "t1",
     caseId: "case1",
-    edges: [support],
+    edges: [
+      leafEdge({
+        id: "sup-1",
+        from_kind: "support",
+        from_id: "s1",
+        to_kind: "claim",
+        to_id: "c1",
+        type: "supports",
+      }),
+    ],
   });
-  const weakened = scoreClaimFromEdges({
-    claimId: "c2",
+  assert(oneSupport.score_pct === 75, "one leaf support is 75");
+  passed += 1;
+
+  const twoSupports = scoreClaimFromEdges({
+    claimId: "c1",
     teamId: "t1",
     caseId: "case1",
-    edges: [support, attackOnSupport],
+    edges: [
+      leafEdge({
+        id: "sup-1",
+        from_kind: "support",
+        from_id: "s1",
+        to_kind: "claim",
+        to_id: "c1",
+        type: "supports",
+      }),
+      leafEdge({
+        id: "sup-2",
+        from_kind: "support",
+        from_id: "s2",
+        to_kind: "claim",
+        to_id: "c1",
+        type: "supports",
+      }),
+    ],
+  });
+  assert(twoSupports.score_pct === 88, "two leaf supports are 88");
+  passed += 1;
+
+  const oneAttack = scoreClaimFromEdges({
+    claimId: "c1",
+    teamId: "t1",
+    caseId: "case1",
+    edges: [
+      leafEdge({
+        id: "atk-1",
+        from_kind: "question",
+        from_id: "q9",
+        to_kind: "claim",
+        to_id: "c1",
+        type: "attacks",
+        round_id: "round-abc",
+      }),
+    ],
+  });
+  assert(oneAttack.score_pct === 25, "one open attack is 25");
+  passed += 1;
+
+  const both = scoreClaimFromEdges({
+    claimId: "c1",
+    teamId: "t1",
+    caseId: "case1",
+    edges: [
+      leafEdge({
+        id: "sup-1",
+        from_kind: "support",
+        from_id: "s1",
+        to_kind: "claim",
+        to_id: "c1",
+        type: "supports",
+      }),
+      leafEdge({
+        id: "atk-1",
+        from_kind: "question",
+        from_id: "q9",
+        to_kind: "claim",
+        to_id: "c1",
+        type: "attacks",
+      }),
+    ],
+  });
+  assert(both.score_pct === 50, "one support plus one attack is 50");
+  passed += 1;
+
+  const attackedSupport = scoreClaimFromEdges({
+    claimId: "c1",
+    teamId: "t1",
+    caseId: "case1",
+    edges: [
+      leafEdge({
+        id: "sup-1",
+        from_kind: "support",
+        from_id: "s1",
+        to_kind: "claim",
+        to_id: "c1",
+        type: "supports",
+      }),
+      leafEdge({
+        id: "atk-s",
+        from_kind: "question",
+        from_id: "q-on-s",
+        to_kind: "support",
+        to_id: "s1",
+        type: "attacks",
+      }),
+    ],
   });
   assert(
-    weakened.score < clean.score,
-    "attacked support lowers claim score",
+    attackedSupport.score < oneSupport.score,
+    "a support that is itself attacked counts for less",
   );
   assert(
-    recursiveNodeStrength("support", "sup1", [support, attackOnSupport]) <
-      recursiveNodeStrength("support", "sup1", [support]),
-    "recursive strength drops when node is attacked",
+    Math.abs(attackedSupport.score - 0.625) < 1e-9,
+    "attacked support scores 0.625",
+  );
+  passed += 1;
+
+  const answeredOnSupport = scoreClaimFromEdges({
+    claimId: "c1",
+    teamId: "t1",
+    caseId: "case1",
+    edges: [
+      leafEdge({
+        id: "sup-1",
+        from_kind: "support",
+        from_id: "s1",
+        to_kind: "claim",
+        to_id: "c1",
+        type: "supports",
+      }),
+      leafEdge({
+        id: "atk-s",
+        from_kind: "question",
+        from_id: "q-on-s",
+        to_kind: "support",
+        to_id: "s1",
+        type: "attacks",
+      }),
+      leafEdge({
+        id: "reb-s",
+        from_kind: "counterclaim",
+        from_id: "cc-s",
+        to_kind: "question",
+        to_id: "q-on-s",
+        type: "rebuts",
+      }),
+    ],
+  });
+  assert(
+    Math.abs(answeredOnSupport.score - oneSupport.score) < 1e-9,
+    "answering the attack on a support restores the leaf score",
+  );
+  passed += 1;
+
+  const cycle = scoreClaimFromEdges({
+    claimId: "c1",
+    teamId: "t1",
+    caseId: "case1",
+    edges: [
+      leafEdge({
+        id: "sup-1",
+        from_kind: "support",
+        from_id: "s1",
+        to_kind: "claim",
+        to_id: "c1",
+        type: "supports",
+      }),
+      leafEdge({
+        id: "atk-cycle",
+        from_kind: "claim",
+        from_id: "c1",
+        to_kind: "support",
+        to_id: "s1",
+        type: "attacks",
+      }),
+    ],
+  });
+  assert(
+    cycle.score >= 0 &&
+      cycle.score <= 1 &&
+      Math.abs(cycle.score - 0.625) < 1e-9,
+    "a cycle back to the claim counts as the leaf base (0.625)",
+  );
+  passed += 1;
+
+  assert(
+    practiceRoundDateLabel({ sessionDate: "2026-11-21" }) === "Nov 21",
+    "session date formats as Nov 21",
+  );
+  passed += 1;
+  assert(
+    practiceRoundDateLabel({ startedAt: "2026-11-22T03:30:00.000Z" }) ===
+      "Nov 21",
+    "late UTC instant keeps the California calendar day",
+  );
+  passed += 1;
+
+  const dated = formatAttackSummary({
+    ...oneAttack,
+    open_from_round_dates: ["Nov 21", "Nov 21", "Nov 18"],
+  });
+  assert(dated.includes("from Nov 21 and Nov 18"), "summary shows round dates");
+  assert(!dated.includes("round-abc"), "summary does not print the round id");
+  assert(
+    !formatAttackSummary(oneAttack).includes("round-abc"),
+    "missing dates still hide the round id",
   );
   passed += 1;
 

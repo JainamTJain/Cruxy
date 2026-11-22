@@ -35,9 +35,7 @@ const FIGURE = 150;
 const FIGURE_PHONE = 96;
 const ASPECT = 2;
 const TAB_BAR = 88;
-/** Lamp sits bottom-right; keep the figure clear so the lamp stays tappable. */
-const LAMP_CLEAR_X = 140;
-const LAMP_CLEAR_Y = 160;
+const DRAG_THRESHOLD = 6;
 
 function figureFor(w: number): number {
   return w < 640 ? FIGURE_PHONE : FIGURE;
@@ -56,7 +54,11 @@ function loadPos(): Pos | null {
 }
 
 function savePos(pos: Pos) {
-  localStorage.setItem(POS_KEY, JSON.stringify(pos));
+  try {
+    localStorage.setItem(POS_KEY, JSON.stringify(pos));
+  } catch {
+    // ignore
+  }
   void fetch("/api/prefs/cruxy", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -71,8 +73,8 @@ function savePos(pos: Pos) {
 function snapToEdge(x: number, y: number, w: number, h: number): Pos {
   const size = figureFor(w);
   const midX = w / 2;
-  const bottom = w < 640 ? TAB_BAR + LAMP_CLEAR_Y : LAMP_CLEAR_Y;
-  const nx = x < midX ? 12 : Math.max(12, w - size - LAMP_CLEAR_X);
+  const bottom = w < 640 ? TAB_BAR + 12 : 24;
+  const nx = x < midX ? 12 : Math.max(12, w - size - 12);
   return {
     x: nx,
     y: Math.min(Math.max(12, y), h - size * ASPECT - bottom),
@@ -84,18 +86,26 @@ function clampToViewport(p: Pos, w: number, h: number): Pos {
   const bottom = w < 640 ? TAB_BAR + 12 : 24;
   const maxY = h - size * ASPECT - bottom;
   const maxX = w - size - 8;
-  let x = Math.min(Math.max(8, p.x), maxX);
-  let y = Math.min(Math.max(8, p.y), maxY);
-  // If the figure sits over the lamp corner, nudge left (and up if needed)
-  const lampLeft = w - LAMP_CLEAR_X;
-  const lampTop = h - (w < 640 ? TAB_BAR : 0) - LAMP_CLEAR_Y;
-  if (x + size > lampLeft && y + size * ASPECT > lampTop) {
-    x = Math.max(8, lampLeft - size - 8);
-    if (x + size > lampLeft) {
-      y = Math.max(8, lampTop - size * ASPECT - 8);
-    }
-  }
-  return { x, y };
+  return {
+    x: Math.min(Math.max(8, p.x), maxX),
+    y: Math.min(Math.max(8, p.y), maxY),
+  };
+}
+
+/** Place the Genie so it rises out of the current lamp position. */
+function posFromLamp(w: number, h: number): Pos | null {
+  const lamp = document.getElementById("cruxy-lamp");
+  if (!lamp) return null;
+  const r = lamp.getBoundingClientRect();
+  const size = figureFor(w);
+  return clampToViewport(
+    {
+      x: r.left + r.width / 2 - size / 2,
+      y: r.top - size * ASPECT * 0.55,
+    },
+    w,
+    h,
+  );
 }
 
 export function FloatingCruxy() {
@@ -124,16 +134,9 @@ export function FloatingCruxy() {
   useEffect(() => {
     const w = window.innerWidth;
     const h = window.innerHeight;
+    const fromLamp = posFromLamp(w, h);
     const saved = loadPos();
-    const size = figureFor(w);
-    // Default: above and left of the lamp so the lamp stays open for taps.
-    const start = saved ?? {
-      x: Math.max(8, w - size - LAMP_CLEAR_X - 8),
-      y: Math.max(
-        8,
-        h - size * ASPECT - (w < 640 ? TAB_BAR + LAMP_CLEAR_Y : LAMP_CLEAR_Y),
-      ),
-    };
+    const start = fromLamp ?? saved ?? { x: 24, y: 120 };
     setPos(clampToViewport(start, w, h));
     const onResize = () => {
       setVw(window.innerWidth);
@@ -143,7 +146,11 @@ export function FloatingCruxy() {
       const detail = (e as CustomEvent<Pos>).detail;
       if (typeof detail?.x === "number" && typeof detail?.y === "number") {
         setPos(clampToViewport(detail, window.innerWidth, window.innerHeight));
-        localStorage.setItem(POS_KEY, JSON.stringify(detail));
+        try {
+          localStorage.setItem(POS_KEY, JSON.stringify(detail));
+        } catch {
+          // ignore
+        }
       }
     };
     onResize();
@@ -154,6 +161,16 @@ export function FloatingCruxy() {
       window.removeEventListener("cruxy-prefs-pos", onPrefsPos);
     };
   }, []);
+
+  // When Cruxy pops out, rise from wherever the lamp currently sits.
+  useEffect(() => {
+    if (floatMotion !== "enter") return;
+    const next = posFromLamp(window.innerWidth, window.innerHeight);
+    if (next) {
+      setPos(next);
+      savePos(next);
+    }
+  }, [floatMotion]);
 
   const onPointerDown = (e: React.PointerEvent) => {
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -168,7 +185,9 @@ export function FloatingCruxy() {
       x: e.clientX - dragRef.current.ox,
       y: e.clientY - dragRef.current.oy,
     };
-    if (Math.abs(next.x - pos.x) + Math.abs(next.y - pos.y) > 4) setMoved(true);
+    const dist =
+      Math.abs(next.x - pos.x) + Math.abs(next.y - pos.y);
+    if (dist > DRAG_THRESHOLD) setMoved(true);
     setPos(next);
   };
 
@@ -190,6 +209,8 @@ export function FloatingCruxy() {
     }
     if (window.innerWidth < 640) {
       next = snapToEdge(next.x, next.y, window.innerWidth, window.innerHeight);
+    } else {
+      next = clampToViewport(next, window.innerWidth, window.innerHeight);
     }
     setPos(next);
     savePos(next);
