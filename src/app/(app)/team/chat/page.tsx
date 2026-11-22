@@ -285,10 +285,10 @@ export default function TeamChatPage() {
               {active.case_id ? (
                 <p className="m-0 mt-2 text-sm">
                   <Link
-                    href={`/case-brain/${active.case_id}?tab=reading&discussion=1`}
+                    href={`/case-brain/${active.case_id}?tab=reading`}
                     className="font-semibold text-cardinal underline"
                   >
-                    Open this case (discussion lives there)
+                    Open this case (comments sit on the text)
                   </Link>
                 </p>
               ) : null}
