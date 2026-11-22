@@ -266,6 +266,7 @@ const WRITE_SURFACE_CONTRACTS: WriteSurfaceContract[] = [
       "src/app/api/access/explain/route.ts",
       "src/components/access/display-settings.tsx",
       "src/components/access/explain-term.tsx",
+      "src/components/case/reading-tools.tsx",
     ],
     patterns: [
       /\/api\/prefs\/access|\/api\/access\/explain|callCruxy|access_explain_term|text_size|high_contrast|readable_font/,

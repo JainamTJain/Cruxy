@@ -507,56 +507,25 @@ export function AnnotateSurface({
       return;
     }
 
-    // Prefer E's discussion thread when that API is live.
-    let discussionOk = false;
-    if (caseId && teamId) {
-      try {
-        const created = await fetch("/api/discussion/threads", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            caseId,
-            teamId,
-            kind: "annotation",
-            targetId: `highlight:${passageId}:${range.slice(0, 48)}`,
-            title: range.slice(0, 80),
-          }),
-        });
-        if (created.ok) {
-          const json = (await created.json()) as { thread: { id: string } };
-          const reply = await fetch(
-            `/api/discussion/threads/${json.thread.id}`,
-            {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ body }),
-            },
-          );
-          discussionOk = reply.ok;
-        }
-      } catch {
-        discussionOk = false;
-      }
-    }
-
-    if (!discussionOk) {
-      const res = await fetch("/api/library/comments", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          passageId,
-          range,
-          body,
-        }),
+    // Library comments until E's discussion API merges (PR #105).
+    void caseId;
+    void teamId;
+    const res = await fetch("/api/library/comments", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        passageId,
+        range,
+        body,
+      }),
+    });
+    if (!res.ok) {
+      setComment({
+        ...comment,
+        busy: false,
+        status: "That did not save. Try again.",
       });
-      if (!res.ok) {
-        setComment({
-          ...comment,
-          busy: false,
-          status: "That did not save. Try again.",
-        });
-        return;
-      }
+      return;
     }
 
     setComment(null);
