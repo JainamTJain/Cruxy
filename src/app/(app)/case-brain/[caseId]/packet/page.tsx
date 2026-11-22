@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { getCaseBrain } from "@/lib/case-brain/service";
@@ -9,7 +10,7 @@ import { PrintPacketClient } from "@/components/case/print-packet-client";
 
 type Props = {
   params: Promise<{ caseId: string }>;
-  searchParams: Promise<{ team?: string }>;
+  searchParams: Promise<{ team?: string; print?: string }>;
 };
 
 /**
@@ -62,7 +63,9 @@ export default async function CasePacketPage({ params, searchParams }: Props) {
         >
           ← Back to the case
         </Link>
-        <PrintPacketClient />
+        <Suspense fallback={null}>
+          <PrintPacketClient />
+        </Suspense>
       </div>
 
       <article className="rounded-[20px] bg-white p-6 sm:p-10 print:rounded-none print:p-0">

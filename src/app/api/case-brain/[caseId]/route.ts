@@ -43,58 +43,70 @@ export async function GET(_req: Request, { params }: Params) {
   const { caseId } = await params;
   const url = new URL(_req.url);
   const teamId = url.searchParams.get("teamId") ?? auth.teamId;
+  const lite = url.searchParams.get("lite") === "1";
 
   // Independent setup steps run together; each is a no-op once data exists.
-  await Promise.all([
-    ensureClaimMapShell({
-      teamId,
-      caseId,
-      personId: auth.session.personId,
-    }),
-    ensureOpposingPositions({
-      caseId,
-      personId: auth.session.personId,
-    }),
-    // Sample-mode only; never invents live student-attributed proposals.
-    ensureDemoProposalQueue({
-      teamId,
-      caseId,
-      personId: auth.session.personId,
-    }),
-  ]);
-  if (teamId === auth.teamId) {
-    await ensureClaimMapVersion({
-      teamId,
-      caseId,
-      personId: auth.session.personId,
-    });
-  }
-
-  const brain = await getCaseBrain(teamId, caseId);
-  await Promise.all(
-    brain.claims.map((node) =>
-      ensureChangeTheFacts({
+  // Lite (roles / one-pager chrome) skips seeding so the tab can open fast.
+  if (!lite) {
+    await Promise.all([
+      ensureClaimMapShell({
         teamId,
         caseId,
-        claimId: node.claim.id,
         personId: auth.session.personId,
       }),
-    ),
-  );
-  const refreshed = await getCaseBrain(teamId, caseId);
+      ensureOpposingPositions({
+        caseId,
+        personId: auth.session.personId,
+      }),
+      // Sample-mode only; never invents live student-attributed proposals.
+      ensureDemoProposalQueue({
+        teamId,
+        caseId,
+        personId: auth.session.personId,
+      }),
+    ]);
+    if (teamId === auth.teamId) {
+      await ensureClaimMapVersion({
+        teamId,
+        caseId,
+        personId: auth.session.personId,
+      });
+    }
+  }
+
+  let refreshed = await getCaseBrain(teamId, caseId);
+  if (!lite) {
+    const missingCtf = refreshed.claims.filter(
+      (node) =>
+        !refreshed.change_the_facts.some((c) => c.claim_id === node.claim.id),
+    );
+    if (missingCtf.length > 0) {
+      await Promise.all(
+        missingCtf.map((node) =>
+          ensureChangeTheFacts({
+            teamId,
+            caseId,
+            claimId: node.claim.id,
+            personId: auth.session.personId,
+          }),
+        ),
+      );
+      refreshed = await getCaseBrain(teamId, caseId);
+    }
+  }
 
   const [teams, cases, peopleFull, flashcards, questions, mapVersion, versions, optIns, researchRuns, libraryFiles] =
     await Promise.all([
       listTeams(),
       listCases(),
       listPeopleFull(),
-      listFlashcards({ teamId, caseId }),
-      listQuestions({ caseId }),
-      getCurrentClaimMap(teamId, caseId),
-      listClaimMapVersions(teamId, caseId),
-      listDeckOptInsForCase(caseId),
-      listResearchRuns(40),
-      listLibraryFiles(),
+      lite ? Promise.resolve([]) : listFlashcards({ teamId, caseId }),
+      lite ? Promise.resolve([]) : listQuestions({ caseId }),
+      lite ? Promise.resolve(null) : getCurrentClaimMap(teamId, caseId),
+      lite ? Promise.resolve([]) : listClaimMapVersions(teamId, caseId),
+      lite ? Promise.resolve([]) : listDeckOptInsForCase(caseId),
+      lite ? Promise.resolve([]) : listResearchRuns(12),
+      lite ? Promise.resolve([]) : listLibraryFiles(),
     ]);
   const researchForCase = researchRuns.filter((r) => r.case_id === caseId);
   const latestResearch = researchForCase[0] ?? null;
