@@ -25,6 +25,7 @@ import {
   plainRoleChange,
   planByPreference,
   planCopyCase,
+  planFillEmptySlots,
   planRandomFairSplit,
   planRoundRobin,
   planSamePairs,
@@ -337,9 +338,8 @@ export async function getRolesBoard(input: {
     teamName = (tm?.name as string) ?? "Team";
   }
 
-  // Prefer the 12 regional cases when more exist: first 12 by number, or all
-  const boardCases =
-    cases.length > 12 ? cases.filter((c) => c.number <= 12) : cases;
+  // Full case set in order (inactive stay as columns; UI shows XXX)
+  const boardCases = cases.slice().sort((a, b) => a.number - b.number);
 
   const cells: RolesBoardView["cells"] = {};
   for (const p of people) {
@@ -805,6 +805,58 @@ export async function runRandomFairSplit(input: {
     assignments: plan,
     replaceCases: true,
   });
+}
+
+function existingFromBoard(board: RolesBoardView, caseIds: string[]) {
+  const existing: { caseId: string; role: CaseRoleSlot; personId: string }[] =
+    [];
+  for (const p of board.people) {
+    for (const c of board.cases) {
+      if (!caseIds.includes(c.id)) continue;
+      const role = board.cells[p.id]?.[c.id] ?? "none";
+      if (role === "none") continue;
+      existing.push({
+        caseId: c.id,
+        role: role as CaseRoleSlot,
+        personId: p.id,
+      });
+    }
+  }
+  return existing;
+}
+
+/** Preview or apply: fill empty slots only (keeps filled cells). */
+export async function shuffleFillEmpty(input: {
+  teamId: string;
+  actorId: string;
+  caseIds?: string[];
+  preview?: boolean;
+}): Promise<{
+  board: RolesBoardView;
+  proposed: { caseId: string; role: CaseRoleSlot; personId: string }[];
+}> {
+  await assertNotLocked(input.teamId);
+  const board = await getRolesBoard({ teamId: input.teamId, canEdit: true });
+  const caseIds = input.caseIds?.length
+    ? input.caseIds
+    : board.cases.filter((c) => c.active).map((c) => c.id);
+  const personIds = board.people.map((p) => p.id);
+  const existing = existingFromBoard(board, caseIds);
+  const proposed = planFillEmptySlots({
+    caseIds,
+    personIds,
+    existing,
+  });
+  if (input.preview || !proposed.length) {
+    return { board, proposed };
+  }
+  const next = await applyRolePlan({
+    teamId: input.teamId,
+    actorId: input.actorId,
+    assignments: proposed,
+    replaceCases: false,
+  });
+  return { board: next, proposed };
 }
 
 export async function lockForRegionals2026(input: {
