@@ -210,7 +210,6 @@ export function WorkingDocument({
           caseId={caseId}
           teamId={teamId}
           data={data}
-          caseId={caseId}
           busy={editBusy}
           suggestionsByAnchor={suggestionsByAnchor}
           crossReasons={crossReasons}
@@ -231,7 +230,6 @@ export function WorkingDocument({
           caseId={caseId}
           teamId={teamId}
           data={data}
-          caseId={caseId}
           busy={editBusy}
           sectionDrafts={sectionDrafts}
           setSectionDrafts={setSectionDrafts}
@@ -390,7 +388,6 @@ function SuggestionCard({
   onReason,
   onTick,
   onCross,
-  caseId,
 }: {
   s: Hub["suggestions"][number];
   caseId: string;
@@ -400,7 +397,6 @@ function SuggestionCard({
   onReason: (v: string) => void;
   onTick: () => void;
   onCross: () => void;
-  caseId: string;
 }) {
   return (
     <li className="rounded-[12px] border border-mist bg-white px-3 py-2.5">
@@ -459,7 +455,6 @@ function ImportedDoc({
   caseId,
   teamId,
   data,
-  caseId,
   busy,
   suggestionsByAnchor,
   crossReasons,
@@ -470,7 +465,6 @@ function ImportedDoc({
   caseId: string;
   teamId: string;
   data: Hub;
-  caseId: string;
   busy: boolean;
   suggestionsByAnchor: Map<string, Hub["suggestions"]>;
   crossReasons: Record<string, string>;
@@ -574,7 +568,6 @@ function CruxDoc({
   caseId,
   teamId,
   data,
-  caseId,
   busy,
   sectionDrafts,
   setSectionDrafts,
@@ -591,7 +584,6 @@ function CruxDoc({
   caseId: string;
   teamId: string;
   data: Hub;
-  caseId: string;
   busy: boolean;
   sectionDrafts: Record<string, string>;
   setSectionDrafts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
