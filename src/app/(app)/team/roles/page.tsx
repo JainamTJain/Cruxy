@@ -177,10 +177,55 @@ export default function RolesBoardPage() {
           >
             Team board
           </Link>
+          <Link
+            href="/team/calendar"
+            className="inline-flex h-10 items-center rounded-xl border border-mist bg-white px-3 text-sm font-semibold text-ink"
+          >
+            Calendar
+          </Link>
         </div>
       </div>
 
       {status ? <p className="text-sm text-muted">{status}</p> : null}
+
+      {/* Workload balance */}
+      {(board.workload?.length ?? 0) > 0 ? (
+        <section className="rounded-[20px] bg-white p-4">
+          <h2 className="font-display m-0 text-lg font-extrabold">
+            Workload balance
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            Roles and open tasks per person. When one person carries far more,
+            we suggest a fair swap. No ranking against other teams.
+          </p>
+          <ul className="mt-3 m-0 list-none divide-y divide-[#ECEEF1] p-0">
+            {board.workload.map((w) => (
+              <li
+                key={w.personId}
+                className={`flex flex-col gap-1 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between ${
+                  w.heavy ? "bg-[#FFF7DB] px-2 rounded-xl" : ""
+                }`}
+              >
+                <div>
+                  <span className="font-semibold">{w.name}</span>
+                  <span className="mt-0.5 block text-[12px] text-muted">
+                    {w.leadCount} lead{w.leadCount === 1 ? "" : "s"},{" "}
+                    {w.roleCount} role{w.roleCount === 1 ? "" : "s"},{" "}
+                    {w.openTaskCount} open task
+                    {w.openTaskCount === 1 ? "" : "s"}
+                  </span>
+                </div>
+                {w.heavy && w.suggestSwapWith ? (
+                  <p className="m-0 text-[12px] font-semibold text-[#C2410C]">
+                    Carrying a lot. A fair swap: ask {w.suggestSwapWith.name}{" "}
+                    to take one role.
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {board.lock ? (
         <section className="rounded-[20px] bg-[#E6F4F1] px-4 py-3">

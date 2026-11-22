@@ -39,6 +39,8 @@ const SIDE_NAV: { href: string; label: string; match?: string }[] = [
   { href: "/case-brain", label: "Cases" },
   { href: "/practice", label: "Practice" },
   { href: "/team/chat", label: "Team chat" },
+  { href: "/team/calendar", label: "Calendar" },
+  { href: "/progress", label: "Progress" },
 ];
 
 /** Admin.html sidebar when Admin switch is on and route is under /admin. */
