@@ -101,11 +101,67 @@ export interface ResearchFinding {
   citation?: string | null;
 }
 
+/** Wave 8 H: rubric scores for one source against one claim. */
+export interface RubricScores {
+  relevance: number;
+  argumentative_force: number;
+  credibility: number;
+}
+
+/** One ranked source in a claim dossier (top 3, steelman, or More). */
+export interface RankedResearchSource {
+  finding_id: string | null;
+  title: string;
+  authors: string[];
+  year: number | null;
+  url: string;
+  doi: string | null;
+  citation: string;
+  open_access: boolean | null;
+  licence: string | null;
+  point: string;
+  quote: string;
+  verified: boolean;
+  needs_check: boolean;
+  rubric: RubricScores;
+  composite: number;
+  /** One sentence: why this source earns its place. */
+  why_place: string;
+  role: "support" | "steelman" | "more";
+  /** 1..3 for supporting sources; null for steelman / more. */
+  rank: number | null;
+}
+
+/** Per-claim curated set: best + up to 3, steelman, folded More. */
+export interface ClaimSourceDossier {
+  claim_ref: string;
+  best: RankedResearchSource | null;
+  top: RankedResearchSource[];
+  steelman: RankedResearchSource | null;
+  more: RankedResearchSource[];
+}
+
+/** Nightly short brief: at most 3 findings, plus Cruxy's judgment. */
+export interface ResearchBrief {
+  /** One or two short sentences on tonight's research. */
+  summary: string;
+  finding_ids: string[];
+  /** What this changes in our argument. */
+  judgment_changes: string;
+  /** What this does not change. */
+  judgment_does_not: string;
+}
+
 export interface ResearchRun {
   id: string;
   case_id: string;
   gaps: ResearchGap[];
+  /** Tonight's findings only (at most 3 after Wave 8 curation). */
   findings: ResearchFinding[];
+  /** Per-claim ranked sources (Wave 8). */
+  claim_dossiers?: ClaimSourceDossier[] | null;
+  /** Nightly judgment brief (Wave 8). */
+  brief?: ResearchBrief | null;
   stub: boolean;
   created_at: string;
   created_by: string | null;

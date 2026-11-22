@@ -1,10 +1,15 @@
 /**
- * Fail if any exported repository (or listed data) function can hit the sample
- * store without an isSampleDataMode() guard — that mkdirs .data on Vercel.
+ * Wave 8 wiring audit (workstream K).
+ *
+ * 1. Repository exports that touch the sample store must guard with isSampleDataMode().
+ * 2. Every UI fetch/form to /api/... must match a real App Router route.
+ * 3. Every API route must reach a repository / service (or an allowed exception).
+ * 4. Critical write → surface contracts must stay wired (mention → notification,
+ *    accept → Team Brief / Evidence Library, drill → roadmap, admin health 24h).
  *
  * Run: npm run check:supabase-wired
  */
-import { readFileSync, readdirSync, statSync } from "fs";
+import { readFileSync, readdirSync, statSync, existsSync } from "fs";
 import { join, relative } from "path";
 
 const ROOT = process.cwd();
@@ -21,12 +26,109 @@ const EXTRA_FILES = [
   "src/app/api/case-brain/[caseId]/route.ts",
 ];
 
-function walk(dir: string, out: string[] = []): string[] {
+/** Routes that intentionally skip a domain repository (auth handshake only). */
+const ROUTE_REPO_ALLOWLIST = new Set([
+  "src/app/api/auth/sign-in/route.ts",
+  "src/app/api/auth/sign-out/route.ts",
+  "src/app/api/auth/me/route.ts",
+  "src/app/api/health/route.ts",
+]);
+
+type WriteSurfaceContract = {
+  id: string;
+  description: string;
+  /** Files that must each match every pattern. */
+  files: string[];
+  patterns: RegExp[];
+};
+
+/**
+ * End-to-end write surfaces people rely on. Gaps here fail CI.
+ * Keep descriptions short for the PR / console report.
+ */
+const WRITE_SURFACE_CONTRACTS: WriteSurfaceContract[] = [
+  {
+    id: "chat_mention_to_notifications",
+    description:
+      "Chat @mention writes a notification (Reminders bell) for the mentioned person",
+    files: ["src/lib/team/repository.ts"],
+    patterns: [
+      /function\s+notifyChatMentions|notifyChatMentions\s*\(/,
+      /createNotification\s*\(/,
+      /kind:\s*["']chat_mention["']/,
+      /postMessage[\s\S]*notifyChatMentions/,
+    ],
+  },
+  {
+    id: "accept_claim_change_to_team_brief",
+    description:
+      "Accepted claim suggestion publishes a new claim map version (Team Brief)",
+    files: [
+      "src/lib/team/repository.ts",
+      "src/lib/db/supabase/team.ts",
+    ],
+    patterns: [
+      /acceptClaimChange/,
+      /claim_map_versions|insertVersion/,
+    ],
+  },
+  {
+    id: "accept_proposal_to_evidence_library",
+    description:
+      "Accepted case-brain proposal becomes an accepted truth_item (Evidence Library)",
+    files: [
+      "src/lib/case-brain/service.ts",
+      "src/lib/db/supabase/case-brain.ts",
+    ],
+    patterns: [/decideProposal/, /truth_items/],
+  },
+  {
+    id: "practice_speak_moves_roadmap",
+    description:
+      "Finished practice speak recompute roadmap stages (practiced row moves)",
+    files: [
+      "src/lib/revision/repository.ts",
+      "src/lib/db/supabase/revision.ts",
+    ],
+    patterns: [
+      /recordPracticeSpeak/,
+      /recomputeRoadmapStages/,
+    ],
+  },
+  {
+    id: "question_drill_moves_roadmap",
+    description:
+      "Question answers recompute roadmap (question_drill stage)",
+    files: [
+      "src/lib/revision/repository.ts",
+      "src/lib/db/supabase/revision.ts",
+    ],
+    patterns: [/recomputeRoadmapStages/],
+  },
+  {
+    id: "admin_health_last_24h",
+    description:
+      "Admin health / weekly errors list only refused AI calls from the last 24 hours",
+    files: [
+      "src/lib/db/supabase/program.ts",
+      "src/lib/db/repository.ts",
+      "src/lib/types.ts",
+      "src/app/(app)/admin/admin-console.tsx",
+    ],
+    patterns: [
+      /AI_ERRORS_LAST_24H_NOTE|errorsNote|last 24 hours/i,
+      /24\s*\*\s*60\s*\*\s*60\s*\*\s*1000|24 hours/i,
+    ],
+  },
+];
+
+function walk(dir: string, out: string[] = [], pred?: (name: string) => boolean): string[] {
+  if (!existsSync(dir)) return out;
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
     const st = statSync(p);
-    if (st.isDirectory()) walk(p, out);
-    else if (name.endsWith("repository.ts")) out.push(p);
+    if (st.isDirectory()) walk(p, out, pred);
+    else if (!pred || pred(name)) out.push(p);
   }
   return out;
 }
@@ -75,14 +177,23 @@ function hasSampleGuard(body: string): boolean {
   return /isSampleDataMode\s*\(/.test(body);
 }
 
-let failed = false;
+const gaps: string[] = [];
 
 function fail(msg: string) {
   console.error(`FAIL: ${msg}`);
-  failed = true;
+  gaps.push(msg);
 }
 
-for (const file of walk(join(SRC, "lib"))) {
+function ok(msg: string) {
+  console.log(`ok: ${msg}`);
+}
+
+// ---------------------------------------------------------------------------
+// 1) Sample-store guards (original check)
+// ---------------------------------------------------------------------------
+console.log("\n=== 1) Sample-store guards ===");
+
+for (const file of walk(join(SRC, "lib"), [], (n) => n.endsWith("repository.ts"))) {
   const text = readFileSync(file, "utf8");
   const rel = relative(ROOT, file);
   if (text.includes(BAN)) {
@@ -91,7 +202,7 @@ for (const file of walk(join(SRC, "lib"))) {
 }
 
 const targets = [
-  ...walk(join(SRC, "lib")),
+  ...walk(join(SRC, "lib"), [], (n) => n.endsWith("repository.ts")),
   join(SRC, "lib", "case-brain", "service.ts"),
   ...EXTRA_FILES.map((f) => join(ROOT, f)),
 ];
@@ -110,7 +221,6 @@ for (const file of targets) {
   const rel = relative(ROOT, file);
   const cleaned = stripComments(text);
 
-  // Non-repository helpers must not import sample-store at all.
   const isRepoLike =
     rel.endsWith("repository.ts") ||
     rel.endsWith(join("case-brain", "service.ts")) ||
@@ -131,11 +241,224 @@ for (const file of targets) {
     }
   }
 
-  console.log(`ok: ${rel}`);
+  ok(rel);
 }
 
-if (failed) {
-  console.error("check-supabase-wired: FAILED");
+// ---------------------------------------------------------------------------
+// 2) UI → route map
+// ---------------------------------------------------------------------------
+console.log("\n=== 2) UI → route map ===");
+
+type RouteInfo = {
+  rel: string;
+  pattern: RegExp;
+  apiPath: string;
+  methods: Set<string>;
+  text: string;
+};
+
+function collectRoutes(): RouteInfo[] {
+  const routes: RouteInfo[] = [];
+  for (const file of walk(join(SRC, "app", "api"), [], (n) => n === "route.ts")) {
+    const rel = relative(ROOT, file).replace(/\\/g, "/");
+    const apiRel = rel
+      .replace(/^src\/app\/api\//, "")
+      .replace(/\/route\.ts$/, "");
+    const segs = apiRel.split("/").map((part) => {
+      if (part.startsWith("[") && part.endsWith("]")) return "[^/]+";
+      return part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    });
+    const text = readFileSync(file, "utf8");
+    const methods = new Set<string>();
+    for (const m of text.matchAll(
+      /export\s+async\s+function\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/g,
+    )) {
+      methods.add(m[1]);
+    }
+    routes.push({
+      rel,
+      apiPath: `/api/${apiRel}`,
+      pattern: new RegExp(`^/api/${segs.join("/")}$`),
+      methods,
+      text,
+    });
+  }
+  return routes;
+}
+
+const routes = collectRoutes();
+ok(`${routes.length} API routes indexed`);
+
+/** Normalize a fetch URL: drop query, turn ${...} path segments into *. */
+function normalizeApiUrl(raw: string): string {
+  let url = raw.split("?")[0];
+  // `/api/case-brain/${id}` → `/api/case-brain/*`
+  url = url.replace(/\/\$\{[^}]+\}/g, "/*");
+  // `/api/team/chat${q}` where q builds `?…` → `/api/team/chat`
+  url = url.replace(/\$\{[^}]+\}/g, "");
+  // Drop empty trailing slash left by bad templates, keep `/*`
+  if (url.endsWith("/") && !url.endsWith("/*/")) {
+    url = url.replace(/\/+$/, "");
+  }
+  return url;
+}
+
+function urlMatchesRoute(url: string, route: RouteInfo): boolean {
+  const cand = url.replace(/\*/g, "x");
+  return route.pattern.test(cand);
+}
+
+type UiCall = { url: string; file: string; methodHint: string };
+
+function collectUiApiCalls(): UiCall[] {
+  const calls: UiCall[] = [];
+  const files = [
+    ...walk(join(SRC, "app"), [], (n) => n.endsWith(".ts") || n.endsWith(".tsx")),
+    ...walk(join(SRC, "components"), [], (n) => n.endsWith(".ts") || n.endsWith(".tsx")),
+  ].filter((f) => !f.includes(`${join("app", "api")}`));
+
+  const fetchLit = /fetch\(\s*(['"`])(\/api\/[^'"`]*?)\1/g;
+  const fetchTpl = /fetch\(\s*`(\/api\/[^`]*)`/g;
+  const formAction = /(?:action|href)=(['"`])(\/api\/[^'"`]+)\1/g;
+  const methodRe = /method:\s*['"](GET|POST|PUT|PATCH|DELETE)['"]/;
+
+  for (const file of files) {
+    const text = readFileSync(file, "utf8");
+    const rel = relative(ROOT, file).replace(/\\/g, "/");
+    const found: { raw: string; index: number }[] = [];
+    for (const m of text.matchAll(fetchLit)) {
+      found.push({ raw: m[2], index: m.index ?? 0 });
+    }
+    for (const m of text.matchAll(fetchTpl)) {
+      found.push({ raw: m[1], index: m.index ?? 0 });
+    }
+    for (const m of text.matchAll(formAction)) {
+      found.push({ raw: m[2], index: m.index ?? 0 });
+    }
+    for (const f of found) {
+      const url = normalizeApiUrl(f.raw);
+      if (!url.startsWith("/api/")) continue;
+      const window = text.slice(f.index, f.index + 280);
+      const mm = window.match(methodRe);
+      let methodHint = mm ? mm[1] : "GET";
+      if (
+        methodHint === "GET" &&
+        (/JSON\.stringify/.test(window) || /FormData/.test(window)) &&
+        !/method:\s*['"]GET['"]/.test(window)
+      ) {
+        methodHint = "POST";
+      }
+      calls.push({ url, file: rel, methodHint });
+    }
+  }
+  return calls;
+}
+
+const uiCalls = collectUiApiCalls();
+const uniqueUi = new Map<string, UiCall>();
+for (const c of uiCalls) {
+  uniqueUi.set(`${c.url}::${c.file}`, c);
+}
+
+let uiOk = 0;
+for (const c of uniqueUi.values()) {
+  const match = routes.find((r) => urlMatchesRoute(c.url, r));
+  if (!match) {
+    fail(`UI calls missing route: ${c.url} (from ${c.file})`);
+    continue;
+  }
+  uiOk += 1;
+}
+ok(`UI → route: ${uiOk} call sites matched (${uniqueUi.size} unique)`);
+
+// ---------------------------------------------------------------------------
+// 3) Route → repository / service map
+// ---------------------------------------------------------------------------
+console.log("\n=== 3) Route → repository map ===");
+
+const REPO_IMPORT =
+  /from\s+["']@\/lib\/(?:db\/repository|team\/repository|team\/roles-board-repository|case-brain\/service|case-brain\/[^"']+|practice\/[^"']+|revision\/[^"']+|library\/[^"']+|graph\/[^"']+|cruxy\/[^"']+|auth\/[^"']+|admin\/[^"']+|email\/[^"']+|ops\/[^"']+|db\/supabase\/[^"']+)["']/;
+
+let routeRepoOk = 0;
+for (const route of routes) {
+  if (ROUTE_REPO_ALLOWLIST.has(route.rel)) {
+    ok(`allowlisted ${route.rel}`);
+    routeRepoOk += 1;
+    continue;
+  }
+  const cleaned = stripComments(route.text);
+  if (!REPO_IMPORT.test(cleaned)) {
+    // Also accept relative imports into lib via deep paths already covered.
+    // Cron / webhook style that only imports email helpers still match above.
+    fail(
+      `route has no repository/service import: ${route.rel} (${route.apiPath})`,
+    );
+    continue;
+  }
+  routeRepoOk += 1;
+}
+ok(`Route → repo: ${routeRepoOk}/${routes.length} routes wired`);
+
+// Soft map: each repository under src/lib/** that has a supabase twin
+console.log("\n=== 3b) Repository → Supabase twin ===");
+const repoFiles = walk(join(SRC, "lib"), [], (n) => n.endsWith("repository.ts"));
+for (const file of repoFiles) {
+  const rel = relative(ROOT, file).replace(/\\/g, "/");
+  const text = readFileSync(file, "utf8");
+  const cleaned = stripComments(text);
+  // Domain repos should branch to supabase or isSampleDataMode
+  if (
+    !/isSampleDataMode\s*\(/.test(cleaned) &&
+    !/getServiceSupabase\s*\(/.test(cleaned) &&
+    !/from\s+["']@\/lib\/db\/supabase\//.test(cleaned)
+  ) {
+    // roles-board-repository etc may import createNotification + supabase helpers
+    if (!/supabase/.test(cleaned)) {
+      fail(`${rel} has no Supabase / sample-mode branch`);
+      continue;
+    }
+  }
+  ok(`repo→supabase: ${rel}`);
+}
+
+// ---------------------------------------------------------------------------
+// 4) Write → surface contracts
+// ---------------------------------------------------------------------------
+console.log("\n=== 4) Write → surface contracts ===");
+
+for (const contract of WRITE_SURFACE_CONTRACTS) {
+  let contractOk = true;
+  for (const f of contract.files) {
+    const abs = join(ROOT, f);
+    if (!existsSync(abs)) {
+      fail(`[${contract.id}] missing file ${f}`);
+      contractOk = false;
+      continue;
+    }
+    const text = readFileSync(abs, "utf8");
+    for (const pat of contract.patterns) {
+      if (!pat.test(text)) {
+        fail(
+          `[${contract.id}] ${f} missing pattern ${pat}: ${contract.description}`,
+        );
+        contractOk = false;
+      }
+    }
+  }
+  if (contractOk) {
+    ok(`[${contract.id}] ${contract.description}`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Report
+// ---------------------------------------------------------------------------
+console.log("\n=== Wiring audit report ===");
+if (gaps.length) {
+  console.error(`\nGaps found (${gaps.length}):`);
+  for (const g of gaps) console.error(`  - ${g}`);
+  console.error("\ncheck-supabase-wired: FAILED");
   process.exit(1);
 }
-console.log("check-supabase-wired: all repository exports guarded");
+console.log("No gaps. UI→route, route→repo, and write→surface contracts hold.");
+console.log("check-supabase-wired: all repository exports guarded + wiring map ok");

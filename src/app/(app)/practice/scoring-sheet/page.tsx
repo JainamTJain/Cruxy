@@ -112,12 +112,12 @@ export default function ScoringSheetPage() {
           APPE SCORING SHEET
         </p>
         <h1 className="font-display text-3xl font-semibold">
-          Built from the Drive
+          Judge card sheet
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">
           {version
-            ? `${version.source_label}. Same items, wording, order, and 1 to 10 scales as the Training Documents sheet.`
-            : "Loading the active sheet…"}
+            ? `${version.source_label}. Same items, wording, order and 1 to 10 scales as the APPE training sheet.`
+            : "Loading the active judge card sheet…"}
         </p>
       </div>
 

@@ -77,7 +77,10 @@ export default function JudgingPortalPage() {
         });
         return;
       }
-      setError(data.error ?? "Could not enter");
+      setError(
+        data.error ??
+          "Could not open judging. Check the session code and try again.",
+      );
       return;
     }
     setAccess({
@@ -169,8 +172,8 @@ export default function JudgingPortalPage() {
           Judging portal
         </h1>
         <p className="mt-1 text-sm text-muted">
-          Enter the session code the admin reads aloud, or scan the QR for
-          guests.
+          Score a practice round on a judge card. Enter the session code the
+          room reads aloud. Guests can join with a name if they are not in Crux.
         </p>
       </header>
 
@@ -185,7 +188,7 @@ export default function JudgingPortalPage() {
             }
             onClick={() => setGuest(false)}
           >
-            Someone in Crux
+            I am on the team
           </button>
           <button
             type="button"
@@ -196,7 +199,7 @@ export default function JudgingPortalPage() {
             }
             onClick={() => setGuest(true)}
           >
-            Someone new
+            I am a guest judge
           </button>
         </div>
         {guest ? (
