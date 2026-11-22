@@ -13,6 +13,8 @@ export type TeamBriefRow = {
   team_id: string;
   case_id: string;
   mode: BriefMode;
+  /** null = Working document not started yet (Import vs Start choice). */
+  working_path: "imported" | "crux" | null;
   drive_file_id: string | null;
   drive_title: string | null;
   thesis: string | null;
@@ -62,16 +64,25 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function normalizeBrief(row: TeamBriefRow): TeamBriefRow {
+  return {
+    ...row,
+    working_path:
+      row.working_path ??
+      (row.drive_file_id ? "imported" : null),
+  };
+}
+
 export async function getTeamBrief(
   teamId: string,
   caseId: string,
 ): Promise<TeamBriefRow | null> {
   if (isSampleDataMode()) {
-    return (
+    const found =
       sampleBriefs.find(
         (b) => b.team_id === teamId && b.case_id === caseId,
-      ) ?? null
-    );
+      ) ?? null;
+    return found ? normalizeBrief(found) : null;
   }
   const { data, error } = await getServiceSupabase()
     .from("team_briefs")
@@ -80,7 +91,8 @@ export async function getTeamBrief(
     .eq("case_id", caseId)
     .maybeSingle();
   if (error) throw new Error(`getTeamBrief: ${error.message}`);
-  return (data as TeamBriefRow | null) ?? null;
+  if (!data) return null;
+  return normalizeBrief(data as TeamBriefRow);
 }
 
 export async function listTeamBriefsForCase(
@@ -125,6 +137,15 @@ export async function upsertTeamBrief(
     team_id: input.team_id,
     case_id: input.case_id,
     mode: input.mode,
+    working_path:
+      input.working_path !== undefined
+        ? input.working_path
+        : (existing?.working_path ??
+          (existing?.drive_file_id
+            ? "imported"
+            : existing?.mode === "build_in_crux"
+              ? "crux"
+              : null)),
     drive_file_id:
       input.drive_file_id !== undefined
         ? input.drive_file_id
@@ -178,6 +199,7 @@ export async function upsertTeamBrief(
         team_id: row.team_id,
         case_id: row.case_id,
         mode: row.mode,
+        working_path: row.working_path,
         drive_file_id: row.drive_file_id,
         drive_title: row.drive_title,
         thesis: row.thesis,

@@ -48,6 +48,7 @@ export async function ensureTeamBrief(opts: {
     team_id: opts.teamId,
     case_id: opts.caseId,
     mode: defaultBriefMode(opts.teamId),
+    working_path: null,
     created_by: opts.personId ?? null,
   });
 }
@@ -117,6 +118,7 @@ export async function linkBriefDriveDoc(opts: {
     team_id: opts.teamId,
     case_id: opts.caseId,
     mode: "own_doc",
+    working_path: "imported",
     drive_file_id: fileId,
     drive_title: result.title,
     last_synced_at: new Date().toISOString(),
