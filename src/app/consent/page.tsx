@@ -1,9 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { VoiceEnrollment } from "@/components/voice-enrollment";
+import { VOICED_TARGET_SECONDS } from "@/lib/auth/voice-passages";
 import { CRUXY_PLAIN_WORDS } from "@/lib/types";
 
 const ROWS: [string, string][] = [
@@ -21,7 +23,7 @@ const ROWS: [string, string][] = [
   ],
   [
     "Your voice",
-    "A 20 second sample so the transcript knows which lines are yours.",
+    `About ${VOICED_TARGET_SECONDS} seconds of clear speech so the transcript knows which lines are yours.`,
   ],
   ["Who sees it", "All three teams, Dr. B and Jainam. Nobody else."],
   [
@@ -34,19 +36,19 @@ const ROWS: [string, string][] = [
   ],
 ];
 
-const SAMPLE_MS = 20_000;
-
 export default function ConsentPage() {
   const router = useRouter();
+  const [phase, setPhase] = useState<"intro" | "enroll">("intro");
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const abortRef = useRef(false);
 
   async function postConsent(recordingOk: boolean, voice: Blob | null) {
     const form = new FormData();
     form.set("recordingOk", recordingOk ? "true" : "false");
-    if (recordingOk && voice) form.set("voice", voice, "sample.webm");
+    if (recordingOk && voice) {
+      const ext = voice.type.includes("mp4") ? "mp4" : "webm";
+      form.set("voice", voice, `sample.${ext}`);
+    }
     const res = await fetch("/api/auth/consent", { method: "POST", body: form });
     if (!res.ok) {
       const data = (await res.json()) as { error?: string };
@@ -54,62 +56,26 @@ export default function ConsentPage() {
     }
   }
 
-  async function recordSample(): Promise<Blob | null> {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const rec = new MediaRecorder(stream);
-      const chunks: Blob[] = [];
-      rec.ondataavailable = (e) => {
-        if (e.data.size) chunks.push(e.data);
-      };
-      const stopped = new Promise<Blob>((resolve) => {
-        rec.onstop = () => {
-          stream.getTracks().forEach((t) => t.stop());
-          resolve(new Blob(chunks, { type: "audio/webm" }));
-        };
-      });
-      rec.start(500);
-      setStatus("Recording voice sample…");
-      await new Promise((r) => window.setTimeout(r, SAMPLE_MS));
-      if (abortRef.current) {
-        rec.stop();
-        stream.getTracks().forEach((t) => t.stop());
-        return null;
-      }
-      rec.stop();
-      return await stopped;
-    } catch {
-      setStatus("Microphone unavailable. Saving consent without a sample.");
-      return null;
-    }
-  }
-
-  async function agreeAndRecord() {
+  async function saveWithVoice(voice: Blob) {
     setBusy(true);
     setError(null);
-    abortRef.current = false;
     try {
-      const voice = await recordSample();
       await postConsent(true, voice);
       router.push("/choose-passcode");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save consent.");
-    } finally {
       setBusy(false);
-      setStatus(null);
     }
   }
 
   async function notNow() {
     setBusy(true);
     setError(null);
-    abortRef.current = true;
     try {
       await postConsent(false, null);
       router.push("/choose-passcode");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save consent.");
-    } finally {
       setBusy(false);
     }
   }
@@ -124,15 +90,14 @@ export default function ConsentPage() {
         Meet Cruxy
       </h1>
 
-      <div className="mt-6 flex items-center gap-4 rounded-2xl border-2 border-genie/30 bg-[#FFF7DB] p-4 sm:gap-5 sm:p-5">
+      <div className="mt-6 flex gap-3.5 rounded-2xl border-2 border-genie/30 bg-[#FFF7DB] p-4">
         <Image
-          src="/cruxy/cruxy-happy.png"
-          alt="Cruxy waving"
-          width={270}
-          height={513}
-          className="h-auto w-20 shrink-0 drop-shadow-[0_8px_14px_rgba(47,127,224,0.28)] sm:w-24"
+          src="/cruxy/cruxy-neutral.png"
+          alt=""
+          width={64}
+          height={64}
+          className="h-16 w-16 shrink-0"
           unoptimized
-          priority
         />
         <p className="text-[15px] leading-relaxed text-ink">{CRUXY_PLAIN_WORDS}</p>
       </div>
@@ -149,24 +114,35 @@ export default function ConsentPage() {
         </div>
       </section>
 
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-        <Button
-          disabled={busy}
-          onClick={() => void agreeAndRecord()}
-          className="sm:flex-1"
-        >
-          I agree to be recorded in practice
-        </Button>
-        <Button
-          variant="outline"
-          disabled={busy}
-          onClick={() => void notNow()}
-          className="sm:flex-1"
-        >
-          Not now: text only
-        </Button>
-      </div>
-      {status ? <p className="mt-3 text-sm text-muted">{status}</p> : null}
+      {phase === "intro" ? (
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <Button
+            disabled={busy}
+            onClick={() => {
+              setError(null);
+              setPhase("enroll");
+            }}
+            className="sm:flex-1"
+          >
+            I agree: record my voice sample
+          </Button>
+          <Button
+            variant="outline"
+            disabled={busy}
+            onClick={() => void notNow()}
+            className="sm:flex-1"
+          >
+            Not now: text only
+          </Button>
+        </div>
+      ) : (
+        <VoiceEnrollment
+          busy={busy}
+          onDone={(blob) => void saveWithVoice(blob)}
+          onCancelTextOnly={() => void notNow()}
+        />
+      )}
+
       {error ? <p className="mt-3 text-sm text-cardinal">{error}</p> : null}
     </main>
   );
