@@ -201,6 +201,12 @@ export interface CompetitionLogEntry {
   score_them: number | null;
   result: "win" | "loss" | "tie" | "pending" | null;
   team_id: string | null;
+  /** Wave 9 C: Competition Day hub fields (nullable for older rows). */
+  round_number?: number | null;
+  side?: "presenting" | "commenting" | null;
+  debrief_worked?: string | null;
+  debrief_change?: string | null;
+  day_round_id?: string | null;
   created_at: string;
   created_by: string | null;
 }

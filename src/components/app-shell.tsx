@@ -18,7 +18,13 @@ import { FloatingCruxy } from "@/components/cruxy/floating-cruxy";
 import { preloadCruxyPoses } from "@/components/cruxy/mood/poses";
 import { ConfettiHost } from "@/components/motion/confetti";
 import { FirstVisitTour } from "@/components/product/first-visit-tour";
+import { ReportProblemButton } from "@/components/help/report-problem-button";
 import { NotificationBell } from "@/components/notification-bell";
+import {
+  GlobalSearchHost,
+  SearchOpenButton,
+} from "@/components/search/command-palette";
+import { registerCruxServiceWorker } from "@/lib/offline/register-sw";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/types";
 
@@ -44,6 +50,7 @@ const SIDE_NAV: { href: string; label: string; match?: string }[] = [
   { href: "/revision/roadmap", label: "My roadmap" },
   { href: "/case-brain", label: "Cases" },
   { href: "/practice", label: "Practice" },
+  { href: "/regional", label: "Competition Day" },
   { href: "/team/chat", label: "Team chat" },
 ];
 
@@ -60,7 +67,7 @@ const PHONE_TABS = [
   { href: "/today", label: "Today" },
   { href: "/case-brain", label: "Cases" },
   { href: "/practice", label: "Practice" },
-  { href: "/team", label: "Team" },
+  { href: "/regional", label: "Dec 5" },
 ];
 
 function navActive(pathname: string, href: string, match?: string) {
@@ -111,6 +118,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     preloadCruxyPoses();
+  }, []);
+
+  useEffect(() => {
+    registerCruxServiceWorker();
   }, []);
 
   async function toggleAdmin(adminView: boolean) {
@@ -181,6 +192,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         <Link href="/home" className="mx-1 inline-block px-1 py-1">
           <CruxWordmark className="text-[38px]" />
         </Link>
+        <SearchOpenButton
+          showShortcut
+          className="mx-1 inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-left text-sm text-white/80 hover:bg-white/10"
+        />
         {onAdminScreen ? (
           <span className="ml-3 self-start rounded-md bg-gold px-2 py-1 text-xs font-bold tracking-[0.1em] text-ink">
             ADMIN
@@ -256,6 +271,18 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             >
               Settings
             </Link>
+            <Link
+              href="/help"
+              className="text-[11px] text-[#9AA0AA] underline"
+            >
+              Help
+            </Link>
+            <Link
+              href="/help/whats-new"
+              className="text-[11px] text-[#9AA0AA] underline"
+            >
+              What&apos;s new
+            </Link>
             {isAdminRole ? (
               <button
                 type="button"
@@ -281,7 +308,8 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           <Link href="/home" className="inline-block py-0.5">
             <CruxWordmark className="text-2xl" />
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <SearchOpenButton className="rounded-lg px-2 py-1 text-sm font-semibold text-white/85 hover:bg-white/10" />
             <p className="text-xs text-white/70">{displayName}</p>
             <Link
               href="/settings"
@@ -386,6 +414,8 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <FirstVisitTour />
       <ExplainTermListener />
       <SpokenTranscriptHost />
+      <GlobalSearchHost />
+      <ReportProblemButton />
     </div>
   );
 }
