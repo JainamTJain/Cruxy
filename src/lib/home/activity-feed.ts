@@ -86,7 +86,7 @@ function bucketTime(iso: string, now = Date.now()): string {
   return "older";
 }
 
-/** Actions that must never appear in the home feed. */
+/** Actions that must never appear in the shared home feed. */
 const HIDDEN = new Set([
   "arg_edge_recorded",
   "ai_cap_refused",
@@ -115,6 +115,17 @@ const HIDDEN = new Set([
   "model_settings_updated",
   "wire_edge_skip",
   "record_edge_skip",
+  // Personal learning (Wave 7 privacy): not on the shared feed
+  "score_prediction_saved",
+  "socratic_answered",
+  "socratic_outcome",
+  "socratic_outcomes_opened",
+  "flashcard",
+  "review",
+  "pin",
+  // Tech-only material / book requests
+  "book_request_uploaded",
+  "book_request_updated",
 ]);
 
 const TEMPLATES: Record<string, Template> = {
@@ -458,47 +469,6 @@ const TEMPLATES: Record<string, Template> = {
       caseId: null,
     }),
   },
-  score_prediction_saved: {
-    sentence: (e, ctx) => ({
-      text: `${ctx.personName} saved score predictions for a round`,
-      href: "/practice",
-      caseId: metaCaseId(e),
-    }),
-  },
-  socratic_answered: {
-    sentence: (e, ctx) => {
-      const caseId = metaCaseId(e);
-      const label = caseLabel(caseId, ctx.casesById);
-      return {
-        text: label
-          ? `${ctx.personName} answered a Socratic drill on ${label}`
-          : `${ctx.personName} answered a Socratic drill`,
-        href: "/revision/socratic",
-        caseId,
-      };
-    },
-  },
-  socratic_outcome: {
-    sentence: (e, ctx) => ({
-      text: `${ctx.personName} finished a Socratic exchange`,
-      href: "/revision/socratic",
-      caseId: metaCaseId(e),
-    }),
-  },
-  flashcard: {
-    sentence: (e, ctx) => ({
-      text: `${ctx.personName} reviewed flashcards`,
-      href: "/revision/flashcards",
-      caseId: metaCaseId(e),
-    }),
-  },
-  review: {
-    sentence: (e, ctx) => ({
-      text: `${ctx.personName} reviewed a flashcard`,
-      href: "/revision/flashcards",
-      caseId: metaCaseId(e),
-    }),
-  },
   opposing_added: {
     sentence: (e, ctx) => {
       const caseId = metaCaseId(e);
@@ -528,13 +498,6 @@ const TEMPLATES: Record<string, Template> = {
     sentence: (e, ctx) => ({
       text: `${ctx.personName} added a competition log entry`,
       href: "/admin/competition",
-      caseId: null,
-    }),
-  },
-  book_request_uploaded: {
-    sentence: (e, ctx) => ({
-      text: `${ctx.personName} uploaded a book request PDF`,
-      href: "/admin/books",
       caseId: null,
     }),
   },
