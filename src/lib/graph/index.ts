@@ -18,6 +18,10 @@ export { listOpenAttackClaimIds } from "@/lib/graph/arg-edges";
 export {
   backfillArgEdges,
   backfillNodeEmbeddings,
+  reembedStubPassages,
   runGraphSpineBackfill,
+  looksLikeStubEmbedding,
   type GraphBackfillCounts,
 } from "@/lib/graph/backfill";
+
+export { GRAPH_EDGE_READERS } from "@/lib/graph/readers";

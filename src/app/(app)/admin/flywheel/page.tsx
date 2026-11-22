@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { GraphSpinePanel } from "@/components/admin/graph-spine-panel";
 
 type Row = {
   id: string;
@@ -186,6 +187,8 @@ function FlywheelInner() {
           )}
         </section>
       ) : null}
+
+      <GraphSpinePanel />
 
       <Link href="/admin" className="text-sm underline">
         Back to admin
