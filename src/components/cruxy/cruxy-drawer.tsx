@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CruxWordmark } from "@/components/crux-wordmark";
 import { useCruxy } from "@/components/cruxy/cruxy-context";
 import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
 import { GeniePose } from "@/components/cruxy/mood/genie-pose";
@@ -168,18 +169,16 @@ export function CruxyDrawer() {
       role="dialog"
       aria-label="Cruxy assistant"
     >
-      <header className="flex items-center justify-between border-b border-mist px-4 py-3">
-        <div className="flex items-center gap-3">
+      <header className="flex items-center justify-between gap-3 border-b border-mist bg-ink px-4 py-3">
+        <div className="flex min-w-0 items-center gap-3">
           {busy ? (
             <LoadingGenie compact size={48} label="Thinking..." />
           ) : (
             <GeniePose pose={mood} width={44} />
           )}
-          <div>
-            <p className="font-display text-lg font-extrabold text-cardinal">
-              Cruxy
-            </p>
-            <p className="text-[11px] text-muted">
+          <div className="min-w-0">
+            <CruxWordmark className="text-[22px]" />
+            <p className="mt-0.5 text-[11px] text-white/70">
               {adminMode ? (
                 <>
                   Admin mode
@@ -198,7 +197,7 @@ export function CruxyDrawer() {
         </div>
         <button
           type="button"
-          className="rounded-lg px-2 py-1 text-sm text-muted"
+          className="shrink-0 rounded-lg px-2 py-1 text-sm text-white/80"
           onClick={() => setDrawerOpen(false)}
         >
           Close
