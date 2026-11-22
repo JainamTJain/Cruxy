@@ -13,7 +13,7 @@ Each line is a decision already made. Quotes are Jainam's own words. Don't rever
 - **Teams:** Team 1 Serena, Ivan, Ashton, Stolei, Tri; Team 2 Lehar, Camerin, Jade, Bethany, Quixote; Team 3 Nick, Daniel, Katie, Jainam.
 - **Admins see everything.** "Dr B would not approve anything instead she and me we must both be able to see everything and I should also be able to see other technical stuff." Dr. B approves nothing; Jainam alone sees technical panels (spend, keys, calibration, book requests, passcodes, Is Crux working).
 - **Dr. B uses the platform herself** and gets a weekly summary only if she consents.
-- **Everything is visible to all teams.** "Everything." Each team decides for itself: "Anyone does it for themselves or their team."
+- ~~**Everything is visible to all teams.**~~ Superseded Nov 21, 2026 (see "Team privacy and shared ideas" below).
 - **USC teams never compete against each other.** No rankings between them.
 - **Admins take attendance** and enter session dates; Cruxy only pre-fills.
 
@@ -88,3 +88,14 @@ Each line is a decision already made. Quotes are Jainam's own words. Don't rever
 
 - Small tier: GPT-6 Luna, backup Gemini 3.8 Flash. Strong tier: GPT-6.2 Sol, backup Gemini 4 Carbon. Embeddings: OpenAI text-embedding-3-small. All through Vercel AI Gateway with per-request zero data retention. No Anthropic, no direct provider SDKs. Details: `docs/orchestration/model-routing.md`.
 - Dr. B has his own starter code (`COACH_STARTER_CODE_HASH`), separate from the shared member starter code.
+
+## Team privacy and shared ideas (Jainam, Nov 21, 2026)
+
+- **Teams do not see each other's work.** A member never sees another team's roles, leads, working document, one pager or discussion. Dr. B and Jainam see every team.
+- **Good ideas still travel.** When a team adds a thought, Cruxy weighs it against the APPE judging criteria. Only ideas that would help a team win reach the other teams, as an anonymous suggestion with a tick and a cross on their working document. Weak, wrong or unsupported ideas never travel. Do not feed teams bad data.
+- **Tell Cruxy an idea.** A member can say an idea to Cruxy; Cruxy turns it into a suggestion on the working document with the person's name, for the team to tick or cross.
+- **Arguments must hold together.** Cruxy checks the working document for missing perspectives and stakeholders, claims that do not connect to the answer, and loose ends, and raises each as a suggestion.
+- **Discussion lives where the work is.** People discuss on the annotation, suggestion or section itself, inside the case. Cruxy can summarise a case's discussion and decisions.
+- **Explain every framework.** Any ethics framework or technical term (for example Kantian ethics) shows a short plain explanation on hover, says how it applies to this case, and links to a reputable source.
+- **Score predictions:** visible to the person, Dr. B and Jainam.
+- **Fewer buttons.** One "Save or share" menu per case instead of separate offline, print, PDF and Drive buttons.
