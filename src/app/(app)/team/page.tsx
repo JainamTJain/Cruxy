@@ -289,6 +289,12 @@ export default function TeamBoardPage() {
           >
             Roles board
           </Link>
+          <Link
+            href="/team/calendar"
+            className="inline-flex h-10 items-center px-2 text-sm text-muted underline-offset-2 hover:underline"
+          >
+            More team tools
+          </Link>
           {data.teams.map((t) => (
             <button
               key={t.id}
