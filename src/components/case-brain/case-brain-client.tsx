@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { CaseReadings } from "@/components/case/case-readings";
 import { IdeasOverTime } from "@/components/case/ideas-over-time";
 import { TheCaseTab } from "@/components/case/the-case-tab";
+import { OfflineCaseButton } from "@/components/offline/offline-case-button";
 import { ClaimRobustness } from "@/components/case-brain/claim-robustness";
 import { OriginTag } from "@/components/case-brain/origin-tag";
 import {
@@ -373,6 +374,18 @@ export function CaseBrainClient({
             <h1 className="font-display m-0 text-[44px] font-extrabold leading-none tracking-[-0.02em]">
               {caseRow?.title ?? "Case"}
             </h1>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <OfflineCaseButton
+                caseId={caseId}
+                teamId={teamId || brain.team_id}
+              />
+              <Link
+                href={`/case-brain/${caseId}/packet?team=${encodeURIComponent(teamId || brain.team_id)}`}
+                className="rounded-xl border border-[#E3E5E9] bg-white px-3 py-2 text-sm font-semibold"
+              >
+                Print packet
+              </Link>
+            </div>
             {crux.left ? (
               <p className="m-0 text-base text-[#3B404A]">
                 Crux: {crux.left}

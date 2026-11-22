@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { DisplaySettings } from "@/components/access/display-settings";
+import { StatusPill } from "@/components/access/status-pill";
+import { PageIntro } from "@/components/page-intro";
 import { Button } from "@/components/ui/button";
 import { Keypad } from "@/components/keypad";
 import { LearningProfileForm } from "@/components/learning-profile-form";
@@ -36,6 +39,15 @@ export default function SettingsPage() {
   );
   const [currentCode, setCurrentCode] = useState<string | null>(null);
   const [nextCode, setNextCode] = useState<string | null>(null);
+  const [devices, setDevices] = useState<
+    {
+      id: string;
+      label: string;
+      lastSeenAt: string;
+      current: boolean;
+    }[]
+  >([]);
+  const [deviceMsg, setDeviceMsg] = useState<string | null>(null);
 
   useEffect(() => {
     void fetch("/api/auth/me")
@@ -84,7 +96,46 @@ export default function SettingsPage() {
         },
       )
       .catch(() => undefined);
+    void loadDevices();
   }, []);
+
+  async function loadDevices() {
+    const res = await fetch("/api/settings/devices");
+    if (!res.ok) return;
+    const d = (await res.json()) as {
+      devices?: {
+        id: string;
+        label: string;
+        lastSeenAt: string;
+        current: boolean;
+      }[];
+    };
+    setDevices(d.devices ?? []);
+  }
+
+  async function revokeOthers() {
+    setDeviceMsg(null);
+    const res = await fetch("/api/settings/devices", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "revoke_others" }),
+    });
+    const j = (await res.json()) as { error?: string; message?: string };
+    setDeviceMsg(j.message ?? j.error ?? null);
+    await loadDevices();
+  }
+
+  async function revokeOne(deviceId: string) {
+    setDeviceMsg(null);
+    const res = await fetch("/api/settings/devices", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "revoke_one", deviceId }),
+    });
+    const j = (await res.json()) as { error?: string; message?: string };
+    setDeviceMsg(j.message ?? j.error ?? null);
+    await loadDevices();
+  }
 
   async function saveReminders() {
     const res = await fetch("/api/settings/reminders", {
@@ -198,17 +249,24 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="animate-fade-up max-w-lg space-y-6">
-      <div>
-        <h1 className="font-display text-3xl font-semibold">Settings</h1>
-        <p className="mt-1 text-sm text-muted">
-          Reminders stay in-app by default. Email only if you add an address and
-          opt in.{" "}
-          <Link href="/practice/calibration" className="underline">
-            Your score prediction trend
-          </Link>{" "}
-          stays private to you.
-        </p>
+    <div className="animate-fade-up max-w-lg space-y-6">
+      <PageIntro title="Settings">
+        Reminders, display, consent, passcode and Cruxy. Change what helps you
+        read and move through Crux.
+      </PageIntro>
+      <p className="text-sm text-muted">
+        <Link href="/practice/calibration" className="underline">
+          Your score prediction trend
+        </Link>{" "}
+        stays private to you.{" "}
+        <Link href="/settings/privacy" className="underline">
+          Privacy centre
+        </Link>
+        : what Crux stores about you, with download and delete.
+      </p>
+
+      <div className="border-t border-ink/10 pt-4">
+        <DisplaySettings />
       </div>
       <label className="block text-sm">
         Email
@@ -293,6 +351,59 @@ export default function SettingsPage() {
       </div>
 
       <div className="border-t border-ink/10 pt-4">
+        <h2 className="font-display text-lg font-semibold">Signed-in devices</h2>
+        <p className="mt-1 text-sm text-muted">
+          Browsers where you are signed in. Sign out others if you used a shared
+          computer.
+        </p>
+        {devices.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">
+            No device list yet. Sign out and back in after the update.
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {devices.map((d) => (
+              <li
+                key={d.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-ink/10 bg-white/70 px-3 py-2 text-sm"
+              >
+                <div>
+                  <p className="font-medium">
+                    {d.label}
+                    {d.current ? (
+                      <span className="ml-2 text-xs text-muted">This device</span>
+                    ) : null}
+                  </p>
+                  <p className="text-xs text-muted">
+                    Last seen {new Date(d.lastSeenAt).toLocaleString()}
+                  </p>
+                </div>
+                {!d.current ? (
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-cardinal underline"
+                    onClick={() => void revokeOne(d.id)}
+                  >
+                    Sign out
+                  </button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+        <Button
+          className="mt-3"
+          variant="outline"
+          onClick={() => void revokeOthers()}
+        >
+          Sign out of other devices
+        </Button>
+        {deviceMsg ? (
+          <p className="mt-2 text-sm text-muted">{deviceMsg}</p>
+        ) : null}
+      </div>
+
+      <div className="border-t border-ink/10 pt-4">
         <h2 className="font-display text-lg font-semibold">Passcode</h2>
         <p className="mt-1 text-sm text-muted">
           Enter your current passcode, then choose a new one twice.
@@ -352,11 +463,12 @@ export default function SettingsPage() {
                   key={o.id}
                   className="rounded-xl border border-ink/10 bg-white/70 px-3 py-2 text-sm"
                 >
-                  <span className="font-medium">
-                    {improved ? "Improved" : "No lift"}
-                  </span>
+                  <StatusPill
+                    tone={improved ? "ok" : "neutral"}
+                    label={improved ? "Improved" : "No lift"}
+                  />
                   {o.attempt_kind ? (
-                    <span className="text-muted"> on {o.attempt_kind}</span>
+                    <span className="ml-2 text-muted">on {o.attempt_kind}</span>
                   ) : null}
                   {o.score_delta != null ? (
                     <span className="ml-2 font-mono text-xs text-muted">
@@ -388,7 +500,11 @@ export default function SettingsPage() {
           Save Cruxy
         </Button>
       </div>
-      {msg ? <p className="text-sm text-muted">{msg}</p> : null}
-    </main>
+      {msg ? (
+        <p className="text-sm text-muted" role="status" aria-live="polite">
+          {msg}
+        </p>
+      ) : null}
+    </div>
   );
 }

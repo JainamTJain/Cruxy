@@ -7,6 +7,7 @@ import { ChunkedRecorder } from "@/components/practice/chunked-recorder";
 import { CruxyJudgeQa } from "@/components/practice/cruxy-judge-qa";
 import { LiveCaptions } from "@/components/practice/live-captions";
 import { RecordingLayoutPicker } from "@/components/practice/recording-layout-picker";
+import { PriorReflectionBanner } from "@/components/practice/prior-reflection-banner";
 import { ScorePredictionForm } from "@/components/practice/score-prediction-form";
 import { TextOnlyBanner } from "@/components/practice/text-only-banner";
 import { PreRoundCalmCta } from "@/components/product";
@@ -17,6 +18,7 @@ type Round = {
   session_id: string;
   mode: string;
   phase: string;
+  case_id: string | null;
   case_number: number | null;
   judges: { humans: string[]; cruxy: boolean };
   timings: {
@@ -322,6 +324,7 @@ export default function RoundPage() {
                   compact
                   className="border-[#3A3F4A] bg-[#0C0D11] text-white"
                 />
+                <PriorReflectionBanner caseId={round.case_id} />
                 <ScorePredictionForm
                   roundId={round.id}
                   personId={personId}

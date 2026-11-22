@@ -163,6 +163,11 @@ export interface PersonPrefs {
   cruxy_x: number | null;
   cruxy_y: number | null;
   cruxy_device: string | null;
+  /** Wave 9 I access prefs */
+  text_size: "sm" | "md" | "lg" | "xl";
+  high_contrast: boolean;
+  readable_font: boolean;
+  reduce_motion: "system" | "on" | "off";
   updated_at: string;
 }
 

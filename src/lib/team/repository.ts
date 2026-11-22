@@ -839,6 +839,10 @@ export async function getPersonPrefs(personId: string): Promise<PersonPrefs> {
       cruxy_x: null,
       cruxy_y: null,
       cruxy_device: null,
+      text_size: "md",
+      high_contrast: false,
+      readable_font: false,
+      reduce_motion: "system",
       updated_at: nowIso(),
     }
   );
@@ -862,9 +866,21 @@ export async function savePersonPrefs(
             cruxy_x: null,
             cruxy_y: null,
             cruxy_device: null,
+            text_size: "md" as const,
+            high_contrast: false,
+            readable_font: false,
+            reduce_motion: "system" as const,
             updated_at: nowIso(),
           };
-    saved = { ...base, ...prefs, updated_at: nowIso() };
+    saved = {
+      ...base,
+      ...prefs,
+      text_size: prefs.text_size ?? base.text_size ?? "md",
+      high_contrast: prefs.high_contrast ?? base.high_contrast ?? false,
+      readable_font: prefs.readable_font ?? base.readable_font ?? false,
+      reduce_motion: prefs.reduce_motion ?? base.reduce_motion ?? "system",
+      updated_at: nowIso(),
+    };
     if (i >= 0) s.person_prefs[i] = saved;
     else s.person_prefs.push(saved);
   });

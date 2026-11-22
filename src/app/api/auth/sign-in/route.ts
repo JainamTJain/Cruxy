@@ -13,7 +13,9 @@ export async function POST(req: Request) {
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     req.headers.get("x-real-ip");
-  const result = await attemptSignIn(body.personId, body.code, hashIp(ip));
+  const result = await attemptSignIn(body.personId, body.code, hashIp(ip), {
+    userAgent: req.headers.get("user-agent"),
+  });
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error, lockedUntil: result.lockedUntil },

@@ -5,10 +5,12 @@ import Link from "next/link";
 
 type Note = {
   id: string;
+  kind?: string;
   title: string;
   body: string | null;
   href: string | null;
   read_at: string | null;
+  payload?: Record<string, unknown>;
 };
 
 /** In-app reminders (F-074). Full list lives on /notifications. */
@@ -16,6 +18,7 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
   const [unread, setUnread] = useState(0);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   async function load() {
     const res = await fetch("/api/notifications?unread=0");
@@ -49,6 +52,20 @@ export function NotificationBell() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ markAll: true }),
     });
+    void load();
+  }
+
+  async function approveReset(n: Note) {
+    const requestId =
+      typeof n.payload?.requestId === "string" ? n.payload.requestId : null;
+    if (!requestId) return;
+    setBusyId(n.id);
+    await fetch("/api/auth/forgot-passcode/approve", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ requestId, notificationId: n.id }),
+    });
+    setBusyId(null);
     void load();
   }
 
@@ -91,7 +108,17 @@ export function NotificationBell() {
                   {n.body ? (
                     <p className="mt-0.5 text-xs text-muted">{n.body}</p>
                   ) : null}
-                  <div className="mt-1 flex gap-2 text-xs">
+                  <div className="mt-1 flex flex-wrap gap-2 text-xs">
+                    {n.kind === "passcode_reset_request" && !n.read_at ? (
+                      <button
+                        type="button"
+                        disabled={busyId === n.id}
+                        className="font-semibold text-cardinal underline disabled:opacity-50"
+                        onClick={() => void approveReset(n)}
+                      >
+                        {busyId === n.id ? "Approving…" : "Approve reset"}
+                      </button>
+                    ) : null}
                     {n.href ? (
                       <Link href={n.href} className="text-cardinal underline">
                         Open

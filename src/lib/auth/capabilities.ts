@@ -80,6 +80,24 @@ export function canTakeAttendance(
   return isAdminRole(person.role) && session.adminView;
 }
 
+/**
+ * Wave 9 E: Dr. B (coach admin in admin view) or a case lead on the team
+ * may add calendar events and availability polls.
+ */
+export function canManageTeamCalendar(
+  person: Person,
+  session: SessionPayload,
+  teamId: string,
+  isCaseLead: boolean,
+): boolean {
+  if (person.role === "coach_admin" && session.adminView) return true;
+  if (person.role === "tech_admin" && session.adminView) return true;
+  if (!session.teamId || session.teamId !== teamId) {
+    if (!(isAdminRole(person.role) && session.adminView)) return false;
+  }
+  return isCaseLead || (isAdminRole(person.role) && session.adminView);
+}
+
 export function canOpenPasscodesPanel(
   person: Person,
   session: SessionPayload,
