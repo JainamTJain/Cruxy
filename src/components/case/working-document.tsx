@@ -84,7 +84,7 @@ function Attr({
   if (!name && !when) return null;
   return (
     <p className="m-0 mt-1 text-[11px] text-muted">
-      {[name, when].filter(Boolean).join(" · ")}
+      {[name, when].filter(Boolean).join(", ")}
     </p>
   );
 }
@@ -391,7 +391,7 @@ function SuggestionCard({
     <li className="rounded-[12px] border border-mist bg-white px-3 py-2.5">
       <p className="m-0 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
         {KIND_LABEL[s.kind] ?? "Suggestion"}
-        {s.source === "evidence_library" ? " · shared" : ""}
+        {s.source === "evidence_library" ? ", shared" : ""}
       </p>
       <p className="m-0 mt-1 text-sm leading-snug">{s.text}</p>
       {s.citation ? (

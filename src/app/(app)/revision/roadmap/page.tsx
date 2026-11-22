@@ -77,7 +77,7 @@ const STAGE_HREF: Partial<Record<RoadmapStageId, string>> = {
 };
 
 function formatDue(iso: string | null | undefined): string {
-  if (!iso) return "Not set";
+  if (!iso) return "No date yet";
   const d = new Date(iso + "T12:00:00Z");
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
