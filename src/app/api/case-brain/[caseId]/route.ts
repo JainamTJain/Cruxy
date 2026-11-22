@@ -20,7 +20,10 @@ import {
   listTeams,
 } from "@/lib/db/repository";
 import { listDeckOptInsForCase } from "@/lib/db/supabase/case-brain-extra";
-import { listResearchRuns } from "@/lib/db/library-repository";
+import {
+  listLibraryFiles,
+  listResearchRuns,
+} from "@/lib/db/library-repository";
 import { listFlashcards, listQuestions } from "@/lib/revision/repository";
 import {
   confirmClaimMapVersion,
@@ -75,7 +78,7 @@ export async function GET(_req: Request, { params }: Params) {
   }
   const refreshed = await getCaseBrain(teamId, caseId);
 
-  const [teams, cases, peopleFull, flashcards, questions, mapVersion, versions, optIns, researchRuns] =
+  const [teams, cases, peopleFull, flashcards, questions, mapVersion, versions, optIns, researchRuns, libraryFiles] =
     await Promise.all([
       listTeams(),
       listCases(),
@@ -86,6 +89,7 @@ export async function GET(_req: Request, { params }: Params) {
       listClaimMapVersions(teamId, caseId),
       listDeckOptInsForCase(caseId),
       listResearchRuns(40),
+      listLibraryFiles(),
     ]);
   const researchForCase = researchRuns.filter((r) => r.case_id === caseId);
   const latestResearch = researchForCase[0] ?? null;
@@ -141,6 +145,11 @@ export async function GET(_req: Request, { params }: Params) {
   const waitingProposals = refreshed.proposals.filter(
     (p) => p.status === "pending",
   ).length;
+  const readingCount = libraryFiles.filter(
+    (f) =>
+      f.case_ids.includes(caseId) ||
+      (caseRow != null && f.case_numbers.includes(caseRow.number)),
+  ).length;
 
   return NextResponse.json({
     case: caseRow,
@@ -169,7 +178,7 @@ export async function GET(_req: Request, { params }: Params) {
       truth_waiting: waitingProposals,
       flashcard_count: flashcards.length,
       question_count: questions.filter((q) => q.status === "active").length,
-      reading_count: 0,
+      reading_count: readingCount,
       also_studying: alsoStudying,
       map_version: mapVersion
         ? {

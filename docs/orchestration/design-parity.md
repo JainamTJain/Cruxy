@@ -758,7 +758,7 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## Reading.html
 
-- [x] D-0727 Crux: reading room [src/app/(app)/library/[fileId]/page.tsx]
+- [x] D-0727 Crux: reading room (folded into case The case / Readings; full original at `/library/[fileId]?fromCase=`) [`src/components/case/`, `src/app/(app)/library/[fileId]/`]
 - [ ] D-0728 crux
 - [ ] D-0729 Program map
 - [ ] D-0730 My roadmap

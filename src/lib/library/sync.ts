@@ -144,6 +144,21 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
     aiCalls += digested.aiCalls;
     await saveLibraryFile(digested.file);
     await replaceFilePassages(digested.file.id, digested.passages);
+    try {
+      const { distillFileSegments } = await import("@/lib/library/segments");
+      const { replaceFileSegments } = await import(
+        "@/lib/db/supabase/file-segments"
+      );
+      const segments = distillFileSegments({
+        file: digested.file,
+        passages: digested.passages,
+        caseId: digested.file.case_ids[0] ?? null,
+        personId: opts.personId,
+      });
+      await replaceFileSegments(digested.file.id, segments);
+    } catch {
+      // Segments are a speed aid; digest still succeeds without them.
+    }
     filesProcessed += 1;
     if (wasNew) newFileIds.push(digested.file.id);
 

@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { CaseReadings } from "@/components/case/case-readings";
+import { IdeasOverTime } from "@/components/case/ideas-over-time";
+import { TheCaseTab } from "@/components/case/the-case-tab";
 import { ClaimRobustness } from "@/components/case-brain/claim-robustness";
 import { OriginTag } from "@/components/case-brain/origin-tag";
 import {
@@ -21,6 +25,27 @@ import type {
 } from "@/lib/case-brain/types";
 import type { CaseRow, Team } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+type CaseTab =
+  | "case"
+  | "ideas"
+  | "map"
+  | "truth"
+  | "readings"
+  | "flashcards"
+  | "questions"
+  | "research";
+
+const CASE_TABS = new Set<CaseTab>([
+  "case",
+  "ideas",
+  "map",
+  "truth",
+  "readings",
+  "flashcards",
+  "questions",
+  "research",
+]);
 
 type PersonLite = { id: string; name: string; team_id: string | null };
 
@@ -154,10 +179,21 @@ export function CaseBrainClient({
   const [reasonDrafts, setReasonDrafts] = useState<Record<string, string>>({});
   const [editDrafts, setEditDrafts] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [tab, setTab] = useState<
-    "map" | "truth" | "readings" | "flashcards" | "questions" | "research"
-  >("map");
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab");
+  const focusFileId = searchParams.get("file");
+  const [tab, setTab] = useState<CaseTab>(() =>
+    initialTab && CASE_TABS.has(initialTab as CaseTab)
+      ? (initialTab as CaseTab)
+      : "case",
+  );
   const [compare, setCompare] = useState(false);
+
+  useEffect(() => {
+    if (initialTab && CASE_TABS.has(initialTab as CaseTab)) {
+      setTab(initialTab as CaseTab);
+    }
+  }, [initialTab]);
 
   const load = useCallback(
     async (tid?: string) => {
@@ -412,6 +448,8 @@ export function CaseBrainClient({
       >
         {(
           [
+            ["case", "The case", null],
+            ["ideas", "Ideas over time", null],
             ["map", "Claim map", null],
             ["truth", "Truth Sources", meta.truth_count],
             ["readings", "Readings", meta.reading_count || null],
@@ -782,19 +820,20 @@ export function CaseBrainClient({
               </section>
             ) : null}
 
+            {tab === "case" ? (
+              <TheCaseTab caseId={caseId} teamId={teamId || brain.team_id} />
+            ) : null}
+
+            {tab === "ideas" ? (
+              <IdeasOverTime caseId={caseId} teamId={teamId || brain.team_id} />
+            ) : null}
+
             {tab === "readings" ? (
-              <section className="rounded-[20px] bg-white p-5">
-                <p className="text-sm">
-                  Readings live in the reading room. Open files tagged for this
-                  case.
-                </p>
-                <Link
-                  href="/library"
-                  className="mt-3 inline-flex rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-white"
-                >
-                  Reading room
-                </Link>
-              </section>
+              <CaseReadings
+                caseId={caseId}
+                teamId={teamId || brain.team_id}
+                focusFileId={focusFileId}
+              />
             ) : null}
 
             {tab === "research" ? (

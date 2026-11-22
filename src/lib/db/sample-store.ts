@@ -62,6 +62,7 @@ import type {
   ResearchRun,
   SyncRun,
 } from "@/lib/library/types";
+import type { FileSegment } from "@/lib/library/segments";
 import type {
   CardFsrsState,
   CardReview,
@@ -129,6 +130,8 @@ export interface SampleStore {
   research_runs: ResearchRun[];
   book_requests: BookRequest[];
   sync_runs: SyncRun[];
+  /** Wave 8 F: short distilled bits per Drive file */
+  file_segments: FileSegment[];
   /** Track 2 Case brain (proposals shared with Library research/reading) */
   claims: Claim[];
   supports: Support[];
@@ -304,6 +307,7 @@ function emptyLibraryFields(): Pick<
   | "research_runs"
   | "book_requests"
   | "sync_runs"
+  | "file_segments"
 > {
   return {
     files: [],
@@ -314,6 +318,7 @@ function emptyLibraryFields(): Pick<
     research_runs: [],
     book_requests: [],
     sync_runs: [],
+    file_segments: [],
   };
 }
 
@@ -720,6 +725,7 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     research_runs: raw.research_runs ?? library.research_runs,
     book_requests: raw.book_requests ?? library.book_requests,
     sync_runs: raw.sync_runs ?? library.sync_runs,
+    file_segments: raw.file_segments ?? library.file_segments,
     claims: raw.claims ?? brain.claims,
     supports: raw.supports ?? brain.supports,
     backings: raw.backings ?? brain.backings,

@@ -106,9 +106,9 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-084 Split into passages of about 600 words with page or heading anchors, embed each, and store them for search. [src/lib/library/digest.ts]
 - [x] F-085 Extract from each file: ideas raised, who raised them, frameworks named, facts with sources, moderator style questions, and coach decisions. Ideas from practice transcripts become Truth Source proposals for the team that raised them. [`src/lib/library/digest.ts`, `src/lib/library/sync.ts`, `src/lib/cruxy/schemas/librarian.ts`]
 - [x] F-086 Write a 5 line file card: what it is, which case, what's new in it, open questions. [`src/lib/library/file-card.ts`, `src/lib/library/digest.ts`, `src/app/(app)/library/[fileId]/page.tsx`]
-- [x] F-087 **Reading room** (any time except while you are in a live practice) [src/app/(app)/library/[fileId]/page.tsx]
-- [x] F-088 Open any case or resource full screen, with the case set page and the file side by side. [src/app/(app)/library/[fileId]/page.tsx]
-- [x] F-089 Highlight text and leave a comment; highlights and comments are visible to all three teams, with names and team colours. [src/app/(app)/library/[fileId]/page.tsx]
+- [x] F-087 **Reading room** folded into each case (The case + Readings tabs); old `/library/[fileId]` redirects into the case. Full original stays one tap away. [`src/components/case/`, `src/app/(app)/library/[fileId]/page.tsx`]
+- [x] F-088 Open any case or resource full screen, with the case set page and the file side by side. [`src/components/case/the-case-tab.tsx`, `src/app/(app)/library/[fileId]/reading-room-client.tsx`]
+- [x] F-089 Highlight text and leave a comment; highlights and comments are visible to all three teams, with names and team colours. [`src/app/(app)/library/[fileId]/reading-room-client.tsx`]
 - [x] F-090 Ask Cruxy about a highlight: "explain this", "find a counterexample", "is this cited elsewhere in our Drive?" [src/app/api/library/ask/route.ts]
 - [x] F-091 Turn a highlight into a flashcard or a Truth Source proposal in one tap. [src/app/api/library/highlight-actions/route.ts]
 - [x] F-092 Search across everything (passages, transcripts, Truth Sources, comments) with filters by case, team and type. [`src/lib/db/supabase/library-search-extra.ts`, `src/app/api/library/search/route.ts`, `src/app/(app)/library/search/page.tsx`]
@@ -134,6 +134,9 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 ## Case brain and Truth Sources
 
 - [x] F-108 Case card: facts from the case set with page numbers, the crux, the trap, stakeholders, likely moderator questions. · [src/lib/seed/, supabase/seed/, src/lib/db/sample-store.ts]
+- [x] F-108a **The case** tab: full case text with highlights, questions and notes in place; **Ideas over time** for versions, accepted ideas and new questions. [`src/components/case/the-case-tab.tsx`, `src/components/case/ideas-over-time.tsx`, `src/app/api/case-home/`]
+- [x] F-108b Library shows short organised segments per file (what, key points, questions, speakers), not raw Drive dumps; migration `00054` `file_segments`. [`src/lib/library/segments.ts`, `src/components/case/case-readings.tsx`, `src/app/(app)/library/page.tsx`]
+- [x] F-108c Speed: LoadingGenie on case and library waits, short cache headers, reserved min-heights to avoid layout jumps. [`LoadingGenie` in case/library clients]
 - [x] F-109 Claim map: at least 2 claims, each with a logic line and 3 supports; each support with its backing (case fact, source, example or framework); at least 1 counterclaim with concede, distinguish and rebut. The same structure as the prep doc. · [src/lib/seed/build-content.ts, supabase/seed/02_claims.sql]
 - [x] F-110 Truth Sources: every fact, quote, example and framework the team has accepted, each linked to its passage, timestamp or page. · [src/lib/seed/build-content.ts, supabase/seed/03_truth_items.sql]
 - [x] F-111 Case roles: Lead 1, Lead 2, counter-arguer, supporter, shown at the top and editable by any team member (see Assignments). · [src/lib/seed/build-content.ts, supabase/seed/06_flashcards_roles_proposals.sql]

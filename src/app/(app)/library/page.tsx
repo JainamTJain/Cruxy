@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
 import { useCruxy } from "@/components/cruxy/cruxy-context";
 
 type FileCard = {
@@ -11,9 +12,13 @@ type FileCard = {
   type: string | null;
   confidence: number | null;
   case_numbers: number[];
+  case_ids?: string[];
   status: string;
-  card: string | null;
   scanned_pdf: boolean;
+  what?: string | null;
+  points?: string[];
+  questions?: string[];
+  speakers?: { who: string; line: string }[];
 };
 
 type SyncLatest = {
@@ -55,6 +60,7 @@ export default function LibraryPage() {
   const [unreadables, setUnreadables] = useState<UnreadableRow[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
@@ -86,6 +92,7 @@ export default function LibraryPage() {
       setWriteEnabled(Boolean(data.writeEnabled));
       setWriteMessage(data.writeMessage ?? null);
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -152,6 +159,14 @@ export default function LibraryPage() {
 
   const emptyDrive = files.length === 0;
 
+  if (loading) {
+    return (
+      <main className="min-h-[320px]">
+        <LoadingGenie label="Opening library…" />
+      </main>
+    );
+  }
+
   return (
     <main className="animate-fade-up flex flex-col gap-7">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -160,11 +175,11 @@ export default function LibraryPage() {
             Library from Drive
           </span>
           <h1 className="font-display mt-1 text-[40px] font-extrabold leading-none tracking-[-0.03em]">
-            Reading room
+            Library
           </h1>
           <p className="mt-2 max-w-xl text-sm text-muted">
-            Ethics Bowl Drive, digested into citable passages. Open a file beside
-            its case set page.
+            Short takes from the Ethics Bowl Drive, organised by case. Open a
+            file to read it on the case page.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -378,16 +393,17 @@ export default function LibraryPage() {
           className="block rounded-[20px] bg-ink p-6 text-white transition hover:bg-[#1E2129]"
         >
           <span className="text-xs font-bold uppercase tracking-[0.12em] text-gold">
-            Open reading room
+            Start here
           </span>
           <h2 className="font-display mt-2 text-2xl font-extrabold">
             {featured.name}
           </h2>
           <p className="mt-1 text-sm text-[#9AA0AA]">
-            {featured.case_numbers.length
-              ? `Cases ${featured.case_numbers.join(", ")}`
-              : "General"}
-            {featured.path ? `, ${featured.path}` : ""}
+            {featured.what
+              ? featured.what
+              : featured.case_numbers.length
+                ? `Cases ${featured.case_numbers.join(", ")}`
+                : "General"}
           </p>
         </Link>
       ) : null}
@@ -398,39 +414,52 @@ export default function LibraryPage() {
             No files yet. Follow the connect steps above, then Sync now.
           </li>
         ) : (
-          files.map((f) => (
-            <li key={f.id}>
-              <Link
-                href={`/library/${f.id}`}
-                className="block rounded-[20px] border border-[#E3E5E9] bg-white px-4 py-3 transition hover:border-cardinal/30"
-              >
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 className="font-display text-lg font-extrabold">
-                    {f.name}
-                  </h2>
-                  <span className="font-mono text-[11px] text-muted">
-                    {f.type ?? "untyped"}
-                    {f.confidence != null
-                      ? `, ${f.confidence.toFixed(2)}`
-                      : ""}
-                    {f.status === "sorting_queue" ? ", queue" : ""}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-muted">
-                  {f.path}
-                  {f.case_numbers.length
-                    ? `, cases ${f.case_numbers.join(", ")}`
-                    : ", general"}
-                  {f.scanned_pdf ? ", scanned PDF" : ""}
-                </p>
-                {f.card ? (
-                  <pre className="mt-2 whitespace-pre-wrap font-sans text-xs text-ink/70">
-                    {f.card}
-                  </pre>
-                ) : null}
-              </Link>
-            </li>
-          ))
+          files.map((f) => {
+            const href =
+              f.case_ids?.[0]
+                ? `/case-brain/${f.case_ids[0]}?tab=readings&file=${f.id}`
+                : `/library/${f.id}`;
+            return (
+              <li key={f.id}>
+                <Link
+                  href={href}
+                  className="block rounded-[20px] border border-[#E3E5E9] bg-white px-4 py-3 transition hover:border-cardinal/30"
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h2 className="font-display text-lg font-extrabold">
+                      {f.name}
+                    </h2>
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
+                      {f.type?.replace(/_/g, " ") ?? "file"}
+                      {f.case_numbers.length
+                        ? ` · case ${f.case_numbers.join(", ")}`
+                        : ""}
+                    </span>
+                  </div>
+                  {f.what ? (
+                    <p className="mt-1.5 text-sm text-ink/85">{f.what}</p>
+                  ) : null}
+                  {(f.points?.length ?? 0) > 0 ? (
+                    <ul className="mt-2 m-0 list-none space-y-1 p-0">
+                      {f.points!.slice(0, 2).map((p) => (
+                        <li
+                          key={p}
+                          className="rounded-lg bg-[#F7F8FA] px-2.5 py-1.5 text-xs text-[#3B404A]"
+                        >
+                          {p}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {(f.questions?.length ?? 0) > 0 ? (
+                    <p className="mt-2 text-xs text-muted">
+                      Open: {f.questions![0]}
+                    </p>
+                  ) : null}
+                </Link>
+              </li>
+            );
+          })
         )}
       </ul>
     </main>

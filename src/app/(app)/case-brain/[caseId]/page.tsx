@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { CaseBrainClient } from "@/components/case-brain/case-brain-client";
+import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 
@@ -17,9 +19,17 @@ export default async function CaseBrainDetailPage({
   const { team } = await searchParams;
 
   return (
-    <CaseBrainClient
-      caseId={caseId}
-      initialTeamId={team || session.teamId || undefined}
-    />
+    <Suspense
+      fallback={
+        <div className="min-h-[320px]">
+          <LoadingGenie label="Opening case…" />
+        </div>
+      }
+    >
+      <CaseBrainClient
+        caseId={caseId}
+        initialTeamId={team || session.teamId || undefined}
+      />
+    </Suspense>
   );
 }
