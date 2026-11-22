@@ -1,5 +1,6 @@
 /**
- * Learning profile screenshots at 390px and 1280px.
+ * Learning profile v2 screenshots at 390px and 1280px.
+ * First-run form + Settings My profile.
  * Usage: USE_SAMPLE_DATA=1 npm run dev, then:
  *   node scripts/shot-learning-profile.mjs
  */
@@ -10,34 +11,40 @@ import { join } from "node:path";
 const BASE = process.env.SHOTS_BASE ?? "http://127.0.0.1:3000";
 const OUT = join(".shots", "learning-profile");
 const STARTER = "482913";
+const MEMBER = "159753";
 
 mkdirSync(OUT, { recursive: true });
 
 async function dismissCruxy(page) {
+  const skip = page.getByText("Skip", { exact: true });
+  if ((await skip.count()) > 0) {
+    await skip.first().click().catch(() => {});
+    await page.waitForTimeout(150);
+  }
   const back = page.getByText("Back to the lamp");
   if ((await back.count()) > 0) {
     await back.first().click().catch(() => {});
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(150);
   }
 }
 
-async function signInFresh(ctx) {
+async function signInFresh(ctx, nameHint = "Quixote") {
   const j = { "content-type": "application/json" };
   await ctx.request.post(`${BASE}/api/auth/sign-out`).catch(() => undefined);
   const people = (
     await (await ctx.request.get(`${BASE}/api/auth/people`)).json()
   ).people;
-  const person = people.find(
-    (p) => p.name === "Quixote" || p.name.startsWith("Quixote"),
-  );
-  if (!person) throw new Error("Quixote missing");
+  const person =
+    people.find((p) => p.name === nameHint || p.name.startsWith(nameHint)) ??
+    people[0];
+  if (!person) throw new Error("person missing");
   let sign = await ctx.request.post(`${BASE}/api/auth/sign-in`, {
     data: { personId: person.id, code: STARTER },
     headers: j,
   });
   if (!sign.ok()) {
     sign = await ctx.request.post(`${BASE}/api/auth/sign-in`, {
-      data: { personId: person.id, code: "159753" },
+      data: { personId: person.id, code: MEMBER },
       headers: j,
     });
   }
@@ -47,7 +54,7 @@ async function signInFresh(ctx) {
   return person;
 }
 
-async function shoot(width, height, name) {
+async function shootFirstRun(width, height, name) {
   const browser = await chromium.launch();
   const ctx = await browser.newContext({
     viewport: { width, height },
@@ -56,21 +63,22 @@ async function shoot(width, height, name) {
     hasTouch: width <= 500,
   });
   const page = await ctx.newPage();
-  await signInFresh(ctx);
+  await signInFresh(ctx, "Quixote");
 
-  // Skip consent if needed so we can reach learning profile.
   await page.goto(`${BASE}/learning-profile`, { waitUntil: "networkidle" });
   if (page.url().includes("/consent")) {
     await page.getByRole("button", { name: /Not now: text only/i }).click();
-    await page.waitForURL(/learning-profile|choose-passcode|home/, {
-      timeout: 15000,
-    });
-    if (!page.url().includes("/learning-profile")) {
-      await page.goto(`${BASE}/learning-profile`, { waitUntil: "networkidle" });
-    }
+    await page.waitForTimeout(800);
+    await page.goto(`${BASE}/learning-profile`, { waitUntil: "networkidle" });
   }
 
-  await page.waitForSelector("text=How you learn", { timeout: 15000 });
+  await page.getByRole("heading", { name: /How Cruxy should help you/i }).waitFor({
+    timeout: 20000,
+  });
+  await page.getByText("On a normal weekday until Dec 5").waitFor({
+    state: "attached",
+    timeout: 10000,
+  });
   await dismissCruxy(page);
   await page.waitForTimeout(300);
   await page.screenshot({
@@ -78,45 +86,97 @@ async function shoot(width, height, name) {
     fullPage: true,
   });
 
-  const hasSliders =
-    (await page.getByText("Visual").count()) > 0 &&
-    (await page.getByText("Verbal").count()) > 0;
-  const hasAppe = (await page.getByText("Your APPE baselines").count()) > 0;
-
-  // Settings (may need passcode/consent done). Save profile first with defaults.
-  await page.getByRole("button", { name: /Save and continue|Save learning profile/i }).click();
-  await page.waitForTimeout(800);
-
-  await page.goto(`${BASE}/settings`, { waitUntil: "networkidle" });
-  if (page.url().includes("/choose-passcode")) {
-    // Pick a valid personal code for sample.
-    for (const digit of "246810") {
-      await page.getByRole("button", { name: digit }).click().catch(() => {});
-    }
-    // Keypad may use different UI; skip settings shot if gated.
-  }
-  if (page.url().includes("/settings")) {
-    await dismissCruxy(page);
-    await page.waitForSelector("text=Learning profile", { timeout: 10000 });
-    await page.waitForTimeout(200);
-    await page.screenshot({
-      path: join(OUT, `settings-profile-${name}.png`),
-      fullPage: true,
-    });
-  }
-
   console.log(
     JSON.stringify({
-      width,
-      hasSliders,
-      hasAppe,
-      firstRunShot: join(OUT, `learning-profile-${name}.png`),
-      url: page.url(),
+      tag: name,
+      firstRun: join(OUT, `learning-profile-${name}.png`),
     }),
   );
   await browser.close();
 }
 
-// Fresh store expected from caller.
-await shoot(390, 844, "390");
-await shoot(1280, 800, "1280");
+async function shootSettings(width, height, name) {
+  const browser = await chromium.launch();
+  const ctx = await browser.newContext({
+    viewport: { width, height },
+    deviceScaleFactor: width <= 500 ? 2 : 1,
+    isMobile: width <= 500,
+    hasTouch: width <= 500,
+  });
+  const page = await ctx.newPage();
+  const j = { "content-type": "application/json" };
+  const person = await signInFresh(ctx, "Bethany");
+
+  // Clear gates so Settings loads.
+  await ctx.request.post(`${BASE}/api/auth/consent`, {
+    data: { recordingOk: true },
+    headers: j,
+  });
+  await ctx.request.post(`${BASE}/api/learning-profile`, {
+    data: {
+      dailyMinutes: 20,
+      focusAreas: ["answering_judges"],
+      explanationStyle: "example_first",
+      feedbackTone: "gentle",
+    },
+    headers: j,
+  });
+  const me = await (await ctx.request.get(`${BASE}/api/auth/me`)).json();
+  if (me.session?.mustChoosePasscode) {
+    await ctx.request.post(`${BASE}/api/auth/choose-passcode`, {
+      data: { code: MEMBER, confirm: MEMBER },
+      headers: j,
+    });
+  }
+  // Re-sign with personal code so the page cookie matches.
+  await ctx.request.post(`${BASE}/api/auth/sign-in`, {
+    data: { personId: person.id, code: MEMBER },
+    headers: j,
+  });
+
+  await page.goto(`${BASE}/settings`, { waitUntil: "networkidle" });
+  for (let i = 0; i < 4; i++) {
+    const url = page.url();
+    if (url.includes("/sign-in")) {
+      await page.goto(`${BASE}/settings`, { waitUntil: "networkidle" });
+      break;
+    }
+    if (url.includes("/consent")) {
+      await page.getByRole("button", { name: /Not now: text only|I agree/i }).first().click();
+      await page.waitForTimeout(500);
+    } else if (url.includes("/learning-profile")) {
+      await page.getByRole("button", { name: /Skip for now|Save and continue/i }).first().click();
+      await page.waitForTimeout(800);
+    } else if (url.includes("/choose-passcode")) {
+      break;
+    } else break;
+  }
+  if (!page.url().includes("/settings")) {
+    await page.goto(`${BASE}/settings`, { waitUntil: "networkidle" });
+  }
+  await page.getByRole("heading", { name: "My profile" }).waitFor({
+    timeout: 20000,
+  });
+  await dismissCruxy(page);
+  await page.locator("#my-profile").scrollIntoViewIfNeeded().catch(() => {});
+  await page.waitForTimeout(300);
+  await page.screenshot({
+    path: join(OUT, `settings-profile-${name}.png`),
+    fullPage: true,
+  });
+
+  console.log(
+    JSON.stringify({
+      tag: name,
+      person: person.name,
+      url: page.url(),
+      settings: join(OUT, `settings-profile-${name}.png`),
+    }),
+  );
+  await browser.close();
+}
+
+await shootFirstRun(390, 844, "390");
+await shootFirstRun(1280, 800, "1280");
+await shootSettings(390, 844, "390");
+await shootSettings(1280, 800, "1280");

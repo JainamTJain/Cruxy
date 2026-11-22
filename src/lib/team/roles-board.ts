@@ -175,7 +175,7 @@ export function computeWorkloadBalance(input: {
 export function findGaps(input: {
   roles: CaseRole[];
   teamId: string;
-  cases: { id: string; number: number }[];
+  cases: { id: string; number: number; active?: boolean }[];
   people: { id: string }[];
 }): RoleGap[] {
   const load = computeLoad(
@@ -189,16 +189,14 @@ export function findGaps(input: {
 
   const gaps: RoleGap[] = [];
   for (const c of input.cases) {
+    // Inactive / not-at-regional cases never show as gaps
+    if (c.active === false) continue;
     const onCase = input.roles.filter(
       (r) => r.team_id === input.teamId && r.case_id === c.id,
     );
     const missing: CaseRoleSlot[] = [];
-    const hasLead =
-      onCase.some((r) => r.role === "lead_1") ||
-      onCase.some((r) => r.role === "lead_2");
-    if (!hasLead) missing.push("lead_1");
-    if (!onCase.some((r) => r.role === "counter_arguer")) {
-      missing.push("counter_arguer");
+    for (const slot of CASE_ROLE_SLOTS) {
+      if (!onCase.some((r) => r.role === slot)) missing.push(slot);
     }
     if (!missing.length) continue;
 
@@ -430,6 +428,59 @@ export function planRandomFairSplit(input: {
     }
   }
 
+  return out;
+}
+
+/**
+ * Fill empty role slots only. Keeps every cell already filled.
+ * Used by "Shuffle the rest" and per-case "Shuffle this case".
+ */
+export function planFillEmptySlots(input: {
+  caseIds: string[];
+  personIds: string[];
+  existing: { caseId: string; role: CaseRoleSlot; personId: string }[];
+  seed?: number;
+}): { caseId: string; role: CaseRoleSlot; personId: string }[] {
+  const out: { caseId: string; role: CaseRoleSlot; personId: string }[] = [];
+  const roleCount = new Map(input.personIds.map((id) => [id, 0]));
+  const onCase = new Map<string, Set<string>>();
+  const filled = new Map<string, Set<CaseRoleSlot>>();
+
+  for (const caseId of input.caseIds) {
+    onCase.set(caseId, new Set());
+    filled.set(caseId, new Set());
+  }
+
+  for (const e of input.existing) {
+    if (!input.caseIds.includes(e.caseId)) continue;
+    onCase.get(e.caseId)?.add(e.personId);
+    filled.get(e.caseId)?.add(e.role);
+    roleCount.set(e.personId, (roleCount.get(e.personId) ?? 0) + 1);
+  }
+
+  const order = shuffleIds(
+    [...input.personIds],
+    input.seed ?? Date.now() % 1_000_000,
+  );
+
+  for (const caseId of input.caseIds) {
+    const used = onCase.get(caseId) ?? new Set();
+    const have = filled.get(caseId) ?? new Set();
+    for (const role of CASE_ROLE_SLOTS) {
+      if (have.has(role)) continue;
+      const candidates = [...order].sort(
+        (a, b) =>
+          (roleCount.get(a) ?? 0) - (roleCount.get(b) ?? 0) ||
+          a.localeCompare(b),
+      );
+      const pick = candidates.find((id) => !used.has(id));
+      if (!pick) break;
+      used.add(pick);
+      have.add(role);
+      roleCount.set(pick, (roleCount.get(pick) ?? 0) + 1);
+      out.push({ caseId, role, personId: pick });
+    }
+  }
   return out;
 }
 

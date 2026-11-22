@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { getPersonById, listCases } from "@/lib/db/repository";
 import { GET as programMapGet } from "@/app/api/program-map/route";
+import { getLearningProfile } from "@/lib/learning/profile";
+import { formatTailoredLine, type FocusArea } from "@/lib/learning/types";
 import {
   buildFocusActions,
   DEC5_HELPERS,
@@ -9,9 +11,58 @@ import {
 
 export const runtime = "nodejs";
 
+function focusExtras(focus: FocusArea[], minutes: number | null) {
+  const budget =
+    minutes != null ? `Fits about ${minutes} minutes.` : "Fits a short block.";
+  const out: { label: string; detail: string; href: string }[] = [];
+  const want = new Set(focus);
+  if (want.has("answering_judges") || want.size === 0) {
+    out.push({
+      label: "DRILL",
+      detail: `Judges' Q&A. ${budget}`,
+      href: "/practice/drills/judges-qa",
+    });
+  }
+  if (want.has("presenting")) {
+    out.push({
+      label: "DRILL",
+      detail: `Thesis drill. ${budget}`,
+      href: "/practice/drills/thesis",
+    });
+  }
+  if (want.has("commenting")) {
+    out.push({
+      label: "DRILL",
+      detail: `Commentary drill. ${budget}`,
+      href: "/practice/drills/commentary",
+    });
+  }
+  if (want.has("thinking_on_feet")) {
+    out.push({
+      label: "DRILL",
+      detail: `Moderator questions. ${budget}`,
+      href: "/practice/drills/moderator",
+    });
+  }
+  if (minutes != null && minutes <= 10) {
+    out.unshift({
+      label: "WARM-UP",
+      detail: "Ten-minute warm-up. Five cards, two questions.",
+      href: "/revision/warmup",
+    });
+  } else {
+    out.push({
+      label: "WARM-UP",
+      detail: DEC5_HELPERS[0]!.detail,
+      href: DEC5_HELPERS[0]!.href,
+    });
+  }
+  return out;
+}
+
 /**
  * Personal Today payload for Wave 8 G.
- * Reuses program-map; does not own case/roadmap/library logic.
+ * Reuses program-map; sizes actions from the learning profile.
  */
 export async function GET() {
   const session = await getSession();
@@ -42,6 +93,10 @@ export async function GET() {
     cases?: { id: string; number: number; title: string }[];
   };
 
+  const profile = await getLearningProfile(session.personId);
+  const minutes = profile?.daily_minutes ?? null;
+  const focus = profile?.focus_areas ?? [];
+
   const rawActions: { label: string; detail: string; href: string }[] = [];
   for (const a of map.nextActions ?? []) {
     if (typeof a === "string") {
@@ -55,12 +110,7 @@ export async function GET() {
     }
   }
 
-  const extras = DEC5_HELPERS.map((h) => ({
-    label: h.id === "judges" ? "DRILL" : h.id === "warmup" ? "WARM-UP" : "CARDS",
-    detail: h.detail,
-    href: h.href,
-  }));
-
+  const extras = focusExtras(focus, minutes);
   const actions = buildFocusActions(rawActions, extras);
   const person = await getPersonById(session.personId);
   const allCases = (await listCases()).filter((c) => c.active);
@@ -74,6 +124,10 @@ export async function GET() {
     allCases[0] ??
     null;
 
+  const nextDrillHref =
+    extras.find((e) => e.label === "DRILL")?.href ??
+    "/practice/drills/judges-qa";
+
   return NextResponse.json({
     personName: person?.name ?? session.name,
     todayLabel: map.todayLabel ?? null,
@@ -85,6 +139,8 @@ export async function GET() {
     leadCase: leadCase
       ? { id: leadCase.id, number: leadCase.number, title: leadCase.title }
       : null,
-    nextDrillHref: "/practice/drills/judges-qa",
+    nextDrillHref,
+    tailored: formatTailoredLine(profile),
+    dailyMinutes: minutes,
   });
 }

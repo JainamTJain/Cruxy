@@ -10,6 +10,7 @@ import {
   PreRoundCalmCta,
   PreRoundWarmupCta,
 } from "@/components/product";
+import { TailoredLine } from "@/components/learning/tailored-line";
 import type { TodayAction } from "@/lib/product/today";
 
 type Payload = {
@@ -60,6 +61,9 @@ export default function TodayPage() {
           Three things. Then stop. The program board is one tap away if you need
           it.
         </p>
+        <div className="mt-3">
+          <TailoredLine />
+        </div>
       </div>
 
       <WinStrip

@@ -1,34 +1,8 @@
-import { APPE_SCORE_ITEMS, type AppeItemKey } from "@/lib/practice/types";
 import {
-  LEARNING_SLIDER_META,
+  focusLabel,
+  formatTailoredLine,
   type LearningProfile,
-  type LearningSliderKey,
 } from "@/lib/learning/types";
-
-function polePhrase(
-  key: LearningSliderKey,
-  value: number,
-): string {
-  const meta = LEARNING_SLIDER_META.find((m) => m.key === key)!;
-  if (value <= 35) return `prefers ${meta.left.toLowerCase()}`;
-  if (value >= 65) return `prefers ${meta.right.toLowerCase()}`;
-  return `balanced between ${meta.left.toLowerCase()} and ${meta.right.toLowerCase()}`;
-}
-
-/** Weakest APPE baseline keys (ties included), for roadmap lean. */
-export function weakestAppeBaselines(
-  baselines: Partial<Record<AppeItemKey, number>>,
-): AppeItemKey[] {
-  let min = Infinity;
-  for (const item of APPE_SCORE_ITEMS) {
-    const v = baselines[item.key];
-    if (typeof v === "number" && v < min) min = v;
-  }
-  if (!Number.isFinite(min)) return [];
-  return APPE_SCORE_ITEMS.filter((i) => baselines[i.key] === min).map(
-    (i) => i.key,
-  );
-}
 
 /**
  * Short natural-language summary for Cruxy system context.
@@ -38,34 +12,40 @@ export function formatLearningProfileSummary(
   profile: LearningProfile | null | undefined,
 ): string | null {
   if (!profile) return null;
-  const style = LEARNING_SLIDER_META.map((m) =>
-    polePhrase(m.key, profile[m.key]),
-  ).join("; ");
 
-  const weak = weakestAppeBaselines(profile.appe_baselines);
-  const weakLabels = weak
-    .map(
-      (k) =>
-        APPE_SCORE_ITEMS.find((i) => i.key === k)?.label ?? k,
-    )
-    .join(", ");
-
-  const baselineBits = APPE_SCORE_ITEMS.map((i) => {
-    const v = profile.appe_baselines[i.key];
-    return v != null ? `${i.label} ${v}/10` : null;
-  }).filter(Boolean);
+  const tailored = formatTailoredLine(profile);
+  const focus = profile.focus_areas.map(focusLabel).join("; ");
+  const learned: string[] = [];
+  if (profile.learned_prefs.prefer_shorter) learned.push("keep answers short");
+  if (profile.learned_prefs.prefer_more_detail) {
+    learned.push("offer more detail when asked");
+  }
+  if (profile.learned_prefs.prefer_example) {
+    learned.push("lead with a concrete example");
+  }
 
   const lines = [
     "Adapt explanations to this person's learning profile.",
-    `Style: ${style}.`,
-    baselineBits.length
-      ? `Self-rated APPE baselines: ${baselineBits.join("; ")}.`
+    tailored ? tailored + "." : null,
+    profile.daily_minutes != null
+      ? `They have about ${profile.daily_minutes} minutes on a normal weekday.`
       : null,
-    weakLabels
-      ? `Lean practice toward weaker card items: ${weakLabels}.`
-      : null,
-    "Stay plain. Match short vs deep and direct vs gentle from the style line.",
+    focus ? `Focus practice on: ${focus}.` : null,
+    profile.explanation_style === "example_first"
+      ? "Lead with a real example, then the rule."
+      : profile.explanation_style === "steps_first"
+        ? "Lead with step-by-step reasoning, then an example."
+        : null,
+    profile.feedback_tone === "blunt"
+      ? "Feedback tone: blunt and plain."
+      : profile.feedback_tone === "gentle"
+        ? "Feedback tone: gentle, still name the weak spot."
+        : null,
+    learned.length ? `Learned from use: ${learned.join("; ")}.` : null,
+    "Stay plain. Never invent citations.",
   ].filter(Boolean);
 
   return lines.join("\n");
 }
+
+export { formatTailoredLine };

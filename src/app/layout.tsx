@@ -1,34 +1,37 @@
 import type { Metadata, Viewport } from "next";
-import {
-  Bricolage_Grotesque,
-  IBM_Plex_Mono,
-  Inter,
-  Lexend,
-} from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const bricolage = Bricolage_Grotesque({
+// Fonts ship with the app (SIL Open Font License, see src/fonts) so a build
+// never depends on reaching Google Fonts.
+const bricolage = localFont({
+  src: "../fonts/bricolage-grotesque-latin-wght-normal.woff2",
   variable: "--font-bricolage",
-  subsets: ["latin"],
-  weight: ["600", "800"],
+  weight: "200 800",
+  display: "swap",
 });
 
-const inter = Inter({
+const inter = localFont({
+  src: "../fonts/inter-latin-wght-normal.woff2",
   variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: "100 900",
+  display: "swap",
 });
 
-const ibmPlexMono = IBM_Plex_Mono({
+const ibmPlexMono = localFont({
+  src: [
+    { path: "../fonts/ibm-plex-mono-latin-500-normal.woff2", weight: "500" },
+    { path: "../fonts/ibm-plex-mono-latin-600-normal.woff2", weight: "600" },
+  ],
   variable: "--font-ibm-plex-mono",
-  weight: ["500", "600"],
-  subsets: ["latin"],
+  display: "swap",
 });
 
-const lexend = Lexend({
+const lexend = localFont({
+  src: "../fonts/lexend-latin-wght-normal.woff2",
   variable: "--font-lexend",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: "100 900",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
