@@ -207,10 +207,8 @@ export async function runNightlyResearcher(opts?: {
       })
       .filter((u): u is string => Boolean(u));
 
-    const pages = await readBestResults(
-      [...new Set([...openLinks, ...findings.map((f) => f.link).filter(Boolean)])],
-      5,
-    );
+    // Never fetch past a paywall: full reads only for open copies.
+    const pages = await readBestResults([...new Set(openLinks)], 5);
     const readSources = pagesToCitationSources(pages);
     const readCorpus =
       pages.length > 0
