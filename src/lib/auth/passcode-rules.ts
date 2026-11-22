@@ -52,6 +52,7 @@ export async function attemptSignIn(
   personId: string,
   code: string,
   ipHash: string | null,
+  opts?: { userAgent?: string | null },
 ): Promise<SignInResult> {
   const person = await getPersonById(personId);
   if (!person) return { ok: false, error: "Name not found." };
@@ -165,6 +166,19 @@ export async function attemptSignIn(
     mustSetLearningProfile = true;
   }
 
+  let deviceId: string | undefined;
+  try {
+    const { registerAuthDevice } = await import("@/lib/auth/devices");
+    const device = await registerAuthDevice({
+      personId: person.id,
+      userAgent: opts?.userAgent ?? null,
+      ipHash,
+    });
+    deviceId = device.id;
+  } catch {
+    // Migration may not be applied yet.
+  }
+
   const session: SessionPayload = {
     personId: person.id,
     role: person.role,
@@ -175,6 +189,7 @@ export async function attemptSignIn(
     mustSetLearningProfile,
     mustChoosePasscode,
     sessionVersion,
+    deviceId,
   };
 
   return { ok: true, session, person };

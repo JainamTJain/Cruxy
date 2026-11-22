@@ -266,6 +266,31 @@ export interface SampleStore {
   arg_edges?: import("@/lib/graph/types").ArgEdge[];
   /** Wave 8 D: personal learning profiles. */
   learning_profiles?: import("@/lib/learning/types").LearningProfile[];
+  /** Wave 9 K: signed-in devices (must survive migrateStoreShape). */
+  auth_devices?: {
+    id: string;
+    person_id: string;
+    label: string;
+    user_agent: string | null;
+    ip_hash: string | null;
+    created_at: string;
+    last_seen_at: string;
+    revoked_at: string | null;
+  }[];
+  /** Wave 9 K: forgot-passcode requests. */
+  passcode_reset_requests?: {
+    id: string;
+    person_id: string;
+    status: string;
+    created_at: string;
+    approved_at: string | null;
+    approved_by: string | null;
+    completed_at: string | null;
+    expires_at: string;
+    ip_hash: string | null;
+  }[];
+  /** In-app reminders bag used by auth-extra createNotification. */
+  notifications?: import("@/lib/types").AppNotification[];
   /** Wave 9 D: round reflections and personal goals. */
   round_reflections?: import("@/lib/learning/growth-types").RoundReflection[];
   personal_goals?: import("@/lib/learning/growth-types").PersonalGoal[];
@@ -698,6 +723,9 @@ export async function buildSeedStore(): Promise<SampleStore> {
     speaker_confirms: [],
     ...emptyAdminFields(),
     arg_edges: [],
+    auth_devices: [],
+    passcode_reset_requests: [],
+    notifications: [],
     case_stakeholders: content.stakeholders,
     scoring_card_items: content.scoring_card_items,
     program_totals: {
@@ -820,6 +848,9 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     case_role_preferences: raw.case_role_preferences ?? [],
     arg_edges: raw.arg_edges ?? [],
     learning_profiles: raw.learning_profiles ?? [],
+    auth_devices: raw.auth_devices ?? [],
+    passcode_reset_requests: raw.passcode_reset_requests ?? [],
+    notifications: raw.notifications ?? [],
     round_reflections: raw.round_reflections ?? [],
     personal_goals: raw.personal_goals ?? [],
     personal_goal_comments: raw.personal_goal_comments ?? [],
@@ -867,13 +898,29 @@ export async function writeStore(store: SampleStore): Promise<void> {
   await writeChain;
 }
 
+/**
+ * Mutate the sample store under the write chain so concurrent updates
+ * (e.g. device touch + savePerson) cannot clobber each other's bags.
+ */
 export async function updateStore(
   mutator: (store: SampleStore) => void | Promise<void>,
 ): Promise<SampleStore> {
-  const store = await readStore();
-  await mutator(store);
-  await writeStore(store);
-  return store;
+  let result!: SampleStore;
+  writeChain = writeChain.then(async () => {
+    await ensureDir();
+    let store: SampleStore;
+    try {
+      const raw = await fs.readFile(STORE_PATH, "utf8");
+      store = migrateStoreShape(JSON.parse(raw) as Partial<SampleStore>);
+    } catch {
+      store = await buildSeedStore();
+    }
+    await mutator(store);
+    await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2));
+    result = store;
+  });
+  await writeChain;
+  return result;
 }
 
 export async function resetSampleStore(): Promise<SampleStore> {

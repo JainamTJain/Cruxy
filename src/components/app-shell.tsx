@@ -57,6 +57,7 @@ const SIDE_NAV: { href: string; label: string; match?: string }[] = [
 /** Admin.html sidebar when Admin switch is on and route is under /admin. */
 const ADMIN_SIDE_NAV: { href: string; label: string; match?: string }[] = [
   { href: "/practice/admin", label: "Sessions" },
+  { href: "/coach", label: "Coach view" },
   { href: "/admin", label: "People and teams" },
   { href: "/admin/flywheel", label: "Program analytics", match: "analytics" },
   { href: "/revision/questions", label: "Question bank" },
@@ -138,7 +139,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     } else {
       setDigestPrompt(false);
     }
-    router.push(adminView ? "/admin" : "/home");
+    router.push(adminView ? "/coach" : "/today");
   }
 
   async function answerDigest(optIn: boolean) {
@@ -166,7 +167,8 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const displayName = me?.session?.name ?? me?.person?.name ?? "";
   const initial = displayName.slice(0, 1).toUpperCase() || "?";
   const onAdminScreen =
-    Boolean(me?.session?.adminView) && pathname.startsWith("/admin");
+    (Boolean(me?.session?.adminView) && pathname.startsWith("/admin")) ||
+    (isAdminRole && pathname.startsWith("/coach"));
   const sideItems = onAdminScreen ? ADMIN_SIDE_NAV : SIDE_NAV;
 
   // Workstream D: live practice room and thesis drill are full-bleed (no shell chrome).
