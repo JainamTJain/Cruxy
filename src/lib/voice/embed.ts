@@ -12,6 +12,7 @@
  */
 import "server-only";
 import { promises as fs } from "fs";
+import os from "os";
 import path from "path";
 import { VOICEPRINT_DIM } from "@/lib/voice/types";
 import type { Pcm16k } from "@/lib/voice/audio";
@@ -28,31 +29,88 @@ const DEFAULT_MODEL = path.join(
 let sessionPromise: Promise<import("onnxruntime-node").InferenceSession | null> | null =
   null;
 
+const MODEL_URL =
+  process.env.VOICEPRINT_MODEL_URL?.trim() ||
+  "https://huggingface.co/kenrunio/transcriber-speaker-onnx/resolve/main/ecapa-any-length.onnx";
+/** Serverless functions can only write to the temp folder. */
+const TMP_MODEL = path.join(os.tmpdir(), "crux-ecapa-any-length.onnx");
+
 function modelPath(): string {
   return process.env.VOICEPRINT_MODEL_PATH?.trim() || DEFAULT_MODEL;
 }
 
+async function hasModel(p: string): Promise<boolean> {
+  try {
+    return (await fs.stat(p)).size > 1_000_000;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The model is not committed, so production fetches it once per server
+ * instance into the temp folder. Sample mode and CI never download; they use
+ * the spectral fallback.
+ */
+async function ensureModelFile(): Promise<string | null> {
+  if (await hasModel(modelPath())) return modelPath();
+  if (await hasModel(TMP_MODEL)) return TMP_MODEL;
+  if (process.env.USE_SAMPLE_DATA === "1" || process.env.VOICEPRINT_DOWNLOAD === "0") {
+    return null;
+  }
+  try {
+    const res = await fetch(MODEL_URL, { redirect: "follow" });
+    if (!res.ok) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length < 1_000_000) return null;
+    const part = `${TMP_MODEL}.${process.pid}.${Date.now()}.part`;
+    await fs.writeFile(part, buf);
+    await fs.rename(part, TMP_MODEL);
+    return TMP_MODEL;
+  } catch {
+    return null;
+  }
+}
+
+let lastFailAt = 0;
+
 async function loadSession(): Promise<
   import("onnxruntime-node").InferenceSession | null
 > {
+  // After a failure, retry at most once a minute instead of never.
+  if (!sessionPromise && Date.now() - lastFailAt < 60_000) return null;
   if (!sessionPromise) {
     sessionPromise = (async () => {
-      try {
-        await fs.access(modelPath());
-      } catch {
-        return null;
-      }
+      const file = await ensureModelFile();
+      if (!file) return null;
       try {
         const ort = await import("onnxruntime-node");
-        return await ort.InferenceSession.create(modelPath(), {
+        return await ort.InferenceSession.create(file, {
           executionProviders: ["cpu"],
         });
       } catch {
         return null;
       }
-    })();
+    })().then((s) => {
+      if (!s) {
+        lastFailAt = Date.now();
+        sessionPromise = null;
+      }
+      return s;
+    });
   }
   return sessionPromise;
+}
+
+/** Which embedder is live on this server: for the admin health check. */
+export async function voiceBackendStatus(): Promise<{
+  backend: EmbedBackend;
+  modelFile: string | null;
+}> {
+  const session = await loadSession();
+  if (!session) return { backend: "spectral-fallback", modelFile: null };
+  const file = (await hasModel(modelPath())) ? modelPath() : TMP_MODEL;
+  return { backend: "ecapa-onnx", modelFile: path.basename(file) };
 }
 
 export function l2Normalize(v: Float32Array | number[]): Float32Array {
