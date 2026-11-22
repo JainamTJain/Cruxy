@@ -8,6 +8,8 @@ import { getServiceSupabase } from "@/lib/db/supabase/client";
 import { searchLibraryUnified } from "@/lib/db/supabase/library-search-extra";
 import { listSegmentsForCase } from "@/lib/db/supabase/file-segments";
 import { listFlashcards, listQuestions } from "@/lib/revision/repository";
+import { listConversationsForPerson } from "@/lib/team/chat-conversations";
+import { listMessages } from "@/lib/team/repository";
 import {
   SEARCH_KIND_LABEL,
   type GlobalSearchGroup,
@@ -65,10 +67,13 @@ async function searchFts(
 ): Promise<GlobalSearchHit[]> {
   if (isSampleDataMode()) return [];
   const sb = getServiceSupabase();
+  // Chat rows are never served from FTS alone: live scan uses
+  // listConversationsForPerson so Leads-only stays leads-only.
   const { data, error } = await sb
     .from("search_documents")
     .select("id,kind,title,body,href,case_id,team_id,source_id")
     .textSearch("search_tsv", q, { type: "websearch", config: "english" })
+    .neq("kind", "chat")
     .or(
       opts.teamId
         ? `team_id.is.null,team_id.eq.${opts.teamId}`
@@ -92,10 +97,25 @@ async function searchFts(
   }));
 }
 
+/** Chat ids the viewer may open (same rule as /api/team/chat). */
+async function visibleChatIds(input: {
+  personId: string;
+  teamId: string;
+  isAdmin: boolean;
+}): Promise<Set<string>> {
+  const payload = await listConversationsForPerson({
+    personId: input.personId,
+    teamId: input.teamId,
+    isAdmin: input.isAdmin,
+  });
+  return new Set(payload.conversations.map((c) => c.id));
+}
+
 async function searchSampleAndLiveScan(input: {
   q: string;
   teamId: string;
   personId: string;
+  isAdmin: boolean;
   limit: number;
 }): Promise<GlobalSearchHit[]> {
   const q = input.q.trim();
@@ -142,12 +162,11 @@ async function searchSampleAndLiveScan(input: {
         team_id: t.team_id,
       });
     }
-    const chats = store.chats ?? [];
-    const allowedChatIds = new Set(
-      chats
-        .filter((c) => c.team_id === input.teamId || c.team_id == null)
-        .map((c) => c.id),
-    );
+    const allowedChatIds = await visibleChatIds({
+      personId: input.personId,
+      teamId: input.teamId,
+      isAdmin: input.isAdmin,
+    });
     for (const m of store.messages ?? []) {
       if (!allowedChatIds.has(m.chat_id)) continue;
       const score = scoreText(q, "Chat", m.body);
@@ -186,29 +205,28 @@ async function searchSampleAndLiveScan(input: {
         team_id: t.team_id,
       });
     }
-    const { data: chats } = await sb
-      .from("chats")
-      .select("id,team_id")
-      .or(`team_id.eq.${input.teamId},team_id.is.null`)
-      .limit(40);
-    const chatIds = (chats ?? []).map((c) => c.id as string);
-    if (chatIds.length) {
-      const { data: msgs } = await sb
-        .from("messages")
-        .select("id,body,chat_id")
-        .in("chat_id", chatIds)
-        .ilike("body", `%${q}%`)
-        .limit(15);
-      for (const m of msgs ?? []) {
+    const allowedChatIds = await visibleChatIds({
+      personId: input.personId,
+      teamId: input.teamId,
+      isAdmin: input.isAdmin,
+    });
+    const chatIdList = [...allowedChatIds].slice(0, 40);
+    for (const chatId of chatIdList) {
+      const msgs = await listMessages(chatId);
+      for (const m of msgs) {
+        const score = scoreText(q, "Chat", m.body);
+        if (score <= 0) continue;
         hits.push({
           kind: "chat",
           id: m.id,
           title: "Team chat",
-          snippet: clip(m.body ?? ""),
-          href: `/team/chat`,
-          score: 0.55,
-          case_id: null,
-          case_number: null,
+          snippet: clip(m.body),
+          href: `/team/chat?chatId=${encodeURIComponent(chatId)}`,
+          score: score * 0.9,
+          case_id: m.case_id,
+          case_number: m.case_id
+            ? caseById.get(m.case_id)?.number ?? null
+            : null,
           team_id: input.teamId,
         });
       }
@@ -343,6 +361,7 @@ export async function searchGlobal(input: {
   q: string;
   teamId: string;
   personId: string;
+  isAdmin?: boolean;
   limit?: number;
 }): Promise<{ groups: GlobalSearchGroup[]; took_ms: number }> {
   const started = Date.now();
@@ -351,6 +370,7 @@ export async function searchGlobal(input: {
     return { groups: [], took_ms: Date.now() - started };
   }
   const limit = input.limit ?? 40;
+  const isAdmin = Boolean(input.isAdmin);
 
   const [fts, scan, library] = await Promise.all([
     searchFts(q, { teamId: input.teamId, limit }),
@@ -358,6 +378,7 @@ export async function searchGlobal(input: {
       q,
       teamId: input.teamId,
       personId: input.personId,
+      isAdmin,
       limit,
     }),
     searchLibraryUnified({
