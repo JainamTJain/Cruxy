@@ -67,8 +67,8 @@ export default function ChecklistPage() {
       <div>
         <h1 className="font-display text-3xl font-semibold">First-run checklist</h1>
         <p className="mt-1 text-sm text-muted">
-          About 10 minutes · {done} of {items.length || 5} done
-          {complete ? " · complete" : ""}
+          About 10 minutes. {done} of {items.length || 5} done
+          {complete ? ", complete" : ""}
         </p>
       </div>
       <ul className="space-y-3">

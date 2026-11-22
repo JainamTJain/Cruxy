@@ -106,30 +106,42 @@ export default function RoundReportPage() {
   const [ideasMsg, setIdeasMsg] = useState<string | null>(null);
   const [doThisMsg, setDoThisMsg] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   async function refresh() {
-    const res = await fetch(`/api/practice/rounds/${params.id}/report`);
-    const rep = await res.json();
-    setData(rep);
-    if (!who && rep.feedback?.[0]) setWho(rep.feedback[0].person_id);
-    void fetch(`/api/practice/rounds/${params.id}/ideas`)
-      .then((r) => r.json())
-      .then((d: { ideas?: { text: string; lineId: string }[] }) =>
-        setIdeas(d.ideas ?? []),
-      )
-      .catch(() => undefined);
-    void fetch("/api/auth/me")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        const role = d?.person?.role ?? d?.session?.role;
-        setIsAdmin(
-          Boolean(
-            d?.session?.adminView &&
-              (role === "tech_admin" || role === "coach_admin"),
-          ),
-        );
-      })
-      .catch(() => undefined);
+    setLoadError(null);
+    try {
+      const res = await fetch(`/api/practice/rounds/${params.id}/report`);
+      const rep = await res.json();
+      if (!res.ok) {
+        setLoadError(rep.error ?? "Could not load this report.");
+        setData(null);
+        return;
+      }
+      setData(rep);
+      if (!who && rep.feedback?.[0]) setWho(rep.feedback[0].person_id);
+      void fetch(`/api/practice/rounds/${params.id}/ideas`)
+        .then((r) => r.json())
+        .then((d: { ideas?: { text: string; lineId: string }[] }) =>
+          setIdeas(d.ideas ?? []),
+        )
+        .catch(() => undefined);
+      void fetch("/api/auth/me")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          const role = d?.person?.role ?? d?.session?.role;
+          setIsAdmin(
+            Boolean(
+              d?.session?.adminView &&
+                (role === "tech_admin" || role === "coach_admin"),
+            ),
+          );
+        })
+        .catch(() => undefined);
+    } catch {
+      setLoadError("Could not load this report.");
+      setData(null);
+    }
   }
 
   useEffect(() => {
@@ -295,6 +307,22 @@ export default function RoundReportPage() {
       }),
     });
     await refresh();
+  }
+
+  if (loadError) {
+    return (
+      <main className="space-y-4">
+        <h1 className="font-display text-3xl font-extrabold">Round report</h1>
+        <p className="text-sm text-cardinal">{loadError}</p>
+        <button
+          type="button"
+          className="text-sm text-cardinal underline"
+          onClick={() => void refresh()}
+        >
+          Try again
+        </button>
+      </main>
+    );
   }
 
   if (!data) {

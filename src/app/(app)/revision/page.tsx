@@ -4,12 +4,12 @@ const LINKS = [
   {
     href: "/revision/one-pagers",
     title: "One pagers",
-    blurb: "Draft from the claim map, edit, diff, visual layouts, Drive export stub.",
+    blurb: "Draft from the claim map, edit, compare versions, and export to Drive.",
   },
   {
     href: "/revision/flashcards",
     title: "Flashcards",
-    blurb: "Truth-linked cards with FSRS scheduling. Leads get decks automatically.",
+    blurb: "Truth-linked cards that schedule themselves. Leads get decks automatically.",
   },
   {
     href: "/revision/socratic",
@@ -18,7 +18,7 @@ const LINKS = [
   },
   {
     href: "/revision/language",
-    title: "Language & analogies",
+    title: "Language and analogies",
     blurb: "Plain sentences, analogies, vivid examples, personal phrasebook.",
   },
   {
@@ -43,11 +43,11 @@ export default function RevisionHubPage() {
     <main className="animate-fade-up space-y-6">
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-muted">
-          Track 3
+          Practice tools
         </p>
         <h1 className="font-display text-3xl font-semibold text-ink">Revision</h1>
         <p className="mt-1 max-w-xl text-sm text-muted">
-          Tools generated from your team&apos;s Truth Sources — memorize what the team
+          Tools built from your team&apos;s Truth Sources. Memorize what the team
           actually agreed on.
         </p>
       </div>
