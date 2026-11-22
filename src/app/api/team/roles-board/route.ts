@@ -13,6 +13,7 @@ import {
   savePreferences,
   setAnyCaseOk,
   setBoardCell,
+  shuffleFillEmpty,
 } from "@/lib/team/roles-board-repository";
 import { CASE_ROLE_SLOTS, type CaseRoleSlot } from "@/lib/team/types";
 import { nextRoleInCycle, type RoleChip } from "@/lib/team/roles-board";
@@ -90,6 +91,7 @@ export async function POST(req: Request) {
     ranks?: { caseId: string; rank: number }[];
     assignments?: { caseId: string; role: string; personId: string }[];
     anyCaseOk?: boolean;
+    preview?: boolean;
   };
 
   const teamId = resolveTeamId(person, session, body.teamId ?? null);
@@ -272,6 +274,25 @@ export async function POST(req: Request) {
         actorId: session.personId,
       });
       return NextResponse.json({ board });
+    }
+
+    if (action === "shuffle_rest" || action === "shuffle_case") {
+      if (action === "shuffle_case" && !body.caseId) {
+        return NextResponse.json({ error: "Missing caseId" }, { status: 400 });
+      }
+      const result = await shuffleFillEmpty({
+        teamId,
+        actorId: session.personId,
+        caseIds:
+          action === "shuffle_case" && body.caseId
+            ? [body.caseId]
+            : body.caseIds,
+        preview: Boolean(body.preview),
+      });
+      return NextResponse.json({
+        board: result.board,
+        proposed: result.proposed,
+      });
     }
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
