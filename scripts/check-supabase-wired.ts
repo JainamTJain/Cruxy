@@ -377,7 +377,7 @@ ok(`UI → route: ${uiOk} call sites matched (${uniqueUi.size} unique)`);
 console.log("\n=== 3) Route → repository map ===");
 
 const REPO_IMPORT =
-  /from\s+["']@\/lib\/(?:db\/repository|team\/repository|team\/roles-board-repository|case-brain\/service|case-brain\/[^"']+|practice\/[^"']+|revision\/[^"']+|library\/[^"']+|graph\/[^"']+|cruxy\/[^"']+|auth\/[^"']+|admin\/[^"']+|email\/[^"']+|ops\/[^"']+|db\/supabase\/[^"']+)["']/;
+  /from\s+["']@\/lib\/(?:db\/repository|team\/repository|team\/roles-board-repository|case-brain\/service|case-brain\/[^"']+|practice\/[^"']+|revision\/[^"']+|library\/[^"']+|graph\/[^"']+|cruxy\/[^"']+|auth\/[^"']+|admin\/[^"']+|email\/[^"']+|ops\/[^"']+|notify\/[^"']+|db\/supabase\/[^"']+)["']/;
 
 let routeRepoOk = 0;
 for (const route of routes) {
