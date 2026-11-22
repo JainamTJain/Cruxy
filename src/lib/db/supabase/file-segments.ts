@@ -59,24 +59,29 @@ export async function listSegmentsForCase(
   return (data ?? []).map(mapSegment);
 }
 
+/**
+ * Replace a file's segments. With `caseId`, only that case's segments for the
+ * file are replaced, so a file shared by several cases is not wiped each time
+ * another case opens. Without it (a fresh Drive sync), every case's go.
+ */
 export async function replaceFileSegments(
   fileId: string,
   segments: FileSegment[],
+  caseId?: string,
 ): Promise<void> {
   if (isSampleDataMode()) {
     await updateStore((s) => {
       s.file_segments = (s.file_segments ?? []).filter(
-        (x) => x.file_id !== fileId,
+        (x) => !(x.file_id === fileId && (!caseId || x.case_id === caseId)),
       );
       s.file_segments.push(...segments);
     });
     return;
   }
   const sb = getServiceSupabase();
-  const { error: delErr } = await sb
-    .from("file_segments")
-    .delete()
-    .eq("file_id", fileId);
+  let del = sb.from("file_segments").delete().eq("file_id", fileId);
+  if (caseId) del = del.eq("case_id", caseId);
+  const { error: delErr } = await del;
   assertOk(delErr, "replaceFileSegments(delete)");
   if (segments.length === 0) return;
   const { error } = await sb.from("file_segments").insert(
