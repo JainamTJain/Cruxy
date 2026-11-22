@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
+import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
 import type { CaseHomePayload } from "@/lib/case-home/types";
 import { cn } from "@/lib/utils";
 
@@ -179,8 +179,11 @@ export function TheCaseTab({ caseId, teamId, initial = null, className }: Props)
 
   if (loading) {
     return (
-      <div className={cn("min-h-[280px]", className)}>
-        <LoadingGenie label="Opening the case…" />
+      <div className={cn("flex flex-col gap-3", className)} aria-busy>
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-8 w-72 max-w-full" />
+        <Skeleton className="h-40 w-full" rounded="lg" />
+        <SkeletonBlock lines={4} />
       </div>
     );
   }
