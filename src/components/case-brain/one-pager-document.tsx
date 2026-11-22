@@ -278,17 +278,17 @@ export function OnePagerDocument({
                 <div className="rounded-xl bg-[#F7F8FA] p-3">
                   <strong>Concede</strong>
                   <br />
-                  {cc.concede || "Not set"}
+                  {cc.concede || "Not written yet"}
                 </div>
                 <div className="rounded-xl bg-[#F7F8FA] p-3">
                   <strong>Distinguish</strong>
                   <br />
-                  {cc.distinguish || "Not set"}
+                  {cc.distinguish || "Not written yet"}
                 </div>
                 <div className="rounded-xl bg-[#F7F8FA] p-3">
                   <strong>Rebut</strong>
                   <br />
-                  {cc.rebut || "Not set"}
+                  {cc.rebut || "Not written yet"}
                 </div>
               </div>
             ) : null}
@@ -401,7 +401,7 @@ export function OnePagerDocument({
                     <td className="w-[42%] py-2 pr-2 font-semibold align-top">
                       {row.q}
                     </td>
-                    <td className="py-2 align-top">{row.a || "Not set"}</td>
+                    <td className="py-2 align-top">{row.a || "Not written yet"}</td>
                   </tr>
                 ))}
               </tbody>

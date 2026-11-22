@@ -9,7 +9,7 @@ export const STATUS_LABEL: Record<StatusTone, string> = {
   ok: "On track",
   warn: "Needs attention",
   risk: "At risk",
-  neutral: "Not set",
+  neutral: "Not started",
   info: "Info",
 };
 

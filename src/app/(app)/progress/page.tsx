@@ -406,7 +406,7 @@ export default function ProgressPage() {
                     </span>
                     <span className="text-muted">
                       {" "}
-                      · {new Date(k.created_at).toLocaleDateString()}
+                      , {new Date(k.created_at).toLocaleDateString()}
                     </span>
                     <p className="m-0 mt-1 text-muted">{k.body}</p>
                   </li>

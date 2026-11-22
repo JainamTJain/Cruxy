@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CASE_ROLE_LABELS,
@@ -491,7 +492,8 @@ export default function RolesBoardPage() {
                   Person
                 </th>
                 {board.cases.map((c) => {
-                  const missing = gapsByCase.get(c.id) ?? [];
+                  // Supporter is optional; only missing leads and counter count as gaps.
+                  const missing = (gapsByCase.get(c.id) ?? []).filter((m) => m !== "supporter");
                   return (
                     <th
                       key={c.id}
@@ -594,8 +596,9 @@ export default function RolesBoardPage() {
         </div>
       </section>
 
-      {/* Cell role menu */}
-      {menu ? (
+      {/* Cell role menu: rendered at the page root so the page animation cannot offset it */}
+      {menu && typeof document !== "undefined"
+        ? createPortal(
         <div
           ref={menuRef}
           role="menu"
@@ -623,7 +626,10 @@ export default function RolesBoardPage() {
             Clear
           </button>
         </div>
-      ) : null}
+      ,
+            document.body,
+          )
+        : null}
 
       {/* Preview modal */}
       {preview ? (
