@@ -44,21 +44,24 @@ export async function GET(_req: Request, { params }: Params) {
   const url = new URL(_req.url);
   const teamId = url.searchParams.get("teamId") ?? auth.teamId;
 
-  await ensureClaimMapShell({
-    teamId,
-    caseId,
-    personId: auth.session.personId,
-  });
-  await ensureOpposingPositions({
-    caseId,
-    personId: auth.session.personId,
-  });
-  // Sample-mode only; never invents live student-attributed proposals.
-  await ensureDemoProposalQueue({
-    teamId,
-    caseId,
-    personId: auth.session.personId,
-  });
+  // Independent setup steps run together; each is a no-op once data exists.
+  await Promise.all([
+    ensureClaimMapShell({
+      teamId,
+      caseId,
+      personId: auth.session.personId,
+    }),
+    ensureOpposingPositions({
+      caseId,
+      personId: auth.session.personId,
+    }),
+    // Sample-mode only; never invents live student-attributed proposals.
+    ensureDemoProposalQueue({
+      teamId,
+      caseId,
+      personId: auth.session.personId,
+    }),
+  ]);
   if (teamId === auth.teamId) {
     await ensureClaimMapVersion({
       teamId,
@@ -68,14 +71,16 @@ export async function GET(_req: Request, { params }: Params) {
   }
 
   const brain = await getCaseBrain(teamId, caseId);
-  for (const node of brain.claims) {
-    await ensureChangeTheFacts({
-      teamId,
-      caseId,
-      claimId: node.claim.id,
-      personId: auth.session.personId,
-    });
-  }
+  await Promise.all(
+    brain.claims.map((node) =>
+      ensureChangeTheFacts({
+        teamId,
+        caseId,
+        claimId: node.claim.id,
+        personId: auth.session.personId,
+      }),
+    ),
+  );
   const refreshed = await getCaseBrain(teamId, caseId);
 
   const [teams, cases, peopleFull, flashcards, questions, mapVersion, versions, optIns, researchRuns, libraryFiles] =

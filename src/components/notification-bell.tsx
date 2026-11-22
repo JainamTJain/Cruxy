@@ -73,20 +73,31 @@ export function NotificationBell() {
     <div className="relative">
       <button
         type="button"
-        aria-label="Reminders"
-        className="relative rounded-lg px-2 py-1 text-sm text-[#9AA0AA] hover:bg-white/10"
+        aria-label={unread > 0 ? `Notifications, ${unread} new` : "Notifications"}
+        className="relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-[#C9CCD3] hover:bg-white/10"
         onClick={() => setOpen((v) => !v)}
       >
-        Bell
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path
+            d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15L6 16Zm4 4a2 2 0 0 0 4 0"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <span>Notifications</span>
         {unread > 0 ? (
-          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-cardinal" />
+          <span className="rounded-full bg-cardinal px-1.5 text-[11px] font-bold text-white">
+            {unread}
+          </span>
         ) : null}
       </button>
       {open ? (
         <div className="absolute bottom-full left-0 z-50 mb-2 w-72 rounded-xl border border-mist bg-white p-3 text-ink shadow-lg">
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-              Reminders
+              Notifications
             </p>
             {unread > 0 ? (
               <button

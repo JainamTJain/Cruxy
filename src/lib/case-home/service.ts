@@ -15,6 +15,7 @@ import {
 } from "@/lib/db/supabase/file-segments";
 import { isSampleDataMode } from "@/lib/db/config";
 import { distillFileSegments } from "@/lib/library/segments";
+import { extractCaseSection } from "@/lib/case-home/case-section";
 import type { LibraryFile } from "@/lib/library/types";
 import { listQuestions } from "@/lib/revision/repository";
 import { listClaimMapVersions } from "@/lib/team/repository";
@@ -93,6 +94,7 @@ export async function getCaseHome(args: {
     null;
 
   let paragraphs: CaseParagraph[] = [];
+  let sources: { n: number; text: string }[] = [];
   const annotations: CaseAnnotation[] = [];
   let source: CaseHomePayload["source"] = "seed";
 
@@ -100,12 +102,20 @@ export async function getCaseHome(args: {
     const passages = await listPassagesForFile(caseSet.id);
     if (passages.length > 0) {
       source = "case_set";
-      paragraphs = passages.map((p) => ({
-        id: p.id,
-        text: p.text,
-        anchor: p.anchor,
-        file_id: caseSet.id,
-      }));
+      const section = extractCaseSection(passages, caseRow.number, caseRow.title);
+      if (section && section.paragraphs.length) {
+        paragraphs = section.paragraphs.map((p, i) => ({
+          id: `${caseId}-p${i}`,
+          text: p.text,
+          anchor: passages.find((x) => x.id === p.passage_id)?.anchor ?? null,
+          file_id: caseSet.id,
+          passage_id: p.passage_id,
+        }));
+        sources = section.sources;
+      } else {
+        // Heading not found: show nothing rather than the whole case set.
+        paragraphs = [];
+      }
       const [highlights, comments] = await Promise.all([
         listHighlightsForFile(caseSet.id),
         listCommentsForFile(caseSet.id),
@@ -296,6 +306,7 @@ export async function getCaseHome(args: {
     case: caseRow,
     stakeholders,
     paragraphs,
+    sources,
     annotations,
     ideas: ideas.slice(0, 24),
     files,

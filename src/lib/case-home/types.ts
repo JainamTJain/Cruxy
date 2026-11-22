@@ -26,6 +26,8 @@ export type CaseParagraph = {
   text: string;
   anchor: string | null;
   file_id: string | null;
+  /** Real passage this paragraph starts in; highlights and notes attach here. */
+  passage_id?: string | null;
 };
 
 export type IdeaEvent = {
@@ -50,6 +52,8 @@ export type CaseHomePayload = {
   case: CaseRow;
   stakeholders: CaseStakeholder[];
   paragraphs: CaseParagraph[];
+  /** Footnotes of this case, numbered as in the case set. */
+  sources?: { n: number; text: string }[];
   annotations: CaseAnnotation[];
   ideas: IdeaEvent[];
   files: CaseFileBrief[];
