@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CASE_TITLES } from "@/lib/constants";
+import { pageFromAnchor } from "@/lib/library/search-display";
 
 type Hit = {
   kind: string;
@@ -54,15 +55,15 @@ export default function LibrarySearchPage() {
   }
 
   return (
-    <main className="animate-fade-up space-y-6">
+    <main className="mx-auto w-full max-w-3xl animate-fade-up space-y-6 px-4 py-6 sm:px-0">
       <div>
         <Link href="/library" className="text-xs text-muted underline">
           Library
         </Link>
         <h1 className="font-display text-3xl font-semibold">Search</h1>
         <p className="mt-1 text-sm text-muted">
-          Passages, transcripts, Truth Sources, and comments. Filter by case,
-          team, and type.
+          Ranks by meaning and keywords. Each hit shows the passage, its file,
+          and page.
         </p>
       </div>
 
@@ -120,38 +121,52 @@ export default function LibrarySearchPage() {
         ) : hits.length === 0 ? (
           <li className="text-sm text-muted">No hits.</li>
         ) : (
-          hits.map((h) => (
-            <li
-              key={`${h.kind}-${h.id}`}
-              className="rounded-2xl border border-ink/10 bg-white/60 px-4 py-3"
-            >
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                {h.file_id ? (
-                  <Link
-                    href={`/library/${h.file_id}`}
-                    className="font-display text-lg font-semibold hover:text-cardinal"
-                  >
-                    {h.title}
-                  </Link>
-                ) : (
-                  <span className="font-display text-lg font-semibold">
-                    {h.title}
+          hits.map((h) => {
+            const page = pageFromAnchor(h.anchor);
+            const href = h.file_id
+              ? `/library/${h.file_id}${h.anchor ? `#${encodeURIComponent(h.anchor)}` : ""}`
+              : h.kind === "truth"
+                ? "/case-brain"
+                : null;
+            return (
+              <li
+                key={`${h.kind}-${h.id}`}
+                className="rounded-2xl border border-ink/10 bg-white px-4 py-3"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  {href ? (
+                    <Link
+                      href={href}
+                      className="font-display text-lg font-semibold hover:text-cardinal"
+                    >
+                      {h.title}
+                    </Link>
+                  ) : (
+                    <span className="font-display text-lg font-semibold">
+                      {h.title}
+                    </span>
+                  )}
+                  <span className="text-[11px] font-semibold text-muted">
+                    {h.kind === "truth"
+                      ? "Truth Source"
+                      : h.kind === "comment"
+                        ? "Comment"
+                        : "Passage"}
                   </span>
-                )}
-                <span className="font-mono text-[10px] text-muted">
-                  {h.kind}
-                  {h.anchor ? `, ${h.anchor}` : ""}
-                  {`, ${h.score.toFixed(2)}`}
-                </span>
-              </div>
-              <p className="mt-1 text-sm text-ink/80">{h.snippet}</p>
-              {h.case_numbers.length ? (
+                </div>
                 <p className="mt-1 text-xs text-muted">
-                  Cases {h.case_numbers.join(", ")}
+                  {h.title}
+                  {page.label ? `, ${page.label}` : h.anchor ? `, ${h.anchor}` : ""}
+                  {h.case_numbers.length
+                    ? `, cases ${h.case_numbers.join(", ")}`
+                    : ""}
                 </p>
-              ) : null}
-            </li>
-          ))
+                <p className="mt-2 text-sm leading-relaxed text-ink/90">
+                  {h.snippet}
+                </p>
+              </li>
+            );
+          })
         )}
       </ul>
     </main>

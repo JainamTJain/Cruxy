@@ -706,7 +706,10 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     ai_calls: raw.ai_calls ?? [],
     competitions: raw.competitions ?? [],
     cases: raw.cases ?? [],
-    files: raw.files ?? library.files,
+    files: (raw.files ?? library.files).map((f) => ({
+      ...f,
+      unreadable_reason: f.unreadable_reason ?? null,
+    })),
     passages: raw.passages ?? library.passages,
     highlights: raw.highlights ?? library.highlights,
     comments: raw.comments ?? library.comments,

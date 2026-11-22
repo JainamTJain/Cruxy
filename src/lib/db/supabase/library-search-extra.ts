@@ -53,14 +53,11 @@ export async function searchLibraryUnified(input: {
     }),
   ]);
 
-  const out: UnifiedSearchHit[] = [];
-  const seen = new Set<string>();
+  const byKey = new Map<string, UnifiedSearchHit>();
 
   for (const h of embedHits) {
     const key = `passage:${h.passage_id}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push({
+    byKey.set(key, {
       kind:
         input.type === "practice_transcript" ? "transcript" : "passage",
       id: h.passage_id,
@@ -78,9 +75,19 @@ export async function searchLibraryUnified(input: {
 
   for (const h of keywordHits) {
     const key = `${h.kind}:${h.id}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push({
+    const existing = byKey.get(key);
+    if (existing) {
+      // Embedding plus keyword: raise rank when both agree.
+      existing.score = Math.min(1, existing.score * 0.65 + h.score * 0.45 + 0.12);
+      if (!existing.case_numbers.length && h.case_numbers?.length) {
+        existing.case_numbers = h.case_numbers;
+      }
+      if (h.snippet && h.snippet.length > existing.snippet.length) {
+        existing.snippet = h.snippet;
+      }
+      continue;
+    }
+    byKey.set(key, {
       kind: h.kind === "comment" ? "comment" : "passage",
       id: h.id,
       file_id: h.file_id,
@@ -111,9 +118,8 @@ export async function searchLibraryUnified(input: {
           continue;
         }
         const key = `truth:${t.id}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        out.push({
+        if (byKey.has(key)) continue;
+        byKey.set(key, {
           kind: "truth",
           id: t.id,
           file_id: null,
@@ -153,9 +159,8 @@ export async function searchLibraryUnified(input: {
         const num = t.case_id ? caseMap.get(t.case_id) : undefined;
         if (input.caseNumber != null && num !== input.caseNumber) continue;
         const key = `truth:${t.id}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        out.push({
+        if (byKey.has(key)) continue;
+        byKey.set(key, {
           kind: "truth",
           id: t.id,
           file_id: null,
@@ -172,5 +177,7 @@ export async function searchLibraryUnified(input: {
     }
   }
 
-  return out.sort((a, b) => b.score - a.score).slice(0, limit);
+  return [...byKey.values()]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
 }

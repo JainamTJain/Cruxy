@@ -16,6 +16,25 @@ type FileCard = {
   scanned_pdf: boolean;
 };
 
+type SyncLatest = {
+  files_seen?: number;
+  files_processed: number;
+  files_skipped_unchanged: number;
+  ai_calls: number;
+  stub: boolean;
+  finished_at: string | null;
+  notes: string | null;
+  mode?: string;
+};
+
+type UnreadableRow = {
+  id: string;
+  name: string;
+  path: string | null;
+  kindLabel: string;
+  whatToDo: string;
+};
+
 type DriveStatus = {
   configured: boolean;
   hasServiceAccount: boolean;
@@ -32,14 +51,8 @@ export default function LibraryPage() {
   const [connectSteps, setConnectSteps] = useState<string[]>([]);
   const [writeEnabled, setWriteEnabled] = useState(false);
   const [writeMessage, setWriteMessage] = useState<string | null>(null);
-  const [latest, setLatest] = useState<{
-    files_processed: number;
-    files_skipped_unchanged: number;
-    ai_calls: number;
-    stub: boolean;
-    finished_at: string | null;
-    notes: string | null;
-  } | null>(null);
+  const [latest, setLatest] = useState<SyncLatest | null>(null);
+  const [unreadables, setUnreadables] = useState<UnreadableRow[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -50,13 +63,17 @@ export default function LibraryPage() {
       fetch("/api/library/sync"),
     ]);
     if (filesRes.ok) {
-      const data = (await filesRes.json()) as { files: FileCard[] };
+      const data = (await filesRes.json()) as {
+        files: FileCard[];
+        unreadables?: UnreadableRow[];
+      };
       setFiles(data.files);
+      setUnreadables(data.unreadables ?? []);
     }
     if (syncRes.ok) {
       const data = (await syncRes.json()) as {
         drive: DriveStatus;
-        latest: typeof latest;
+        latest: SyncLatest | null;
         canSync?: boolean;
         connectSteps?: string[];
         writeEnabled?: boolean;
@@ -258,17 +275,101 @@ export default function LibraryPage() {
         </p>
       ) : null}
 
-      {latest ? (
-        <p className="text-xs text-muted">
-          Last sync: processed {latest.files_processed}, skipped unchanged{" "}
-          {latest.files_skipped_unchanged}, Cruxy calls {latest.ai_calls}
-          {latest.stub ? " (offline digest)" : ""}
-          {latest.finished_at
-            ? `, ${new Date(latest.finished_at).toLocaleString()}`
-            : ""}
-          {latest.notes ? `, ${latest.notes}` : ""}
-          {writeEnabled ? ", writeback on" : ""}
-        </p>
+      <section className="rounded-[20px] border border-[#E3E5E9] bg-white p-4 sm:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-display m-0 text-lg font-extrabold">
+              Drive sync status
+            </h2>
+            <p className="mt-1 text-sm text-muted">
+              Last run, files seen, processed, skipped, and notes.
+            </p>
+          </div>
+          {canSync ? (
+            <button
+              type="button"
+              onClick={() => void syncNow()}
+              disabled={busy}
+              className="rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {busy ? "Syncing…" : "Sync now"}
+            </button>
+          ) : (
+            <span className="text-xs text-muted">Sync now: tech admin</span>
+          )}
+        </div>
+        {latest ? (
+          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4">
+            <div>
+              <dt className="text-xs text-muted">Last run</dt>
+              <dd className="font-semibold">
+                {latest.finished_at
+                  ? new Date(latest.finished_at).toLocaleString()
+                  : "In progress"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted">Files seen</dt>
+              <dd className="font-semibold">
+                {latest.files_seen != null ? latest.files_seen : "n/a"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted">Processed</dt>
+              <dd className="font-semibold">{latest.files_processed}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted">Skipped</dt>
+              <dd className="font-semibold">{latest.files_skipped_unchanged}</dd>
+            </div>
+          </dl>
+        ) : (
+          <p className="mt-3 text-sm text-muted">No sync run yet.</p>
+        )}
+        {latest?.notes ? (
+          <p className="mt-3 text-sm text-ink/80">Notes: {latest.notes}</p>
+        ) : null}
+        {latest?.stub ? (
+          <p className="mt-1 text-xs text-muted">Offline digest this run.</p>
+        ) : null}
+        {writeEnabled ? (
+          <p className="mt-1 text-xs text-muted">Writeback on.</p>
+        ) : null}
+      </section>
+
+      {unreadables.length > 0 ? (
+        <section className="rounded-[20px] border border-cardinal/25 bg-cardinal/5 p-4 sm:p-5">
+          <h2 className="font-display m-0 text-lg font-extrabold">
+            Could not read as text
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            Scanned PDFs, slides, and images need a text version in Drive.
+          </p>
+          <ul className="mt-3 space-y-3">
+            {unreadables.map((u) => (
+              <li
+                key={u.id}
+                className="rounded-xl border border-[#E3E5E9] bg-white px-3 py-3"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <Link
+                    href={`/library/${u.id}`}
+                    className="font-semibold hover:underline"
+                  >
+                    {u.name}
+                  </Link>
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-cardinal">
+                    {u.kindLabel}
+                  </span>
+                </div>
+                {u.path ? (
+                  <p className="mt-0.5 text-xs text-muted">{u.path}</p>
+                ) : null}
+                <p className="mt-1.5 text-sm text-ink/85">{u.whatToDo}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       {featured ? (

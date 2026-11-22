@@ -30,6 +30,8 @@ export interface LibraryFile {
   card: string | null;
   text_content: string | null;
   scanned_pdf: boolean;
+  /** Why text could not be extracted; null when readable (Wave 7). */
+  unreadable_reason: string | null;
   status: LibraryFileStatus;
   /** Ideas extracted during digest (transcript → proposals). */
   extracted_ideas: string[];

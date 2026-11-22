@@ -54,7 +54,7 @@ export async function GET() {
     listCompetitions(),
     listPeopleFull(),
     teamReadinessAverages(),
-    changesSince(lastVisit, 15),
+    changesSince(lastVisit, 80),
     getRoadmapView(session.personId).catch(() => null),
     listAssignments({ personId: session.personId }).catch(() => []),
     countLibraryForProgramMap().catch(() => ({
@@ -219,10 +219,20 @@ export async function GET() {
     teamAverages: avgs,
     competition: nextCompetition,
     daysToCompetition: days == null ? null : Math.max(0, days),
-    changes: changes.map((e) => ({
-      ...e,
-      personName: e.person_id ? names.get(e.person_id) ?? "unknown" : "system",
-    })),
+    changes: (
+      await import("@/lib/home/activity-feed").then(({ buildActivityFeed }) =>
+        buildActivityFeed({
+          entries: changes,
+          personNames: names,
+          cases: cases.map((c) => ({
+            id: c.id,
+            number: c.number,
+            title: c.title,
+          })),
+          limit: 12,
+        }),
+      )
+    ),
     nextActions: nextActions.slice(0, 3),
     lastVisit,
     todayLabel,
