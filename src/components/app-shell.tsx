@@ -14,6 +14,11 @@ import { ConfettiHost } from "@/components/motion/confetti";
 import { FirstVisitTour } from "@/components/product/first-visit-tour";
 import { ReportProblemButton } from "@/components/help/report-problem-button";
 import { NotificationBell } from "@/components/notification-bell";
+import {
+  GlobalSearchHost,
+  SearchOpenButton,
+} from "@/components/search/command-palette";
+import { registerCruxServiceWorker } from "@/lib/offline/register-sw";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/types";
 
@@ -109,6 +114,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     preloadCruxyPoses();
   }, []);
 
+  useEffect(() => {
+    registerCruxServiceWorker();
+  }, []);
+
   async function toggleAdmin(adminView: boolean) {
     await fetch("/api/auth/admin-view", {
       method: "POST",
@@ -162,6 +171,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         <Link href="/home" className="mx-1 inline-block px-1 py-1">
           <CruxWordmark className="text-[38px]" />
         </Link>
+        <SearchOpenButton
+          showShortcut
+          className="mx-1 inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-left text-sm text-white/80 hover:bg-white/10"
+        />
         {onAdminScreen ? (
           <span className="ml-3 self-start rounded-md bg-gold px-2 py-1 text-xs font-bold tracking-[0.1em] text-ink">
             ADMIN
@@ -268,7 +281,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           <Link href="/home" className="inline-block py-0.5">
             <CruxWordmark className="text-2xl" />
           </Link>
-          <p className="text-xs text-white/70">{displayName}</p>
+          <div className="flex items-center gap-2">
+            <SearchOpenButton className="rounded-lg px-2 py-1 text-sm font-semibold text-white/85 hover:bg-white/10" />
+            <p className="text-xs text-white/70">{displayName}</p>
+          </div>
         </header>
         <main className="min-w-0 flex-1 px-4 pb-24 pt-4 sm:px-10 sm:pb-10 sm:pt-8">
           {children}
@@ -347,6 +363,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <CruxyDrawer />
       <ConfettiHost />
       <FirstVisitTour />
+      <GlobalSearchHost />
       <ReportProblemButton />
     </div>
   );
