@@ -154,11 +154,16 @@ function originLabel(
   }
   if (proposal.origin === "research") return "Cruxy research";
   if (proposal.origin === "transcript") {
-    return proposal.origin_ref?.startsWith("From practice")
-      ? proposal.origin_ref
-      : proposal.origin_ref
-        ? `From practice, ${proposal.origin_ref}`
-        : "From practice";
+    const ref = proposal.origin_ref ?? "";
+    if (ref.startsWith("From practice")) return ref;
+    // A bare round id means nothing to a person; show when it came from.
+    const looksLikeId = /^[0-9a-f-]{20,}$/i.test(ref.trim());
+    const when = new Date(proposal.created_at);
+    const date = Number.isNaN(when.getTime())
+      ? ""
+      : `, ${when.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+    if (!ref || looksLikeId) return `From a practice round${date}`;
+    return `From practice, ${ref}`;
   }
   if (proposal.origin === "reading") return "Reading room";
   if (proposal.origin === "team_doc") return "Team doc";
@@ -1283,7 +1288,7 @@ export function CaseBrainClient({
                             htmlFor={`reason-${p.id}`}
                             className="text-[13px] font-semibold"
                           >
-                            Your reason
+                            Why? One line, then tick to keep or cross to drop
                           </label>
                           <input
                             id={`reason-${p.id}`}
@@ -1322,9 +1327,8 @@ export function CaseBrainClient({
                               className="flex h-[42px] items-center justify-center gap-1.5 rounded-xl border border-mist bg-white text-sm font-semibold"
                               onClick={() => void decide(p.id, "accept")}
                             >
-                              {briefMode === "own_doc"
-                                ? "✅ Checklist"
-                                : "✅ Accept"}
+                              <span aria-hidden className="text-lg text-[#1F7A4D]">✓</span>
+                              {briefMode === "own_doc" ? "To-do" : null}
                             </button>
                             <button
                               type="button"
@@ -1333,7 +1337,7 @@ export function CaseBrainClient({
                               className="flex h-[42px] items-center justify-center gap-1.5 rounded-xl border border-mist bg-white text-sm font-semibold"
                               onClick={() => void decide(p.id, "reject")}
                             >
-                              ❌ Reject
+                              <span aria-hidden className="text-lg text-cardinal">✗</span>
                             </button>
                             <button
                               type="button"
