@@ -7,6 +7,7 @@ import { AppeScoringCard } from "@/components/practice/appe-scoring-card";
 import { CalibratedJudgeSummary } from "@/components/practice/calibrated-judge-summary";
 import { RoundReflectionPrompt } from "@/components/practice/round-reflection-prompt";
 import { SpeakerConfirmPanel } from "@/components/practice/speaker-confirm";
+import { WhoIsThisPanel } from "@/components/practice/who-is-this";
 import { APPE_SCORE_ITEMS } from "@/lib/practice/types";
 
 type Score = {
@@ -691,6 +692,12 @@ export default function RoundReportPage() {
           {doThisMsg ? <p className="text-sm text-muted">{doThisMsg}</p> : null}
         </section>
       )}
+
+      <WhoIsThisPanel
+        roundId={params.id}
+        people={data.people.map((p) => ({ id: p.id, name: p.name }))}
+        isAdmin={isAdmin}
+      />
 
       <SpeakerConfirmPanel
         roundId={params.id}

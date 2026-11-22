@@ -37,7 +37,10 @@ export async function buildPersonalDataExport(personId: string): Promise<{
       consent_version: person.consent_version,
       consent_at: person.consent_at,
       recording_ok: person.recording_ok,
-      has_voice_sample: Boolean(person.voice_sample_path),
+      has_voice_sample: Boolean(
+        person.voice_sample_path ||
+          (person as { voiceprint?: number[] | null }).voiceprint?.length,
+      ),
       pronunciation_note: person.pronunciation_note,
     },
     learning_profile: profile,

@@ -304,7 +304,12 @@ export interface RoundReport {
 
 export interface SpeakerLabelConfirm {
   round_id: string;
-  mappings: { speaker_label: string; person_id: string | null }[];
+  mappings: {
+    speaker_label: string;
+    person_id: string | null;
+    confidence?: number;
+    source?: "voiceprint" | "name" | "role" | "manual";
+  }[];
   confirmed_by: string | null;
   confirmed_at: string | null;
 }

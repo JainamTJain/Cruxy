@@ -27,6 +27,8 @@
     "check:supabase-wired": "tsx scripts/check-supabase-wired.ts",
     "test:cruxy": "node scripts/with-server-only-stub.cjs ./node_modules/tsx/dist/cli.mjs scripts/test-cruxy.ts",
     "check:cruxy-act": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/cruxy-act-checks.ts",
+    "test:voiceprint": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/voiceprint-accuracy.ts",
+    "download:voiceprint-model": "node scripts/download-voiceprint-model.mjs",
     "check:critique": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/critique-engine-checks.ts"
   },
   "dependencies": {
@@ -41,6 +43,7 @@
     "lucide-react": "^1.77.0",
     "mammoth": "^1.13.0",
     "next": "15.5.29",
+    "onnxruntime-node": "^1.20.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-swipeable": "^7.0.2",

@@ -185,24 +185,28 @@ export default function SettingsPage() {
     }
   }
 
-  async function saveVoiceSample(voice: Blob) {
+  async function saveVoiceSample(payload: {
+    parts: Record<"read" | "natural" | "competition", Blob>;
+    heardText: string;
+  }) {
     setVoiceBusy(true);
     setMsg(null);
     const form = new FormData();
-    form.set("recordingOk", "true");
-    const ext = voice.type.includes("mp4") ? "mp4" : "webm";
-    form.set("voice", voice, `sample.${ext}`);
-    const res = await fetch("/api/auth/consent-update", {
-      method: "POST",
-      body: form,
-    });
+    for (const id of ["read", "natural", "competition"] as const) {
+      const blob = payload.parts[id];
+      const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+      form.set(id, blob, `${id}.${ext}`);
+    }
+    form.set("heardText", payload.heardText);
+    const res = await fetch("/api/voice/enroll", { method: "POST", body: form });
+    const data = (await res.json()) as { error?: string };
     setVoiceBusy(false);
     if (res.ok) {
       setRecordingOk(true);
       setReRecord(false);
-      setMsg("Voice sample updated.");
+      setMsg("Voiceprint updated. The old sample was replaced only after this one passed.");
     } else {
-      setMsg("Could not save the new voice sample.");
+      setMsg(data.error ?? "Could not save the new voiceprint. Redo the flagged parts.");
     }
   }
 
@@ -297,8 +301,8 @@ export default function SettingsPage() {
         <section className="rounded-2xl border border-ink/10 bg-white p-4">
           <h3 className="m-0 text-sm font-semibold">Re-record my voice</h3>
           <p className="mt-1 text-xs text-muted">
-            Guided enrollment. The old sample is replaced only after the new
-            one passes.
+            Three short parts (~45–60s). The old voiceprint is replaced only
+            after the new one passes quality checks.
           </p>
           {!recordingOk ? (
             <p className="mt-2 text-sm text-muted">
@@ -317,7 +321,8 @@ export default function SettingsPage() {
                 <div className="mt-4">
                   <VoiceEnrollment
                     busy={voiceBusy}
-                    onDone={(blob) => void saveVoiceSample(blob)}
+                    requireVoice
+                    onDone={(payload) => void saveVoiceSample(payload)}
                     onCancelTextOnly={() => {
                       setReRecord(false);
                     }}

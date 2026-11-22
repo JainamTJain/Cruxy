@@ -32,10 +32,16 @@ export async function deleteVoiceSampleForPerson(opts: {
   }
 
   person.voice_sample_path = null;
+  (person as { voiceprint?: number[] | null }).voiceprint = null;
+  (person as { voiceprint_at?: string | null }).voiceprint_at = null;
+  (person as { voiceprint_meta?: Record<string, unknown> | null }).voiceprint_meta =
+    null;
   if (opts.reason === "withdrawal") {
     person.recording_ok = false;
   }
   await savePerson(person);
+  const { clearVoiceprint } = await import("@/lib/voice/repository");
+  await clearVoiceprint(opts.personId);
 
   await logActivity({
     person_id: opts.actorId ?? opts.personId,
