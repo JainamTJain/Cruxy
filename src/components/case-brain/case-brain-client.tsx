@@ -11,6 +11,8 @@ import {
 import { VersionConfirm } from "@/components/case-brain/version-confirm";
 import { TeamDocImport } from "@/components/team-doc-import";
 import { FindingCard } from "@/components/cruxy/finding-card";
+import { emitMood } from "@/components/cruxy/mood/bus";
+import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
 import { coverageFromFindings } from "@/lib/cruxy/research-gaps";
 import type {
   CaseBrainSnapshot,
@@ -221,12 +223,16 @@ export function CaseBrainClient({
         editedText: editDrafts[proposalId] ?? null,
       }),
     });
+    if (verdict === "accept") {
+      emitMood({ type: "idea.accepted" });
+    }
   }
 
   if (!data) {
-    return (
-      <p className="text-sm text-muted">{error ?? "Loading case brain…"}</p>
-    );
+    if (error) {
+      return <p className="text-sm text-cardinal">{error}</p>;
+    }
+    return <LoadingGenie label="Loading case brain..." />;
   }
 
   const { brain, case: caseRow, teams, canEdit, meta, viewer } = data;
