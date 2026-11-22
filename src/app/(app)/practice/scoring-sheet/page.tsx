@@ -154,8 +154,8 @@ export default function ScoringSheetPage() {
         </section>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
-        <section className="space-y-3">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <section className="min-w-0 space-y-3">
           <div className="overflow-x-auto rounded-2xl border border-ink/10 bg-white/70 p-4">
             <table className="w-full min-w-[520px] text-left text-sm">
               <thead>

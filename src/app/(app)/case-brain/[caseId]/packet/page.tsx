@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { getCaseBrain } from "@/lib/case-brain/service";
@@ -9,7 +10,7 @@ import { PrintPacketClient } from "@/components/case/print-packet-client";
 
 type Props = {
   params: Promise<{ caseId: string }>;
-  searchParams: Promise<{ team?: string }>;
+  searchParams: Promise<{ team?: string; print?: string }>;
 };
 
 /**
@@ -49,7 +50,7 @@ export default async function CasePacketPage({ params, searchParams }: Props) {
     .map((q) => q.text);
 
   const stance =
-    brain.claims.map((n) => n.claim.text).join(" · ") ||
+    brain.claims.map((n) => n.claim.text).join(", ") ||
     caseRow.crux ||
     "Stance not set yet.";
 
@@ -62,12 +63,14 @@ export default async function CasePacketPage({ params, searchParams }: Props) {
         >
           ← Back to the case
         </Link>
-        <PrintPacketClient />
+        <Suspense fallback={null}>
+          <PrintPacketClient />
+        </Suspense>
       </div>
 
       <article className="rounded-[20px] bg-white p-6 sm:p-10 print:rounded-none print:p-0">
         <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-muted">
-          Case packet · USC Ethics Bowl
+          Case packet, USC Ethics Bowl
         </p>
         <h1 className="font-display mt-2 text-3xl font-extrabold tracking-[-0.02em]">
           Case {caseRow.number}: {caseRow.title}

@@ -146,7 +146,23 @@ export interface PracticeRound {
   created_by: string | null;
   /** One mic in the room, each phone, or both lined up by time. */
   recording_layout?: RecordingLayout;
+  /**
+   * Mid-drill UI checkpoint (phase, prompt, seconds). No audio.
+   * Migration 00071.
+   */
+  drill_checkpoint?: DrillCheckpoint | null;
+  /** When the current phase began (resume on-screen timer). Migration 00071. */
+  phase_entered_at?: string | null;
 }
+
+/** Client-owned drill UI state so leave/return resumes the same round. */
+export type DrillCheckpoint = {
+  phase?: string;
+  prompt?: string | null;
+  seconds_left?: number | null;
+  running?: boolean;
+  updated_at?: string;
+};
 
 export interface AttendanceRow {
   id: string;

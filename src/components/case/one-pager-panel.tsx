@@ -6,6 +6,7 @@ import {
   OnePagerEditableField,
   RoleNameSkeleton,
 } from "@/components/case/one-pager-editable-field";
+import { SaveShareMenu } from "@/components/case/save-share-menu";
 import {
   emptyClaim,
   ensureCounterclaim,
@@ -81,10 +82,11 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
   }, [teamId, caseId]);
 
   const loadMeta = useCallback(async () => {
+    const brainQ = embedded ? "&lite=1" : "";
     const [metaRes, brainRes, meRes] = await Promise.all([
       fetch("/api/revision/one-pagers"),
       fetch(
-        `/api/case-brain/${caseId}?teamId=${encodeURIComponent(teamId)}`,
+        `/api/case-brain/${caseId}?teamId=${encodeURIComponent(teamId)}${brainQ}`,
       ),
       fetch("/api/auth/me"),
     ]);
@@ -221,30 +223,6 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
     }
   }
 
-  async function exportDrive() {
-    if (!page) return;
-    setBusy(true);
-    try {
-      const res = await fetch("/api/revision/one-pagers", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "export", onePagerId: page.id }),
-      });
-      const data = (await res.json()) as { stub?: boolean; error?: string };
-      if (!res.ok) {
-        setStatus(data.error ?? "Could not save to Drive");
-        return;
-      }
-      setStatus(
-        data.stub
-          ? "Drive export prepared locally. Connect Drive to send the file."
-          : "Saved to the team's Drive folder.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function loadVersions() {
     const res = await fetch(
       `/api/revision/one-pagers?teamId=${encodeURIComponent(teamId)}&caseId=${encodeURIComponent(caseId)}&versions=1`,
@@ -353,24 +331,18 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
         ) : (
           <span />
         )}
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="h-10 rounded-[10px] border border-[#C9CCD3] bg-white px-3.5 text-[13px] font-semibold"
-          >
-            Export PDF
-          </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {!embedded ? (
+            <SaveShareMenu
+              caseId={caseId}
+              teamId={teamId}
+              onePagerId={page.id}
+              canSaveDrive={canEdit}
+              onDriveSaved={(msg) => setStatus(msg)}
+            />
+          ) : null}
           {canEdit ? (
             <>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void exportDrive()}
-                className="h-10 rounded-[10px] border border-[#C9CCD3] bg-white px-3.5 text-[13px] font-semibold disabled:opacity-50"
-              >
-                Save to Drive
-              </button>
               <button
                 type="button"
                 disabled={busy}

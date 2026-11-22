@@ -328,6 +328,12 @@ export interface SampleStore {
     source_url: string;
     created_at: string;
   }[];
+  /** Wave 9 E solo async soft bags (solo-prep-repository). */
+  solo_part_progress?: unknown[];
+  solo_recordings?: unknown[];
+  solo_review_comments?: unknown[];
+  solo_handoffs?: unknown[];
+  solo_case_visits?: unknown[];
 }
 
 function emptyCaseBrainFields(): Pick<
@@ -886,6 +892,11 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     calendar_feed_tokens: raw.calendar_feed_tokens ?? [],
     product_feedback: raw.product_feedback ?? [],
     framework_case_applies: raw.framework_case_applies ?? [],
+    solo_part_progress: raw.solo_part_progress ?? [],
+    solo_recordings: raw.solo_recordings ?? [],
+    solo_review_comments: raw.solo_review_comments ?? [],
+    solo_handoffs: raw.solo_handoffs ?? [],
+    solo_case_visits: raw.solo_case_visits ?? [],
   };
 }
 

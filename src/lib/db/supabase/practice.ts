@@ -86,6 +86,8 @@ function mapRound(r: Row): PracticeRound {
     created_at: iso(r.created_at),
     created_by: r.created_by ?? null,
     recording_layout: (r.recording_layout as PracticeRound["recording_layout"]) ?? "room",
+    drill_checkpoint: (r.drill_checkpoint as PracticeRound["drill_checkpoint"]) ?? null,
+    phase_entered_at: isoOrNull(r.phase_entered_at),
   };
 }
 
@@ -108,6 +110,8 @@ function roundToRow(r: PracticeRound): Row {
     created_at: r.created_at,
     created_by: r.created_by,
     recording_layout: r.recording_layout ?? "room",
+    drill_checkpoint: r.drill_checkpoint ?? null,
+    phase_entered_at: r.phase_entered_at ?? null,
   };
 }
 
@@ -474,6 +478,8 @@ export async function createSession(
     created_at: at,
     created_by: input.createdBy,
     recording_layout: input.online ? "own_device" : "room",
+    drill_checkpoint: null,
+    phase_entered_at: null,
   }));
 
   assertOk(
@@ -748,10 +754,15 @@ export async function listAttendance(sessionId: string): Promise<AttendanceRow[]
 
 export async function startRound(roundId: string): Promise<PracticeRound | null> {
   const sb = getServiceSupabase();
+  const at = nowIso();
   const row = must(
     await sb
       .from("rounds")
-      .update({ phase: "presentation", started_at: nowIso() })
+      .update({
+        phase: "presentation",
+        started_at: at,
+        phase_entered_at: at,
+      })
       .eq("id", roundId)
       .select("*")
       .maybeSingle(),
@@ -771,8 +782,9 @@ export async function advanceRoundPhase(
   phase: PracticeRound["phase"],
 ): Promise<PracticeRound | null> {
   const sb = getServiceSupabase();
-  const patch: Row = { phase };
-  if (phase === "done") patch.ended_at = nowIso();
+  const at = nowIso();
+  const patch: Row = { phase, phase_entered_at: at };
+  if (phase === "done") patch.ended_at = at;
   const row = must(
     await sb
       .from("rounds")
@@ -808,6 +820,73 @@ export async function advanceRoundPhase(
     }
   }
   return mapRound(row);
+}
+
+const OPEN_DRILL_PHASES = new Set([
+  "setup",
+  "presentation",
+  "commentary",
+  "response",
+  "judges_qa",
+]);
+
+/** Resume unfinished member drill for person + mode (Supabase path). */
+export async function findOpenDrillRound(opts: {
+  personId: string;
+  mode: PracticeMode;
+  caseId?: string | null;
+}): Promise<{ session: PracticeSession; round: PracticeRound } | null> {
+  const sb = getServiceSupabase();
+  const sessions =
+    must(
+      await sb
+        .from("sessions")
+        .select("*")
+        .eq("kind", "member_practice")
+        .eq("created_by", opts.personId)
+        .neq("status", "ended")
+        .order("created_at", { ascending: false })
+        .limit(20),
+      "findOpenDrillRound.sessions",
+    ) ?? [];
+
+  for (const raw of sessions as Row[]) {
+    const session = mapSession(raw);
+    if (session.mode && session.mode !== opts.mode) continue;
+    let q = sb
+      .from("rounds")
+      .select("*")
+      .eq("session_id", session.id)
+      .eq("mode", opts.mode)
+      .order("created_at", { ascending: false })
+      .limit(8);
+    if (opts.caseId) q = q.eq("case_id", opts.caseId);
+    const rounds =
+      must(await q, "findOpenDrillRound.rounds") ?? [];
+    const hit = (rounds as Row[]).find((r) =>
+      OPEN_DRILL_PHASES.has(String(r.phase)),
+    );
+    if (hit) return { session, round: mapRound(hit) };
+  }
+  return null;
+}
+
+export async function saveDrillCheckpoint(
+  roundId: string,
+  checkpoint: NonNullable<PracticeRound["drill_checkpoint"]>,
+): Promise<PracticeRound | null> {
+  const sb = getServiceSupabase();
+  const payload = { ...checkpoint, updated_at: nowIso() };
+  const row = must(
+    await sb
+      .from("rounds")
+      .update({ drill_checkpoint: payload })
+      .eq("id", roundId)
+      .select("*")
+      .maybeSingle(),
+    "saveDrillCheckpoint",
+  );
+  return row ? mapRound(row) : null;
 }
 
 export async function endPracticeSession(
@@ -928,6 +1007,37 @@ export async function saveTranscriptLines(lines: TranscriptLine[]): Promise<void
       )
     ).error,
     "saveTranscriptLines",
+  );
+}
+
+/** Full replace for a round (finalize). Avoids orphan line ids on re-run. */
+export async function replaceTranscriptForRound(
+  roundId: string,
+  lines: TranscriptLine[],
+): Promise<void> {
+  const sb = getServiceSupabase();
+  assertOk(
+    (await sb.from("transcript_lines").delete().eq("round_id", roundId)).error,
+    "replaceTranscriptForRound.clear",
+  );
+  if (lines.length === 0) return;
+  assertOk(
+    (
+      await sb.from("transcript_lines").insert(
+        lines.map((l) => ({
+          id: l.id,
+          round_id: l.round_id,
+          start_ms: l.start_ms,
+          end_ms: l.end_ms,
+          speaker_person_id: l.speaker_person_id,
+          speaker_label: l.speaker_label,
+          text: l.text,
+          corrected: l.corrected,
+          created_at: l.created_at,
+        })),
+      )
+    ).error,
+    "replaceTranscriptForRound.insert",
   );
 }
 

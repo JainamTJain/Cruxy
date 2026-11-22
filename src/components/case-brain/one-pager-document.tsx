@@ -288,7 +288,7 @@ export function OnePagerDocument({
                   <strong>Concede</strong>
                   <br />
                   <LinkedText
-                    text={cc.concede || "Not set"}
+                    text={cc.concede || "Not written yet"}
                     caseId={page.case_id}
                   />
                 </div>
@@ -296,7 +296,7 @@ export function OnePagerDocument({
                   <strong>Distinguish</strong>
                   <br />
                   <LinkedText
-                    text={cc.distinguish || "Not set"}
+                    text={cc.distinguish || "Not written yet"}
                     caseId={page.case_id}
                   />
                 </div>
@@ -304,7 +304,7 @@ export function OnePagerDocument({
                   <strong>Rebut</strong>
                   <br />
                   <LinkedText
-                    text={cc.rebut || "Not set"}
+                    text={cc.rebut || "Not written yet"}
                     caseId={page.case_id}
                   />
                 </div>
@@ -430,7 +430,7 @@ export function OnePagerDocument({
                     </td>
                     <td className="py-2 align-top">
                       <LinkedText
-                        text={row.a || "Not set"}
+                        text={row.a || "Not written yet"}
                         caseId={page.case_id}
                       />
                     </td>

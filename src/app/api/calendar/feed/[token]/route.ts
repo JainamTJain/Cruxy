@@ -30,7 +30,7 @@ export async function GET(
 
   const events = await listTeamCalendar(person.team_id);
   const ics = buildIcsCalendar({
-    calendarName: `Crux · ${person.name}`,
+    calendarName: `Crux, ${person.name}`,
     events,
   });
 
