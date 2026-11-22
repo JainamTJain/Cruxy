@@ -96,9 +96,10 @@ export default function LanguagePage() {
         <h1 className="font-display text-3xl font-semibold">
           Language and analogies
         </h1>
-        <p className="mt-1 text-sm text-muted">
-          Plain sentence under 25 words, two everyday analogies, vivid Truth Source
-          example, phrases to avoid.
+        <p className="mt-1 max-w-xl text-sm text-muted">
+          Turn a claim into a plain sentence, two everyday analogies, and a
+          vivid example from the Evidence Library. Save lines you want to reuse
+          in your phrasebook.
         </p>
       </div>
 

@@ -27,7 +27,7 @@ export default function MasteryMapPage() {
   const loadMeta = useCallback(async () => {
     const res = await fetch("/api/mastery");
     if (!res.ok) {
-      setStatus("Could not load mastery map.");
+      setStatus("Could not load the mastery map. Refresh and try again.");
       return;
     }
     const data = (await res.json()) as {
@@ -47,7 +47,7 @@ export default function MasteryMapPage() {
     if (teamId) q.set("teamId", teamId);
     const res = await fetch(`/api/mastery?${q}`);
     if (!res.ok) {
-      setStatus("Could not load this case.");
+      setStatus("Could not load this case. Pick another case or refresh.");
       return;
     }
     const data = (await res.json()) as { map: MasteryMapView };
@@ -74,7 +74,7 @@ export default function MasteryMapPage() {
   if (access === null) {
     return (
       <div className="animate-fade-up p-4 text-sm text-muted">
-        Loading mastery map…
+        Loading your mastery map…
       </div>
     );
   }
@@ -85,10 +85,10 @@ export default function MasteryMapPage() {
         <h1 className="font-display m-0 text-[40px] font-extrabold tracking-[-0.02em] max-md:text-[32px]">
           Mastery map
         </h1>
-        <p className="text-sm text-muted">
-          Your own mastery row is on this page when you are signed in with a
-          team. Leads see their case grid. Dr. B and Jainam see all three teams
-          in admin view.
+        <p className="mt-1 max-w-xl text-sm text-muted">
+          Shows how well you know each claim on a case, from your own drills and
+          rounds. Sign in with a team to see your row. Case leads see the full
+          grid; Dr. B and Jainam see every team in admin view.
         </p>
       </div>
     );
@@ -109,8 +109,9 @@ export default function MasteryMapPage() {
             Mastery map
           </h1>
           <p className="m-0 max-w-xl text-sm text-muted">
-            People by claim node, shaded from card reviews, drill answers and
-            round performance. Empty until real activity exists.
+            How strong each person is on each claim for this case. Colour comes
+            from flashcard reviews, drills and rounds. Empty cells mean no
+            practice yet. Pick a case to begin.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

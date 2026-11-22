@@ -215,7 +215,7 @@ const TEMPLATES: Record<string, Template> = {
       const caseId = metaCaseId(e);
       const label = caseLabel(caseId, ctx.casesById) ?? "a case";
       return {
-        text: `${ctx.personName} proposed a Truth Source idea for ${label}`,
+        text: `${ctx.personName} proposed an Evidence Library idea for ${label}`,
         href: caseId ? `/case-brain/${caseId}` : "/case-brain",
         caseId,
       };
@@ -226,7 +226,7 @@ const TEMPLATES: Record<string, Template> = {
       const caseId = metaCaseId(e);
       const label = caseLabel(caseId, ctx.casesById) ?? "a case";
       return {
-        text: `${ctx.personName} accepted a Truth Source for ${label}`,
+        text: `${ctx.personName} accepted an Evidence Library entry for ${label}`,
         href: caseId ? `/case-brain/${caseId}` : "/case-brain",
         caseId,
       };
@@ -237,7 +237,7 @@ const TEMPLATES: Record<string, Template> = {
       const caseId = metaCaseId(e);
       const label = caseLabel(caseId, ctx.casesById) ?? "a case";
       return {
-        text: `${ctx.personName} rejected a Truth Source for ${label}`,
+        text: `${ctx.personName} rejected an Evidence Library idea for ${label}`,
         href: caseId ? `/case-brain/${caseId}` : "/case-brain",
         caseId,
       };
@@ -248,7 +248,7 @@ const TEMPLATES: Record<string, Template> = {
       const caseId = metaCaseId(e);
       const label = caseLabel(caseId, ctx.casesById) ?? "a case";
       return {
-        text: `${ctx.personName} edited a Truth Source proposal for ${label}`,
+        text: `${ctx.personName} edited an Evidence Library proposal for ${label}`,
         href: caseId ? `/case-brain/${caseId}` : "/case-brain",
         caseId,
       };
@@ -259,7 +259,7 @@ const TEMPLATES: Record<string, Template> = {
       const caseId = metaCaseId(e);
       const label = caseLabel(caseId, ctx.casesById) ?? "a case";
       return {
-        text: `${ctx.personName} added a Truth Source on ${label}`,
+        text: `${ctx.personName} added an Evidence Library entry on ${label}`,
         href: caseId ? `/case-brain/${caseId}` : "/case-brain",
         caseId,
       };
@@ -354,8 +354,8 @@ const TEMPLATES: Record<string, Template> = {
       const label = caseLabel(caseId, ctx.casesById);
       return {
         text: label
-          ? `${ctx.personName} sent a reading highlight to Truth Sources for ${label}`
-          : `${ctx.personName} sent a reading highlight to Truth Sources`,
+          ? `${ctx.personName} sent a reading highlight to the Evidence Library for ${label}`
+          : `${ctx.personName} sent a reading highlight to the Evidence Library`,
         href: caseId ? `/case-brain/${caseId}` : "/library",
         caseId,
       };
@@ -489,7 +489,7 @@ const TEMPLATES: Record<string, Template> = {
   },
   chat_idea_queued: {
     sentence: (e, ctx) => ({
-      text: `${ctx.personName} queued a chat idea for Truth Sources`,
+      text: `${ctx.personName} queued a chat idea for the Evidence Library`,
       href: "/team/chat",
       caseId: metaCaseId(e),
     }),
@@ -610,7 +610,7 @@ export function buildActivityFeed(args: {
     });
   }
 
-  // Collapse batched Truth Source proposals into one line.
+  // Collapse batched Evidence Library proposals into one line.
   const grouped = new Map<string, Draft[]>();
   for (const d of drafts) {
     const list = grouped.get(d.groupKey) ?? [];
@@ -628,7 +628,7 @@ export function buildActivityFeed(args: {
     ) {
       const label = first.caseLabel ?? "a case";
       const n = group.length;
-      const text = `${n} new Truth Source ideas for ${label} from ${first.personName}${when ? `, ${when}` : ""}`;
+      const text = `${n} new ideas for the Evidence Library on ${label} from ${first.personName}${when ? `, ${when}` : ""}`;
       lines.push({
         id: first.entry.id,
         text,
