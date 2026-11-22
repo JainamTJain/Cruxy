@@ -28,6 +28,7 @@ import type {
   TranscriptLine,
 } from "@/lib/practice/types";
 import { nowIso } from "@/lib/utils";
+import { appToday } from "@/lib/time/app-day";
 
 export type TodaySessionCard = {
   sessionId: string;
@@ -66,7 +67,7 @@ export async function listTodaySessionsForPerson(opts: {
   personId: string;
   teamId: string | null;
 }): Promise<TodaySessionCard[]> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = appToday();
   const sessions = await listSessions({
     forPersonId: opts.personId,
     admin: false,

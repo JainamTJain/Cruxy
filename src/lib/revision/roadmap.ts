@@ -7,6 +7,7 @@ import {
 } from "@/lib/revision/types";
 import { randomUUID } from "crypto";
 import { nowIso } from "@/lib/utils";
+import { appToday } from "@/lib/time/app-day";
 
 /** Stages required by case role (and baseline for everyone). */
 export function requiredStagesForRoles(
@@ -119,7 +120,7 @@ export function doNextActions(
   caseTitles: Map<string, string>,
   limit = 3,
 ): string[] {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = appToday();
   const open = stages
     .filter((s) => s.required && !s.done_at)
     .sort((a, b) => {

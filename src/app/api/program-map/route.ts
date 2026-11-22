@@ -20,6 +20,7 @@ import {
   ensureSampleLibraryBootstrapped,
 } from "@/lib/db/supabase/library-extra";
 import { latestSyncRun } from "@/lib/db/library-repository";
+import { APP_TIME_ZONE, appToday } from "@/lib/time/app-day";
 
 export const runtime = "nodejs";
 
@@ -131,7 +132,7 @@ export async function GET() {
       : (leadsByCell.get(`${c.team_id}:${c.case_id}`) ?? []),
   }));
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = appToday();
   const nextActions: { label: string; detail: string; href: string }[] = [];
 
   for (const a of assignments.filter((x) => x.status === "open").slice(0, 3)) {
@@ -176,6 +177,7 @@ export async function GET() {
   }
 
   const todayLabel = new Date().toLocaleDateString("en-US", {
+    timeZone: APP_TIME_ZONE,
     weekday: "long",
     month: "short",
     day: "numeric",

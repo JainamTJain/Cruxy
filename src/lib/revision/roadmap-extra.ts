@@ -27,6 +27,7 @@ import {
 import { listAssignments } from "@/lib/team/repository";
 import { mapRound } from "@/lib/db/supabase/practice";
 import { nowIso } from "@/lib/utils";
+import { appToday } from "@/lib/time/app-day";
 
 export type StageStatus = {
   stage: RoadmapStageId;
@@ -939,7 +940,7 @@ export function buildDoNext(input: {
   for (const a of input.assignments.filter((x) => x.status === "open")) {
     if (out.length >= limit) break;
     const overdue =
-      a.due && a.due < new Date().toISOString().slice(0, 10)
+      a.due && a.due < appToday()
         ? " (overdue)"
         : "";
     out.push(`${a.task}${overdue}`);

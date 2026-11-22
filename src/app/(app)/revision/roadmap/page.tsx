@@ -8,6 +8,7 @@ import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
 import { SkeletonBlock } from "@/components/motion/skeleton";
 import type { RoadmapStage, RoadmapStageId } from "@/lib/revision/types";
 import type { CaseRow } from "@/lib/types";
+import { appToday } from "@/lib/time/app-day";
 
 type StageStatus = {
   stage: RoadmapStageId;
@@ -172,7 +173,7 @@ export default function RoadmapPage() {
     void load();
   }, [load]);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = appToday();
 
   const activeCase = useMemo(() => {
     if (!view) return null;
