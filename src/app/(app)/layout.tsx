@@ -10,6 +10,7 @@ export default async function AppLayout({
   const session = await getSession();
   if (!session) redirect("/sign-in");
   if (session.mustConsent) redirect("/consent");
+  if (session.mustSetLearningProfile) redirect("/learning-profile");
   if (session.mustChoosePasscode) redirect("/choose-passcode");
   return <AppShell>{children}</AppShell>;
 }

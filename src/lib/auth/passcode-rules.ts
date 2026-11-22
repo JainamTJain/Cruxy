@@ -156,6 +156,15 @@ export async function attemptSignIn(
   );
   const sessionVersion = await getPersonSessionVersion(person.id);
 
+  let mustSetLearningProfile = false;
+  if (!mustConsent) {
+    const { hasLearningProfile } = await import("@/lib/learning/profile");
+    mustSetLearningProfile = !(await hasLearningProfile(person.id));
+  } else {
+    // Consent first; profile is asked right after enrollment.
+    mustSetLearningProfile = true;
+  }
+
   const session: SessionPayload = {
     personId: person.id,
     role: person.role,
@@ -163,6 +172,7 @@ export async function attemptSignIn(
     teamId: person.team_id,
     adminView: false,
     mustConsent,
+    mustSetLearningProfile,
     mustChoosePasscode,
     sessionVersion,
   };

@@ -29,6 +29,7 @@ function sessionFor(
     teamId: person.team_id,
     adminView: person.role === "tech_admin" || person.role === "coach_admin",
     mustConsent: false,
+    mustSetLearningProfile: false,
     mustChoosePasscode: false,
     sessionVersion: person.session_version ?? 0,
     ...overrides,

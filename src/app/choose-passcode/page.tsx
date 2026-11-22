@@ -136,7 +136,7 @@ export default function ChoosePasscodePage() {
       <section className="flex flex-1 flex-col gap-5 bg-white px-8 py-10 sm:px-14 sm:py-12">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
-            Step 3 of 3
+            Step 4 of 4
           </p>
           <p className="text-xs text-muted">First time only</p>
           <h2 className="mt-2 font-display text-[40px] font-extrabold leading-none tracking-[-0.02em]">

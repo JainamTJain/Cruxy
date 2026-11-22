@@ -64,6 +64,7 @@ export default function SignInPage() {
     const data = (await res.json()) as {
       error?: string;
       mustConsent?: boolean;
+      mustSetLearningProfile?: boolean;
       mustChoosePasscode?: boolean;
     };
     if (!res.ok) {
@@ -71,6 +72,7 @@ export default function SignInPage() {
       return;
     }
     if (data.mustConsent) router.push("/consent");
+    else if (data.mustSetLearningProfile) router.push("/learning-profile");
     else if (data.mustChoosePasscode) router.push("/choose-passcode");
     else router.push("/home");
   }

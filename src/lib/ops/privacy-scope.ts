@@ -50,7 +50,9 @@ export function privacyClassFor(field: string): PrivacyClass {
     f.includes("phrasebook") ||
     f.includes("card_review") ||
     f.includes("outcome") ||
-    f.includes("redo")
+    f.includes("redo") ||
+    f.includes("learning_profile") ||
+    f.includes("learning profile")
   ) {
     return "personal_learning";
   }
