@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { CruxWordmark } from "@/components/crux-wordmark";
 import { CruxyProvider, useCruxy } from "@/components/cruxy/cruxy-context";
 import { CruxyDrawer } from "@/components/cruxy/cruxy-drawer";
 import { CruxyLamp } from "@/components/cruxy/cruxy-lamp";
@@ -72,40 +73,13 @@ function navActive(pathname: string, href: string, match?: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function AskCruxyButton({ className }: { className?: string }) {
-  const { wake, setDrawerOpen, awake } = useCruxy();
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        if (!awake) wake();
-        else setDrawerOpen(true);
-      }}
-      className={cn(
-        "flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gold text-[15px] font-bold text-ink",
-        className,
-      )}
-    >
-      <Image
-        src="/cruxy/cruxy-lamp.png"
-        alt=""
-        width={32}
-        height={23}
-        className="h-auto w-8 object-contain"
-        unoptimized
-      />
-      Ask Cruxy
-    </button>
-  );
-}
-
 function ShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
   const [teamLabel, setTeamLabel] = useState<string | null>(null);
   const [digestPrompt, setDigestPrompt] = useState(false);
-  const { wake, setDrawerOpen, awake } = useCruxy();
+  const { wake, awake } = useCruxy();
 
   async function refresh() {
     const res = await fetch("/api/auth/me");
@@ -180,11 +154,8 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh bg-paper text-ink">
       <aside className="hidden w-[248px] shrink-0 flex-col gap-7 bg-ink px-4 pb-7 pt-[28px] text-white sm:flex">
-        <Link
-          href="/home"
-          className="font-display mx-1 inline-block rounded-[14px] border-2 border-genie-bright px-3 py-1 text-[38px] font-extrabold leading-none tracking-[-0.04em] text-white"
-        >
-          crux
+        <Link href="/home" className="mx-1 inline-block px-1 py-1">
+          <CruxWordmark className="text-[38px]" />
         </Link>
         {onAdminScreen ? (
           <span className="ml-3 self-start rounded-md bg-gold px-2 py-1 text-xs font-bold tracking-[0.1em] text-ink">
@@ -236,7 +207,6 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="mt-auto flex flex-col gap-2.5">
           <NotificationBell />
-          <AskCruxyButton />
           <div className="flex items-center gap-2.5 px-1.5 py-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#C2410C] text-sm font-bold">
               {initial}
@@ -277,14 +247,11 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-3 px-4 pb-2 pt-4 sm:hidden">
-          <Link
-            href="/home"
-            className="font-display rounded-lg border-2 border-genie-bright px-2 py-0.5 text-2xl font-extrabold tracking-tight text-cardinal"
-          >
-            crux
+        <header className="flex items-center justify-between gap-3 bg-ink px-4 pb-3 pt-4 sm:hidden">
+          <Link href="/home" className="inline-block py-0.5">
+            <CruxWordmark className="text-2xl" />
           </Link>
-          <p className="text-xs text-muted">{displayName}</p>
+          <p className="text-xs text-white/70">{displayName}</p>
         </header>
         <main className="min-w-0 flex-1 px-4 pb-24 pt-4 sm:px-10 sm:pb-10 sm:pt-8">
           {children}
@@ -311,9 +278,9 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             type="button"
             onClick={() => {
               if (!awake) wake();
-              else setDrawerOpen(true);
             }}
             className="flex flex-1 flex-col items-center gap-0.5 px-1 py-1 text-muted"
+            aria-label={awake ? "Cruxy is awake" : "Call Cruxy"}
           >
             <Image
               src="/cruxy/cruxy-lamp.png"

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { CruxWordmark } from "@/components/crux-wordmark";
 import { Button } from "@/components/ui/button";
 import { VoiceEnrollment } from "@/components/voice-enrollment";
 import { VOICED_TARGET_SECONDS } from "@/lib/auth/voice-passages";
@@ -82,7 +83,10 @@ export default function ConsentPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-2xl flex-col px-4 py-10 sm:px-8">
-      <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
+      <div className="rounded-2xl bg-ink px-4 py-5">
+        <CruxWordmark as="p" className="text-4xl sm:text-5xl" />
+      </div>
+      <p className="mt-6 text-xs font-bold uppercase tracking-[0.12em] text-muted">
         Step 2 of 3
       </p>
       <p className="text-xs text-muted">First time only</p>

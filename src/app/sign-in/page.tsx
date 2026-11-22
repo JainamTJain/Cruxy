@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { CruxWordmark } from "@/components/crux-wordmark";
 import { Keypad } from "@/components/keypad";
 import { NamePicker } from "@/components/name-picker";
 import type { PublicPerson } from "@/lib/db/repository";
@@ -113,9 +114,10 @@ export default function SignInPage() {
               />
             </div>
             <div className="min-w-0 flex-1 pb-1">
-              <h1 className="crux-wordmark font-display inline-block max-w-full pb-2 pr-3 text-[clamp(3.5rem,12vw,8rem)] font-extrabold leading-[0.82] tracking-[-0.05em]">
-                crux
-              </h1>
+              <CruxWordmark
+                as="h1"
+                className="inline-block max-w-full pb-2 pr-3 text-[clamp(3.5rem,12vw,8rem)]"
+              />
               <p className="mt-4 max-w-md text-base leading-relaxed text-white/90">
                 Three teams, twelve cases, one place where every argument is
                 built, tested and backed by a source.
