@@ -14,8 +14,10 @@ export type ClaimRobustnessScore = {
   score_pct: number;
   attacks_answered: number;
   attacks_open: number;
-  /** Round ids for open attacks. */
+  /** Round ids for open attacks. Never shown in the UI. */
   open_from_rounds: string[];
+  /** Display dates for those rounds, like "Nov 21". Not stored in Postgres. */
+  open_round_dates?: string[];
   support_strength: number;
   attack_strength: number;
 };

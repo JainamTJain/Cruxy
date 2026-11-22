@@ -622,7 +622,7 @@ For each screen, every visible label, number, button and image in the reference 
 - [x] D-0597 What [src/app/consent/page.tsx]
 - [x] D-0598 Audio of the room, turned into a transcript of who said what, and when. [src/app/consent/page.tsx]
 - [x] D-0599 Your voice [src/app/consent/page.tsx]
-- [x] D-0600 A 20 second sample so the transcript knows which lines are yours. [src/app/consent/page.tsx]
+- [x] D-0600 About 30 seconds of clear speech so the transcript knows which lines are yours. [src/app/consent/page.tsx, src/components/voice-enrollment.tsx]
 - [x] D-0601 Who sees it [src/app/consent/page.tsx]
 - [x] D-0602 All three teams, Dr. B and Jainam. Nobody else. [src/app/consent/page.tsx]
 - [x] D-0603 How long [src/app/consent/page.tsx]
