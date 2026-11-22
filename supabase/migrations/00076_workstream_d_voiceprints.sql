@@ -36,6 +36,12 @@ create policy "deny anon speaker_match_pending"
   using (false)
   with check (false);
 
+-- Wave 7: revoke client roles; all access is service-role server side.
+revoke all on table speaker_match_pending from anon, authenticated;
+
+-- Re-assert: Who-is-this clips live in private audio-chunks (no public URL).
+-- voice-samples remains private (00012 / 00044). No getPublicUrl for either.
+
 -- Confidence + source on speaker_confirms mappings (jsonb already flexible; document shape).
 comment on column speaker_confirms.mappings is
   '[{speaker_label, person_id, confidence?, source?: voiceprint|name|role|manual}]';

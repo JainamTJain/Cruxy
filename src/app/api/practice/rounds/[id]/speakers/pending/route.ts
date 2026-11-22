@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
+import type { SessionPayload } from "@/lib/types";
 import { confirmSpeakerLabels } from "@/lib/practice/pipeline";
 import {
   listPendingForRound,
@@ -8,10 +9,44 @@ import {
 import { createSignedDownloadUrl, downloadBytes } from "@/lib/ops/storage";
 import { decodeToPcm16k } from "@/lib/voice/audio";
 import { refineVoiceprintFromClip } from "@/lib/voice/enrollment";
-import { getSpeakerConfirm } from "@/lib/db/practice-repository";
+import {
+  getRoundById,
+  getSpeakerConfirm,
+  listAttendance,
+} from "@/lib/db/practice-repository";
 import { removePaths } from "@/lib/ops/storage";
+import { getPersonById } from "@/lib/db/repository";
+import { isAdminViewer } from "@/lib/ops/privacy-scope";
+import { isAdminRole } from "@/lib/admin/permissions";
 
 export const runtime = "nodejs";
+
+async function canAccessRoundSpeakers(
+  session: SessionPayload,
+  roundId: string,
+): Promise<boolean> {
+  const me = await getPersonById(session.personId);
+  if (isAdminViewer(me, session) || (me && isAdminRole(me.role))) return true;
+
+  const round = await getRoundById(roundId);
+  if (!round) return false;
+  const teamIds = new Set(
+    [
+      round.sides.presenting,
+      round.sides.commenting,
+      ...(round.team_ids ?? []),
+    ].filter((x): x is string => Boolean(x)),
+  );
+  if (me?.team_id && teamIds.has(me.team_id)) return true;
+  if (round.created_by === session.personId) return true;
+
+  const attendance = await listAttendance(round.session_id);
+  return attendance.some(
+    (a) =>
+      a.person_id === session.personId &&
+      (a.status === "present" || a.status === "late"),
+  );
+}
 
 export async function GET(
   _req: Request,
@@ -22,12 +57,20 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id } = await ctx.params;
+  if (!(await canAccessRoundSpeakers(session, id))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const rows = await listPendingForRound(id);
   const pending = await Promise.all(
     rows.map(async (r) => {
       let clip_url: string | null = null;
       if (r.clip_path) {
-        clip_url = await createSignedDownloadUrl("audio-chunks", r.clip_path);
+        // Short-lived signed URL from private audio-chunks (never public).
+        clip_url = await createSignedDownloadUrl(
+          "audio-chunks",
+          r.clip_path,
+          15 * 60,
+        );
       }
       return {
         id: r.id,
