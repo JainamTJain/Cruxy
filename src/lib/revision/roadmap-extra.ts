@@ -25,6 +25,7 @@ import {
   listCasesAndTeams,
 } from "@/lib/revision/repository";
 import { listAssignments } from "@/lib/team/repository";
+import { mapRound } from "@/lib/db/supabase/practice";
 import { nowIso } from "@/lib/utils";
 
 export type StageStatus = {
@@ -624,7 +625,7 @@ async function loadLiveActivitySnapshot(personId: string): Promise<Store> {
     sb.from("claims").select("*"),
     sb.from("claim_map_versions").select("*"),
     sb.from("claim_change_proposals").select("*"),
-    sb.from("practice_rounds").select("*"),
+    sb.from("rounds").select("*"),
     sb.from("recordings").select("*"),
     sb.from("transcript_lines").select("*").eq("speaker_person_id", personId),
     sb.from("talk_analytics").select("*").eq("person_id", personId),
@@ -653,7 +654,9 @@ async function loadLiveActivitySnapshot(personId: string): Promise<Store> {
     claim_map_versions: (claimMaps.data as Store["claim_map_versions"]) ?? [],
     claim_change_proposals:
       (proposals.data as Store["claim_change_proposals"]) ?? [],
-    practice_rounds: (rounds.data as Store["practice_rounds"]) ?? [],
+    practice_rounds: ((rounds.data ?? []) as Record<string, unknown>[]).map(
+      (r) => mapRound(r),
+    ) as Store["practice_rounds"],
     recordings: (recordings.data as Store["recordings"]) ?? [],
     transcript_lines: (transcripts.data as Store["transcript_lines"]) ?? [],
     talk_analytics: (talk.data as Store["talk_analytics"]) ?? [],
