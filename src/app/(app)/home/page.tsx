@@ -76,7 +76,7 @@ type MapData = {
 };
 
 function initials(names: string[]): string {
-  if (!names.length) return "Not set";
+  if (!names.length) return "No leads yet";
   return names
     .map((n) => {
       const parts = n.trim().split(/\s+/);

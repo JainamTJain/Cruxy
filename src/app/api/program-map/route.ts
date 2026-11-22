@@ -14,7 +14,7 @@ import {
   teamReadinessAverages,
 } from "@/lib/db/repository";
 import { getRoadmapView } from "@/lib/revision/repository";
-import { listAssignments } from "@/lib/team/repository";
+import { listAssignments, listCaseRoles } from "@/lib/team/repository";
 import {
   countLibraryForProgramMap,
   ensureSampleLibraryBootstrapped,
@@ -110,6 +110,26 @@ export async function GET() {
       }
     }
   }
+
+  // Leads on each cell come from the real role assignments.
+  const roles = await listCaseRoles().catch(() => []);
+  const leadsByCell = new Map<string, string[]>();
+  for (const r of roles) {
+    if (r.role !== "lead_1" && r.role !== "lead_2") continue;
+    const name = names.get(r.person_id);
+    if (!name) continue;
+    const key = `${r.team_id}:${r.case_id}`;
+    const list = leadsByCell.get(key) ?? [];
+    if (r.role === "lead_1") list.unshift(name);
+    else list.push(name);
+    leadsByCell.set(key, list);
+  }
+  cells = cells.map((c) => ({
+    ...c,
+    lead_names: c.lead_names?.length
+      ? c.lead_names
+      : (leadsByCell.get(`${c.team_id}:${c.case_id}`) ?? []),
+  }));
 
   const today = new Date().toISOString().slice(0, 10);
   const nextActions: { label: string; detail: string; href: string }[] = [];
