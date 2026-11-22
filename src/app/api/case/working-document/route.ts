@@ -31,6 +31,8 @@ function isSectionKey(v: unknown): v is WorkingSectionKey {
   );
 }
 
+export const maxDuration = 120;
+
 export async function GET(req: Request) {
   const session = await getSession();
   if (!session) {
@@ -122,6 +124,18 @@ export async function POST(req: Request) {
           teamId,
           personId: session.personId,
         });
+        // Cruxy critiques the new document straight away.
+        try {
+          const { after } = await import("next/server");
+          const { critiqueNow } = await import("@/lib/critique/run");
+          after(() =>
+            critiqueNow([{ caseId, teamId }], session.personId).then(
+              () => undefined,
+            ),
+          );
+        } catch {
+          // Nightly cron still covers.
+        }
         break;
       }
       case "import_doc": {
@@ -159,13 +173,13 @@ export async function POST(req: Request) {
           const { scheduleCritiqueOnChange } = await import(
             "@/lib/critique/run"
           );
-          after(() => {
+          after(() =>
             scheduleCritiqueOnChange({
               caseId,
               teamId,
               personId: session.personId,
-            });
-          });
+            }),
+          );
         } catch {
           // after() unavailable in some runtimes; nightly cron still covers.
         }

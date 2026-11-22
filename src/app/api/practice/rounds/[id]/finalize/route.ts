@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { advanceRoundPhase, getRoundById } from "@/lib/db/practice-repository";
 import {
@@ -7,6 +7,8 @@ import {
 } from "@/lib/practice/glossary-extra";
 import { finalizeRound } from "@/lib/practice/pipeline";
 import { computeAndSaveTalkAnalytics } from "@/lib/practice/talk-analytics-extra";
+
+export const maxDuration = 300;
 
 export async function POST(
   req: Request,
@@ -53,6 +55,20 @@ export async function POST(
   });
 
   await advanceRoundPhase(id, "scoring");
+
+  // The transcript is now part of the truth source: Cruxy re-reads each
+  // team's working document against it and posts improvement suggestions.
+  if (round.case_id && round.team_ids.length > 0) {
+    const caseId = round.case_id;
+    after(async () => {
+      const { critiqueNow } = await import("@/lib/critique/run");
+      await critiqueNow(
+        round.team_ids.map((teamId) => ({ caseId, teamId })),
+        session.personId,
+        { onlyStartedDocs: true },
+      );
+    });
+  }
 
   return NextResponse.json({
     ok: true,

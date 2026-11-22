@@ -17,7 +17,10 @@ import { parseCaseMarkdown, type ParsedCase } from "@/lib/seed/parse-case";
 import { addWorkingDocSuggestion } from "@/lib/working-doc/suggestions";
 import { proposeOnePagerFromWorkingDoc } from "@/lib/working-doc/one-pager-from-working";
 
+let domainCache: ParsedCase[] | null = null;
+
 function loadDomainCases(): ParsedCase[] {
+  if (domainCache) return domainCache;
   const dir = path.join(process.cwd(), "docs/domain/cases");
   if (!fs.existsSync(dir)) return [];
   const files = fs
@@ -36,54 +39,131 @@ function loadDomainCases(): ParsedCase[] {
       // Skip unreadable files rather than failing the whole start.
     }
   }
+  if (out.length) domainCache = out;
   return out;
 }
 
-function fillFromParsed(p: ParsedCase): Record<string, string> {
-  const claimBlock = [
-    `Claim 1: ${p.claim1.title}`,
-    p.claim1.logicLine,
-    "",
-    `Claim 2: ${p.claim2.title}`,
-    p.claim2.logicLine,
-  ]
-    .filter(Boolean)
-    .join("\n");
+/** The truth source (case prep, minus its one-pager page) for one case. */
+export function truthSourceForCase(caseNumber: number): ParsedCase | null {
+  return loadDomainCases().find((d) => d.number === caseNumber) ?? null;
+}
 
-  const supportBlock = [
-    ...p.claim1.supports.map(
-      (s) => `${s.label}. ${s.title}${s.body ? `. ${s.body}` : ""}`,
-    ),
-    ...p.claim2.supports.map(
-      (s) => `${s.label}. ${s.title}${s.body ? `. ${s.body}` : ""}`,
-    ),
-  ].join("\n");
+function clean(s: string): string {
+  return s.replace(/\*\*/g, "").replace(/\*/g, "").replace(/[—–·]/g, ",").trim();
+}
 
-  const cc = p.counterclaims[0];
-  const objection = cc
-    ? [
-        cc.text,
+export function fillFromParsed(p: ParsedCase): Record<string, string> {
+  const claim = (label: string, c: ParsedCase["claim1"]) =>
+    [
+      `${label}: ${c.title}`,
+      c.logicLine ? `Logic line: ${c.logicLine}` : "",
+      c.ethicalAnalysis ? `Ethical analysis: ${c.ethicalAnalysis}` : "",
+      c.concede ? `We concede: ${c.concede}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+  const supports = (label: string, c: ParsedCase["claim1"]) =>
+    c.supports.length
+      ? [
+          `${label}: ${c.title}`,
+          ...c.supports.map((s) =>
+            [
+              `${s.label}. ${s.title}${s.body ? `. ${s.body}` : ""}`,
+              s.backing?.text ? `   Backing: ${s.backing.text}` : "",
+            ]
+              .filter(Boolean)
+              .join("\n"),
+          ),
+        ].join("\n")
+      : "";
+
+  const objections = p.counterclaims
+    .map((cc, i) =>
+      [
+        `Objection ${i + 1}: ${cc.text}`,
+        cc.theirSupports ? `Their support: ${cc.theirSupports}` : "",
         cc.concede ? `Concede: ${cc.concede}` : "",
         cc.distinguish ? `Distinguish: ${cc.distinguish}` : "",
         cc.rebut ? `Rebut: ${cc.rebut}` : "",
       ]
         .filter(Boolean)
-        .join("\n")
-    : "";
+        .join("\n"),
+    )
+    .join("\n\n");
 
-  const judges = p.judgeQuestions
-    .slice(0, 6)
-    .map((q) => q.question)
-    .join("\n");
+  const values = [
+    p.crux ? `Crux: ${p.crux}` : "",
+    p.trap ? `The trap: ${p.trap}` : "",
+    p.stakeholders.length
+      ? [
+          "Stakeholders:",
+          ...p.stakeholders.map(
+            (s) =>
+              `${s.who}: ${s.stake}${s.voice ? ` (voice in the case: ${s.voice})` : ""}`,
+          ),
+        ].join("\n")
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
-  return {
+  const questions = [...p.moderatorQuestions, ...p.judgeQuestions]
+    .slice(0, 10)
+    .map((q) => `Q: ${q.question}${q.answer ? `\nA: ${q.answer}` : ""}`)
+    .join("\n\n");
+
+  const out: Record<string, string> = {
     answer_one_sentence: p.thesis,
-    claims: claimBlock,
-    support: supportBlock,
-    objection_reply: objection,
-    values_in_tension: p.crux.replace(/\*/g, ""),
-    judges_questions: judges,
+    claims: [claim("Claim 1", p.claim1), claim("Claim 2", p.claim2)]
+      .filter(Boolean)
+      .join("\n\n"),
+    support: [supports("Claim 1", p.claim1), supports("Claim 2", p.claim2)]
+      .filter(Boolean)
+      .join("\n\n"),
+    objection_reply: objections,
+    values_in_tension: values,
+    judges_questions: questions,
   };
+  for (const k of Object.keys(out)) out[k] = clean(out[k] ?? "");
+  return out;
+}
+
+type SectionKey =
+  | "answer_one_sentence"
+  | "claims"
+  | "support"
+  | "objection_reply"
+  | "values_in_tension"
+  | "judges_questions";
+
+/**
+ * Fill a team's working document for one case from the truth source.
+ * Only empty sections are written, so a team's own words are never replaced.
+ * Returns how many sections were filled.
+ */
+export async function fillWorkingDocFromTruth(opts: {
+  briefId: string;
+  caseNumber: number;
+  personId: string;
+  existing?: Record<string, string>;
+}): Promise<number> {
+  const parsed = truthSourceForCase(opts.caseNumber);
+  if (!parsed) return 0;
+  const fill = fillFromParsed(parsed);
+  let n = 0;
+  for (const [key, body] of Object.entries(fill)) {
+    if (!body.trim()) continue;
+    if ((opts.existing?.[key] ?? "").trim()) continue;
+    await updateWorkingSection({
+      briefId: opts.briefId,
+      sectionKey: key as SectionKey,
+      body,
+      personId: opts.personId,
+    });
+    n += 1;
+  }
+  return n;
 }
 
 async function seedStarterSuggestions(opts: {
@@ -150,34 +230,16 @@ export async function startAllWorkingDocuments(opts: {
       thesis: parsed?.thesis ?? null,
       created_by: opts.personId,
     });
-    await ensureWorkingSections(brief.id, opts.personId);
-
-    const fill = parsed
-      ? fillFromParsed(parsed)
-      : {
-          answer_one_sentence: "",
-          claims: "",
-          support: "",
-          objection_reply: "",
-          values_in_tension: "",
-          judges_questions: "",
-        };
-
-    for (const [key, body] of Object.entries(fill)) {
-      if (!body.trim()) continue;
-      await updateWorkingSection({
-        briefId: brief.id,
-        sectionKey: key as
-          | "answer_one_sentence"
-          | "claims"
-          | "support"
-          | "objection_reply"
-          | "values_in_tension"
-          | "judges_questions",
-        body,
-        personId: opts.personId,
-      });
-    }
+    const sections = await ensureWorkingSections(brief.id, opts.personId);
+    const existing = Object.fromEntries(
+      sections.map((x) => [x.section_key, x.body ?? ""]),
+    );
+    await fillWorkingDocFromTruth({
+      briefId: brief.id,
+      caseNumber: c.number,
+      personId: opts.personId,
+      existing,
+    });
 
     await seedStarterSuggestions({
       caseId: c.id,

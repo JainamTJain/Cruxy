@@ -50,13 +50,13 @@ export async function POST(req: Request) {
   }
 
   if (body.debounce) {
-    after(() => {
+    after(() =>
       scheduleCritiqueOnChange({
         caseId,
         teamId,
         personId: session.personId,
-      });
-    });
+      }),
+    );
     return NextResponse.json({
       ok: true,
       scheduled: true,
