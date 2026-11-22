@@ -184,67 +184,92 @@ async function main() {
     return proposal;
   }
 
-  const acceptTarget = await injectPending(
-    "Teams should publish consent language before recording.",
-  );
-  const acceptPlan = await planBriefDecide({
-    message: `Accept this Team Brief suggestion: ${acceptTarget.text}`,
-    page: `/case-brain/${caseRow.id}`,
-    caseId: caseRow.id,
-    teamId: team3.id,
-    personId: actor.id,
-  });
-  assert(acceptPlan.kind === "plan", "brief accept plan");
-  if (acceptPlan.kind === "plan") {
-    assert(acceptPlan.action === "brief.accept", "brief accept action");
-    assert(
-      (acceptPlan.data as { proposalId: string }).proposalId === acceptTarget.id,
-      "brief picks a proposal",
+  // Plan+apply each verdict on its own clean store. Accept fan-out fires
+  // createProposal notifies that race later writes if we keep going.
+  {
+    const acceptTarget = await injectPending(
+      "Teams should publish consent language before recording.",
     );
-    const accepted = await applyBriefDecide({
-      data: acceptPlan.data as {
-        proposalId: string;
-        verdict: "accept" | "reject";
-        text: string;
-        caseId: string;
-      },
-      personId: actor.id,
+    const acceptPlan = await planBriefDecide({
+      message: `Accept this Team Brief suggestion: ${acceptTarget.text}`,
+      page: `/case-brain/${caseRow.id}`,
+      caseId: caseRow.id,
       teamId: team3.id,
+      personId: actor.id,
     });
-    assert(accepted.message.includes("Accepted"), "brief accept applied");
+    assert(acceptPlan.kind === "plan", "brief accept plan");
+    if (acceptPlan.kind === "plan") {
+      assert(acceptPlan.action === "brief.accept", "brief accept action");
+      assert(
+        (acceptPlan.data as { proposalId: string }).proposalId ===
+          acceptTarget.id,
+        "brief picks a proposal",
+      );
+    }
   }
 
-  // Re-seed a clean store so accept fan-out cannot race the reject apply.
   await resetSampleStore();
-  const rejectTarget = await injectPending(
-    "Reject-me: recording without a clear opt-in is not fine.",
-  );
-  const rejectPlan = await planBriefDecide({
-    message: `Reject this Team Brief suggestion: ${rejectTarget.text}`,
-    page: `/case-brain/${caseRow.id}`,
-    caseId: caseRow.id,
-    teamId: team3.id,
-    personId: actor.id,
-  });
-  assert(rejectPlan.kind === "plan", "brief reject plan");
-  if (rejectPlan.kind === "plan") {
-    assert(rejectPlan.action === "brief.reject", "brief reject action");
-    assert(
-      (rejectPlan.data as { proposalId: string }).proposalId === rejectTarget.id,
-      "brief reject picks the new proposal",
+  {
+    const rejectTarget = await injectPending(
+      "Reject-me: recording without a clear opt-in is not fine.",
     );
-    const rejected = await applyBriefDecide({
-      data: rejectPlan.data as {
-        proposalId: string;
-        verdict: "accept" | "reject";
-        text: string;
-        caseId: string;
-      },
-      personId: actor.id,
+    const rejectPlan = await planBriefDecide({
+      message: `Reject this Team Brief suggestion: ${rejectTarget.text}`,
+      page: `/case-brain/${caseRow.id}`,
+      caseId: caseRow.id,
       teamId: team3.id,
+      personId: actor.id,
     });
-    assert(rejected.message.includes("Rejected"), "brief reject applied");
+    assert(rejectPlan.kind === "plan", "brief reject plan");
+    if (rejectPlan.kind === "plan") {
+      assert(rejectPlan.action === "brief.reject", "brief reject action");
+      assert(
+        (rejectPlan.data as { proposalId: string }).proposalId ===
+          rejectTarget.id,
+        "brief reject picks the new proposal",
+      );
+      const rejected = await applyBriefDecide({
+        data: rejectPlan.data as {
+          proposalId: string;
+          verdict: "accept" | "reject";
+          text: string;
+          caseId: string;
+        },
+        personId: actor.id,
+        teamId: team3.id,
+      });
+      assert(rejected.message.includes("Rejected"), "brief reject applied");
+    }
   }
+
+  await resetSampleStore();
+  {
+    const acceptApplyTarget = await injectPending(
+      "Apply-accept: consent language belongs in the brief.",
+    );
+    const acceptApplyPlan = await planBriefDecide({
+      message: `Accept this Team Brief suggestion: ${acceptApplyTarget.text}`,
+      page: `/case-brain/${caseRow.id}`,
+      caseId: caseRow.id,
+      teamId: team3.id,
+      personId: actor.id,
+    });
+    assert(acceptApplyPlan.kind === "plan", "brief accept apply plan");
+    if (acceptApplyPlan.kind === "plan") {
+      const accepted = await applyBriefDecide({
+        data: acceptApplyPlan.data as {
+          proposalId: string;
+          verdict: "accept" | "reject";
+          text: string;
+          caseId: string;
+        },
+        personId: actor.id,
+        teamId: team3.id,
+      });
+      assert(accepted.message.includes("Accepted"), "brief accept applied");
+    }
+  }
+  await resetSampleStore();
 
   // Flashcards: may say cannot if no claims; still a valid action path
   const flashPlan = await planFlashcards({
