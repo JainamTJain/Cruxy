@@ -50,6 +50,20 @@ export function canEditTruthSources(
 }
 
 /**
+ * One-pager edits: that team's members, or Dr. B / Jainam in admin view.
+ * Other teams see the page read-only.
+ */
+export function canEditOnePager(
+  person: Person,
+  session: SessionPayload,
+  onePagerTeamId: string,
+): boolean {
+  if (isAdminRole(person.role) && session.adminView) return true;
+  const teamId = person.team_id ?? session.teamId;
+  return Boolean(teamId && teamId === onePagerTeamId);
+}
+
+/**
  * Case roles (lead 1/2, counter-arguer, supporter): any member of that team,
  * or an admin in admin view. Admin member-view is limited to the active team.
  */

@@ -888,6 +888,35 @@ export async function latestOnePager(
   return row ? mapOnePager(row) : null;
 }
 
+export async function getOnePagerById(
+  onePagerId: string,
+): Promise<OnePager | null> {
+  const sb = getServiceSupabase();
+  const row = must(
+    await sb.from("one_pagers").select("*").eq("id", onePagerId).maybeSingle(),
+    "getOnePagerById",
+  );
+  return row ? mapOnePager(row) : null;
+}
+
+export async function listOnePagerVersions(
+  teamId: string,
+  caseId: string,
+): Promise<OnePager[]> {
+  const sb = getServiceSupabase();
+  const rows =
+    must(
+      await sb
+        .from("one_pagers")
+        .select("*")
+        .eq("team_id", teamId)
+        .eq("case_id", caseId)
+        .order("version", { ascending: false }),
+      "listOnePagerVersions",
+    ) ?? [];
+  return rows.map((r: Row) => mapOnePager(r));
+}
+
 export async function onePagerDiff(onePagerId: string) {
   const sb = getServiceSupabase();
   const row = must(

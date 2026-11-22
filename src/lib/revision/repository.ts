@@ -504,6 +504,25 @@ export async function latestOnePager(teamId: string, caseId: string) {
   );
 }
 
+export async function getOnePagerById(
+  onePagerId: string,
+): Promise<OnePager | null> {
+  if (!isSampleDataMode()) return sb.getOnePagerById(onePagerId);
+  const store = await readStore();
+  return store.one_pagers.find((o) => o.id === onePagerId) ?? null;
+}
+
+export async function listOnePagerVersions(
+  teamId: string,
+  caseId: string,
+): Promise<OnePager[]> {
+  if (!isSampleDataMode()) return sb.listOnePagerVersions(teamId, caseId);
+  const store = await readStore();
+  return store.one_pagers
+    .filter((o) => o.team_id === teamId && o.case_id === caseId)
+    .sort((a, b) => b.version - a.version);
+}
+
 export async function onePagerDiff(onePagerId: string) {
   if (!isSampleDataMode()) return sb.onePagerDiff(onePagerId);
   const store = await readStore();
