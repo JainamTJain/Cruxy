@@ -28,7 +28,8 @@
     "test:cruxy": "node scripts/with-server-only-stub.cjs ./node_modules/tsx/dist/cli.mjs scripts/test-cruxy.ts",
     "check:cruxy-act": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/cruxy-act-checks.ts",
     "test:voiceprint": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/voiceprint-accuracy.ts",
-    "download:voiceprint-model": "node scripts/download-voiceprint-model.mjs"
+    "download:voiceprint-model": "node scripts/download-voiceprint-model.mjs",
+    "check:critique": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/critique-engine-checks.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.2",

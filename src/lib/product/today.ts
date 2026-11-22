@@ -73,6 +73,6 @@ export const DEC5_HELPERS = [
     id: "cards",
     label: "Flashcards",
     detail: "Due cards only. Against your own past.",
-    href: "/revision/flashcards",
+    href: "/practice/study",
   },
 ] as const;

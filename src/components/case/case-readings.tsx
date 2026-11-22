@@ -50,25 +50,28 @@ export function CaseReadings({
   const [loading, setLoading] = useState(!initial);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    if (initial) {
-      setData(initial);
+  const load = useCallback(
+    async (force = false) => {
+      if (initial && !force) {
+        setData(initial);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      const q = teamId ? `?teamId=${encodeURIComponent(teamId)}` : "";
+      const res = await fetch(`/api/case-home/${caseId}${q}`);
+      const json = (await res.json()) as CaseHomePayload & { error?: string };
+      if (!res.ok) {
+        setError(json.error ?? "Could not load readings.");
+        setLoading(false);
+        return;
+      }
+      setData(json);
       setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    const q = teamId ? `?teamId=${encodeURIComponent(teamId)}` : "";
-    const res = await fetch(`/api/case-home/${caseId}${q}`);
-    const json = (await res.json()) as CaseHomePayload & { error?: string };
-    if (!res.ok) {
-      setError(json.error ?? "Could not load readings.");
-      setLoading(false);
-      return;
-    }
-    setData(json);
-    setLoading(false);
-  }, [caseId, teamId, initial]);
+    },
+    [caseId, teamId, initial],
+  );
 
   useEffect(() => {
     void load();
@@ -186,7 +189,9 @@ export function CaseReadings({
                 <FullOriginal
                   fileId={f.id}
                   caseId={caseId}
+                  teamId={teamId}
                   caseAnnotations={data.annotations}
+                  onAnnotationsChanged={() => void load(true)}
                 />
               </div>
             ) : null}
@@ -200,11 +205,15 @@ export function CaseReadings({
 function FullOriginal({
   fileId,
   caseId,
+  teamId,
   caseAnnotations,
+  onAnnotationsChanged,
 }: {
   fileId: string;
   caseId: string;
+  teamId: string;
   caseAnnotations: CaseHomePayload["annotations"];
+  onAnnotationsChanged?: () => void;
 }) {
   const [passages, setPassages] = useState<
     { id: string; text: string; ord: number }[] | null
@@ -266,8 +275,12 @@ function FullOriginal({
         passageIds.has(a.passage_id),
     )
     .map((a) => ({
+      id: a.id,
       needle: a.range && a.range !== "selection" ? a.range : a.body,
       kind: a.kind as "highlight" | "comment",
+      personKey: a.person_id ?? a.person_name,
+      personName: a.person_name,
+      createdAt: a.created_at,
     }));
 
   if (passages.length === 0) {
@@ -291,7 +304,11 @@ function FullOriginal({
       passages={passages.map((p) => ({ id: p.id, text: p.text }))}
       marks={marks}
       caseId={caseId}
-      onSaved={() => setTick((n) => n + 1)}
+      teamId={teamId}
+      onSaved={() => {
+        setTick((n) => n + 1);
+        onAnnotationsChanged?.();
+      }}
     />
   );
 }
