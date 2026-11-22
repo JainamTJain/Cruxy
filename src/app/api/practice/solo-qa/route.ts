@@ -76,14 +76,24 @@ export async function POST(req: Request) {
   };
 
   if (body.action === "start") {
-    if (!body.caseId || !body.teamId || !body.kind) {
+    if (!body.caseId || !body.kind) {
       return NextResponse.json(
-        { error: "caseId, teamId and kind required" },
+        { error: "caseId and kind required" },
         { status: 400 },
       );
     }
     if (body.kind !== "moderator" && body.kind !== "judges") {
       return NextResponse.json({ error: "kind must be moderator or judges" }, { status: 400 });
+    }
+
+    const person = await getPersonById(session.personId);
+    const teamId = person?.team_id ?? session.teamId;
+    if (!teamId) {
+      return NextResponse.json({ error: "No team on your account" }, { status: 400 });
+    }
+    // Never trust a client teamId; reject mismatches so answers cannot land under another team.
+    if (body.teamId && body.teamId !== teamId) {
+      return NextResponse.json({ error: "Not your team" }, { status: 403 });
     }
 
     const bank = await listQuestions({
@@ -136,7 +146,7 @@ export async function POST(req: Request) {
 
     const row = await startSoloQaSession({
       personId: session.personId,
-      teamId: body.teamId,
+      teamId,
       caseId: body.caseId,
       kind: body.kind,
       prompts,
