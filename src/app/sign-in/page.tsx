@@ -92,12 +92,12 @@ export default function SignInPage() {
         {/* Hero stays below the label at every width; Genie is clipped to its stack. */}
         <div className="relative z-10 flex min-h-0 flex-1 flex-col justify-center">
           <div className="flex flex-col items-start gap-5 min-[520px]:flex-row min-[520px]:items-end min-[520px]:gap-6">
-            <div className="relative h-[220px] w-[120px] shrink-0 overflow-hidden sm:h-[260px] sm:w-[140px]">
+            <div className="relative h-[220px] w-[120px] shrink-0 [clip-path:inset(-80px_-80px_0_-80px)] sm:h-[260px] sm:w-[140px]">
               <Image
                 src="/cruxy/cruxy-lamp.png"
                 alt=""
-                width={160}
-                height={118}
+                width={327}
+                height={235}
                 className="absolute bottom-0 left-1/2 w-[100px] -translate-x-1/2 drop-shadow-[0_8px_16px_rgba(0,0,0,0.35)] sm:w-[120px]"
                 unoptimized
                 priority
@@ -105,8 +105,8 @@ export default function SignInPage() {
               <Image
                 src="/cruxy/cruxy-curious.png"
                 alt="Cruxy rising from the lamp"
-                width={150}
-                height={300}
+                width={273}
+                height={557}
                 className="animate-genie-rise absolute bottom-[40px] left-1/2 w-[88px] -translate-x-1/2 drop-shadow-[0_10px_18px_rgba(0,0,0,0.35)] sm:bottom-[46px] sm:w-[105px]"
                 unoptimized
                 priority

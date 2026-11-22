@@ -89,8 +89,9 @@ function AskCruxyButton({ className }: { className?: string }) {
       <Image
         src="/cruxy/cruxy-lamp.png"
         alt=""
-        width={28}
-        height={28}
+        width={32}
+        height={23}
+        className="h-auto w-8 object-contain"
         unoptimized
       />
       Ask Cruxy
@@ -317,8 +318,9 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             <Image
               src="/cruxy/cruxy-lamp.png"
               alt=""
-              width={18}
+              width={25}
               height={18}
+              className="h-[18px] w-auto object-contain"
               unoptimized
             />
             Cruxy
