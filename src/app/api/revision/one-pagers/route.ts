@@ -20,6 +20,12 @@ import {
   signOffOnePager,
   exportOnePagerStub,
 } from "@/lib/revision/repository";
+import { getPendingOnePagerSync } from "@/lib/db/supabase/one-pager-sync-extra";
+import {
+  acceptOnePagerSyncProposal,
+  dismissOnePagerSyncProposal,
+  proposeOnePagerFromWorkingDoc,
+} from "@/lib/working-doc/one-pager-from-working";
 
 async function assertCanEditOnePager(
   session: import("@/lib/types").SessionPayload,
@@ -97,7 +103,19 @@ export async function GET(req: Request) {
   const page = await latestOnePager(teamId, caseId);
   const diff = page ? await onePagerDiff(page.id) : [];
   const canEdit = canEditOnePager(person, auth.session, teamId);
-  return NextResponse.json({ onePager: page, diff, canEdit });
+  const syncProposal = await getPendingOnePagerSync({ teamId, caseId });
+  return NextResponse.json({
+    onePager: page,
+    diff,
+    canEdit,
+    syncProposal: syncProposal
+      ? {
+          id: syncProposal.id,
+          changeSummary: syncProposal.change_summary,
+          createdAt: syncProposal.created_at,
+        }
+      : null,
+  });
 }
 
 export async function POST(req: Request) {
@@ -110,6 +128,7 @@ export async function POST(req: Request) {
     onePagerId?: string;
     body?: OnePagerBody;
     changeNote?: string;
+    proposalId?: string;
   };
 
   const person = await getPersonById(auth.session.personId);
@@ -222,6 +241,63 @@ export async function POST(req: Request) {
       auth.session.personId,
     );
     return NextResponse.json(result);
+  }
+
+  if (body.action === "propose_from_working") {
+    if (!body.teamId || !body.caseId) {
+      return NextResponse.json(
+        { error: "teamId and caseId required" },
+        { status: 400 },
+      );
+    }
+    const denied = await assertCanEditOnePager(auth.session, body.teamId);
+    if (denied) return denied;
+    const result = await proposeOnePagerFromWorkingDoc({
+      teamId: body.teamId,
+      caseId: body.caseId,
+      personId: auth.session.personId,
+    });
+    const syncProposal = await getPendingOnePagerSync({
+      teamId: body.teamId,
+      caseId: body.caseId,
+    });
+    return NextResponse.json({ ...result, syncProposal });
+  }
+
+  if (body.action === "accept_sync") {
+    if (!body.teamId || !body.caseId || !body.proposalId) {
+      return NextResponse.json(
+        { error: "teamId, caseId and proposalId required" },
+        { status: 400 },
+      );
+    }
+    const denied = await assertCanEditOnePager(auth.session, body.teamId);
+    if (denied) return denied;
+    const page = await acceptOnePagerSyncProposal({
+      proposalId: body.proposalId,
+      personId: auth.session.personId,
+      teamId: body.teamId,
+      caseId: body.caseId,
+    });
+    return NextResponse.json({ onePager: page });
+  }
+
+  if (body.action === "dismiss_sync") {
+    if (!body.teamId || !body.caseId || !body.proposalId) {
+      return NextResponse.json(
+        { error: "teamId, caseId and proposalId required" },
+        { status: 400 },
+      );
+    }
+    const denied = await assertCanEditOnePager(auth.session, body.teamId);
+    if (denied) return denied;
+    await dismissOnePagerSyncProposal({
+      proposalId: body.proposalId,
+      personId: auth.session.personId,
+      teamId: body.teamId,
+      caseId: body.caseId,
+    });
+    return NextResponse.json({ ok: true });
   }
 
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });

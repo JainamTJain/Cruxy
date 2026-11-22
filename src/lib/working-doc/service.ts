@@ -656,6 +656,16 @@ export async function decideLibraryFact(opts: {
     target: opts.truthItemId,
     meta: { teamId: opts.teamId },
   });
+  // Propose a matching one pager update for the team to accept.
+  void import("@/lib/working-doc/one-pager-from-working")
+    .then(({ proposeOnePagerFromWorkingDoc }) =>
+      proposeOnePagerFromWorkingDoc({
+        caseId: opts.caseId,
+        teamId: opts.teamId,
+        personId: opts.personId,
+      }),
+    )
+    .catch(() => undefined);
   return row;
 }
 
