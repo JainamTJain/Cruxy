@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import type { PracticeMode } from "@/lib/practice/types";
+import { useCallback, useRef, useState } from "react";
+import type { DrillCheckpoint, PracticeMode } from "@/lib/practice/types";
 
 export type DrillSession = {
   sessionId: string;
@@ -11,6 +11,8 @@ export type DrillSession = {
   caseTitle: string | null;
   teamId: string | null;
   recordingOk: boolean;
+  resumed: boolean;
+  checkpoint: DrillCheckpoint | null;
 };
 
 function caseIdFromUrl(): string | undefined {
@@ -22,6 +24,7 @@ export function useDrillSession() {
   const [session, setSession] = useState<DrillSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const start = useCallback(async (mode: PracticeMode, caseId?: string) => {
     setBusy(true);
@@ -46,6 +49,8 @@ export function useDrillSession() {
         caseTitle: data.caseTitle,
         teamId: data.teamId,
         recordingOk: data.recordingOk,
+        resumed: Boolean(data.resumed),
+        checkpoint: data.checkpoint ?? null,
       };
       setSession(next);
       return next;
@@ -57,5 +62,20 @@ export function useDrillSession() {
     }
   }, []);
 
-  return { session, setSession, error, busy, start };
+  const saveCheckpoint = useCallback(
+    (partial: DrillCheckpoint) => {
+      if (!session?.roundId) return;
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => {
+        void fetch(`/api/practice/rounds/${session.roundId}/checkpoint`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(partial),
+        }).catch(() => undefined);
+      }, 400);
+    },
+    [session?.roundId],
+  );
+
+  return { session, setSession, error, busy, start, saveCheckpoint };
 }
