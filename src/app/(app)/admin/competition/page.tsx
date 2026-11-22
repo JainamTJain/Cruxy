@@ -18,6 +18,97 @@ type Log = {
   created_at: string;
 };
 
+function TeamResultsForm({
+  teams,
+  onDone,
+}: {
+  teams: Team[];
+  onDone: (msg: string) => void;
+}) {
+  const [teamId, setTeamId] = useState("");
+  const [advanced, setAdvanced] = useState(false);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!teamId && teams[0]) setTeamId(teams[0].id);
+  }, [teams, teamId]);
+
+  async function save() {
+    setBusy(true);
+    const res = await fetch("/api/season/results", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        team_id: teamId,
+        derive_from_logs: true,
+        advanced,
+        advancement_note: note || null,
+      }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      onDone("Could not save team result.");
+      return;
+    }
+    onDone(
+      advanced
+        ? "Team result saved. Nationals prep checklist is ready."
+        : "Team result saved from logged rounds.",
+    );
+  }
+
+  return (
+    <section className="space-y-3 rounded-2xl border border-ink/10 bg-white/60 p-4">
+      <h2 className="font-display text-lg font-semibold">Team results</h2>
+      <p className="m-0 text-sm text-muted">
+        How each USC team did at the regional. Counts come from logged rounds.
+        Only Dr. B or Jainam enter this.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="text-sm">
+          Team
+          <select
+            className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-3 py-2"
+            value={teamId}
+            onChange={(e) => setTeamId(e.target.value)}
+          >
+            {teams.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-end gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="h-5 w-5"
+            checked={advanced}
+            onChange={(e) => setAdvanced(e.target.checked)}
+          />
+          Advanced (e.g. to Nationals)
+        </label>
+        <label className="text-sm sm:col-span-2">
+          Advancement note
+          <input
+            className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-3 py-2"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="to Nationals"
+          />
+        </label>
+      </div>
+      <Button type="button" disabled={busy || !teamId} onClick={() => void save()}>
+        Save team result from logs
+      </Button>
+      <Link href="/season" className="ml-3 text-sm underline">
+        Open after-regional hub
+      </Link>
+    </section>
+  );
+}
+
 export default function CompetitionLogPage() {
   const [competitions, setCompetitions] = useState<Comp[]>([]);
   const [cases, setCases] = useState<CaseRow[]>([]);
@@ -279,6 +370,8 @@ export default function CompetitionLogPage() {
           )}
         </ul>
       </section>
+
+      <TeamResultsForm teams={teams} onDone={setMsg} />
 
       <section className="rounded-2xl border border-ink/10 bg-white/60 p-4">
         <h2 className="font-display text-lg font-semibold">Season rollover</h2>

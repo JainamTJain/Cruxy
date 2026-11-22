@@ -22,24 +22,17 @@ type Hub = {
     dress_guidance: string | null;
     venue_notes: string | null;
     room_notes: string | null;
-    packing_items: string[];
+    packing_list: string | null;
+    carpool_list: string | null;
     schedule_display: string;
     departure_display: string;
     meeting_display: string;
     dress_display: string;
     venue_display: string;
     room_display: string;
+    packing_display: string;
+    carpool_display: string;
   } | null;
-  carpools: Array<{
-    id: string;
-    driver_person_id: string;
-    driver_name: string;
-    seats: number;
-    seats_left: number;
-    notes: string | null;
-    riders: Array<{ person_id: string; name: string }>;
-  }>;
-  packing: { items: string[]; ticks: Record<string, boolean> };
   rounds: Array<{
     id: string;
     round_number: number;
@@ -56,6 +49,7 @@ type Hub = {
     opponent: string;
     case_number: number | null;
     moderator_question: string | null;
+    judges_questions: string | null;
     judge_comments: string | null;
     score_us: number | null;
     score_them: number | null;
@@ -73,13 +67,22 @@ type Hub = {
   viewer: { personId: string; teamId: string | null; role: string };
 };
 
-type Tab = "logistics" | "round" | "timer" | "log";
+/** Solo-first: phone tools first, day logistics last. */
+type Tab = "round" | "timer" | "log" | "debrief" | "logistics";
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "round", label: "Round day" },
+  { id: "timer", label: "APPE timer" },
+  { id: "log", label: "Real-round log" },
+  { id: "debrief", label: "Debrief" },
+  { id: "logistics", label: "Day info" },
+];
 
 export function RegionalClient() {
   const [data, setData] = useState<Hub | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [tab, setTab] = useState<Tab>("logistics");
+  const [tab, setTab] = useState<Tab>("round");
   const [activeRound, setActiveRound] = useState(1);
 
   const load = useCallback(async () => {
@@ -146,9 +149,8 @@ export function RegionalClient() {
         title="Competition Day"
         titleClassName="font-display text-[40px] font-extrabold tracking-[-0.02em] text-ink sm:text-[48px]"
       >
-        Phone-ready hub for Dec 5: logistics, the round card, the APPE timer,
-        and a quick log after each round. Empty fields say &ldquo;Dr. B will
-        add this.&rdquo;
+        Your round card and APPE timer for the phone. Then log each round and a
+        short debrief. Day info is read-only unless you are Dr. B or Jainam.
       </PageIntro>
 
       {error ? (
@@ -161,14 +163,7 @@ export function RegionalClient() {
         aria-label="Competition Day sections"
         className="flex flex-wrap gap-1 border-b border-mist"
       >
-        {(
-          [
-            ["logistics", "Logistics"],
-            ["round", "Round day"],
-            ["timer", "Timer"],
-            ["log", "Log and debrief"],
-          ] as const
-        ).map(([id, label]) => (
+        {TABS.map(({ id, label }) => (
           <button
             key={id}
             type="button"
@@ -184,42 +179,6 @@ export function RegionalClient() {
           </button>
         ))}
       </nav>
-
-      {tab === "logistics" ? (
-        <LogisticsPanel
-          data={data}
-          busy={busy}
-          onSave={(patch) =>
-            void post({
-              action: "save_logistics",
-              competitionId: data.competition!.id,
-              ...patch,
-            })
-          }
-          onOfferDrive={(seats, notes) =>
-            void post({
-              action: "offer_drive",
-              competitionId: data.competition!.id,
-              seats,
-              notes,
-            })
-          }
-          onJoin={(carpoolId) =>
-            void post({ action: "join_carpool", carpoolId })
-          }
-          onLeave={(carpoolId) =>
-            void post({ action: "leave_carpool", carpoolId })
-          }
-          onTick={(itemKey, done) =>
-            void post({
-              action: "tick_packing",
-              competitionId: data.competition!.id,
-              itemKey,
-              done,
-            })
-          }
-        />
-      ) : null}
 
       {tab === "round" ? (
         <RoundDayPanel
@@ -254,12 +213,33 @@ export function RegionalClient() {
               ...payload,
             })
           }
+        />
+      ) : null}
+
+      {tab === "debrief" ? (
+        <DebriefPanel
+          data={data}
+          busy={busy}
           onDebrief={(logId, debriefWorked, debriefChange) =>
             void post({
               action: "save_debrief",
               logId,
               debriefWorked,
               debriefChange,
+            })
+          }
+        />
+      ) : null}
+
+      {tab === "logistics" ? (
+        <LogisticsPanel
+          data={data}
+          busy={busy}
+          onSave={(patch) =>
+            void post({
+              action: "save_logistics",
+              competitionId: data.competition!.id,
+              ...patch,
             })
           }
         />
@@ -272,18 +252,10 @@ function LogisticsPanel({
   data,
   busy,
   onSave,
-  onOfferDrive,
-  onJoin,
-  onLeave,
-  onTick,
 }: {
   data: Hub;
   busy: boolean;
   onSave: (patch: Record<string, unknown>) => void;
-  onOfferDrive: (seats: number, notes: string) => void;
-  onJoin: (id: string) => void;
-  onLeave: (id: string) => void;
-  onTick: (key: string, done: boolean) => void;
 }) {
   const L = data.logistics!;
   const [draft, setDraft] = useState({
@@ -293,10 +265,9 @@ function LogisticsPanel({
     dress_guidance: L.dress_guidance ?? "",
     venue_notes: L.venue_notes ?? "",
     room_notes: L.room_notes ?? "",
-    packing_items: L.packing_items.join("\n"),
+    packing_list: L.packing_list ?? "",
+    carpool_list: L.carpool_list ?? "",
   });
-  const [seats, setSeats] = useState(4);
-  const [driveNotes, setDriveNotes] = useState("");
 
   useEffect(() => {
     setDraft({
@@ -306,16 +277,17 @@ function LogisticsPanel({
       dress_guidance: L.dress_guidance ?? "",
       venue_notes: L.venue_notes ?? "",
       room_notes: L.room_notes ?? "",
-      packing_items: L.packing_items.join("\n"),
+      packing_list: L.packing_list ?? "",
+      carpool_list: L.carpool_list ?? "",
     });
   }, [L]);
 
   return (
     <div className="flex flex-col gap-4">
       <section className="rounded-[20px] bg-white p-5">
-        <h2 className="font-display m-0 text-xl font-extrabold">Day plan</h2>
+        <h2 className="font-display m-0 text-xl font-extrabold">Day info</h2>
         <p className="mt-1 text-sm text-muted">
-          Schedule, departure and where we meet. Everyone can see this.
+          One plain page. Dr. B fills it; everyone else just reads.
         </p>
         {data.canEdit ? (
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -355,15 +327,16 @@ function LogisticsPanel({
               />
             </label>
             <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-              <span className="font-semibold">Packing list (one per line)</span>
+              <span className="font-semibold">Packing list</span>
               <textarea
-                rows={5}
+                rows={4}
                 className="rounded-[10px] border border-mist px-3 py-2"
-                value={draft.packing_items}
+                value={draft.packing_list}
                 disabled={busy}
                 onChange={(e) =>
-                  setDraft((d) => ({ ...d, packing_items: e.target.value }))
+                  setDraft((d) => ({ ...d, packing_list: e.target.value }))
                 }
+                placeholder={data.emptyLabel}
               />
             </label>
             <button
@@ -378,14 +351,12 @@ function LogisticsPanel({
                   dress_guidance: draft.dress_guidance || null,
                   venue_notes: draft.venue_notes || null,
                   room_notes: draft.room_notes || null,
-                  packing_items: draft.packing_items
-                    .split("\n")
-                    .map((s) => s.trim())
-                    .filter(Boolean),
+                  packing_list: draft.packing_list || null,
+                  carpool_list: draft.carpool_list || null,
                 })
               }
             >
-              Save logistics
+              Save day info
             </button>
           </div>
         ) : (
@@ -414,117 +385,16 @@ function LogisticsPanel({
                 {L.schedule_display}
               </dd>
             </div>
+            <div className="sm:col-span-2">
+              <dt className="text-[12px] font-bold uppercase tracking-[0.08em] text-muted">
+                Packing list
+              </dt>
+              <dd className="m-0 mt-1 whitespace-pre-wrap text-sm leading-snug">
+                {L.packing_display}
+              </dd>
+            </div>
           </dl>
         )}
-      </section>
-
-      <section className="rounded-[20px] bg-white p-5">
-        <h2 className="font-display m-0 text-xl font-extrabold">Carpool</h2>
-        <p className="mt-1 text-sm text-muted">
-          Who drives, how many seats, who rides with whom.
-        </p>
-        <div className="mt-3 flex flex-wrap items-end gap-2">
-          <label className="text-sm">
-            <span className="font-semibold">Seats in my car</span>
-            <input
-              type="number"
-              min={1}
-              max={12}
-              className="mt-1 block h-10 w-24 rounded-[10px] border border-mist px-3"
-              value={seats}
-              onChange={(e) => setSeats(Number(e.target.value) || 4)}
-            />
-          </label>
-          <input
-            className="h-10 min-w-0 flex-1 rounded-[10px] border border-mist px-3 text-sm"
-            placeholder="Notes (optional)"
-            value={driveNotes}
-            onChange={(e) => setDriveNotes(e.target.value)}
-          />
-          <button
-            type="button"
-            disabled={busy}
-            className="rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-            onClick={() => onOfferDrive(seats, driveNotes)}
-          >
-            I can drive
-          </button>
-        </div>
-        <ul className="mt-4 m-0 list-none space-y-2 p-0">
-          {data.carpools.length === 0 ? (
-            <li className="text-sm text-muted">No cars listed yet.</li>
-          ) : (
-            data.carpools.map((c) => {
-              const riding = c.riders.some(
-                (r) => r.person_id === data.viewer.personId,
-              );
-              const driving = c.driver_person_id === data.viewer.personId;
-              return (
-                <li
-                  key={c.id}
-                  className="rounded-[14px] bg-[#F7F8FA] px-3.5 py-3"
-                >
-                  <p className="m-0 text-sm font-semibold">
-                    {c.driver_name} drives · {c.seats_left} seat
-                    {c.seats_left === 1 ? "" : "s"} left
-                  </p>
-                  <p className="m-0 mt-1 text-[13px] text-[#3B404A]">
-                    Riders:{" "}
-                    {c.riders.length
-                      ? c.riders.map((r) => r.name).join(", ")
-                      : "none yet"}
-                  </p>
-                  {c.notes ? (
-                    <p className="m-0 mt-1 text-[13px] text-muted">{c.notes}</p>
-                  ) : null}
-                  {!driving ? (
-                    <button
-                      type="button"
-                      disabled={busy || (!riding && c.seats_left <= 0)}
-                      className="mt-2 rounded-xl border border-mist bg-white px-3 py-2 text-xs font-semibold disabled:opacity-60"
-                      onClick={() => (riding ? onLeave(c.id) : onJoin(c.id))}
-                    >
-                      {riding ? "Leave this car" : "Ride with them"}
-                    </button>
-                  ) : (
-                    <p className="mt-2 text-[12px] font-semibold text-muted">
-                      You are the driver.
-                    </p>
-                  )}
-                </li>
-              );
-            })
-          )}
-        </ul>
-      </section>
-
-      <section className="rounded-[20px] bg-white p-5">
-        <h2 className="font-display m-0 text-xl font-extrabold">
-          Your packing checklist
-        </h2>
-        <p className="mt-1 text-sm text-muted">
-          Tick what you have. Each person has their own list.
-        </p>
-        <ul className="mt-3 m-0 list-none space-y-2 p-0">
-          {data.packing.items.map((item) => {
-            const done = Boolean(data.packing.ticks[item]);
-            return (
-              <li key={item}>
-                <label className="flex items-center gap-3 rounded-[14px] bg-[#F7F8FA] px-3.5 py-3 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={done}
-                    disabled={busy}
-                    onChange={(e) => onTick(item, e.target.checked)}
-                  />
-                  <span className={done ? "text-muted line-through" : ""}>
-                    {item}
-                  </span>
-                </label>
-              </li>
-            );
-          })}
-        </ul>
       </section>
     </div>
   );
@@ -586,7 +456,6 @@ function RoundDayPanel({
     );
   }, [round, activeRound]);
 
-  // Load stance from brief when case changes
   useEffect(() => {
     if (!caseId || !data.viewer.teamId) {
       setStance("");
@@ -701,7 +570,7 @@ function RoundDayPanel({
             <input
               key={i}
               className="h-12 w-full rounded-[12px] border border-mist px-3 text-lg font-semibold"
-              value={i === 0 ? p1 : i === 1 ? p2 : p3}
+              value={v}
               disabled={busy}
               onChange={(e) => {
                 if (i === 0) setP1(e.target.value);
@@ -718,7 +587,10 @@ function RoundDayPanel({
             Who speaks
           </p>
           {speakers.map((s, i) => (
-            <label key={s.role} className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:gap-3">
+            <label
+              key={s.role}
+              className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:gap-3"
+            >
               <span className="w-32 font-semibold">{s.role}</span>
               <select
                 className="h-10 flex-1 rounded-[10px] border border-mist bg-white px-3"
@@ -730,9 +602,7 @@ function RoundDayPanel({
                     teamPeople.find((p) => p.id === id)?.name ?? "";
                   setSpeakers((arr) =>
                     arr.map((row, j) =>
-                      j === i
-                        ? { ...row, person_id: id, name }
-                        : row,
+                      j === i ? { ...row, person_id: id, name } : row,
                     ),
                   );
                 }}
@@ -777,16 +647,10 @@ function LogPanel({
   data,
   busy,
   onLog,
-  onDebrief,
 }: {
   data: Hub;
   busy: boolean;
   onLog: (payload: Record<string, unknown>) => void;
-  onDebrief: (
-    logId: string,
-    worked: string,
-    change: string,
-  ) => void;
 }) {
   const [form, setForm] = useState({
     opponent: "",
@@ -794,12 +658,11 @@ function LogPanel({
     roundNumber: "1",
     side: "" as "" | "presenting" | "commenting",
     moderatorQuestion: "",
+    judgesQuestions: "",
     judgeComments: "",
     scoreUs: "",
     scoreThem: "",
     result: "pending",
-    debriefWorked: "",
-    debriefChange: "",
   });
 
   return (
@@ -810,7 +673,7 @@ function LogPanel({
         </h2>
         <p className="mt-1 text-sm text-muted">
           Opponent, case, moderator question, judge comments and scores. The
-          moderator question goes into the question bank as a real question.
+          moderator question goes into the question bank.
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm sm:col-span-2">
@@ -884,6 +747,18 @@ function LogPanel({
             />
           </label>
           <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+            <span className="font-semibold">Judges&apos; questions (optional)</span>
+            <textarea
+              rows={2}
+              className="rounded-[10px] border border-mist px-3 py-2"
+              value={form.judgesQuestions}
+              disabled={busy}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, judgesQuestions: e.target.value }))
+              }
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
             <span className="font-semibold">Judge comments (as reported)</span>
             <textarea
               rows={2}
@@ -933,28 +808,6 @@ function LogPanel({
               <option value="tie">Tie</option>
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-            <span className="font-semibold">Debrief: one thing that worked</span>
-            <input
-              className="h-10 rounded-[10px] border border-mist px-3"
-              value={form.debriefWorked}
-              disabled={busy}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, debriefWorked: e.target.value }))
-              }
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-            <span className="font-semibold">Debrief: one thing to change</span>
-            <input
-              className="h-10 rounded-[10px] border border-mist px-3"
-              value={form.debriefChange}
-              disabled={busy}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, debriefChange: e.target.value }))
-              }
-            />
-          </label>
         </div>
         <button
           type="button"
@@ -969,22 +822,20 @@ function LogPanel({
               roundNumber: Number(form.roundNumber) || null,
               side: form.side || null,
               moderatorQuestion: form.moderatorQuestion || null,
+              judgesQuestions: form.judgesQuestions || null,
               judgeComments: form.judgeComments || null,
               scoreUs: form.scoreUs ? Number(form.scoreUs) : null,
               scoreThem: form.scoreThem ? Number(form.scoreThem) : null,
               result: form.result,
-              debriefWorked: form.debriefWorked || null,
-              debriefChange: form.debriefChange || null,
             });
             setForm((f) => ({
               ...f,
               opponent: "",
               moderatorQuestion: "",
+              judgesQuestions: "",
               judgeComments: "",
               scoreUs: "",
               scoreThem: "",
-              debriefWorked: "",
-              debriefChange: "",
             }));
           }}
         >
@@ -1030,6 +881,48 @@ function LogPanel({
                   Score {log.score_us ?? "—"} to {log.score_them ?? "—"}
                   {log.result ? ` · ${log.result}` : ""}
                 </p>
+              </li>
+            ))
+          )}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+function DebriefPanel({
+  data,
+  busy,
+  onDebrief,
+}: {
+  data: Hub;
+  busy: boolean;
+  onDebrief: (logId: string, worked: string, change: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <section className="rounded-[20px] bg-white p-5">
+        <h2 className="font-display m-0 text-xl font-extrabold">
+          Short debrief
+        </h2>
+        <p className="mt-1 text-sm text-muted">
+          Two lines between rounds: one thing that worked, one thing to change.
+        </p>
+        <ul className="mt-3 m-0 list-none space-y-3 p-0">
+          {data.logs.length === 0 ? (
+            <li className="text-sm text-muted">
+              Log a round first, then come back here.
+            </li>
+          ) : (
+            data.logs.map((log) => (
+              <li
+                key={log.id}
+                className="rounded-[14px] bg-[#F7F8FA] px-3.5 py-3"
+              >
+                <p className="m-0 text-sm font-semibold">
+                  {log.round_number ? `Round ${log.round_number} · ` : ""}
+                  vs {log.opponent}
+                </p>
                 <p className="m-0 mt-2 text-sm">
                   <strong>Worked:</strong>{" "}
                   {log.debrief_worked || "Not filled yet."}
@@ -1038,14 +931,12 @@ function LogPanel({
                   <strong>Change:</strong>{" "}
                   {log.debrief_change || "Not filled yet."}
                 </p>
-                {(!log.debrief_worked || !log.debrief_change) && (
-                  <DebriefInline
-                    busy={busy}
-                    onSave={(worked, change) =>
-                      onDebrief(log.id, worked, change)
-                    }
-                  />
-                )}
+                <DebriefInline
+                  busy={busy}
+                  onSave={(worked, change) =>
+                    onDebrief(log.id, worked, change)
+                  }
+                />
               </li>
             ))
           )}

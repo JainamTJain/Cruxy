@@ -16,12 +16,11 @@ export default function LearningProfilePage() {
       </p>
       <p className="text-xs text-muted">First time only</p>
       <h1 className="mt-2 font-display text-3xl font-extrabold text-ink sm:text-4xl">
-        How you learn
+        How Cruxy should help you
       </h1>
       <p className="mt-2 text-sm text-muted">
-        Move each slider toward what helps you most. Then rate yourself on the
-        scoring card items. Cruxy will use this, and your roadmap will lean
-        toward your weaker items.
+        Four concrete choices. About 30 seconds. Your starting scoring level
+        comes from your first real judge card, not a self-rating.
       </p>
       <div className="mt-8 rounded-2xl border border-ink/10 bg-white p-4 sm:p-5">
         <LearningProfileForm
@@ -36,7 +35,7 @@ export default function LearningProfilePage() {
                   if (d.session?.mustChoosePasscode) {
                     router.push("/choose-passcode");
                   } else {
-                    router.push("/home");
+                    router.push("/today");
                   }
                 },
               )

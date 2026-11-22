@@ -2,7 +2,6 @@ import "server-only";
 import { isSampleDataMode } from "@/lib/db/config";
 import { readStore } from "@/lib/db/sample-store";
 import { getServiceSupabase } from "@/lib/db/supabase/client";
-import { getLearningProfile } from "@/lib/learning/profile";
 import { listGoalsForPerson, listCommentsForGoals } from "@/lib/learning/goals";
 import { listReflectionsForPerson } from "@/lib/learning/reflections";
 import type {
@@ -37,8 +36,7 @@ export type MyProgressView = {
 export async function getMyProgressView(
   personId: string,
 ): Promise<MyProgressView> {
-  const profile = await getLearningProfile(personId);
-  const baselines = profile?.appe_baselines ?? {};
+  // Starting level = first real judge-card means (not self-ratings).
   const people = await listPeopleFull();
   const me = people.find((p) => p.id === personId);
   const teamId = me?.team_id ?? null;
@@ -177,8 +175,6 @@ export async function getMyProgressView(
   }
 
   const series: ProgressItemSeries[] = APPE_SCORE_ITEMS.map((item) => {
-    const baseline =
-      typeof baselines[item.key] === "number" ? baselines[item.key]! : null;
     const itemPoints = points
       .filter((p) => typeof p.items[item.key] === "number")
       .map((p) => ({
@@ -186,11 +182,12 @@ export async function getMyProgressView(
         score: p.items[item.key]!,
         case_number: p.case_number,
       }));
+    const baseline = itemPoints.length ? itemPoints[0]!.score : null;
     const latest = itemPoints.length
       ? itemPoints[itemPoints.length - 1]!.score
       : null;
     const delta =
-      baseline != null && latest != null
+      baseline != null && latest != null && itemPoints.length > 1
         ? Math.round((latest - baseline) * 10) / 10
         : null;
     return {
@@ -202,6 +199,11 @@ export async function getMyProgressView(
       points: itemPoints,
     };
   });
+
+  const baselines: Partial<Record<AppeItemKey, number>> = {};
+  for (const s of series) {
+    if (s.baseline != null) baselines[s.key] = s.baseline;
+  }
 
   let movedMost: MyProgressView["movedMost"] = null;
   for (const s of series) {

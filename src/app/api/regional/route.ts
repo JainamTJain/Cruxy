@@ -3,14 +3,10 @@ import { getSession } from "@/lib/auth/session";
 import { getPersonById } from "@/lib/db/repository";
 import {
   getCompetitionDayHub,
-  leaveRide,
   logRealRound,
-  offerDrive,
-  rideWith,
   saveDayRound,
   saveDebrief,
   saveLogistics,
-  tickPacking,
 } from "@/lib/regional/service";
 import type { DayRoundSpeaker } from "@/lib/db/supabase/regional-extra";
 
@@ -53,12 +49,8 @@ export async function POST(req: Request) {
     dress_guidance?: string | null;
     venue_notes?: string | null;
     room_notes?: string | null;
-    packing_items?: string[];
-    seats?: number;
-    notes?: string | null;
-    carpoolId?: string;
-    itemKey?: string;
-    done?: boolean;
+    packing_list?: string | null;
+    carpool_list?: string | null;
     roundNumber?: number;
     caseId?: string | null;
     caseLabel?: string | null;
@@ -104,60 +96,11 @@ export async function POST(req: Request) {
             dress_guidance: body.dress_guidance,
             venue_notes: body.venue_notes,
             room_notes: body.room_notes,
-            packing_items: body.packing_items,
+            packing_list: body.packing_list,
+            carpool_list: body.carpool_list,
           },
         });
         return NextResponse.json({ logistics });
-      }
-      case "offer_drive": {
-        if (!competitionId) {
-          return NextResponse.json(
-            { error: "Missing competition." },
-            { status: 400 },
-          );
-        }
-        const car = await offerDrive({
-          competitionId,
-          personId: session.personId,
-          seats: Math.min(12, Math.max(1, Number(body.seats) || 4)),
-          notes: body.notes,
-        });
-        return NextResponse.json({ carpool: car });
-      }
-      case "join_carpool": {
-        if (!body.carpoolId) {
-          return NextResponse.json({ error: "Pick a car." }, { status: 400 });
-        }
-        await rideWith({
-          carpoolId: body.carpoolId,
-          personId: session.personId,
-        });
-        return NextResponse.json({ ok: true });
-      }
-      case "leave_carpool": {
-        if (!body.carpoolId) {
-          return NextResponse.json({ error: "Pick a car." }, { status: 400 });
-        }
-        await leaveRide({
-          carpoolId: body.carpoolId,
-          personId: session.personId,
-        });
-        return NextResponse.json({ ok: true });
-      }
-      case "tick_packing": {
-        if (!competitionId || !body.itemKey) {
-          return NextResponse.json(
-            { error: "Missing packing item." },
-            { status: 400 },
-          );
-        }
-        const tick = await tickPacking({
-          competitionId,
-          personId: session.personId,
-          itemKey: body.itemKey,
-          done: Boolean(body.done),
-        });
-        return NextResponse.json({ tick });
       }
       case "save_round": {
         if (!competitionId || !teamId || !body.roundNumber) {

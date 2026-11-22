@@ -1,4 +1,4 @@
-/** Phone + desktop shots of /regional. */
+/** Phone + desktop shots of /regional (solo-first tabs). */
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -74,9 +74,11 @@ async function signInKatie(ctx) {
 const browser = await chromium.launch({ headless: true });
 
 for (const [name, width, height, tab] of [
-  ["regional-logistics-390", 390, 844, "Logistics"],
-  ["regional-logistics-1280", 1280, 800, "Logistics"],
-  ["regional-timer-390", 390, 844, "Timer"],
+  ["regional-round-390", 390, 844, "Round day"],
+  ["regional-timer-390", 390, 844, "APPE timer"],
+  ["regional-log-390", 390, 844, "Real-round log"],
+  ["regional-debrief-390", 390, 844, "Debrief"],
+  ["regional-dayinfo-1280", 1280, 800, "Day info"],
   ["regional-round-1280", 1280, 800, "Round day"],
 ]) {
   const context = await browser.newContext({

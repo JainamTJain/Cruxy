@@ -1,5 +1,6 @@
 /**
  * Wave 9 C: Competition Day hub logic.
+ * Order for the person alone: round-day card, APPE timer, log, debrief; logistics last.
  */
 import "server-only";
 import { isAdminRole } from "@/lib/admin/permissions";
@@ -7,16 +8,10 @@ import { getTeamBrief } from "@/lib/db/supabase/team-brief-extra";
 import {
   getOrCreateLogistics,
   insertDayLog,
-  joinCarpool,
-  leaveCarpool,
-  listCarpools,
   listDayLogs,
   listDayRounds,
-  listPackingTicks,
   patchDayLogDebrief,
-  setPackingTick,
   updateLogistics,
-  upsertCarpool,
   upsertDayRound,
   type DayRoundSpeaker,
   type LogisticsRow,
@@ -55,8 +50,6 @@ export async function getCompetitionDayHub(opts: {
     return {
       competition: null,
       logistics: null,
-      carpools: [],
-      packing: { items: [] as string[], ticks: {} as Record<string, boolean> },
       rounds: [],
       logs: [],
       cases: [],
@@ -65,35 +58,30 @@ export async function getCompetitionDayHub(opts: {
       phases: APPE_DAY_PHASES,
       canEdit: canEditLogistics(opts.role),
       emptyLabel: EMPTY,
+      viewer: {
+        personId: opts.personId,
+        teamId: opts.teamId,
+        role: opts.role,
+      },
     };
   }
 
-  const [logistics, carpools, cases, people, teams, rounds, logs, ticks] =
-    await Promise.all([
-      getOrCreateLogistics(competition.id),
-      listCarpools(competition.id),
-      listCases(),
-      listPeopleFull(),
-      listTeams(),
-      opts.teamId
-        ? listDayRounds({
-            competitionId: competition.id,
-            teamId: opts.teamId,
-          })
-        : Promise.resolve([]),
-      listDayLogs({
-        competitionId: competition.id,
-        teamId: opts.teamId,
-      }),
-      opts.teamId
-        ? listPackingTicks(competition.id, opts.personId)
-        : Promise.resolve([]),
-    ]);
-
-  const tickMap: Record<string, boolean> = {};
-  for (const t of ticks) tickMap[t.item_key] = t.done;
-
-  const nameById = Object.fromEntries(people.map((p) => [p.id, p.name]));
+  const [logistics, cases, people, teams, rounds, logs] = await Promise.all([
+    getOrCreateLogistics(competition.id),
+    listCases(),
+    listPeopleFull(),
+    listTeams(),
+    opts.teamId
+      ? listDayRounds({
+          competitionId: competition.id,
+          teamId: opts.teamId,
+        })
+      : Promise.resolve([]),
+    listDayLogs({
+      competitionId: competition.id,
+      teamId: opts.teamId,
+    }),
+  ]);
 
   return {
     competition,
@@ -105,19 +93,8 @@ export async function getCompetitionDayHub(opts: {
       dress_display: emptyOr(logistics.dress_guidance),
       venue_display: emptyOr(logistics.venue_notes),
       room_display: emptyOr(logistics.room_notes),
-    },
-    carpools: carpools.map(({ carpool, riders }) => ({
-      ...carpool,
-      driver_name: nameById[carpool.driver_person_id] ?? "Driver",
-      seats_left: Math.max(0, carpool.seats - 1 - riders.length),
-      riders: riders.map((r) => ({
-        ...r,
-        name: nameById[r.person_id] ?? "Teammate",
-      })),
-    })),
-    packing: {
-      items: logistics.packing_items,
-      ticks: tickMap,
+      packing_display: emptyOr(logistics.packing_list),
+      carpool_display: emptyOr(logistics.carpool_list),
     },
     rounds,
     logs,
@@ -139,19 +116,6 @@ export async function getCompetitionDayHub(opts: {
   };
 }
 
-/** Pull stance + up to three key points from Team Brief / claims for a round card. */
-export async function stanceForRound(opts: {
-  teamId: string;
-  caseId: string | null;
-}): Promise<{ thesis: string | null; keyPoints: string[] }> {
-  if (!opts.caseId) return { thesis: null, keyPoints: [] };
-  const brief = await getTeamBrief(opts.teamId, opts.caseId);
-  const thesis = brief?.thesis?.trim() || null;
-
-  // Prefer key points already on the day round; otherwise leave empty for editor.
-  return { thesis, keyPoints: [] };
-}
-
 export async function saveLogistics(opts: {
   competitionId: string;
   personId: string;
@@ -159,7 +123,7 @@ export async function saveLogistics(opts: {
   patch: Partial<LogisticsRow>;
 }) {
   if (!canEditLogistics(opts.role)) {
-    throw new Error("Only Dr. B or Jainam can edit logistics.");
+    throw new Error("Only Dr. B or Jainam can edit the day page.");
   }
   const row = await updateLogistics({
     competitionId: opts.competitionId,
@@ -171,7 +135,8 @@ export async function saveLogistics(opts: {
       dress_guidance: opts.patch.dress_guidance,
       venue_notes: opts.patch.venue_notes,
       room_notes: opts.patch.room_notes,
-      packing_items: opts.patch.packing_items,
+      packing_list: opts.patch.packing_list,
+      carpool_list: opts.patch.carpool_list,
     },
   });
   await logActivity({
@@ -181,64 +146,6 @@ export async function saveLogistics(opts: {
     meta: { competitionId: opts.competitionId },
   });
   return row;
-}
-
-export async function offerDrive(opts: {
-  competitionId: string;
-  personId: string;
-  seats: number;
-  notes?: string | null;
-}) {
-  const car = await upsertCarpool({
-    competitionId: opts.competitionId,
-    driverPersonId: opts.personId,
-    seats: opts.seats,
-    notes: opts.notes,
-    personId: opts.personId,
-  });
-  await logActivity({
-    person_id: opts.personId,
-    action: "competition_carpool_offered",
-    target: car.id,
-    meta: { seats: opts.seats },
-  });
-  return car;
-}
-
-export async function rideWith(opts: {
-  carpoolId: string;
-  personId: string;
-}) {
-  const rider = await joinCarpool(opts);
-  await logActivity({
-    person_id: opts.personId,
-    action: "competition_carpool_joined",
-    target: opts.carpoolId,
-    meta: {},
-  });
-  return rider;
-}
-
-export async function leaveRide(opts: {
-  carpoolId: string;
-  personId: string;
-}) {
-  await leaveCarpool(opts);
-  await logActivity({
-    person_id: opts.personId,
-    action: "competition_carpool_left",
-    target: opts.carpoolId,
-    meta: {},
-  });
-}
-
-export async function tickPacking(opts: {
-  competitionId: string;
-  personId: string;
-  itemKey: string;
-  done: boolean;
-}) {
-  return setPackingTick(opts);
 }
 
 export async function saveDayRound(opts: {
@@ -255,7 +162,6 @@ export async function saveDayRound(opts: {
   room?: string | null;
   startsAt?: string | null;
 }) {
-  // Any teammate can fill the round card; coaches can edit any team via UI team switch later.
   const row = await upsertDayRound(opts);
   await logActivity({
     person_id: opts.personId,
@@ -327,4 +233,14 @@ export async function saveDebrief(opts: {
     meta: {},
   });
   return row;
+}
+
+/** Optional helper if a caller wants the Team Brief thesis for a case. */
+export async function stanceForRound(opts: {
+  teamId: string;
+  caseId: string | null;
+}): Promise<{ thesis: string | null }> {
+  if (!opts.caseId) return { thesis: null };
+  const brief = await getTeamBrief(opts.teamId, opts.caseId);
+  return { thesis: brief?.thesis?.trim() || null };
 }

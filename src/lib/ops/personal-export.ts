@@ -108,7 +108,7 @@ export async function getPrivacyInventory(
     {
       key: "learning_profile",
       label: "Learning profile",
-      stored: "How you learn, and your APPE self-ratings.",
+      stored: "Time budget, focus areas, explanation and feedback prefs.",
       whoSees: "Only you, Dr. B and Jainam.",
       present: Boolean(profile?.completed_at),
     },

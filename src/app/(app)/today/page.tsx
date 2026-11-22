@@ -10,6 +10,7 @@ import {
   PreRoundCalmCta,
   PreRoundWarmupCta,
 } from "@/components/product";
+import { TailoredLine } from "@/components/learning/tailored-line";
 import type { TodayAction } from "@/lib/product/today";
 
 type Payload = {
@@ -60,6 +61,9 @@ export default function TodayPage() {
           Three things. Then stop. The program board is one tap away if you need
           it.
         </p>
+        <div className="mt-3">
+          <TailoredLine />
+        </div>
       </div>
 
       <WinStrip
@@ -76,12 +80,27 @@ export default function TodayPage() {
           Win Dec 5 helpers
         </h2>
         <p className="m-0 text-xs text-muted">
-          Warm up the morning of a round. Drill Judges&apos; Q&A often.
+          Warm up the morning of a round. Drill Judges&apos; Q&A often. On the
+          day, open your round card and the APPE timer on your phone.
         </p>
         <div className="mt-2 flex flex-col gap-2 sm:flex-row">
           <PreRoundCalmCta caseId={data.leadCase?.id} />
           <PreRoundWarmupCta caseId={data.leadCase?.id} />
           <OneTapJudgeDrill caseId={data.leadCase?.id} />
+          <Link
+            href="/regional"
+            className="inline-flex items-center justify-center rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-white"
+          >
+            Round card and timer
+          </Link>
+          {Date.now() >= Date.UTC(2026, 11, 5, 8) ? (
+            <Link
+              href="/season"
+              className="inline-flex items-center justify-center rounded-xl border border-ink/15 bg-white px-4 py-3 text-sm font-semibold text-ink"
+            >
+              After the regional
+            </Link>
+          ) : null}
         </div>
       </section>
 
