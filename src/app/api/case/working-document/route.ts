@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { isAdminRole } from "@/lib/admin/permissions";
+import {
+  canWriteTeamData,
+  resolveVisibleTeamId,
+} from "@/lib/auth/team-privacy";
 import { getPersonById } from "@/lib/db/repository";
 import type { WorkingSectionKey } from "@/lib/db/supabase/working-doc-extra";
 import { WORKING_SECTION_KEYS } from "@/lib/db/supabase/working-doc-extra";
@@ -14,9 +17,10 @@ import {
   saveWorkingSectionBody,
   startCruxWorkingDoc,
   suggestLibraryFact,
+  tellIdeaFromWorkingDoc,
   tickSuggestion,
 } from "@/lib/working-doc/service";
-import type { Person, Role } from "@/lib/types";
+import { runCoherenceCheck } from "@/lib/working-doc/coherence";
 
 export const runtime = "nodejs";
 
@@ -25,33 +29,6 @@ function isSectionKey(v: unknown): v is WorkingSectionKey {
     typeof v === "string" &&
     (WORKING_SECTION_KEYS as readonly string[]).includes(v)
   );
-}
-
-/** Own team by default. Coach/tech in admin view may pick another team. */
-function resolveTeamId(
-  person: { team_id: string | null; role: Role },
-  session: { teamId: string | null; adminView: boolean; role: Role },
-  requested: string | null,
-): string | null {
-  if (
-    session.adminView &&
-    isAdminRole(session.role) &&
-    requested
-  ) {
-    return requested;
-  }
-  return person.team_id ?? session.teamId ?? null;
-}
-
-/** Members may read another team's doc (shared visibility); writes stay on own team. */
-function canWriteWorkingDoc(
-  person: Person,
-  session: { teamId: string | null; adminView: boolean; role: Role },
-  teamId: string,
-): boolean {
-  if (session.adminView && isAdminRole(session.role)) return true;
-  const own = person.team_id ?? session.teamId;
-  return Boolean(own && own === teamId);
 }
 
 export async function GET(req: Request) {
@@ -67,15 +44,11 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const caseId = url.searchParams.get("caseId");
   const requested = url.searchParams.get("teamId");
-  const ownTeam = person.team_id ?? session.teamId;
-  // Default own team. Admin view may pick another. Members may also pass
-  // another USC team id for shared read; POST still blocks their writes.
-  const teamId =
-    session.adminView && isAdminRole(session.role) && requested
-      ? requested
-      : requested && ownTeam
-        ? requested
-        : ownTeam;
+  const { teamId } = resolveVisibleTeamId({
+    person,
+    session,
+    requested,
+  });
 
   if (!caseId || !teamId) {
     return NextResponse.json(
@@ -91,7 +64,7 @@ export async function GET(req: Request) {
   });
   return NextResponse.json({
     ...hub,
-    canEdit: canWriteWorkingDoc(person, session, teamId),
+    canEdit: canWriteTeamData(person, session, teamId),
   });
 }
 
@@ -123,14 +96,18 @@ export async function POST(req: Request) {
   };
 
   const caseId = body.caseId;
-  const teamId = resolveTeamId(person, session, body.teamId ?? null);
+  const { teamId } = resolveVisibleTeamId({
+    person,
+    session,
+    requested: body.teamId ?? null,
+  });
   if (!caseId || !teamId) {
     return NextResponse.json(
       { error: "caseId and teamId are required." },
       { status: 400 },
     );
   }
-  if (!canWriteWorkingDoc(person, session, teamId)) {
+  if (!canWriteTeamData(person, session, teamId)) {
     return NextResponse.json(
       { error: "You can only edit your own team's working document." },
       { status: 403 },
@@ -176,6 +153,22 @@ export async function POST(req: Request) {
           sectionKey: body.sectionKey,
           body: body.body ?? "",
         });
+        // Debounced critique: fills the suggestion rail after edits settle.
+        try {
+          const { after } = await import("next/server");
+          const { scheduleCritiqueOnChange } = await import(
+            "@/lib/critique/run"
+          );
+          after(() => {
+            scheduleCritiqueOnChange({
+              caseId,
+              teamId,
+              personId: session.personId,
+            });
+          });
+        } catch {
+          // after() unavailable in some runtimes; nightly cron still covers.
+        }
         break;
       }
       case "ask_socratic": {
@@ -271,6 +264,29 @@ export async function POST(req: Request) {
           personId: session.personId,
           text: body.text ?? "",
           citation: body.citation ?? "",
+        });
+        break;
+      }
+      case "coherence_check": {
+        await runCoherenceCheck({
+          caseId,
+          teamId,
+          personId: session.personId,
+        });
+        break;
+      }
+      case "tell_idea": {
+        if (!body.text?.trim()) {
+          return NextResponse.json(
+            { error: "Write your idea first." },
+            { status: 400 },
+          );
+        }
+        await tellIdeaFromWorkingDoc({
+          caseId,
+          teamId,
+          personId: session.personId,
+          text: body.text,
         });
         break;
       }

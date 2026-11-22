@@ -1,7 +1,9 @@
 /**
  * Plain Ethics Bowl terms for "Explain this term" (Wave 9 I).
- * Checked before calling Cruxy. Soft-merge with G's glossary when that lands.
+ * Soft-merges the shared frameworks catalog (SEP/IEP explainers).
  */
+
+import { lookupFramework } from "@/lib/frameworks/catalog";
 
 export type GlossaryEntry = {
   term: string;
@@ -140,6 +142,10 @@ export function lookupGlossary(phrase: string): GlossaryEntry | null {
     if (keys.some((k) => k === q || q.includes(k) || k.includes(q))) {
       return entry;
     }
+  }
+  const fw = lookupFramework(phrase);
+  if (fw) {
+    return { term: fw.term, aliases: fw.aliases, meaning: fw.explanation };
   }
   return null;
 }

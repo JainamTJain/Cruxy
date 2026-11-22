@@ -36,6 +36,9 @@ import { finalizeRound } from "../src/lib/practice/pipeline";
 import { feedbackHasCitation } from "../src/lib/practice/feedback";
 
 process.env.USE_SAMPLE_DATA = "1";
+// Sample path must stay deterministic even when CI has AI_GATEWAY_API_KEY set.
+// Live AssemblyAI + judge path (below) still uses real keys when present.
+process.env.CRUXY_USE_FIXTURES = process.env.CRUXY_USE_FIXTURES || "1";
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`FAIL: ${msg}`);
@@ -63,7 +66,10 @@ async function runRound(opts: {
   assert(jainam && katie && t1 && t3 && caseRow, `${opts.label}: seed people/teams/case`);
 
   const before = await getProgramTotals();
-  const bankBefore = (await listBankEntries()).length;
+  // Count bank rows that cite this run's lines later; seed fixtures already
+  // include one bank entry, so a raw length compare flakes when bankAdded is 0
+  // under a non-deterministic live judge.
+  const bankBeforeIds = new Set((await listBankEntries()).map((b) => b.id));
 
   const created = await createSession({
     kind: "admin",
@@ -147,11 +153,20 @@ async function runRound(opts: {
     `${opts.label}: every score has quoted evidence line ids`,
   );
 
-  // Prefer persisted lines; fall back to finalize's in-memory lines so a
-  // sample-store race cannot flake the citation check after a good judgment.
+  // Prefer finalize's in-memory lines (authoritative for this judgment), then
+  // persisted rows. Avoid mixing fixture lines from other rounds.
   const stored = await getTranscript(round.id);
-  const lines = stored.length > 0 ? stored : result.lines;
+  const lineIds = new Set(result.lines.map((l) => l.id));
+  const lines =
+    result.lines.length > 0
+      ? result.lines
+      : stored.filter((l) => l.round_id === round.id);
   assert(lines.length > 0, `${opts.label}: transcript lines readable after judge`);
+  const fixFeedback = result.judgment!.feedback.filter((f) => f.kind === "fix");
+  assert(
+    fixFeedback.length >= 1,
+    `${opts.label}: at least one cited fix (not a vacuous empty feedback list)`,
+  );
   for (const f of result.judgment!.feedback) {
     assert(
       feedbackHasCitation(f, lines),
@@ -162,10 +177,14 @@ async function runRound(opts: {
   const report = await getReport(round.id);
   assert(report.report?.headline, `${opts.label}: feedback report stored`);
 
-  const bankAfter = (await listBankEntries()).length;
+  const bankAfter = await listBankEntries();
+  const newBank = bankAfter.filter((b) => !bankBeforeIds.has(b.id));
+  const bankForThisRound = newBank.filter(
+    (b) => b.example_line_id && lineIds.has(b.example_line_id),
+  );
   assert(
-    bankAfter > bankBefore,
-    `${opts.label}: Things to take care of bank grew (${bankBefore} → ${bankAfter})`,
+    result.bankAdded >= 1 || bankForThisRound.length >= 1,
+    `${opts.label}: Things to take care of bank grew for this round (bankAdded=${result.bankAdded}, new=${bankForThisRound.length})`,
   );
 
   const after = await getProgramTotals();
@@ -185,7 +204,8 @@ async function main() {
   assert(existsSync(fixturePath), "fixtures/practice/short-round.wav present");
   const wav = readFileSync(fixturePath);
 
-  // Path A: always (sample store + storage helpers + pipeline).
+  // Path A: always (sample store + storage helpers + fixture judge).
+  process.env.CRUXY_USE_FIXTURES = "1";
   await runRound({
     label: "sample",
     audio: Buffer.from("fake-chunk-for-stub-transcript"),
@@ -207,6 +227,7 @@ async function main() {
   }
 
   // Path B: real audio fixture → AssemblyAI speaker labels → strong-tier judge.
+  delete process.env.CRUXY_USE_FIXTURES;
   await runRound({
     label: "live",
     audio: wav,

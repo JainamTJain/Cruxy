@@ -21,9 +21,15 @@ import {
   applyTodayPlan,
   type TodayPlan20Data,
 } from "@/lib/cruxy/actions/today-plan";
+import {
+  applyTellIdea,
+  type TellIdeaData,
+} from "@/lib/cruxy/actions/tell-idea";
 import type { ActApplyResult } from "@/lib/cruxy/actions/types";
 import { canSetCaseRole } from "@/lib/auth/capabilities";
+import { canWriteTeamData } from "@/lib/auth/team-privacy";
 import { applyRolePlan } from "@/lib/team/roles-board-repository";
+import { runCoherenceCheck } from "@/lib/working-doc/coherence";
 import type { Person, SessionPayload } from "@/lib/types";
 
 export async function applySignedPlan(input: {
@@ -90,6 +96,41 @@ export async function applySignedPlan(input: {
 
   if (plan.action === "today.plan20") {
     return applyTodayPlan(plan.data as TodayPlan20Data);
+  }
+
+  if (plan.action === "idea.tell" && plan.teamId) {
+    if (!person || !canWriteTeamData(person, session, plan.teamId)) {
+      throw Object.assign(
+        new Error("You can only add ideas on your own team's working document."),
+        { status: 403 },
+      );
+    }
+    return applyTellIdea({
+      data: plan.data as TellIdeaData,
+      personId: session.personId,
+      teamId: plan.teamId,
+    });
+  }
+
+  if (plan.action === "doc.coherence" && plan.teamId) {
+    if (!person || !canWriteTeamData(person, session, plan.teamId)) {
+      throw Object.assign(
+        new Error("You can only check coherence on your own team's document."),
+        { status: 403 },
+      );
+    }
+    const data = plan.data as { caseId: string };
+    const result = await runCoherenceCheck({
+      caseId: data.caseId,
+      teamId: plan.teamId,
+      personId: session.personId,
+    });
+    return {
+      message:
+        result.added === 0
+          ? "I did not find new coherence gaps to raise."
+          : `Done. I added ${result.added} suggestion${result.added === 1 ? "" : "s"} on the working document for the team to tick or cross.`,
+    };
   }
 
   throw Object.assign(new Error("I do not know how to apply that yet."), {

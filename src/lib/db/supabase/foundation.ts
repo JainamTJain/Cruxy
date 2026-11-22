@@ -63,6 +63,11 @@ function mapPerson(row: PersonRow): Person {
     consent_at: row.consent_at,
     recording_ok: row.recording_ok,
     voice_sample_path: row.voice_sample_path,
+    voiceprint: (row as { voiceprint?: number[] | null }).voiceprint ?? null,
+    voiceprint_at: (row as { voiceprint_at?: string | null }).voiceprint_at ?? null,
+    voiceprint_meta:
+      (row as { voiceprint_meta?: Record<string, unknown> | null })
+        .voiceprint_meta ?? null,
     pronunciation_note: row.pronunciation_note ?? null,
     first_run_checklist: row.first_run_checklist ?? {},
     failed_attempts: row.failed_attempts,
@@ -341,6 +346,9 @@ export async function savePerson(person: Person): Promise<void> {
       consent_at: person.consent_at,
       recording_ok: person.recording_ok,
       voice_sample_path: person.voice_sample_path,
+      voiceprint: person.voiceprint ?? null,
+      voiceprint_at: person.voiceprint_at ?? null,
+      voiceprint_meta: person.voiceprint_meta ?? {},
       pronunciation_note: person.pronunciation_note,
       first_run_checklist: person.first_run_checklist,
       failed_attempts: person.failed_attempts,

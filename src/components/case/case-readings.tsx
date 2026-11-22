@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AnnotatablePassages } from "@/components/case/annotatable-passages";
+import { LinkedText } from "@/components/frameworks/linked-text";
 import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
 import type { CaseHomePayload } from "@/lib/case-home/types";
 import type { FileSegment } from "@/lib/library/segments";
@@ -49,25 +50,28 @@ export function CaseReadings({
   const [loading, setLoading] = useState(!initial);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    if (initial) {
-      setData(initial);
+  const load = useCallback(
+    async (force = false) => {
+      if (initial && !force) {
+        setData(initial);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      const q = teamId ? `?teamId=${encodeURIComponent(teamId)}` : "";
+      const res = await fetch(`/api/case-home/${caseId}${q}`);
+      const json = (await res.json()) as CaseHomePayload & { error?: string };
+      if (!res.ok) {
+        setError(json.error ?? "Could not load readings.");
+        setLoading(false);
+        return;
+      }
+      setData(json);
       setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    const q = teamId ? `?teamId=${encodeURIComponent(teamId)}` : "";
-    const res = await fetch(`/api/case-home/${caseId}${q}`);
-    const json = (await res.json()) as CaseHomePayload & { error?: string };
-    if (!res.ok) {
-      setError(json.error ?? "Could not load readings.");
-      setLoading(false);
-      return;
-    }
-    setData(json);
-    setLoading(false);
-  }, [caseId, teamId, initial]);
+    },
+    [caseId, teamId, initial],
+  );
 
   useEffect(() => {
     void load();
@@ -141,7 +145,9 @@ export function CaseReadings({
               </span>
             </div>
             {f.what ? (
-              <p className="mt-2 text-sm text-ink/85">{f.what}</p>
+              <p className="mt-2 text-sm text-ink/85">
+                <LinkedText text={f.what} caseId={caseId} />
+              </p>
             ) : null}
 
             <ul className="mt-3 m-0 list-none space-y-2 p-0">
@@ -161,7 +167,9 @@ export function CaseReadings({
                             ? s.speaker_name ?? "Speaker"
                             : "Note"}
                     </span>
-                    <p className="m-0 mt-0.5 text-ink">{s.body}</p>
+                    <p className="m-0 mt-0.5 text-ink">
+                      <LinkedText text={s.body} caseId={caseId} />
+                    </p>
                   </li>
                 ))}
             </ul>
@@ -180,7 +188,10 @@ export function CaseReadings({
               <div className="mt-3">
                 <FullOriginal
                   fileId={f.id}
+                  caseId={caseId}
+                  teamId={teamId}
                   caseAnnotations={data.annotations}
+                  onAnnotationsChanged={() => void load(true)}
                 />
               </div>
             ) : null}
@@ -193,10 +204,16 @@ export function CaseReadings({
 
 function FullOriginal({
   fileId,
+  caseId,
+  teamId,
   caseAnnotations,
+  onAnnotationsChanged,
 }: {
   fileId: string;
+  caseId: string;
+  teamId: string;
   caseAnnotations: CaseHomePayload["annotations"];
+  onAnnotationsChanged?: () => void;
 }) {
   const [passages, setPassages] = useState<
     { id: string; text: string; ord: number }[] | null
@@ -258,8 +275,12 @@ function FullOriginal({
         passageIds.has(a.passage_id),
     )
     .map((a) => ({
+      id: a.id,
       needle: a.range && a.range !== "selection" ? a.range : a.body,
       kind: a.kind as "highlight" | "comment",
+      personKey: a.person_id ?? a.person_name,
+      personName: a.person_name,
+      createdAt: a.created_at,
     }));
 
   if (passages.length === 0) {
@@ -270,10 +291,10 @@ function FullOriginal({
   if (passages.length === 1 && passages[0]!.id.startsWith("file-")) {
     return (
       <div
-        className="max-h-[320px] overflow-y-auto rounded-xl border border-[#E3E5E9] bg-[#F7F8FA] p-3 text-sm leading-relaxed whitespace-pre-wrap"
+        className="max-h-[320px] overflow-y-auto rounded-xl border border-[#E3E5E9] bg-[#F7F8FA] p-3 text-sm leading-relaxed"
         style={{ fontFamily: "var(--font-source-serif), Georgia, serif" }}
       >
-        {passages[0]!.text}
+        <LinkedText text={passages[0]!.text} caseId={caseId} preWrap />
       </div>
     );
   }
@@ -282,7 +303,12 @@ function FullOriginal({
     <AnnotatablePassages
       passages={passages.map((p) => ({ id: p.id, text: p.text }))}
       marks={marks}
-      onSaved={() => setTick((n) => n + 1)}
+      caseId={caseId}
+      teamId={teamId}
+      onSaved={() => {
+        setTick((n) => n + 1);
+        onAnnotationsChanged?.();
+      }}
     />
   );
 }

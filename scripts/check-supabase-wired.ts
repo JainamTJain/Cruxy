@@ -266,6 +266,7 @@ const WRITE_SURFACE_CONTRACTS: WriteSurfaceContract[] = [
       "src/app/api/access/explain/route.ts",
       "src/components/access/display-settings.tsx",
       "src/components/access/explain-term.tsx",
+      "src/components/case/reading-tools.tsx",
     ],
     patterns: [
       /\/api\/prefs\/access|\/api\/access\/explain|callCruxy|access_explain_term|text_size|high_contrast|readable_font/,
@@ -285,6 +286,82 @@ const WRITE_SURFACE_CONTRACTS: WriteSurfaceContract[] = [
       /team_events:\s*raw\.team_events/,
       /calendar_feed_tokens:\s*raw\.calendar_feed_tokens/,
       /product_feedback:\s*raw\.product_feedback/,
+      /solo_handoffs:\s*raw\.solo_handoffs/,
+    ],
+  },
+  {
+    id: "wave9_e_solo_async_prep",
+    description: "Solo async prep: my part, minutes, handoff, review",
+    files: [
+      "src/lib/team/solo-prep-repository.ts",
+      "src/app/api/prepare/parts/route.ts",
+      "src/app/api/prepare/handoff/route.ts",
+      "src/app/(app)/prepare/page.tsx",
+    ],
+    patterns: [
+      /getMyParts|createHandoff|solo_handoffs|\/api\/prepare\/parts|\/api\/prepare\/handoff/,
+    ],
+  },
+  {
+    id: "wave9_c_working_document",
+    description: "Working document hub API and case page",
+    files: [
+      "src/lib/working-doc/service.ts",
+      "src/app/api/case/working-document/route.ts",
+    ],
+    patterns: [/getWorkingDocumentHub|\/api\/case\/working-document/],
+  },
+  {
+    id: "wave9_h_season_hub",
+    description: "After-regional season hub",
+    files: [
+      "src/lib/season/service.ts",
+      "src/app/api/season/route.ts",
+    ],
+    patterns: [/loadSeasonHub|\/api\/season/],
+  },
+  {
+    id: "wave9_h_season_page",
+    description: "Season hub client loads /api/season",
+    files: ["src/components/season/season-hub-client.tsx"],
+    patterns: [/\/api\/season/],
+  },
+  {
+    id: "wave9_j_reach_calm",
+    description: "Notifications page and pre-round calm routine",
+    files: [
+      "src/app/(app)/notifications/page.tsx",
+      "src/app/(app)/calm/page.tsx",
+      "src/app/api/calm/log/route.ts",
+    ],
+    patterns: [/\/api\/notifications|\/api\/calm\/log|logCalmRoutine|calm/],
+  },
+  {
+    id: "practice_finalize_moves_roadmap",
+    description: "Finalize records practice speak so roadmap/Today move",
+    files: ["src/lib/practice/pipeline.ts"],
+    patterns: [/recordPracticeSpeak|replaceTranscriptForRound/],
+  },
+  {
+    id: "practice_drill_resume",
+    description: "Drill start resumes open round; checkpoint API saves UI state",
+    files: [
+      "src/app/api/practice/drills/start/route.ts",
+      "src/app/api/practice/rounds/[id]/checkpoint/route.ts",
+      "src/lib/db/practice-repository.ts",
+    ],
+    patterns: [/findOpenDrillRound|saveDrillCheckpoint|resumed|drill_checkpoint/],
+  },
+  {
+    id: "score_predictions_coach_visible",
+    description: "Score predictions visible to person, Dr. B and Jainam",
+    files: [
+      "src/lib/ops/privacy-scope.ts",
+      "src/app/api/practice/rounds/[id]/predictions/route.ts",
+      "src/app/(app)/settings/page.tsx",
+    ],
+    patterns: [
+      /canViewScorePredictions|coachOrTech|visible to you, Dr\. B and Jainam/,
     ],
   },
 ];

@@ -3,59 +3,77 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ChunkedRecorder } from "@/components/practice/chunked-recorder";
+import { useDrillSession } from "../use-drill-session";
 
 const PROMPT =
   "Is it ever ethical to profit from predicting a war?";
+const ANSWER_SECONDS = 30;
 
 /**
- * Thesis in 30 seconds. DrillPhone.html parity.
+ * Thesis in 30 seconds. Creates or resumes a drill round so audio chunks save.
  */
 export default function ThesisDrillPage() {
-  const [seconds, setSeconds] = useState(18);
-  const [running, setRunning] = useState(true);
+  const { session, start, error, busy, saveCheckpoint } = useDrillSession();
+  const [seconds, setSeconds] = useState(ANSWER_SECONDS);
+  const [running, setRunning] = useState(false);
   const [caption, setCaption] = useState(
     "No, not when the bet is on war or a leader's removal, because insiders...",
   );
-  const [recordingOk, setRecordingOk] = useState(false);
-  const [roundId, setRoundId] = useState<string | null>(null);
   const [history] = useState([31, 28, 29, 26, 24, 22, 18]);
 
   useEffect(() => {
-    void fetch("/api/auth/me")
-      .then((r) => r.json())
-      .then(async (me) => {
-        if (!me.authenticated) return;
-        const person = await fetch("/api/auth/people").then((r) => r.json());
-        void person;
-        const consent = await fetch("/api/auth/me").then((r) => r.json());
-        // Prefer creating/finding a thesis round from sessions list
-        const sess = await fetch("/api/practice/sessions").then((r) => r.json());
-        const thesis = (sess.sessions ?? []).find(
-          (s: { rounds?: { mode: string; id: string }[] }) =>
-            s.rounds?.some((r) => r.mode === "thesis_30"),
+    void (async () => {
+      const s = await start("thesis_30");
+      if (!s) return;
+      if (s.resumed && s.checkpoint) {
+        setSeconds(
+          typeof s.checkpoint.seconds_left === "number"
+            ? s.checkpoint.seconds_left
+            : ANSWER_SECONDS,
         );
-        const rid =
-          thesis?.rounds?.find(
-            (r: { mode: string; id: string }) => r.mode === "thesis_30",
-          )?.id ?? null;
-        setRoundId(rid);
-        setRecordingOk(Boolean(consent.person?.recording_ok));
+        setRunning(Boolean(s.checkpoint.running));
+        if (s.checkpoint.prompt) setCaption(s.checkpoint.prompt);
+        return;
+      }
+      setRunning(true);
+      saveCheckpoint({
+        phase: "answer",
+        prompt: PROMPT,
+        seconds_left: ANSWER_SECONDS,
+        running: true,
       });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!running) return;
     const id = setInterval(() => {
       setSeconds((s) => {
-        if (s <= 0) {
+        if (s <= 1) {
           setRunning(false);
+          saveCheckpoint({
+            phase: "answer",
+            prompt: PROMPT,
+            seconds_left: 0,
+            running: false,
+          });
           return 0;
         }
-        return s - 1;
+        const next = s - 1;
+        if (next % 5 === 0) {
+          saveCheckpoint({
+            phase: "answer",
+            prompt: PROMPT,
+            seconds_left: next,
+            running: true,
+          });
+        }
+        return next;
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [running]);
+  }, [running, saveCheckpoint]);
 
   const best = Math.min(...history);
   const last = history[history.length - 2] ?? 31;
@@ -63,6 +81,9 @@ export default function ThesisDrillPage() {
     () => history.map((h) => Math.max(20, Math.round((40 / h) * 100))),
     [history],
   );
+
+  const caseLabel =
+    session?.caseNumber != null ? `CASE ${session.caseNumber}` : "CASE";
 
   return (
     <div className="fixed inset-0 z-40 overflow-hidden bg-[#0C0D11] text-[#F2F3F5]">
@@ -82,12 +103,19 @@ export default function ThesisDrillPage() {
 
         <div className="flex flex-col gap-1">
           <span className="text-xs font-bold tracking-[0.1em] text-gold">
-            THESIS IN 30 SECONDS, CASE 5
+            THESIS IN 30 SECONDS, {caseLabel}
           </span>
           <span className="text-[13px] text-[#8C929D]">
-            A wording you haven&apos;t seen. One sentence.
+            {session?.resumed
+              ? "Picking up where you left off."
+              : "A wording you have not seen. One sentence."}
           </span>
         </div>
+
+        {busy && !session ? (
+          <p className="text-sm text-[#8C929D]">Starting drill…</p>
+        ) : null}
+        {error ? <p className="text-sm text-[#C62828]">{error}</p> : null}
 
         <p className="font-display m-0 text-[28px] font-semibold leading-tight">
           &ldquo;{PROMPT}&rdquo;
@@ -100,7 +128,15 @@ export default function ThesisDrillPage() {
           <button
             type="button"
             aria-label="Stop recording"
-            onClick={() => setRunning(false)}
+            onClick={() => {
+              setRunning(false);
+              saveCheckpoint({
+                phase: "answer",
+                prompt: PROMPT,
+                seconds_left: seconds,
+                running: false,
+              });
+            }}
             className="flex h-24 w-24 items-center justify-center rounded-full border-[6px] border-[#3B404A] bg-[#C62828]"
           >
             <span className="h-[30px] w-[30px] rounded-md bg-white" />
@@ -108,11 +144,11 @@ export default function ThesisDrillPage() {
           <p className="m-0 text-center text-[15px] leading-snug text-[#C9CCD3]">
             &ldquo;{caption}&rdquo;
           </p>
-          {roundId ? (
+          {session?.roundId ? (
             <ChunkedRecorder
-              roundId={roundId}
+              roundId={session.roundId}
               embedded
-              consentOk={recordingOk}
+              consentOk={session.recordingOk}
               onRecordingChange={(on) => {
                 if (!on) setRunning(false);
               }}
