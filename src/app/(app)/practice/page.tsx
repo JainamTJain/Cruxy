@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { PageIntro } from "@/components/page-intro";
 import { Button } from "@/components/ui/button";
 import type { PracticeMode } from "@/lib/practice/types";
 
@@ -18,15 +19,51 @@ type SessionRow = {
 };
 
 const MODES: { id: PracticeMode; label: string; blurb: string }[] = [
-  { id: "full_round", label: "Full round", blurb: "Presentation → commentary → Q&A" },
-  { id: "moderator_drill", label: "Moderator drill", blurb: "Bank questions out loud" },
-  { id: "commentary_drill", label: "Commentary drill", blurb: "Cruxy presents; you comment" },
-  { id: "judges_qa_drill", label: "Judges' Q&A", blurb: "Rapid follow-ups from Cruxy" },
-  { id: "solo_speech", label: "Solo speech", blurb: "One part, scored" },
-  { id: "free_record", label: "Free record", blurb: "Discussion → Truth Source ideas" },
-  { id: "conferral_drill", label: "Conferral", blurb: "60s confer, then answer" },
-  { id: "thesis_30", label: "Thesis in 30s", blurb: "One sentence under the clock" },
-  { id: "qa_routing", label: "Q&A routing", blurb: "Right person takes the question" },
+  {
+    id: "full_round",
+    label: "Full round",
+    blurb: "Presentation, commentary, then judges' questions",
+  },
+  {
+    id: "moderator_drill",
+    label: "Moderator drill",
+    blurb: "Answer bank questions out loud",
+  },
+  {
+    id: "commentary_drill",
+    label: "Commentary drill",
+    blurb: "Cruxy presents; you give commentary",
+  },
+  {
+    id: "judges_qa_drill",
+    label: "Judges' Q&A",
+    blurb: "Quick follow-ups from Cruxy as a judge",
+  },
+  {
+    id: "solo_speech",
+    label: "Solo speech",
+    blurb: "One speaking part, then a judge card",
+  },
+  {
+    id: "free_record",
+    label: "Free record",
+    blurb: "Talk freely; pull ideas into the Evidence Library",
+  },
+  {
+    id: "conferral_drill",
+    label: "Conferral",
+    blurb: "Sixty seconds to confer, then answer",
+  },
+  {
+    id: "thesis_30",
+    label: "Thesis in 30s",
+    blurb: "One clear sentence under the clock",
+  },
+  {
+    id: "qa_routing",
+    label: "Q&A routing",
+    blurb: "Send each question to the right speaker",
+  },
 ];
 
 export default function PracticePage() {
@@ -70,7 +107,9 @@ export default function PracticePage() {
       if (res.ok && data.session?.id) {
         window.location.href = `/practice/sessions/${data.session.id}?screen=${data.screen ?? "observer"}`;
       } else {
-        setJoinMsg(data.error ?? "Could not join from link");
+        setJoinMsg(
+          data.error ?? "Could not join from that link. Check the code and try again.",
+        );
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -138,7 +177,9 @@ export default function PracticePage() {
     });
     const data = await res.json();
     if (!res.ok) {
-      setJoinMsg(data.error ?? "Join failed");
+      setJoinMsg(
+        data.error ?? "Could not join. Check the code with the person who started practice.",
+      );
       return;
     }
     window.location.href = `/practice/sessions/${data.session.id}?screen=${data.screen}`;
@@ -146,16 +187,17 @@ export default function PracticePage() {
 
   return (
     <main className="animate-fade-up space-y-8">
-      <div>
-        <h1 className="font-display text-3xl font-semibold">Practice</h1>
-        <p className="mt-1 text-sm text-muted">
-          Start alone or with a team. No admin needed. Admins also set up group days.
-        </p>
-      </div>
+      <PageIntro title="Practice">
+        Run a drill or a full round alone or with your team. Pick a case, start,
+        then share the join code if others should come in.
+      </PageIntro>
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-ink/10 bg-white/70 p-4">
-          <h2 className="font-display text-xl font-semibold">Start a practice</h2>
+          <h2 className="font-display text-xl font-semibold">Start practice</h2>
+          <p className="mt-1 text-sm text-muted">
+            Choose how you want to practise, then press Start.
+          </p>
           <div className="mt-4 space-y-3">
             <label className="block text-sm">
               Mode
@@ -209,13 +251,16 @@ export default function PracticePage() {
               </select>
             </label>
             <Button type="button" disabled={busy} onClick={() => void startPractice()}>
-              {busy ? "Starting…" : "Start"}
+              {busy ? "Starting…" : "Start practice"}
             </Button>
             {createdCode ? (
               <div className="space-y-1 text-sm">
-                <p className="font-mono">Join code: {createdCode}</p>
+                <p>
+                  Share this join code:{" "}
+                  <span className="font-mono font-semibold">{createdCode}</span>
+                </p>
                 <p className="break-all text-muted">
-                  Online link:{" "}
+                  Or send this link:{" "}
                   {typeof window !== "undefined"
                     ? `${window.location.origin}/practice?code=${createdCode}`
                     : `/practice?code=${createdCode}`}
@@ -226,11 +271,12 @@ export default function PracticePage() {
         </div>
 
         <div className="rounded-2xl border border-ink/10 bg-white/70 p-4">
-          <h2 className="font-display text-xl font-semibold">Join with a code or link</h2>
+          <h2 className="font-display text-xl font-semibold">Join with a code</h2>
           <p className="mt-1 text-sm text-muted">
-            Members tap Join from home; online friends open the shared link. Judges use the{" "}
+            Enter the code someone read aloud, or open their shared link. Judges
+            score on the{" "}
             <Link href="/judging" className="underline">
-              Judging portal
+              judging portal
             </Link>
             .
           </p>
@@ -243,7 +289,7 @@ export default function PracticePage() {
               maxLength={8}
             />
             <Button type="button" variant="secondary" onClick={() => void join()}>
-              Join
+              Join practice
             </Button>
           </div>
           {joinMsg ? <p className="mt-2 text-sm text-cardinal">{joinMsg}</p> : null}

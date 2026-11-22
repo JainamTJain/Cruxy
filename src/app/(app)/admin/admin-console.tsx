@@ -606,6 +606,10 @@ export function AdminConsole() {
           <h1 className="font-display m-0 text-[48px] font-extrabold leading-none tracking-[-0.02em]">
             Running the program
           </h1>
+          <p className="m-0 max-w-xl text-sm text-muted">
+            People, consent, readiness and sessions for all three teams. Open a
+            panel below to take attendance, fix a roster, or check spend.
+          </p>
         </div>
         <p className="max-w-[360px] text-right text-[13px] text-muted">
           Dr. B sees everything here except the panels marked{" "}

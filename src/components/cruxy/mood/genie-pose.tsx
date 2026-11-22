@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { usePrefersReducedMotion } from "@/components/motion/reduced-motion";
 import {
+  GENIE_FIGURE_DESKTOP,
   POSE_ASPECT,
   POSE_HEIGHT,
   POSE_WIDTH,
@@ -14,16 +15,26 @@ import {
 
 type Props = {
   pose: CruxyPose | string;
-  /** Width in CSS pixels; height follows 273:557. */
+  /**
+   * Width in CSS pixels; height follows 273:557.
+   * Capped at GENIE_FIGURE_DESKTOP so no pose renders larger than the
+   * floating Genie (Wave 8 J).
+   */
   width: number;
   className?: string;
   imgClassName?: string;
   alt?: string;
   priority?: boolean;
+  /**
+   * When true, allow widths above the floating figure cap (drawer chrome,
+   * landing heroes). Default false: never larger than GENIE_FIGURE_DESKTOP.
+   */
+  uncapped?: boolean;
 };
 
 /**
  * Soft cross-fade between poses. Keeps real proportions (273 by 557).
+ * Figure width is capped at GENIE_FIGURE_DESKTOP unless `uncapped`.
  */
 export function GeniePose({
   pose,
@@ -32,12 +43,16 @@ export function GeniePose({
   imgClassName,
   alt = "",
   priority,
+  uncapped = false,
 }: Props) {
   const reduced = usePrefersReducedMotion();
   const src = poseSrc(pose);
   const [shown, setShown] = useState(src);
   const [incoming, setIncoming] = useState<string | null>(null);
-  const height = Math.round(width * POSE_ASPECT);
+  const capped = uncapped
+    ? width
+    : Math.min(width, GENIE_FIGURE_DESKTOP);
+  const height = Math.round(capped * POSE_ASPECT);
 
   useEffect(() => {
     if (src === shown) return;
@@ -57,7 +72,7 @@ export function GeniePose({
   return (
     <span
       className={cn("relative inline-block overflow-visible", className)}
-      style={{ width, height }}
+      style={{ width: capped, height }}
     >
       <Image
         src={shown}

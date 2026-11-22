@@ -65,8 +65,9 @@ export default function WarmUpPage() {
           10-minute warm-up
         </h1>
         <p className="mt-2 text-sm text-muted">
-          5 flashcards, 2 moderator questions out loud, 1 counterclaim rebuttal.
-          Cases picked at random from your path.
+          A quick run before a round: five flashcards, two moderator questions
+          out loud, and one counterclaim rebuttal. Built from cases on your
+          roadmap.
         </p>
       </div>
 
@@ -76,7 +77,11 @@ export default function WarmUpPage() {
         disabled={loading}
         className="h-12 rounded-xl bg-ink text-sm font-semibold text-white disabled:opacity-60"
       >
-        {loading ? "Building…" : warm ? "Rebuild warm-up" : "Build warm-up"}
+        {loading
+          ? "Building your warm-up…"
+          : warm
+            ? "Build a new warm-up"
+            : "Build my warm-up"}
       </button>
 
       {warm ? (
