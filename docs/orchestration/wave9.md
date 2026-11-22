@@ -63,3 +63,25 @@ Real data only; never invent records about real people. Gateway only for AI. Den
 service role server-side. Secrets only in Vercel env (name any new env var in the PR so Jainam can
 add it; features must degrade quietly without it). No em dashes or middle dots in copy. Follow
 docs/design/writing.md. New pieces in new files where another row owns the page.
+
+## Agreed field names: real-round log (C owns, H reads)
+
+H reads `competition_logs` (and any Wave 9 C round-day writes into the same table). Do not rename
+these columns without updating both rows:
+
+| Field | Meaning |
+| --- | --- |
+| `id` | Round log id (cited from retro themes) |
+| `competition_id` | Competition (e.g. California Regional) |
+| `case_id`, `case_number` | Drawn / assigned case |
+| `opponent` | Opposing school name |
+| `moderator_question` | Moderator question text |
+| `judges_questions` | Judges' questions (free text) |
+| `judge_comments` | Judge comments (free text; H groups into themes) |
+| `score_us`, `score_them` | Numeric scores |
+| `result` | `win` / `loss` / `tie` / `pending` |
+| `team_id` | USC team |
+| `created_at`, `created_by` | Audit |
+
+Team-level advancement and win/loss rollups for the hub live in H's `competition_team_results`
+(migration `00060`), entered only by Dr. B or Jainam.

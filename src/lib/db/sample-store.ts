@@ -266,6 +266,13 @@ export interface SampleStore {
   arg_edges?: import("@/lib/graph/types").ArgEdge[];
   /** Wave 8 D: personal learning profiles. */
   learning_profiles?: import("@/lib/learning/types").LearningProfile[];
+  /** Wave 9 H: after the regional. */
+  seasons?: import("@/lib/season/types").Season[];
+  competition_team_results?: import("@/lib/season/types").CompetitionTeamResult[];
+  season_retros?: import("@/lib/season/types").SeasonRetro[];
+  retro_comment_themes?: import("@/lib/season/types").RetroCommentTheme[];
+  nationals_checklist_items?: import("@/lib/season/types").NationalsChecklistItem[];
+  season_handoffs?: import("@/lib/season/types").SeasonHandoff[];
 }
 
 function emptyCaseBrainFields(): Pick<
