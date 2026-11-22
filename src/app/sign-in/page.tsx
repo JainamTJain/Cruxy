@@ -113,7 +113,7 @@ export default function SignInPage() {
               />
             </div>
             <div className="min-w-0 flex-1 pb-1">
-              <h1 className="font-display inline-block max-w-full rounded-[18px] border-[3px] border-genie-bright bg-transparent px-3 py-1 text-[clamp(3.5rem,12vw,8rem)] font-extrabold leading-[0.82] tracking-[-0.05em] text-white shadow-[0_0_0_2px_rgba(47,127,224,0.35)] sm:px-4">
+              <h1 className="crux-wordmark font-display inline-block max-w-full pb-2 pr-3 text-[clamp(3.5rem,12vw,8rem)] font-extrabold leading-[0.82] tracking-[-0.05em]">
                 crux
               </h1>
               <p className="mt-4 max-w-md text-base leading-relaxed text-white/90">

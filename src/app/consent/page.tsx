@@ -124,14 +124,15 @@ export default function ConsentPage() {
         Meet Cruxy
       </h1>
 
-      <div className="mt-6 flex gap-3.5 rounded-2xl border-2 border-genie/30 bg-[#FFF7DB] p-4">
+      <div className="mt-6 flex items-center gap-4 rounded-2xl border-2 border-genie/30 bg-[#FFF7DB] p-4 sm:gap-5 sm:p-5">
         <Image
-          src="/cruxy/cruxy-neutral.png"
-          alt=""
-          width={64}
-          height={64}
-          className="h-16 w-16 shrink-0"
+          src="/cruxy/cruxy-happy.png"
+          alt="Cruxy waving"
+          width={270}
+          height={513}
+          className="h-auto w-20 shrink-0 drop-shadow-[0_8px_14px_rgba(47,127,224,0.28)] sm:w-24"
           unoptimized
+          priority
         />
         <p className="text-[15px] leading-relaxed text-ink">{CRUXY_PLAIN_WORDS}</p>
       </div>
