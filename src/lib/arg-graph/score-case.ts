@@ -4,14 +4,41 @@
  */
 import "server-only";
 
-import { scoreClaimFromEdges } from "@/lib/arg-graph/df-quad";
+import {
+  practiceRoundDateLabel,
+  scoreClaimFromEdges,
+} from "@/lib/arg-graph/df-quad";
 import { synthesizeClaimMapEdges } from "@/lib/arg-graph/synthesize";
 import type { ArgEdge, ClaimRobustnessScore } from "@/lib/arg-graph/types";
 import type { ClaimMapNode } from "@/lib/case-brain/types";
+import { getRoundById } from "@/lib/db/practice-repository";
 import {
   listEdgesForCase,
   upsertClaimRobustnessScores,
 } from "@/lib/db/supabase/arg-graph-extra";
+
+async function datesForRounds(
+  ids: string[],
+): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  await Promise.all(
+    ids.map(async (id) => {
+      try {
+        const round = await getRoundById(id);
+        if (!round) return;
+        const label = practiceRoundDateLabel({
+          sessionDate: round.session.date,
+          startedAt: round.started_at,
+          createdAt: round.created_at,
+        });
+        if (label) out[id] = label;
+      } catch {
+        // A missing round still scores. The summary omits the id.
+      }
+    }),
+  );
+  return out;
+}
 
 export async function scoreClaimsForTeamCase(input: {
   teamId: string;
@@ -28,7 +55,7 @@ export async function scoreClaimsForTeamCase(input: {
   });
   const edges: ArgEdge[] = [...stored, ...syn];
 
-  const scores = input.nodes.map((n) =>
+  const scored = input.nodes.map((n) =>
     scoreClaimFromEdges({
       claimId: n.claim.id,
       teamId: input.teamId,
@@ -36,6 +63,15 @@ export async function scoreClaimsForTeamCase(input: {
       edges,
     }),
   );
+  const labels = await datesForRounds([
+    ...new Set(scored.flatMap((s) => s.open_from_rounds)),
+  ]);
+  const scores = scored.map((s) => ({
+    ...s,
+    open_round_dates: s.open_from_rounds
+      .map((id) => labels[id])
+      .filter((d): d is string => Boolean(d)),
+  }));
 
   if (input.persist !== false) {
     try {
