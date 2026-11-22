@@ -220,9 +220,16 @@ export interface WeeklyEmailPreview {
   openDisagreements: string[];
   thingsToCare: string[];
   spendLine: string | null;
+  /** Refused Cruxy calls from the last 24 hours only. */
   errors: string[];
+  /** Short note so older refused calls do not look current. */
+  errorsNote: string;
   recipients: { name: string; email: string; includeSpend: boolean }[];
 }
+
+/** Copy for admin health / weekly error lists. */
+export const AI_ERRORS_LAST_24H_NOTE =
+  "Only refused Cruxy calls from the last 24 hours. Older ones stay in the ledger but are not shown here.";
 
 export const CONSENT_VERSION = "2026-11-21-v1";
 

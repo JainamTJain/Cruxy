@@ -1,7 +1,12 @@
 import { randomUUID } from "crypto";
 import { isSampleDataMode } from "@/lib/db/config";
 import { readStore, updateStore } from "@/lib/db/sample-store";
-import { logActivity } from "@/lib/db/repository";
+import {
+  getPersonById,
+  listPeopleFull,
+  logActivity,
+} from "@/lib/db/repository";
+import { createNotification } from "@/lib/db/supabase/auth-extra";
 import * as teamSb from "@/lib/db/supabase/team";
 import { nowIso } from "@/lib/utils";
 import { programChannel, teamChannel } from "@/lib/team/channels";
@@ -29,6 +34,55 @@ import { buildAlignmentQuestions } from "@/lib/team/alignment";
 
 async function sb() {
   return teamSb;
+}
+
+/** Resolve @Name tokens in the body against the roster. */
+async function resolveMentionIds(
+  body: string,
+  explicit?: string[],
+): Promise<string[]> {
+  const ids = [...(explicit ?? [])];
+  const people = await listPeopleFull();
+  const lower = body.toLowerCase();
+  for (const p of people) {
+    const needle = `@${p.name}`.toLowerCase();
+    if (lower.includes(needle) && !ids.includes(p.id)) {
+      ids.push(p.id);
+    }
+  }
+  return ids;
+}
+
+/** Mentions land in the person's reminders (F-074 / Wave 8 wiring). */
+async function notifyChatMentions(
+  message: ChatMessage,
+  fromPersonId: string,
+): Promise<void> {
+  const targets = (message.mention_ids ?? []).filter(
+    (id) => id && id !== fromPersonId,
+  );
+  if (!targets.length) return;
+  const from = await getPersonById(fromPersonId);
+  const fromName = from?.name ?? "Someone";
+  const href = `/team/chat?chatId=${encodeURIComponent(message.chat_id)}`;
+  const snippet =
+    message.body.length > 120
+      ? `${message.body.slice(0, 117)}...`
+      : message.body;
+  for (const personId of targets) {
+    await createNotification({
+      personId,
+      kind: "chat_mention",
+      title: `${fromName} mentioned you`,
+      body: snippet,
+      href,
+      createdBy: fromPersonId,
+      payload: {
+        messageId: message.id,
+        chatId: message.chat_id,
+      },
+    });
+  }
 }
 
 export async function listCases() {
@@ -260,53 +314,49 @@ export async function postMessage(input: {
   actorTeamId: string | null;
   actorRole: string;
 }): Promise<ChatMessage> {
+  const mentionIds = await resolveMentionIds(input.body, input.mentionIds);
+  const withMentions = { ...input, mentionIds };
+
+  let saved: ChatMessage | null = null;
   if (!isSampleDataMode()) {
-    return (await sb()).postMessage(input);
+    saved = await (await sb()).postMessage(withMentions);
+  } else {
+    await updateStore((s) => {
+      const chat = s.chats.find((c) => c.id === input.chatId);
+      if (!chat) throw new Error("Channel not found");
+      const isAdmin =
+        input.actorRole === "tech_admin" || input.actorRole === "coach_admin";
+      const canPost =
+        isAdmin ||
+        chat.channel === programChannel() ||
+        (chat.team_id != null && chat.team_id === input.actorTeamId);
+      if (!canPost) throw new Error("Cannot post to this channel");
+
+      const link_refs: Record<string, unknown> = {
+        ...(input.linkRefs ?? {}),
+      };
+      if (mentionIds.length) link_refs.mentions = mentionIds;
+      if (input.caseId) link_refs.case_id = input.caseId;
+
+      const row: ChatMessage = {
+        id: randomUUID(),
+        chat_id: input.chatId,
+        person_id: input.personId,
+        from_cruxy: false,
+        body: input.body,
+        is_idea: Boolean(input.isIdea),
+        mention_ids: mentionIds,
+        case_id: input.caseId ?? null,
+        link_refs: Object.keys(link_refs).length ? link_refs : null,
+        created_at: nowIso(),
+      };
+      s.messages.push(row);
+      saved = row;
+    });
   }
-  let saved!: ChatMessage;
-  await updateStore((s) => {
-    const chat = s.chats.find((c) => c.id === input.chatId);
-    if (!chat) throw new Error("Channel not found");
-    const isAdmin =
-      input.actorRole === "tech_admin" || input.actorRole === "coach_admin";
-    const canPost =
-      isAdmin ||
-      chat.channel === programChannel() ||
-      (chat.team_id != null && chat.team_id === input.actorTeamId);
-    if (!canPost) throw new Error("Cannot post to this channel");
 
-    const mentionIds = [...(input.mentionIds ?? [])];
-    // Resolve @Name mentions from the body against known people
-    for (const p of s.people) {
-      const needle = `@${p.name}`;
-      if (
-        input.body.toLowerCase().includes(needle.toLowerCase()) &&
-        !mentionIds.includes(p.id)
-      ) {
-        mentionIds.push(p.id);
-      }
-    }
-
-    const link_refs: Record<string, unknown> = {
-      ...(input.linkRefs ?? {}),
-    };
-    if (mentionIds.length) link_refs.mentions = mentionIds;
-    if (input.caseId) link_refs.case_id = input.caseId;
-
-    saved = {
-      id: randomUUID(),
-      chat_id: input.chatId,
-      person_id: input.personId,
-      from_cruxy: false,
-      body: input.body,
-      is_idea: Boolean(input.isIdea),
-      mention_ids: mentionIds,
-      case_id: input.caseId ?? null,
-      link_refs: Object.keys(link_refs).length ? link_refs : null,
-      created_at: nowIso(),
-    };
-    s.messages.push(saved);
-  });
+  if (!saved) throw new Error("Could not save message");
+  await notifyChatMentions(saved, input.personId);
   return saved;
 }
 

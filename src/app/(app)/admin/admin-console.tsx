@@ -100,6 +100,7 @@ type Overview = {
       thingsToCare: string[];
       spendLine: string | null;
       errors: string[];
+      errorsNote: string;
       recipients: { name: string; email: string; includeSpend: boolean }[];
     };
   };
@@ -1496,8 +1497,18 @@ export function AdminConsole() {
               {tech && data.weekly.preview.spendLine ? (
                 <p>Spend: {data.weekly.preview.spendLine}</p>
               ) : null}
-              {tech && data.weekly.preview.errors.length ? (
-                <p>Errors: {data.weekly.preview.errors.join("; ")}</p>
+              {tech ? (
+                <div className="space-y-1">
+                  <p>
+                    Health (last 24 hours):{" "}
+                    {data.weekly.preview.errors.length
+                      ? data.weekly.preview.errors.join("; ")
+                      : "No refused Cruxy calls."}
+                  </p>
+                  <p className="text-xs text-[#9AA0AA]">
+                    {data.weekly.preview.errorsNote}
+                  </p>
+                </div>
               ) : null}
             </div>
           ) : null}
