@@ -1,13 +1,7 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useCruxy } from "@/components/cruxy/cruxy-context";
 import { emitMood } from "@/components/cruxy/mood/bus";
 import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
@@ -49,6 +43,7 @@ type View = {
   teamName?: string | null;
   overallReady?: number;
   overdueCount?: number;
+  teamColour?: string | null;
 };
 
 const STAGE_ORDER: RoadmapStageId[] = [
@@ -62,55 +57,24 @@ const STAGE_ORDER: RoadmapStageId[] = [
 ];
 
 const STAGE_LABELS: Record<RoadmapStageId, string> = {
-  read: "Read",
-  map: "Map",
-  one_pager: "One pager",
-  flashcards: "Flashcards",
-  question_drill: "Question drill",
-  practiced: "Practiced",
-  judged: "Judged",
+  read: "Read the case",
+  map: "Build the claim map",
+  one_pager: "Finish the one pager",
+  flashcards: "Learn the flashcards",
+  question_drill: "Drill judge questions",
+  practiced: "Practice the round",
+  judged: "Get judged",
 };
 
-const TEAM3 = "#C2410C";
-
-type StationKind = "d" | "p" | "o" | "t" | "n" | "ns";
-
-function stationKind(s: RoadmapStage, today: string, notStarted?: boolean): StationKind {
-  if (!s.required) return "n";
-  if (s.done_at) return "d";
-  if (notStarted) return "ns";
-  if (s.due && s.due < today) return "o";
-  if (s.due && s.due <= today) return "p";
-  return "t";
-}
-
-function dotStyle(kind: StationKind, teamColour: string): CSSProperties {
-  const base: CSSProperties = {
-    display: "block",
-    width: 30,
-    height: 30,
-    borderRadius: "50%",
-    boxSizing: "border-box",
-  };
-  if (kind === "d") return { ...base, background: teamColour };
-  if (kind === "p")
-    return { ...base, background: "#FFFFFF", border: `7px solid ${teamColour}` };
-  if (kind === "o")
-    return { ...base, background: "#FFFFFF", border: "4px solid #C62828" };
-  if (kind === "ns")
-    return {
-      ...base,
-      background: "#F7F8FA",
-      border: "2px solid #C9CCD3",
-    };
-  if (kind === "n")
-    return {
-      ...base,
-      background: "#F7F8FA",
-      border: "2px dashed #C9CCD3",
-    };
-  return { ...base, background: "#FFFFFF", border: "3px solid #9AA0AA" };
-}
+const STAGE_HREF: Partial<Record<RoadmapStageId, string>> = {
+  read: "/library",
+  map: "/case-brain",
+  one_pager: "/revision/one-pagers",
+  flashcards: "/revision/flashcards",
+  question_drill: "/revision/questions",
+  practiced: "/practice",
+  judged: "/practice",
+};
 
 function formatDue(iso: string | null | undefined): string {
   if (!iso) return "Not set";
@@ -118,19 +82,42 @@ function formatDue(iso: string | null | undefined): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function deadlinePct(
-  deadlines: Record<RoadmapStageId, string>,
-  competitionDate: string,
-  stage: RoadmapStageId | "regional",
-): number {
-  const start = new Date(
-    (deadlines.read || "2026-11-24") + "T12:00:00Z",
-  ).getTime();
+function daysUntil(iso: string): number {
+  const end = new Date(iso + "T12:00:00Z").getTime();
+  const now = Date.now();
+  return Math.ceil((end - now) / (24 * 60 * 60 * 1000));
+}
+
+function todayPct(competitionDate: string, startIso: string): number {
+  const start = new Date(startIso + "T12:00:00Z").getTime();
   const end = new Date(competitionDate + "T12:00:00Z").getTime();
   const span = Math.max(end - start, 1);
-  if (stage === "regional") return 100;
-  const t = new Date((deadlines[stage] || competitionDate) + "T12:00:00Z").getTime();
+  return Math.min(100, Math.max(0, ((Date.now() - start) / span) * 100));
+}
+
+function stagePct(
+  due: string,
+  competitionDate: string,
+  startIso: string,
+): number {
+  const start = new Date(startIso + "T12:00:00Z").getTime();
+  const end = new Date(competitionDate + "T12:00:00Z").getTime();
+  const t = new Date(due + "T12:00:00Z").getTime();
+  const span = Math.max(end - start, 1);
   return Math.min(100, Math.max(0, ((t - start) / span) * 100));
+}
+
+function statusLabel(
+  s: RoadmapStage,
+  today: string,
+  detail?: StageStatus,
+): { text: string; tone: "done" | "overdue" | "today" | "open" | "skip" } {
+  if (!s.required) return { text: "Not required", tone: "skip" };
+  if (s.done_at) return { text: "Done", tone: "done" };
+  if (detail?.notStarted) return { text: "Not started", tone: "open" };
+  if (s.due && s.due < today) return { text: "Overdue", tone: "overdue" };
+  if (s.due && s.due === today) return { text: "Due today", tone: "today" };
+  return { text: "Up next", tone: "open" };
 }
 
 function doneStageKeys(data: View): string[] {
@@ -146,6 +133,7 @@ function doneStageKeys(data: View): string[] {
 export default function RoadmapPage() {
   const { setMood } = useCruxy();
   const [view, setView] = useState<View | null>(null);
+  const [caseId, setCaseId] = useState<string>("");
   const [editing, setEditing] = useState(false);
   const [draftDues, setDraftDues] = useState<Record<RoadmapStageId, string>>(
     {} as Record<RoadmapStageId, string>,
@@ -176,6 +164,7 @@ export default function RoadmapPage() {
     prevDone.current = nowDone;
     setView(data);
     setDraftDues(data.deadlines);
+    setCaseId((prev) => prev || data.cases[0]?.case.id || "");
     if ((data.overdueCount ?? 0) > 0) setMood("curious");
   }, [setMood]);
 
@@ -185,77 +174,38 @@ export default function RoadmapPage() {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  const flags = useMemo(() => {
-    if (!view?.deadlines) return [];
-    const rows: {
-      label: string;
-      stage: RoadmapStageId | "regional";
-      date: string;
-      pct: number;
-      regional?: boolean;
-    }[] = [
-      {
-        label: "Read all",
-        stage: "read",
-        date: formatDue(view.deadlines.read),
-        pct: deadlinePct(view.deadlines, view.competitionDate, "read"),
-      },
-      {
-        label: "Map",
-        stage: "map",
-        date: formatDue(view.deadlines.map),
-        pct: deadlinePct(view.deadlines, view.competitionDate, "map"),
-      },
-      {
-        label: "One pagers",
-        stage: "one_pager",
-        date: formatDue(view.deadlines.one_pager),
-        pct: deadlinePct(view.deadlines, view.competitionDate, "one_pager"),
-      },
-      {
-        label: "Cards + drills",
-        stage: "flashcards",
-        date: formatDue(view.deadlines.flashcards),
-        pct: deadlinePct(view.deadlines, view.competitionDate, "flashcards"),
-      },
-      {
-        label: "Practiced",
-        stage: "practiced",
-        date: formatDue(view.deadlines.practiced),
-        pct: deadlinePct(view.deadlines, view.competitionDate, "practiced"),
-      },
-      {
-        label: "Judged",
-        stage: "judged",
-        date: formatDue(view.deadlines.judged),
-        pct: deadlinePct(view.deadlines, view.competitionDate, "judged"),
-      },
-      {
-        label: "Regional",
-        stage: "regional",
-        date: formatDue(view.competitionDate) || "Dec 5",
-        pct: 100,
-        regional: true,
-      },
-    ];
-    return rows;
-  }, [view]);
+  const activeCase = useMemo(() => {
+    if (!view) return null;
+    return (
+      view.cases.find((c) => c.case.id === caseId) ?? view.cases[0] ?? null
+    );
+  }, [view, caseId]);
+
+  const nextAction = useMemo(() => {
+    if (!activeCase) return null;
+    for (const id of STAGE_ORDER) {
+      const s = activeCase.stages.find((x) => x.stage === id);
+      if (!s || !s.required || s.done_at) continue;
+      return { stage: id, row: s };
+    }
+    return null;
+  }, [activeCase]);
 
   if (!view) {
     return (
-      <main className="flex flex-col gap-4 animate-fade-up">
+      <div className="flex flex-col gap-4 animate-fade-up">
         <LoadingGenie label="Loading roadmap..." />
         <SkeletonBlock lines={5} className="max-w-xl" />
-      </main>
+      </div>
     );
   }
 
   const overall = view.overallReady ?? 0;
-  const overdue = view?.overdueCount ?? 0;
-
-  const tracks = view.cases.filter(
-    (c) => c.stages.some((s) => s.required) || c.readiness > 0,
-  );
+  const overdue = view.overdueCount ?? 0;
+  const days = daysUntil(view.competitionDate);
+  const startIso = view.deadlines.read || "2026-11-24";
+  const teamColour = view.teamColour || "#C2410C";
+  const progressNow = todayPct(view.competitionDate, startIso);
 
   async function saveDeadlines() {
     if (!view?.teamId) return;
@@ -279,341 +229,264 @@ export default function RoadmapPage() {
   }
 
   return (
-    <main className="flex flex-col gap-6 animate-fade-up">
-      <div className="flex flex-wrap items-end justify-between gap-5">
-        <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-5 animate-fade-up">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col gap-1.5">
           <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
-            {view?.personName ?? "You"}
-            {view?.teamName ? `, ${view.teamName}` : ""}
+            {view.personName ?? "You"}
+            {view.teamName ? `, ${view.teamName}` : ""}
           </span>
-          <h1 className="font-display m-0 text-[56px] font-extrabold leading-[0.95] tracking-[-0.03em] max-md:text-[36px]">
+          <h1 className="font-display m-0 text-[40px] font-extrabold leading-none tracking-[-0.02em] max-md:text-[32px]">
             My roadmap
           </h1>
+          <p className="m-0 max-w-xl text-sm text-muted">
+            One timeline to the California Regional on{" "}
+            {formatDue(view.competitionDate)}. Stages as rows: due date, status,
+            and what to do next.
+          </p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <div className="rounded-2xl bg-white px-[18px] py-3.5">
-            <div className="font-display text-[40px] font-extrabold leading-none">
+        <div className="flex flex-wrap gap-2">
+          <div className="rounded-2xl bg-white px-4 py-3">
+            <div className="font-display text-[32px] font-extrabold leading-none">
+              {days < 0 ? 0 : days}
+            </div>
+            <div className="text-[12px] text-muted">
+              {days === 1 ? "day to Dec 5" : "days to Dec 5"}
+            </div>
+          </div>
+          <div className="rounded-2xl bg-white px-4 py-3">
+            <div className="font-display text-[32px] font-extrabold leading-none">
               {overall}%
             </div>
-            <div className="text-[13px] text-muted">ready (you)</div>
+            <div className="text-[12px] text-muted">ready</div>
           </div>
-          <div className="rounded-2xl bg-white px-[18px] py-3.5">
-            <div className="font-display text-[40px] font-extrabold leading-none">
-              {view?.teamReadiness == null ? "Not set" : `${view.teamReadiness}%`}
+          {overdue > 0 ? (
+            <div className="rounded-2xl bg-[#FDECEC] px-4 py-3">
+              <div className="font-display text-[32px] font-extrabold leading-none text-[#C62828]">
+                {overdue}
+              </div>
+              <div className="text-[12px] text-[#C62828]">overdue</div>
             </div>
-            <div className="text-[13px] text-muted">ready (team)</div>
-          </div>
-          <div
-            className="rounded-2xl bg-white px-[18px] py-3.5"
-            style={{ border: overdue ? "2px solid #C62828" : undefined }}
-          >
-            <div
-              className="font-display text-[40px] font-extrabold leading-none"
-              style={{ color: overdue ? "#C62828" : undefined }}
-            >
-              {overdue}
-            </div>
-            <div className="text-[13px] text-muted">overdue</div>
-          </div>
+          ) : null}
         </div>
       </div>
 
-      {saveMsg ? <p className="text-sm text-muted">{saveMsg}</p> : null}
-
-      <section className="flex flex-col gap-4 rounded-[20px] bg-ink px-6 py-5 text-white">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="m-0 text-[15px] font-bold">
-            Recommended deadlines to{" "}
-            {formatDue(view?.competitionDate) || "Dec 5"}
-          </h2>
-          {view?.teamDeadlinesEditable ? (
-            <button
-              type="button"
-              className="text-[13px] font-semibold text-gold underline"
-              onClick={() => {
-                setEditing((e) => !e);
-                if (view?.deadlines) setDraftDues(view.deadlines);
-              }}
-            >
-              {editing ? "Cancel" : "Edit for your team"}
-            </button>
-          ) : (
-            <span className="text-[13px] text-[#9AA0AA]">
-              Your team can edit these
-            </span>
-          )}
+      {/* Timeline to Dec 5 */}
+      <section className="rounded-[20px] bg-ink px-4 py-4 text-white">
+        <div className="mb-3 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.1em] text-white/70">
+          <span>Today</span>
+          <span>Dec 5 regional</span>
         </div>
-
-        {editing ? (
-          <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-4">
-            {STAGE_ORDER.map((stage) => (
-              <label key={stage} className="text-xs font-semibold text-[#9AA0AA]">
-                {STAGE_LABELS[stage]}
-                <input
-                  type="date"
-                  className="mt-1 w-full rounded-lg border border-[#2A2E38] bg-[#111318] px-2 py-2 text-sm text-white"
-                  value={draftDues[stage] ?? ""}
-                  onChange={(e) =>
-                    setDraftDues((d) => ({ ...d, [stage]: e.target.value }))
-                  }
-                />
-              </label>
-            ))}
-            <button
-              type="button"
-              className="mt-4 h-10 rounded-xl bg-gold px-4 text-sm font-bold text-ink"
-              onClick={() => void saveDeadlines()}
-            >
-              Save team deadlines
-            </button>
-          </div>
-        ) : (
-          <div className="relative h-16 max-md:h-auto max-md:space-y-2">
-            <div className="absolute left-0 right-0 top-[26px] h-1 rounded-sm bg-[#2A2E38] max-md:hidden" />
-            <div className="max-md:flex max-md:flex-wrap max-md:gap-3 md:contents">
-              {flags.map((f) => (
-                <div
-                  key={f.label}
-                  className="absolute top-0 flex flex-col max-md:static max-md:translate-x-0"
-                  style={{
-                    left: `${f.pct}%`,
-                    transform: `translateX(-${f.pct > 90 ? 100 : 50}%)`,
-                    alignItems: f.pct > 90 ? "flex-end" : "center",
-                  }}
-                >
-                  <span className="whitespace-nowrap text-xs font-bold">
-                    {f.label}
-                  </span>
-                  <span
-                    className="my-1.5 block h-3 w-3 rounded-full max-md:hidden"
-                    style={{
-                      background: f.regional ? "#9D2235" : "#F5B700",
-                    }}
-                  />
-                  <span className="whitespace-nowrap font-mono text-xs font-semibold text-[#9AA0AA]">
-                    {f.date}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div className="absolute bottom-0 left-0 top-0 w-[3px] rounded-sm bg-gold max-md:hidden" />
-            <span className="absolute left-2 top-11 text-xs font-bold text-gold max-md:static">
-              Today
+        <div className="relative h-3 rounded-full bg-white/15">
+          <div
+            className="absolute inset-y-0 left-0 rounded-full"
+            style={{
+              width: `${progressNow}%`,
+              background: teamColour,
+            }}
+          />
+          {STAGE_ORDER.map((id) => {
+            const due = view.deadlines[id];
+            if (!due) return null;
+            const pct = stagePct(due, view.competitionDate, startIso);
+            return (
+              <span
+                key={id}
+                title={`${STAGE_LABELS[id]} · ${formatDue(due)}`}
+                className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-ink bg-white"
+                style={{ left: `${pct}%` }}
+              />
+            );
+          })}
+          <span
+            className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white"
+            style={{ left: `${progressNow}%`, background: teamColour }}
+            title="Today"
+          />
+        </div>
+        <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-white/75">
+          {STAGE_ORDER.map((id) => (
+            <span key={id}>
+              {STAGE_LABELS[id].split(" ").slice(0, 2).join(" ")}{" "}
+              {formatDue(view.deadlines[id])}
             </span>
-          </div>
-        )}
+          ))}
+        </div>
       </section>
 
-      <div className="flex flex-wrap items-start gap-6">
-        <section className="min-w-0 flex-[999_1_640px] overflow-x-auto rounded-[20px] bg-white py-2">
-          <h2 className="font-display m-0 px-6 pb-2 pt-4 text-2xl font-extrabold">
-            My cases, stage by stage
+      {saveMsg ? <p className="m-0 text-sm text-muted">{saveMsg}</p> : null}
+
+      {/* Next action */}
+      {nextAction ? (
+        <section className="rounded-[20px] bg-white p-4">
+          <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-muted">
+            One next action
+          </p>
+          <h2 className="font-display m-0 mt-1 text-[22px] font-extrabold">
+            {STAGE_LABELS[nextAction.stage]}
           </h2>
-          <div className="min-w-[820px]">
-            <div className="grid grid-cols-[250px_repeat(7,minmax(0,1fr))] px-6 py-2 text-center text-xs font-bold text-muted">
-              <span className="text-left">Case / my role</span>
-              {STAGE_ORDER.map((s) => (
-                <span key={s}>{STAGE_LABELS[s]}</span>
-              ))}
-            </div>
-            {tracks.length === 0 ? (
-              <p className="px-6 py-4 text-sm text-muted">
-                No roles or activity yet. Stages stay Not started until real
-                reading, map work, cards, answers, rounds or judge cards show
-                up. Progress is only against your own past.
-              </p>
-            ) : (
-              tracks.map(({ case: c, stages, role, tag, readiness, statusByStage }) => {
-                const byId = new Map(stages.map((s) => [s.stage, s]));
-                const ordered = STAGE_ORDER.map(
-                  (id) =>
-                    byId.get(id) ??
-                    ({
-                      id: `${c.id}-${id}`,
-                      person_id: "",
-                      case_id: c.id,
-                      stage: id,
-                      required: false,
-                      due: null,
-                      done_at: null,
-                      created_at: "",
-                      created_by: null,
-                    } as RoadmapStage),
-                );
-                const kinds = ordered.map((s) =>
-                  stationKind(s, today, statusByStage?.[s.stage]?.notStarted),
-                );
-                const doneCount = kinds.filter((k) => k === "d").length;
-                const fill = doneCount / 7;
-                const teamPct = view?.teamReadinessByCase?.find(
-                  (t) => t.caseId === c.id,
-                )?.pct;
-                return (
-                  <div
-                    key={c.id}
-                    className="grid grid-cols-[250px_1fr] items-center border-t border-[#ECEEF1] px-6 py-4"
-                  >
-                    <div className="flex flex-col gap-1">
-                      <span className="flex items-baseline gap-2.5">
-                        <span className="font-display text-[28px] font-extrabold text-cardinal">
-                          {c.number}
-                        </span>
-                        <span className="text-sm font-semibold">{c.title}</span>
-                      </span>
-                      <span className="text-[13px] text-muted">
-                        {role ?? "No role yet"}
-                        {`, ${readiness}% you`}
-                        {teamPct != null ? `, ${teamPct}% team` : ""}
-                      </span>
-                      {tag ? (
-                        <span className="text-xs font-semibold text-[#8A6500]">
-                          {tag}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="relative">
-                      <div className="absolute left-[7.14%] right-[7.14%] top-[13px] h-1 rounded-sm bg-[#E3E5E9]" />
-                      <div
-                        className="absolute left-[7.14%] top-[13px] h-1 rounded-sm"
-                        style={{
-                          background: TEAM3,
-                          width: `calc((100% - 14.28%) * ${fill})`,
-                        }}
-                      />
-                      <div className="grid grid-cols-7">
-                        {ordered.map((s, i) => {
-                          const kind = kinds[i]!;
-                          const status = statusByStage?.[s.stage];
-                          return (
-                            <div
-                              key={s.stage}
-                              className="relative z-[1] flex flex-col items-center gap-2"
-                              title={status?.detail ?? STAGE_LABELS[s.stage]}
-                            >
-                              <span
-                                style={dotStyle(kind, TEAM3)}
-                                aria-label={
-                                  kind === "d"
-                                    ? "done"
-                                    : kind === "ns"
-                                      ? "not started"
-                                      : kind === "p"
-                                        ? "in progress"
-                                        : kind === "o"
-                                          ? "overdue"
-                                          : kind === "n"
-                                            ? "not needed"
-                                            : "to do"
-                                }
-                              />
-                              <span
-                                className="font-mono text-xs font-semibold"
-                                style={{
-                                  color:
-                                    kind === "o"
-                                      ? "#C62828"
-                                      : kind === "n" || kind === "ns"
-                                        ? "#9AA0AA"
-                                        : "#3B404A",
-                                  fontWeight: kind === "n" ? 500 : 600,
-                                }}
-                              >
-                                {kind === "n"
-                                  ? "not needed"
-                                  : kind === "ns"
-                                    ? "Not started"
-                                    : formatDue(s.due)}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-          <div className="flex flex-wrap gap-[18px] border-t border-[#ECEEF1] px-6 py-3.5 text-xs text-muted">
-            <span className="flex items-center gap-1.5">
-              <span
-                className="inline-block h-3.5 w-3.5 rounded-full"
-                style={{ background: TEAM3 }}
-              />
-              Done
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-3.5 w-3.5 rounded-full border-2 border-[#C9CCD3] bg-[#F7F8FA] box-border" />
-              Not started
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-3.5 w-3.5 rounded-full border-[4px] border-[#C2410C] bg-white box-border" />
-              In progress
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-3.5 w-3.5 rounded-full border-2 border-[#9AA0AA] bg-white box-border" />
-              To do
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-3.5 w-3.5 rounded-full border-[3px] border-[#C62828] bg-white box-border" />
-              Overdue
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-3.5 w-3.5 rounded-full border-2 border-dashed border-[#C9CCD3] box-border" />
-              Not needed for your role
-            </span>
-          </div>
+          <p className="mt-1 text-sm text-muted">
+            Due {formatDue(nextAction.row.due)}
+            {activeCase
+              ? ` · Case ${activeCase.case.number}: ${activeCase.case.title}`
+              : ""}
+          </p>
+          {STAGE_HREF[nextAction.stage] ? (
+            <Link
+              href={
+                nextAction.stage === "map" && activeCase
+                  ? `/case-brain/${activeCase.case.id}`
+                  : STAGE_HREF[nextAction.stage]!
+              }
+              className="mt-3 inline-flex h-10 items-center rounded-xl bg-cardinal px-4 text-sm font-semibold text-white"
+            >
+              Go do it
+            </Link>
+          ) : null}
         </section>
+      ) : (
+        <section className="rounded-[20px] bg-white p-4 text-sm text-muted">
+          Required stages for this case are done. Keep drilling or help a
+          teammate.
+        </section>
+      )}
 
-        <aside className="flex min-w-0 flex-[1_1_300px] flex-col gap-3 rounded-[20px] bg-white p-5">
-          <h2 className="font-display m-0 text-[22px] font-extrabold">
-            Do next
-          </h2>
-          <div className="flex flex-col gap-2.5 text-sm leading-snug">
-            {(view?.doNext ?? []).map((d) => (
-              <div key={d} className="rounded-xl bg-[#F7F8FA] p-3">
-                <strong>{d}</strong>
-              </div>
-            ))}
-            {!view?.doNext?.length ? (
-              <p className="text-muted">
-                Nothing queued. When a stage is overdue, feedback is weak, or
-                someone assigns you work, it shows up here.
-              </p>
-            ) : null}
+      {/* Case picker */}
+      <label className="text-xs font-semibold text-muted">
+        Case
+        <select
+          className="mt-1 block h-10 w-full max-w-md rounded-xl border border-mist bg-white px-3 text-sm text-ink"
+          value={activeCase?.case.id ?? ""}
+          onChange={(e) => setCaseId(e.target.value)}
+        >
+          {view.cases.map((c) => (
+            <option key={c.case.id} value={c.case.id}>
+              {c.case.number}. {c.case.title}
+              {c.role ? ` (${c.role})` : ""}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {/* Stage rows */}
+      {activeCase ? (
+        <section className="overflow-hidden rounded-[20px] bg-white">
+          <div className="border-b border-[#ECEEF1] px-4 py-3">
+            <h2 className="font-display m-0 text-lg font-extrabold">
+              Case {activeCase.case.number}: {activeCase.case.title}
+            </h2>
+            <p className="m-0 text-sm text-muted">
+              {activeCase.readiness}% ready
+              {activeCase.role ? ` · ${activeCase.role}` : ""}
+            </p>
           </div>
+          <ul className="m-0 list-none divide-y divide-[#ECEEF1] p-0">
+            {STAGE_ORDER.map((id) => {
+              const s = activeCase.stages.find((x) => x.stage === id);
+              if (!s) return null;
+              const detail = activeCase.statusByStage?.[id];
+              const st = statusLabel(s, today, detail);
+              const toneClass =
+                st.tone === "done"
+                  ? "text-[#0F7B6C]"
+                  : st.tone === "overdue"
+                    ? "text-[#C62828]"
+                    : st.tone === "today"
+                      ? "text-[#C2410C]"
+                      : "text-muted";
+              return (
+                <li
+                  key={id}
+                  className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="m-0 text-sm font-semibold text-ink">
+                      {STAGE_LABELS[id]}
+                    </p>
+                    {detail?.detail ? (
+                      <p className="m-0 mt-0.5 text-[12px] text-muted">
+                        {detail.detail}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-sm">
+                    <span className="text-muted">Due {formatDue(s.due)}</span>
+                    <span className={`font-semibold ${toneClass}`}>
+                      {st.text}
+                    </span>
+                    {!s.done_at && s.required && STAGE_HREF[id] ? (
+                      <Link
+                        href={
+                          id === "map"
+                            ? `/case-brain/${activeCase.case.id}`
+                            : STAGE_HREF[id]!
+                        }
+                        className="font-semibold text-cardinal underline"
+                      >
+                        Open
+                      </Link>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
 
-          <h2 className="font-display m-0 mt-4 text-[22px] font-extrabold">
-            Assigned to you
-          </h2>
-          <div className="flex flex-col gap-2.5 text-sm leading-snug">
-            {(view?.assignments ?? []).map((a) => (
-              <div
-                key={a.title}
-                className="rounded-xl p-3"
-                style={{
-                  background:
-                    a.accent === "overdue"
-                      ? "#FDECEC"
-                      : a.accent === "redo"
-                        ? "#FFF7DB"
-                        : "#F7F8FA",
-                }}
+      {/* Do next from server */}
+      {view.doNext.length > 0 ? (
+        <section className="rounded-[20px] bg-white p-4">
+          <h2 className="font-display m-0 text-lg font-extrabold">Also coming up</h2>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted">
+            {view.doNext.slice(0, 5).map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {/* Team deadline edit */}
+      {view.teamDeadlinesEditable ? (
+        <section className="rounded-[20px] bg-white p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display m-0 text-lg font-extrabold">
+              Team due dates
+            </h2>
+            <button
+              type="button"
+              className="text-sm font-semibold text-cardinal underline"
+              onClick={() => setEditing((e) => !e)}
+            >
+              {editing ? "Cancel" : "Edit"}
+            </button>
+          </div>
+          {editing ? (
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {STAGE_ORDER.map((id) => (
+                <label key={id} className="text-xs font-semibold text-muted">
+                  {STAGE_LABELS[id]}
+                  <input
+                    type="date"
+                    className="mt-1 block h-10 w-full rounded-xl border border-mist px-3 text-sm text-ink"
+                    value={draftDues[id] ?? ""}
+                    onChange={(e) =>
+                      setDraftDues((d) => ({ ...d, [id]: e.target.value }))
+                    }
+                  />
+                </label>
+              ))}
+              <button
+                type="button"
+                className="mt-2 h-10 rounded-xl bg-ink px-4 text-sm font-semibold text-white sm:col-span-2 sm:w-fit"
+                onClick={() => void saveDeadlines()}
               >
-                <strong>{a.title}</strong>
-                <br />
-                <span className="text-muted">
-                  {a.by}
-                  {a.due ? `, due ${formatDue(a.due)}` : ""}
-                </span>
-              </div>
-            ))}
-            {!view?.assignments?.length ? (
-              <p className="text-muted">Nothing assigned yet.</p>
-            ) : null}
-          </div>
-        </aside>
-      </div>
-    </main>
+                Save for the team
+              </button>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+    </div>
   );
 }

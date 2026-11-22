@@ -23,17 +23,27 @@ import {
   plainRoleChange,
   planByPreference,
   planCopyCase,
+  planRandomFairSplit,
   planRoundRobin,
   planSamePairs,
+  REGIONALS_2026_LABEL,
+  REGIONALS_2026_SEASON,
   roleChangeNotifyPersonIds,
   roleForPersonOnCase,
   type CaseRolePreference,
   type RoleChip,
   type RolesBoardView,
+  type RolesLockSnapshot,
 } from "@/lib/team/roles-board";
 import { nowIso } from "@/lib/utils";
 
 export type { CaseRolePreference, RolesBoardView };
+
+type AnyCaseRow = {
+  person_id: string;
+  team_id: string;
+  any_case_ok: boolean;
+};
 
 async function listPreferences(teamId: string): Promise<CaseRolePreference[]> {
   if (isSampleDataMode()) {
@@ -63,34 +73,47 @@ export async function savePreferences(input: {
   actorId: string;
 }): Promise<CaseRolePreference[]> {
   const stamp = nowIso();
+  // Ranking implies not "any case"
+  await setAnyCaseOk({
+    teamId: input.teamId,
+    personId: input.personId,
+    anyCaseOk: false,
+    actorId: input.actorId,
+  });
   if (isSampleDataMode()) {
     await updateStore((s) => {
       const bag = ((
         s as { case_role_preferences?: CaseRolePreference[] }
       ).case_role_preferences ??= []);
+      // Replace this person's ranks
+      const kept = bag.filter(
+        (p) =>
+          !(
+            p.person_id === input.personId && p.team_id === input.teamId
+          ),
+      );
       for (const r of input.ranks) {
-        const i = bag.findIndex(
-          (p) =>
-            p.person_id === input.personId &&
-            p.team_id === input.teamId &&
-            p.case_id === r.caseId,
-        );
-        const row: CaseRolePreference = {
-          id: i >= 0 ? bag[i]!.id : randomUUID(),
+        kept.push({
+          id: randomUUID(),
           team_id: input.teamId,
           person_id: input.personId,
           case_id: r.caseId,
           rank: r.rank,
           updated_at: stamp,
           updated_by: input.actorId,
-        };
-        if (i >= 0) bag[i] = row;
-        else bag.push(row);
+        });
       }
+      (s as { case_role_preferences?: CaseRolePreference[] }).case_role_preferences =
+        kept;
     });
   } else {
     const { getServiceSupabase } = await import("@/lib/db/supabase/client");
     const sb = getServiceSupabase();
+    await sb
+      .from("case_role_preferences")
+      .delete()
+      .eq("team_id", input.teamId)
+      .eq("person_id", input.personId);
     for (const r of input.ranks) {
       await sb.from("case_role_preferences").upsert(
         {
@@ -112,6 +135,153 @@ export async function savePreferences(input: {
     meta: { person_id: input.personId, count: input.ranks.length },
   });
   return listPreferences(input.teamId);
+}
+
+async function listAnyCase(teamId: string): Promise<AnyCaseRow[]> {
+  if (isSampleDataMode()) {
+    const store = await readStore();
+    const bag = (store as { case_role_any_case?: AnyCaseRow[] })
+      .case_role_any_case;
+    return (bag ?? []).filter((r) => r.team_id === teamId);
+  }
+  try {
+    const { getServiceSupabase } = await import("@/lib/db/supabase/client");
+    const { data, error } = await getServiceSupabase()
+      .from("case_role_any_case")
+      .select("person_id,team_id,any_case_ok")
+      .eq("team_id", teamId);
+    if (error) return [];
+    return (data as AnyCaseRow[]) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function setAnyCaseOk(input: {
+  teamId: string;
+  personId: string;
+  anyCaseOk: boolean;
+  actorId: string;
+}): Promise<void> {
+  const stamp = nowIso();
+  if (isSampleDataMode()) {
+    await updateStore((s) => {
+      const bag = ((s as { case_role_any_case?: AnyCaseRow[] })
+        .case_role_any_case ??= []);
+      const i = bag.findIndex(
+        (r) => r.person_id === input.personId && r.team_id === input.teamId,
+      );
+      const row: AnyCaseRow = {
+        person_id: input.personId,
+        team_id: input.teamId,
+        any_case_ok: input.anyCaseOk,
+      };
+      if (i >= 0) bag[i] = row;
+      else bag.push(row);
+      if (input.anyCaseOk) {
+        // Clear ranks when switching to any-case
+        const prefs = ((s as { case_role_preferences?: CaseRolePreference[] })
+          .case_role_preferences ??= []);
+        (s as { case_role_preferences?: CaseRolePreference[] }).case_role_preferences =
+          prefs.filter(
+            (p) =>
+              !(
+                p.person_id === input.personId && p.team_id === input.teamId
+              ),
+          );
+      }
+    });
+  } else {
+    const { getServiceSupabase } = await import("@/lib/db/supabase/client");
+    const sb = getServiceSupabase();
+    await sb.from("case_role_any_case").upsert(
+      {
+        team_id: input.teamId,
+        person_id: input.personId,
+        any_case_ok: input.anyCaseOk,
+        updated_at: stamp,
+        updated_by: input.actorId,
+      },
+      { onConflict: "person_id,team_id" },
+    );
+    if (input.anyCaseOk) {
+      await sb
+        .from("case_role_preferences")
+        .delete()
+        .eq("team_id", input.teamId)
+        .eq("person_id", input.personId);
+    }
+  }
+  await logActivity({
+    person_id: input.actorId,
+    action: "case_role_any_case_set",
+    target: input.teamId,
+    meta: { person_id: input.personId, any_case_ok: input.anyCaseOk },
+  });
+}
+
+async function getLock(teamId: string): Promise<RolesLockSnapshot | null> {
+  if (isSampleDataMode()) {
+    const store = await readStore();
+    const bag = (
+      store as {
+        case_role_lock_snapshots?: {
+          team_id: string;
+          season_key: string;
+          label: string;
+          locked_at: string;
+          locked_by: string | null;
+        }[];
+      }
+    ).case_role_lock_snapshots;
+    const hit = (bag ?? []).find(
+      (r) =>
+        r.team_id === teamId && r.season_key === REGIONALS_2026_SEASON,
+    );
+    if (!hit) return null;
+    return {
+      seasonKey: hit.season_key,
+      label: hit.label,
+      lockedAt: hit.locked_at,
+      lockedBy: hit.locked_by,
+    };
+  }
+  try {
+    const { getServiceSupabase } = await import("@/lib/db/supabase/client");
+    const sb = getServiceSupabase();
+    const { data: team } = await sb
+      .from("teams")
+      .select("roles_locked_season")
+      .eq("id", teamId)
+      .maybeSingle();
+    if ((team?.roles_locked_season as string | null) !== REGIONALS_2026_SEASON) {
+      return null;
+    }
+    const { data } = await sb
+      .from("case_role_lock_snapshots")
+      .select("season_key,label,locked_at,locked_by")
+      .eq("team_id", teamId)
+      .eq("season_key", REGIONALS_2026_SEASON)
+      .maybeSingle();
+    if (!data) return null;
+    return {
+      seasonKey: data.season_key as string,
+      label: (data.label as string) || REGIONALS_2026_LABEL,
+      lockedAt: data.locked_at as string,
+      lockedBy: (data.locked_by as string | null) ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function assertNotLocked(teamId: string): Promise<void> {
+  const lock = await getLock(teamId);
+  if (lock) {
+    throw new Error(
+      `Roles are locked for ${lock.label}. The season snapshot stays put.`,
+    );
+  }
 }
 
 export async function getRolesBoard(input: {
@@ -183,6 +353,13 @@ export async function getRolesBoard(input: {
   }
 
   const preferences = await listPreferences(input.teamId);
+  const anyRows = await listAnyCase(input.teamId);
+  const anyCaseOk: Record<string, boolean> = {};
+  for (const p of people) anyCaseOk[p.id] = false;
+  for (const r of anyRows) {
+    if (r.any_case_ok) anyCaseOk[r.person_id] = true;
+  }
+  const lock = await getLock(input.teamId);
   return {
     teamId: input.teamId,
     teamName,
@@ -202,6 +379,8 @@ export async function getRolesBoard(input: {
       people,
     }),
     preferences,
+    anyCaseOk,
+    lock,
   };
 }
 
@@ -236,6 +415,7 @@ export async function clearCaseRole(input: {
   personId?: string;
   actorId: string;
 }): Promise<void> {
+  await assertNotLocked(input.teamId);
   if (!input.role && !input.personId) {
     throw new Error("Need role or personId to clear");
   }
@@ -348,6 +528,7 @@ export async function setBoardCell(input: {
   role: RoleChip;
   actorId: string;
 }): Promise<RolesBoardView> {
+  await assertNotLocked(input.teamId);
   if (input.role === "none") {
     await clearCaseRole({
       teamId: input.teamId,
@@ -408,6 +589,7 @@ export async function applyRolePlan(input: {
   /** When true, clear all team roles on touched cases first. */
   replaceCases?: boolean;
 }): Promise<RolesBoardView> {
+  await assertNotLocked(input.teamId);
   const touched = [...new Set(input.assignments.map((a) => a.caseId))];
   if (input.replaceCases) {
     for (const caseId of touched) {
@@ -517,6 +699,7 @@ export async function runTemplate(input: {
   samePairs?: Partial<Record<CaseRoleSlot, string | null>>;
   sourceCaseId?: string;
 }): Promise<RolesBoardView> {
+  await assertNotLocked(input.teamId);
   const roles = await listCaseRoles(input.teamId);
   let plan: { caseId: string; role: CaseRoleSlot; personId: string }[] = [];
 
@@ -557,6 +740,148 @@ export async function runTemplate(input: {
     assignments: plan,
     replaceCases: true,
   });
+}
+
+export async function runRandomFairSplit(input: {
+  teamId: string;
+  actorId: string;
+  caseIds?: string[];
+  personIds?: string[];
+}): Promise<RolesBoardView> {
+  await assertNotLocked(input.teamId);
+  const board = await getRolesBoard({ teamId: input.teamId, canEdit: true });
+  const caseIds = input.caseIds?.length
+    ? input.caseIds
+    : board.cases.filter((c) => c.active).map((c) => c.id);
+  const personIds = input.personIds?.length
+    ? input.personIds
+    : board.people.map((p) => p.id);
+  const anyCasePersonIds = personIds.filter((id) => board.anyCaseOk[id]);
+  const prefs = board.preferences
+    .filter((p) => personIds.includes(p.person_id))
+    .map((p) => ({
+      personId: p.person_id,
+      caseId: p.case_id,
+      rank: p.rank,
+    }));
+
+  if (!prefs.length && !anyCasePersonIds.length) {
+    throw new Error(
+      "Ask people to mark Any case is fine or save a case ranking first.",
+    );
+  }
+
+  const plan = planRandomFairSplit({
+    caseIds,
+    personIds,
+    prefs,
+    anyCasePersonIds,
+  });
+
+  return applyRolePlan({
+    teamId: input.teamId,
+    actorId: input.actorId,
+    assignments: plan,
+    replaceCases: true,
+  });
+}
+
+export async function lockForRegionals2026(input: {
+  teamId: string;
+  actorId: string;
+}): Promise<RolesBoardView> {
+  const existing = await getLock(input.teamId);
+  if (existing) {
+    return getRolesBoard({ teamId: input.teamId, canEdit: false });
+  }
+
+  const roles = await listCaseRoles(input.teamId);
+  const stamp = nowIso();
+  const snapshotRoles = roles
+    .filter((r) => r.team_id === input.teamId)
+    .map((r) => ({
+      case_id: r.case_id,
+      person_id: r.person_id,
+      role: r.role,
+    }));
+
+  if (isSampleDataMode()) {
+    await updateStore((s) => {
+      const bag = ((
+        s as {
+          case_role_lock_snapshots?: {
+            id: string;
+            team_id: string;
+            season_key: string;
+            label: string;
+            locked_at: string;
+            locked_by: string | null;
+            roles: unknown;
+          }[];
+        }
+      ).case_role_lock_snapshots ??= []);
+      bag.push({
+        id: randomUUID(),
+        team_id: input.teamId,
+        season_key: REGIONALS_2026_SEASON,
+        label: REGIONALS_2026_LABEL,
+        locked_at: stamp,
+        locked_by: input.actorId,
+        roles: snapshotRoles,
+      });
+      const team = s.teams.find((t) => t.id === input.teamId) as
+        | (typeof s.teams)[0] & { roles_locked_season?: string }
+        | undefined;
+      if (team) team.roles_locked_season = REGIONALS_2026_SEASON;
+    });
+  } else {
+    const { getServiceSupabase } = await import("@/lib/db/supabase/client");
+    const sb = getServiceSupabase();
+    await sb.from("case_role_lock_snapshots").upsert(
+      {
+        team_id: input.teamId,
+        season_key: REGIONALS_2026_SEASON,
+        label: REGIONALS_2026_LABEL,
+        locked_at: stamp,
+        locked_by: input.actorId,
+        roles: snapshotRoles,
+      },
+      { onConflict: "team_id,season_key" },
+    );
+    await sb
+      .from("teams")
+      .update({ roles_locked_season: REGIONALS_2026_SEASON })
+      .eq("id", input.teamId);
+  }
+
+  await logActivity({
+    person_id: input.actorId,
+    action: "case_roles_locked",
+    target: input.teamId,
+    meta: {
+      season_key: REGIONALS_2026_SEASON,
+      count: snapshotRoles.length,
+    },
+  });
+
+  try {
+    const board = await getRolesBoard({ teamId: input.teamId, canEdit: false });
+    for (const p of board.people) {
+      if (p.id === input.actorId) continue;
+      await createNotification({
+        personId: p.id,
+        kind: "case_role",
+        title: "Roles locked for Regionals 2026",
+        body: "Lead assignments for this season are saved and stay put.",
+        href: "/team/roles",
+        createdBy: input.actorId,
+      });
+    }
+  } catch {
+    // ignore notify failures
+  }
+
+  return getRolesBoard({ teamId: input.teamId, canEdit: false });
 }
 
 export type { CaseRole };

@@ -86,11 +86,21 @@ function initials(names: string[]): string {
     .join(" ");
 }
 
+type MentionNote = {
+  id: string;
+  title: string;
+  body: string | null;
+  href: string | null;
+  kind: string;
+  read_at: string | null;
+};
+
 export default function HomePage() {
   const [data, setData] = useState<MapData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [syncBusy, setSyncBusy] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [mentions, setMentions] = useState<MentionNote[]>([]);
 
   const load = useCallback(async () => {
     const r = await fetch("/api/program-map");
@@ -102,6 +112,18 @@ export default function HomePage() {
     void load()
       .then(setData)
       .catch((e: Error) => setError(e.message));
+    void fetch("/api/notifications?unread=1")
+      .then((r) => r.json())
+      .then(
+        (d: { notifications?: MentionNote[] }) => {
+          setMentions(
+            (d.notifications ?? []).filter(
+              (n) => n.kind === "chat_mention" && !n.read_at,
+            ),
+          );
+        },
+      )
+      .catch(() => undefined);
   }, [load]);
 
   const todayLabel = useMemo(() => {
@@ -227,6 +249,29 @@ export default function HomePage() {
           </div>
         ) : null}
       </div>
+
+      {mentions.length > 0 ? (
+        <section className="rounded-[20px] bg-white p-4">
+          <h2 className="font-display m-0 text-lg font-extrabold">
+            Mentions for you
+          </h2>
+          <ul className="mt-2 flex list-none flex-col gap-2 p-0">
+            {mentions.slice(0, 5).map((n) => (
+              <li key={n.id}>
+                <Link
+                  href={n.href || "/team/chat"}
+                  className="block text-sm font-semibold text-cardinal underline"
+                >
+                  {n.title}
+                </Link>
+                {n.body ? (
+                  <p className="m-0 mt-0.5 text-[13px] text-muted">{n.body}</p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <LiftCard className="rounded-2xl bg-white p-4">

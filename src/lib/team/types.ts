@@ -45,6 +45,21 @@ export interface ChatChannel {
   channel: string;
   team_id: string | null;
   created_at: string;
+  title?: string | null;
+  purpose?: string | null;
+  audience?: string | null;
+  case_id?: string | null;
+  kind?: string | null;
+}
+
+/** Enriched conversation for the team chat UI. */
+export interface ChatConversation extends ChatChannel {
+  title: string;
+  purpose: string;
+  audience: string;
+  unread: number;
+  case_id: string | null;
+  kind: string;
 }
 
 export interface ChatMessage {

@@ -1,0 +1,506 @@
+/**
+ * Wave 8 E: named team conversations, unread, mention notify.
+ */
+import "server-only";
+import { randomUUID } from "crypto";
+import { isSampleDataMode } from "@/lib/db/config";
+import { createNotification } from "@/lib/db/supabase/auth-extra";
+import { logActivity } from "@/lib/db/repository";
+import { readStore, updateStore } from "@/lib/db/sample-store";
+import {
+  caseChatChannel,
+  conversationMeta,
+  leadsChannel,
+  parseCaseChatChannel,
+  programChannel,
+  teamChannel,
+  wholeTeamChannel,
+} from "@/lib/team/channels";
+import { listCaseRoles, listChats, listMessages } from "@/lib/team/repository";
+import type { ChatChannel, ChatConversation, ChatMessage } from "@/lib/team/types";
+import { nowIso } from "@/lib/utils";
+
+export type ChatListPayload = {
+  conversations: ChatConversation[];
+  people: { id: string; name: string }[];
+  cases: { id: string; number: number; title: string }[];
+  meId: string;
+};
+
+async function ensureSampleChat(
+  channel: string,
+  teamId: string | null,
+  meta: {
+    title: string;
+    purpose: string;
+    audience: string;
+    kind: string;
+    caseId: string | null;
+  },
+): Promise<ChatChannel> {
+  let found: ChatChannel | undefined;
+  await updateStore((s) => {
+    found = s.chats.find((c) => c.channel === channel);
+    if (found) {
+      found.title = meta.title;
+      found.purpose = meta.purpose;
+      found.audience = meta.audience;
+      found.kind = meta.kind;
+      found.case_id = meta.caseId;
+      return;
+    }
+    const row: ChatChannel = {
+      id: randomUUID(),
+      channel,
+      team_id: teamId,
+      created_at: nowIso(),
+      title: meta.title,
+      purpose: meta.purpose,
+      audience: meta.audience,
+      kind: meta.kind,
+      case_id: meta.caseId,
+    };
+    s.chats.push(row);
+    found = row;
+  });
+  return found!;
+}
+
+async function ensureSupabaseChat(
+  channel: string,
+  teamId: string | null,
+  meta: {
+    title: string;
+    purpose: string;
+    audience: string;
+    kind: string;
+    caseId: string | null;
+  },
+): Promise<ChatChannel> {
+  const { getServiceSupabase } = await import("@/lib/db/supabase/client");
+  const sb = getServiceSupabase();
+  const { data: existing } = await sb
+    .from("chats")
+    .select("*")
+    .eq("channel", channel)
+    .maybeSingle();
+  if (existing) {
+    await sb
+      .from("chats")
+      .update({
+        title: meta.title,
+        purpose: meta.purpose,
+        audience: meta.audience,
+        kind: meta.kind,
+        case_id: meta.caseId,
+      })
+      .eq("id", existing.id);
+    return {
+      id: existing.id as string,
+      channel: existing.channel as string,
+      team_id: (existing.team_id as string | null) ?? null,
+      created_at: existing.created_at as string,
+      title: meta.title,
+      purpose: meta.purpose,
+      audience: meta.audience,
+      kind: meta.kind,
+      case_id: meta.caseId,
+    };
+  }
+  const { data, error } = await sb
+    .from("chats")
+    .upsert(
+      {
+        channel,
+        team_id: teamId,
+        title: meta.title,
+        purpose: meta.purpose,
+        audience: meta.audience,
+        kind: meta.kind,
+        case_id: meta.caseId,
+      },
+      { onConflict: "channel" },
+    )
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return {
+    id: data.id as string,
+    channel: data.channel as string,
+    team_id: (data.team_id as string | null) ?? null,
+    created_at: data.created_at as string,
+    title: meta.title,
+    purpose: meta.purpose,
+    audience: meta.audience,
+    kind: meta.kind,
+    case_id: meta.caseId,
+  };
+}
+
+async function ensureChat(
+  channel: string,
+  teamId: string | null,
+  meta: {
+    title: string;
+    purpose: string;
+    audience: string;
+    kind: string;
+    caseId: string | null;
+  },
+): Promise<ChatChannel> {
+  if (isSampleDataMode()) {
+    return ensureSampleChat(channel, teamId, meta);
+  }
+  return ensureSupabaseChat(channel, teamId, meta);
+}
+
+/** Ensure Whole team, per-case, and Leads only conversations exist for a team. */
+export async function ensureTeamConversations(input: {
+  teamId: string;
+  cases: { id: string; number: number; title: string }[];
+}): Promise<ChatChannel[]> {
+  const out: ChatChannel[] = [];
+
+  const wholeMeta = conversationMeta({ channel: wholeTeamChannel(input.teamId) });
+  out.push(
+    await ensureChat(wholeTeamChannel(input.teamId), input.teamId, {
+      title: wholeMeta.title,
+      purpose: wholeMeta.purpose,
+      audience: wholeMeta.audience,
+      kind: wholeMeta.kind,
+      caseId: null,
+    }),
+  );
+
+  for (const c of input.cases) {
+    const channel = caseChatChannel(input.teamId, c.id);
+    const meta = conversationMeta({
+      channel,
+      caseNumber: c.number,
+      caseTitle: c.title,
+    });
+    out.push(
+      await ensureChat(channel, input.teamId, {
+        title: meta.title,
+        purpose: meta.purpose,
+        audience: meta.audience,
+        kind: meta.kind,
+        caseId: c.id,
+      }),
+    );
+  }
+
+  const leadsMeta = conversationMeta({ channel: leadsChannel(input.teamId) });
+  out.push(
+    await ensureChat(leadsChannel(input.teamId), input.teamId, {
+      title: leadsMeta.title,
+      purpose: leadsMeta.purpose,
+      audience: leadsMeta.audience,
+      kind: leadsMeta.kind,
+      caseId: null,
+    }),
+  );
+
+  // Program channel for admins / visibility
+  const prog = conversationMeta({ channel: programChannel() });
+  out.push(
+    await ensureChat(programChannel(), null, {
+      title: prog.title,
+      purpose: prog.purpose,
+      audience: prog.audience,
+      kind: prog.kind,
+      caseId: null,
+    }),
+  );
+
+  return out;
+}
+
+async function getLastRead(
+  personId: string,
+  chatId: string,
+): Promise<string | null> {
+  if (isSampleDataMode()) {
+    const store = await readStore();
+    const bag = (
+      store as {
+        chat_reads?: {
+          person_id: string;
+          chat_id: string;
+          last_read_at: string;
+        }[];
+      }
+    ).chat_reads;
+    return (
+      (bag ?? []).find(
+        (r) => r.person_id === personId && r.chat_id === chatId,
+      )?.last_read_at ?? null
+    );
+  }
+  try {
+    const { getServiceSupabase } = await import("@/lib/db/supabase/client");
+    const { data } = await getServiceSupabase()
+      .from("chat_reads")
+      .select("last_read_at")
+      .eq("person_id", personId)
+      .eq("chat_id", chatId)
+      .maybeSingle();
+    return (data?.last_read_at as string | undefined) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function markChatRead(input: {
+  personId: string;
+  chatId: string;
+}): Promise<void> {
+  const stamp = nowIso();
+  if (isSampleDataMode()) {
+    await updateStore((s) => {
+      const bag = ((
+        s as {
+          chat_reads?: {
+            person_id: string;
+            chat_id: string;
+            last_read_at: string;
+          }[];
+        }
+      ).chat_reads ??= []);
+      const i = bag.findIndex(
+        (r) =>
+          r.person_id === input.personId && r.chat_id === input.chatId,
+      );
+      const row = {
+        person_id: input.personId,
+        chat_id: input.chatId,
+        last_read_at: stamp,
+      };
+      if (i >= 0) bag[i] = row;
+      else bag.push(row);
+    });
+    return;
+  }
+  const { getServiceSupabase } = await import("@/lib/db/supabase/client");
+  await getServiceSupabase().from("chat_reads").upsert(
+    {
+      person_id: input.personId,
+      chat_id: input.chatId,
+      last_read_at: stamp,
+    },
+    { onConflict: "person_id,chat_id" },
+  );
+}
+
+function personIsLead(
+  roles: { team_id: string; person_id: string; role: string }[],
+  teamId: string,
+  personId: string,
+): boolean {
+  return roles.some(
+    (r) =>
+      r.team_id === teamId &&
+      r.person_id === personId &&
+      (r.role === "lead_1" || r.role === "lead_2"),
+  );
+}
+
+export async function listConversationsForPerson(input: {
+  personId: string;
+  teamId: string | null;
+  isAdmin: boolean;
+}): Promise<ChatListPayload> {
+  let cases: { id: string; number: number; title: string }[] = [];
+  let people: { id: string; name: string }[] = [];
+
+  if (isSampleDataMode()) {
+    const store = await readStore();
+    cases = store.cases
+      .slice()
+      .sort((a, b) => a.number - b.number)
+      .filter((c) => c.number <= 12)
+      .map((c) => ({ id: c.id, number: c.number, title: c.title }));
+    people = store.people
+      .filter((p) =>
+        input.teamId ? p.team_id === input.teamId : true,
+      )
+      .map((p) => ({ id: p.id, name: p.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } else {
+    const { getServiceSupabase } = await import("@/lib/db/supabase/client");
+    const sb = getServiceSupabase();
+    const [{ data: caseRows }, { data: peeps }] = await Promise.all([
+      sb.from("cases").select("id,number,title").order("number"),
+      input.teamId
+        ? sb
+            .from("people")
+            .select("id,name")
+            .eq("team_id", input.teamId)
+            .order("name")
+        : sb.from("people").select("id,name").order("name"),
+    ]);
+    cases = (caseRows ?? [])
+      .filter((c) => (c.number as number) <= 12)
+      .map((c) => ({
+        id: c.id as string,
+        number: c.number as number,
+        title: c.title as string,
+      }));
+    people = (peeps ?? []).map((p) => ({
+      id: p.id as string,
+      name: p.name as string,
+    }));
+  }
+
+  if (input.teamId) {
+    await ensureTeamConversations({ teamId: input.teamId, cases });
+  }
+
+  const allChats = await listChats();
+  const roles = input.teamId ? await listCaseRoles(input.teamId) : [];
+  const isLead = input.teamId
+    ? personIsLead(roles, input.teamId, input.personId)
+    : false;
+
+  const caseById = new Map(cases.map((c) => [c.id, c]));
+
+  const visible = allChats.filter((c) => {
+    if (c.channel === programChannel()) return true;
+    if (!input.teamId) return input.isAdmin;
+    if (c.team_id && c.team_id !== input.teamId && !input.isAdmin) {
+      return false;
+    }
+    if (c.channel === leadsChannel(input.teamId) || c.kind === "leads") {
+      return input.isAdmin || isLead;
+    }
+    // Prefer named team conversations for this team
+    if (c.team_id === input.teamId) return true;
+    if (input.isAdmin) return true;
+    return false;
+  });
+
+  // Prefer whole team / case / leads over legacy duplicates; sort
+  const conversations: ChatConversation[] = [];
+  for (const c of visible) {
+    const parsed = parseCaseChatChannel(c.channel);
+    const caseRow = parsed ? caseById.get(parsed.caseId) : null;
+    const meta = conversationMeta({
+      channel: c.channel,
+      caseNumber: caseRow?.number,
+      caseTitle: caseRow?.title,
+    });
+    // Skip bare team:{other} when we have richer list for own team
+    if (
+      meta.kind === "whole_team" &&
+      input.teamId &&
+      c.channel !== teamChannel(input.teamId) &&
+      !input.isAdmin
+    ) {
+      continue;
+    }
+
+    const messages = await listMessages(c.id);
+    const lastRead = await getLastRead(input.personId, c.id);
+    const unread = messages.filter((m) => {
+      if (m.person_id === input.personId) return false;
+      if (!lastRead) return true;
+      return m.created_at > lastRead;
+    }).length;
+
+    conversations.push({
+      ...c,
+      title: c.title || meta.title,
+      purpose: c.purpose || meta.purpose,
+      audience: c.audience || meta.audience,
+      kind: c.kind || meta.kind,
+      case_id: c.case_id ?? meta.caseId,
+      unread,
+    });
+  }
+
+  // Stable order: Whole team, cases by number, Leads, program
+  const kindOrder = (k: string) => {
+    if (k === "whole_team") return 0;
+    if (k === "case") return 1;
+    if (k === "leads") return 2;
+    if (k === "program") return 3;
+    return 4;
+  };
+  conversations.sort((a, b) => {
+    const ko = kindOrder(a.kind) - kindOrder(b.kind);
+    if (ko !== 0) return ko;
+    if (a.kind === "case" && b.kind === "case") {
+      const an = caseById.get(a.case_id ?? "")?.number ?? 0;
+      const bn = caseById.get(b.case_id ?? "")?.number ?? 0;
+      return an - bn;
+    }
+    return a.title.localeCompare(b.title);
+  });
+
+  return {
+    conversations,
+    people,
+    cases,
+    meId: input.personId,
+  };
+}
+
+export async function notifyMentions(input: {
+  message: ChatMessage;
+  actorId: string;
+  actorName: string;
+  chatTitle: string;
+}): Promise<string[]> {
+  const notified: string[] = [];
+  for (const pid of input.message.mention_ids) {
+    if (pid === input.actorId) continue;
+    try {
+      await createNotification({
+        personId: pid,
+        kind: "chat_mention",
+        title: `${input.actorName} mentioned you`,
+        body: `In ${input.chatTitle}: ${input.message.body.slice(0, 120)}`,
+        href: `/team/chat?chatId=${input.message.chat_id}&jump=${input.message.id}`,
+        payload: {
+          chat_id: input.message.chat_id,
+          message_id: input.message.id,
+        },
+        createdBy: input.actorId,
+      });
+      notified.push(pid);
+    } catch {
+      // continue
+    }
+  }
+  if (notified.length) {
+    // Persist who was notified on the message for display
+    const nextRefs = {
+      ...(input.message.link_refs ?? {}),
+      notified,
+    };
+    input.message.link_refs = nextRefs;
+    if (isSampleDataMode()) {
+      await updateStore((s) => {
+        const msg = s.messages.find((m) => m.id === input.message.id);
+        if (msg) msg.link_refs = nextRefs;
+      });
+    } else {
+      try {
+        const { getServiceSupabase } = await import("@/lib/db/supabase/client");
+        await getServiceSupabase()
+          .from("messages")
+          .update({ link_refs: nextRefs })
+          .eq("id", input.message.id);
+      } catch {
+        // ignore
+      }
+    }
+    await logActivity({
+      person_id: input.actorId,
+      action: "chat_mention",
+      target: input.message.chat_id,
+      meta: { message_id: input.message.id, notified },
+    });
+  }
+  return notified;
+}
