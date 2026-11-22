@@ -44,6 +44,8 @@ export const FRAMEWORK_CATALOG: FrameworkEntry[] = [
       "categorical imperatives",
       "universal law",
       "formula of humanity",
+      "humanity formula",
+      "kant's humanity formula",
     ],
     explanation:
       "Kant's test for a moral rule: act only on a maxim you could will as a law for every person. A shorter form says: treat every person as an end in themselves, never only as a means.",
