@@ -58,66 +58,79 @@ export async function GET(_req: Request, { params }: Params) {
     );
   }
   const seeAll = canSeeAllTeams(me, auth.session);
+  const lite = url.searchParams.get("lite") === "1";
 
   // Independent setup steps run together; each is a no-op once data exists.
-  await Promise.all([
-    ensureClaimMapShell({
-      teamId,
-      caseId,
-      personId: auth.session.personId,
-    }),
-    ensureOpposingPositions({
-      caseId,
-      personId: auth.session.personId,
-    }),
-    // Sample-mode only; never invents live student-attributed proposals.
-    ensureDemoProposalQueue({
-      teamId,
-      caseId,
-      personId: auth.session.personId,
-    }),
-  ]);
-  if (teamId === auth.teamId) {
-    await ensureClaimMapVersion({
-      teamId,
-      caseId,
-      personId: auth.session.personId,
-    });
-  }
-
-  const brain = await getCaseBrain(teamId, caseId);
-  await Promise.all(
-    brain.claims.map((node) =>
-      ensureChangeTheFacts({
+  // Lite (roles / one-pager chrome) skips seeding so the tab can open fast.
+  if (!lite) {
+    await Promise.all([
+      ensureClaimMapShell({
         teamId,
         caseId,
-        claimId: node.claim.id,
         personId: auth.session.personId,
       }),
-    ),
-  );
-  const refreshedRaw = await getCaseBrain(teamId, caseId);
+      ensureOpposingPositions({
+        caseId,
+        personId: auth.session.personId,
+      }),
+      // Sample-mode only; never invents live student-attributed proposals.
+      ensureDemoProposalQueue({
+        teamId,
+        caseId,
+        personId: auth.session.personId,
+      }),
+    ]);
+    if (teamId === auth.teamId) {
+      await ensureClaimMapVersion({
+        teamId,
+        caseId,
+        personId: auth.session.personId,
+      });
+    }
+  }
+
+  let refreshed = await getCaseBrain(teamId, caseId);
+  if (!lite) {
+    const missingCtf = refreshed.claims.filter(
+      (node) =>
+        !refreshed.change_the_facts.some((c) => c.claim_id === node.claim.id),
+    );
+    if (missingCtf.length > 0) {
+      await Promise.all(
+        missingCtf.map((node) =>
+          ensureChangeTheFacts({
+            teamId,
+            caseId,
+            claimId: node.claim.id,
+            personId: auth.session.personId,
+          }),
+        ),
+      );
+      refreshed = await getCaseBrain(teamId, caseId);
+    }
+  }
+
   // Members never see other teams' decisions or claim scores on this case.
-  const refreshed = seeAll
-    ? refreshedRaw
-    : {
-        ...refreshedRaw,
-        peer_decisions_by_idea: {},
-        peer_claim_scores: {},
-      };
+  if (!seeAll) {
+    refreshed = {
+      ...refreshed,
+      peer_decisions_by_idea: {},
+      peer_claim_scores: {},
+    };
+  }
 
   const [teams, cases, peopleFull, flashcards, questions, mapVersion, versions, optIns, researchRuns, libraryFiles] =
     await Promise.all([
       listTeams(),
       listCases(),
       listPeopleFull(),
-      listFlashcards({ teamId, caseId }),
-      listQuestions({ caseId }),
-      getCurrentClaimMap(teamId, caseId),
-      listClaimMapVersions(teamId, caseId),
-      listDeckOptInsForCase(caseId),
-      listResearchRuns(40),
-      listLibraryFiles(),
+      lite ? Promise.resolve([]) : listFlashcards({ teamId, caseId }),
+      lite ? Promise.resolve([]) : listQuestions({ caseId }),
+      lite ? Promise.resolve(null) : getCurrentClaimMap(teamId, caseId),
+      lite ? Promise.resolve([]) : listClaimMapVersions(teamId, caseId),
+      lite ? Promise.resolve([]) : listDeckOptInsForCase(caseId),
+      lite ? Promise.resolve([]) : listResearchRuns(12),
+      lite ? Promise.resolve([]) : listLibraryFiles(),
     ]);
   const researchForCase = researchRuns.filter((r) => r.case_id === caseId);
   const latestResearch = researchForCase[0] ?? null;
@@ -132,13 +145,13 @@ export async function GET(_req: Request, { params }: Params) {
     : [];
 
   const canEdit = teamId === auth.teamId || seeAll;
-  const teamPeople = people.filter((p) => p.team_id === teamId);
   const visibleTeams = seeAll
     ? teams
     : teams.filter((t) => t.id === teamId);
   const visiblePeople = seeAll
     ? people
     : people.filter((p) => p.team_id === teamId);
+  const teamPeople = people.filter((p) => p.team_id === teamId);
   const confirmedIds = new Set(confirmations.map((c) => c.person_id));
   const unconfirmedNames = teamPeople
     .filter((p) => !confirmedIds.has(p.id))

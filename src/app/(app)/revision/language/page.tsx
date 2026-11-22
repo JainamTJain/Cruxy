@@ -181,7 +181,7 @@ export default function LanguagePage() {
           </div>
           <div>
             <p className="text-xs uppercase text-muted">Vivid example</p>
-            <p className="text-sm">{suggestions.vivid || "Not set"}</p>
+            <p className="text-sm">{suggestions.vivid || "None yet"}</p>
             {suggestions.vivid ? (
               <Button
                 type="button"

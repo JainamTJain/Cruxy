@@ -83,7 +83,7 @@ export default function TodayPage() {
           Warm up the morning of a round. Drill Judges&apos; Q&A often. On the
           day, open your round card and the APPE timer on your phone.
         </p>
-        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 [&>*]:w-full [&>*]:whitespace-nowrap [&>*]:justify-center">
           <PreRoundCalmCta caseId={data.leadCase?.id} />
           <PreRoundWarmupCta caseId={data.leadCase?.id} />
           <OneTapJudgeDrill caseId={data.leadCase?.id} />

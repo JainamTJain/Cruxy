@@ -5,7 +5,9 @@
  * Builds on Team Brief: import Google Doc or write section by section in Crux.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ThreadInline } from "@/components/discussion/thread-inline";
 import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
+import { LinkedText } from "@/components/frameworks/linked-text";
 import { cn } from "@/lib/utils";
 
 type Hub = {
@@ -45,6 +47,7 @@ type Hub = {
     text: string;
     kind: string;
     done: boolean;
+    suggestion_id?: string | null;
     created_by_name: string | null;
     created_at_label: string | null;
     done_by_name: string | null;
@@ -273,6 +276,8 @@ export function WorkingDocument({
 
       {path === "imported" ? (
         <ImportedDoc
+          caseId={caseId}
+          teamId={teamId}
           data={data}
           busy={editBusy}
           suggestionsByAnchor={suggestionsByAnchor}
@@ -291,6 +296,8 @@ export function WorkingDocument({
 
       {path === "crux" ? (
         <CruxDoc
+          caseId={caseId}
+          teamId={teamId}
           data={data}
           busy={editBusy}
           sectionDrafts={sectionDrafts}
@@ -334,7 +341,7 @@ export function WorkingDocument({
 
       {path ? (
         <>
-          <ChecklistPanel data={data} />
+          <ChecklistPanel caseId={caseId} teamId={teamId} data={data} />
           <EvidenceLibraryPanel
             data={data}
             busy={editBusy}
@@ -443,6 +450,8 @@ function EmptyChoice({
 
 function SuggestionCard({
   s,
+  caseId,
+  teamId,
   busy,
   reason,
   onReason,
@@ -450,6 +459,8 @@ function SuggestionCard({
   onCross,
 }: {
   s: Hub["suggestions"][number];
+  caseId: string;
+  teamId: string;
   busy: boolean;
   reason: string;
   onReason: (v: string) => void;
@@ -460,9 +471,11 @@ function SuggestionCard({
     <li className="rounded-[12px] border border-mist bg-white px-3 py-2.5">
       <p className="m-0 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
         {KIND_LABEL[s.kind] ?? "Suggestion"}
-        {s.source === "evidence_library" ? " · shared" : ""}
+        {s.source === "evidence_library" ? ", shared" : ""}
       </p>
-      <p className="m-0 mt-1 text-sm leading-snug">{s.text}</p>
+      <p className="m-0 mt-1 text-sm leading-snug">
+        <LinkedText text={s.text} caseId={caseId} />
+      </p>
       {s.citation ? (
         <p className="m-0 mt-1 font-mono text-[11px] text-muted">{s.citation}</p>
       ) : null}
@@ -496,11 +509,20 @@ function SuggestionCard({
           Cross
         </button>
       </div>
+      <ThreadInline
+        caseId={caseId}
+        teamId={teamId}
+        kind="suggestion"
+        targetId={s.id}
+        title={s.text.slice(0, 80)}
+      />
     </li>
   );
 }
 
 function ImportedDoc({
+  caseId,
+  teamId,
   data,
   busy,
   suggestionsByAnchor,
@@ -509,6 +531,8 @@ function ImportedDoc({
   onTick,
   onCross,
 }: {
+  caseId: string;
+  teamId: string;
   data: Hub;
   busy: boolean;
   suggestionsByAnchor: Map<string, Hub["suggestions"]>;
@@ -546,8 +570,8 @@ function ImportedDoc({
               className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)]"
             >
               <article className="rounded-[20px] bg-white p-5">
-                <p className="m-0 whitespace-pre-wrap text-[15px] leading-relaxed">
-                  {p.text}
+                <p className="m-0 text-[15px] leading-relaxed">
+                  <LinkedText text={p.text} caseId={caseId} preWrap />
                 </p>
               </article>
               <aside className="flex flex-col gap-2">
@@ -562,6 +586,8 @@ function ImportedDoc({
                       <SuggestionCard
                         key={s.id}
                         s={s}
+                        caseId={caseId}
+                        teamId={teamId}
                         busy={busy}
                         reason={crossReasons[s.id] ?? ""}
                         onReason={(v) =>
@@ -589,6 +615,8 @@ function ImportedDoc({
               <SuggestionCard
                 key={s.id}
                 s={s}
+                caseId={caseId}
+                teamId={teamId}
                 busy={busy}
                 reason={crossReasons[s.id] ?? ""}
                 onReason={(v) =>
@@ -606,6 +634,8 @@ function ImportedDoc({
 }
 
 function CruxDoc({
+  caseId,
+  teamId,
   data,
   busy,
   sectionDrafts,
@@ -620,6 +650,8 @@ function CruxDoc({
   onTick,
   onCross,
 }: {
+  caseId: string;
+  teamId: string;
   data: Hub;
   busy: boolean;
   sectionDrafts: Record<string, string>;
@@ -736,6 +768,8 @@ function CruxDoc({
                   <SuggestionCard
                     key={s.id}
                     s={s}
+                    caseId={caseId}
+                    teamId={teamId}
                     busy={busy}
                     reason={crossReasons[s.id] ?? ""}
                     onReason={(v) =>
@@ -754,7 +788,15 @@ function CruxDoc({
   );
 }
 
-function ChecklistPanel({ data }: { data: Hub }) {
+function ChecklistPanel({
+  caseId,
+  teamId,
+  data,
+}: {
+  caseId: string;
+  teamId: string;
+  data: Hub;
+}) {
   const open = data.checklist.filter((c) => !c.done);
   const done = data.checklist.filter((c) => c.done);
   if (data.checklist.length === 0) return null;
@@ -764,7 +806,8 @@ function ChecklistPanel({ data }: { data: Hub }) {
         To-do for your doc
       </h3>
       <p className="mt-1 text-sm text-muted">
-        Ticked suggestions wait here. Crux never edits your Google Doc.
+        Ticked suggestions wait here. Reply to disagree. Crux never edits your
+        Google Doc.
       </p>
       <ul className="mt-3 m-0 list-none space-y-2 p-0">
         {open.map((c) => (
@@ -774,15 +817,29 @@ function ChecklistPanel({ data }: { data: Hub }) {
           >
             <p className="m-0 leading-snug">{c.text}</p>
             <Attr name={c.created_by_name} when={c.created_at_label} />
+            <ThreadInline
+              caseId={caseId}
+              teamId={teamId}
+              kind="suggestion"
+              targetId={c.suggestion_id || c.id}
+              title={c.text.slice(0, 80)}
+            />
           </li>
         ))}
         {done.map((c) => (
           <li
             key={c.id}
-            className="rounded-[14px] px-3.5 py-2 text-sm text-muted line-through"
+            className="rounded-[14px] px-3.5 py-2 text-sm text-muted"
           >
-            {c.text}
+            <span className="line-through">{c.text}</span>
             <Attr name={c.done_by_name} when={c.done_at_label} />
+            <ThreadInline
+              caseId={caseId}
+              teamId={teamId}
+              kind="suggestion"
+              targetId={c.suggestion_id || c.id}
+              title={c.text.slice(0, 80)}
+            />
           </li>
         ))}
       </ul>

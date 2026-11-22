@@ -288,6 +288,8 @@ export async function getWorkingDocumentHub(opts: {
       text: c.text,
       kind: c.kind,
       done: c.done,
+      // Original suggestion id when this row came from a tick (discussion stays put).
+      suggestion_id: c.proposal_id,
       created_by_name: personName(people, c.created_by),
       created_at_label: formatWhen(c.created_at),
       done_by_name: personName(people, c.done_by),
@@ -529,6 +531,8 @@ export async function tickSuggestion(opts: {
 
   const item = await addChecklistItem({
     brief_id: brief.id,
+    // Keep the suggestion id so discussion threads survive a tick.
+    proposal_id: opts.suggestionId,
     text: decided.citation
       ? `${decided.text} (${decided.citation})`
       : decided.text,

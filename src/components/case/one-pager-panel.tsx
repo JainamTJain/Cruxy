@@ -6,6 +6,7 @@ import {
   OnePagerEditableField,
   RoleNameSkeleton,
 } from "@/components/case/one-pager-editable-field";
+import { SaveShareMenu } from "@/components/case/save-share-menu";
 import {
   emptyClaim,
   ensureCounterclaim,
@@ -81,10 +82,11 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
   }, [teamId, caseId]);
 
   const loadMeta = useCallback(async () => {
+    const brainQ = embedded ? "&lite=1" : "";
     const [metaRes, brainRes, meRes] = await Promise.all([
       fetch("/api/revision/one-pagers"),
       fetch(
-        `/api/case-brain/${caseId}?teamId=${encodeURIComponent(teamId)}`,
+        `/api/case-brain/${caseId}?teamId=${encodeURIComponent(teamId)}${brainQ}`,
       ),
       fetch("/api/auth/me"),
     ]);
@@ -221,30 +223,6 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
     }
   }
 
-  async function exportDrive() {
-    if (!page) return;
-    setBusy(true);
-    try {
-      const res = await fetch("/api/revision/one-pagers", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "export", onePagerId: page.id }),
-      });
-      const data = (await res.json()) as { stub?: boolean; error?: string };
-      if (!res.ok) {
-        setStatus(data.error ?? "Could not save to Drive");
-        return;
-      }
-      setStatus(
-        data.stub
-          ? "Drive export prepared locally. Connect Drive to send the file."
-          : "Saved to the team's Drive folder.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function loadVersions() {
     const res = await fetch(
       `/api/revision/one-pagers?teamId=${encodeURIComponent(teamId)}&caseId=${encodeURIComponent(caseId)}&versions=1`,
@@ -353,24 +331,18 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
         ) : (
           <span />
         )}
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="h-10 rounded-[10px] border border-[#C9CCD3] bg-white px-3.5 text-[13px] font-semibold"
-          >
-            Export PDF
-          </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {!embedded ? (
+            <SaveShareMenu
+              caseId={caseId}
+              teamId={teamId}
+              onePagerId={page.id}
+              canSaveDrive={canEdit}
+              onDriveSaved={(msg) => setStatus(msg)}
+            />
+          ) : null}
           {canEdit ? (
             <>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void exportDrive()}
-                className="h-10 rounded-[10px] border border-[#C9CCD3] bg-white px-3.5 text-[13px] font-semibold disabled:opacity-50"
-              >
-                Save to Drive
-              </button>
               <button
                 type="button"
                 disabled={busy}
@@ -516,10 +488,12 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
             <OnePagerEditableField
               value={thesis}
               canEdit={canEdit}
+              caseId={caseId}
               multiline
               label="one-sentence answer"
               placeholder="Tap to write the answer"
               displayClassName="text-white"
+              discussion={{ caseId, teamId, fieldKey: "thesis" }}
               onSave={async (next) => {
                 const language = { ...ensureLanguage(page.body), plain: next };
                 const visuals = syncThesisVisual(page.body.visuals, next);
@@ -555,9 +529,15 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
               <OnePagerEditableField
                 value={c.text}
                 canEdit={canEdit}
+              caseId={caseId}
                 multiline
                 label={`claim ${i + 1}`}
                 displayClassName="text-[15px] font-semibold"
+                discussion={{
+                  caseId,
+                  teamId,
+                  fieldKey: `claim_${i}_text`,
+                }}
                 onSave={async (next) => {
                   const claims = page.body.claims.map((row, j) =>
                     j === i ? { ...row, text: next } : row,
@@ -571,9 +551,15 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
               <OnePagerEditableField
                 value={c.logic_line}
                 canEdit={canEdit}
+              caseId={caseId}
                 multiline
                 label={`logic ${i + 1}`}
                 displayClassName="text-sm"
+                discussion={{
+                  caseId,
+                  teamId,
+                  fieldKey: `claim_${i}_logic`,
+                }}
                 onSave={async (next) => {
                   const claims = page.body.claims.map((row, j) =>
                     j === i ? { ...row, logic_line: next } : row,
@@ -613,6 +599,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                     <OnePagerEditableField
                       value={s}
                       canEdit={canEdit}
+              caseId={caseId}
                       multiline
                       label={`support ${i + 1}-${j + 1}`}
                       displayClassName="text-[13px] leading-snug"
@@ -671,6 +658,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
           <OnePagerEditableField
             value={page.body.counterclaim?.text ?? ""}
             canEdit={canEdit}
+              caseId={caseId}
             multiline
             label="counterclaim"
             displayClassName="text-[15px] font-semibold"
@@ -697,6 +685,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                   <OnePagerEditableField
                     value={page.body.counterclaim?.[key] ?? ""}
                     canEdit={canEdit}
+              caseId={caseId}
                     multiline
                     label={label}
                     placeholder="Tap to add"
@@ -722,6 +711,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
             <OnePagerEditableField
               value={values?.left ?? ""}
               canEdit={canEdit}
+              caseId={caseId}
               label="left value"
               placeholder="Left value"
               displayClassName="text-sm font-semibold"
@@ -735,6 +725,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
             <OnePagerEditableField
               value={values?.right ?? ""}
               canEdit={canEdit}
+              caseId={caseId}
               label="right value"
               placeholder="Right value"
               displayClassName="text-sm font-semibold"
@@ -750,6 +741,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
             <OnePagerEditableField
               value={values?.note ?? ""}
               canEdit={canEdit}
+              caseId={caseId}
               multiline
               label="values note"
               placeholder="Where we land"
@@ -772,6 +764,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
             <OnePagerEditableField
               value={page.body.language?.plain ?? ""}
               canEdit={canEdit}
+              caseId={caseId}
               multiline
               label="plain language"
               placeholder="Plain line"
@@ -784,6 +777,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
             <OnePagerEditableField
               value={page.body.language?.vivid ?? ""}
               canEdit={canEdit}
+              caseId={caseId}
               multiline
               label="vivid line"
               placeholder="Vivid example"
@@ -796,6 +790,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
             <OnePagerEditableField
               value={(page.body.language?.analogies ?? []).join("\n")}
               canEdit={canEdit}
+              caseId={caseId}
               multiline
               label="analogies"
               placeholder="One analogy per line"
@@ -815,6 +810,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
             <OnePagerEditableField
               value={(page.body.language?.avoid ?? []).join(", ")}
               canEdit={canEdit}
+              caseId={caseId}
               label="words to avoid"
               placeholder="Words to avoid, comma separated"
               displayClassName="text-sm"

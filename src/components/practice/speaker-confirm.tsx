@@ -88,7 +88,7 @@ export function SpeakerConfirmPanel({ roundId, people, isAdmin }: Props) {
                 setMappings(next);
               }}
             >
-              <option value="">Not set</option>
+              <option value="">Choose...</option>
               {people.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
