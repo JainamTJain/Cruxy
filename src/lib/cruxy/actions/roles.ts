@@ -49,12 +49,7 @@ const ROLE_WORDS: Record<string, CaseRoleSlot | "lead"> = {
   support: "supporter",
 };
 
-/** Cheap check so ordinary questions on the roles page skip the planner. */
-export function looksLikeRolesRequest(message: string): boolean {
-  return /\b(assign|give|put|set|make|shuffle|random|split|lead|role|cases?\s+\d)/i.test(
-    message,
-  );
-}
+export { looksLikeRolesRequest } from "@/lib/cruxy/actions/detect";
 
 function editDistance(a: string, b: string): number {
   const m = a.length;
