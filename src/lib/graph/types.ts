@@ -66,8 +66,6 @@ export type RecordEdgeInput = {
   team_id?: string | null;
   case_id?: string | null;
   created_by?: string | null;
-  /** Skip activity_log (bulk backfill). Default false. */
-  skipActivityLog?: boolean;
 };
 
 /** Stable idempotent key for one (from, type, to, source) edge. */

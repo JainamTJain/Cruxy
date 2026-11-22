@@ -7,8 +7,10 @@ import {
   isGraphSpineReady,
 } from "@/lib/db/supabase/graph-extra";
 import { runGraphSpineBackfill } from "@/lib/graph/backfill";
+import { GRAPH_EDGE_READERS } from "@/lib/graph/readers";
 
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
 /** Admin: graph spine counts (GET). Tech admin runs backfill (POST). */
 export async function GET() {
@@ -25,7 +27,7 @@ export async function GET() {
     isGraphSpineReady(),
     getGraphSpineStats(),
   ]);
-  return NextResponse.json({ ready, stats });
+  return NextResponse.json({ ready, stats, readers: GRAPH_EDGE_READERS });
 }
 
 export async function POST() {
@@ -39,6 +41,7 @@ export async function POST() {
   }
 
   const counts = await runGraphSpineBackfill({ personId: person.id });
+  // One summary row only (never one row per edge).
   await logActivity({
     person_id: person.id,
     action: "graph_spine_backfill",
@@ -46,5 +49,9 @@ export async function POST() {
     meta: counts as unknown as Record<string, unknown>,
   });
   const stats = await getGraphSpineStats();
-  return NextResponse.json({ counts, stats });
+  return NextResponse.json({
+    counts,
+    stats,
+    readers: GRAPH_EDGE_READERS,
+  });
 }

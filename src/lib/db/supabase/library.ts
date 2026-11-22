@@ -284,6 +284,7 @@ function passageInsertRow(p: Passage): Row {
     anchor: p.anchor,
     text: p.text,
     embedding: serializeEmbedding(p.embedding),
+    embedding_stub: Boolean(p.embedding_stub),
     ord: p.ord,
     created_at: p.created_at,
     created_by: p.created_by,
