@@ -651,7 +651,14 @@ export function VoiceEnrollment({ onDone, onCancelTextOnly, busy }: Props) {
           <p className="m-0 text-sm text-ink">
             Listen once. If it sounds like you, press Done.
           </p>
-          <audio controls src={previewUrl} className="w-full" />
+          <audio controls src={previewUrl} className="w-full">
+            Your browser cannot play this preview. The passage you read is still
+            shown above as text.
+          </audio>
+          <p className="mt-2 text-xs text-muted">
+            Transcript: the enrollment passage above is the text that matches
+            this recording.
+          </p>
         </div>
       ) : null}
 

@@ -3,7 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { AccessProvider } from "@/components/access/access-provider";
+import { AccessLiveRegions } from "@/components/access/live-region";
+import { ExplainTermListener } from "@/components/access/explain-term";
+import { SkipLink } from "@/components/access/skip-link";
+import { SpokenTranscriptHost } from "@/components/access/spoken-transcript";
+import { useFocusTrap } from "@/components/access/focus-trap";
 import { CruxWordmark } from "@/components/crux-wordmark";
 import { CruxyProvider, useCruxy } from "@/components/cruxy/cruxy-context";
 import { CruxyDrawer } from "@/components/cruxy/cruxy-drawer";
@@ -143,6 +149,12 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     setDigestPrompt(false);
   }
 
+  const closeDigest = useCallback(() => setDigestPrompt(false), []);
+  const digestTrapRef = useFocusTrap({
+    active: digestPrompt,
+    onEscape: closeDigest,
+  });
+
   async function signOut() {
     await fetch("/api/auth/sign-out", { method: "POST" });
     router.replace("/sign-in");
@@ -162,11 +174,20 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     pathname.includes("/practice/drills/");
 
   if (immersive) {
-    return <div className="min-h-dvh bg-[#0C0D11]">{children}</div>;
+    return (
+      <div className="min-h-dvh bg-[#0C0D11]">
+        <SkipLink />
+        <AccessLiveRegions />
+        <SpokenTranscriptHost />
+        <div id="main-content">{children}</div>
+      </div>
+    );
   }
 
   return (
     <div className="flex min-h-dvh bg-paper text-ink">
+      <SkipLink />
+      <AccessLiveRegions />
       <aside className="hidden w-[248px] shrink-0 flex-col gap-7 bg-ink px-4 pb-7 pt-[28px] text-white sm:flex">
         <Link href="/home" className="mx-1 inline-block px-1 py-1">
           <CruxWordmark className="text-[38px]" />
@@ -245,6 +266,12 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex flex-wrap gap-2 px-1">
             <Link
+              href="/settings"
+              className="text-[11px] text-[#9AA0AA] underline"
+            >
+              Settings
+            </Link>
+            <Link
               href="/help"
               className="text-[11px] text-[#9AA0AA] underline"
             >
@@ -284,11 +311,21 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-2">
             <SearchOpenButton className="rounded-lg px-2 py-1 text-sm font-semibold text-white/85 hover:bg-white/10" />
             <p className="text-xs text-white/70">{displayName}</p>
+            <Link
+              href="/settings"
+              className="text-xs font-semibold text-white underline"
+            >
+              Settings
+            </Link>
           </div>
         </header>
-        <main className="min-w-0 flex-1 px-4 pb-24 pt-4 sm:px-10 sm:pb-10 sm:pt-8">
+        <div
+          id="main-content"
+          tabIndex={-1}
+          className="min-w-0 flex-1 px-4 pb-24 pt-4 outline-none sm:px-10 sm:pb-10 sm:pt-8"
+        >
           {children}
-        </main>
+        </div>
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-mist bg-paper/95 px-1 py-2 backdrop-blur sm:hidden">
@@ -329,9 +366,21 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       </nav>
 
       {digestPrompt ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/40 p-4">
-          <div className="max-w-md rounded-2xl bg-white p-6 text-ink shadow-xl">
-            <h2 className="font-display text-xl font-extrabold">
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/40 p-4"
+          role="presentation"
+        >
+          <div
+            ref={digestTrapRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="digest-prompt-title"
+            className="max-w-md rounded-2xl bg-white p-6 text-ink shadow-xl"
+          >
+            <h2
+              id="digest-prompt-title"
+              className="font-display text-xl font-extrabold"
+            >
               Weekly summary email?
             </h2>
             <p className="mt-2 text-sm text-muted">
@@ -341,14 +390,14 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
-                className="rounded-xl bg-cardinal px-4 py-2 text-sm font-semibold text-white"
+                className="min-h-11 rounded-xl bg-cardinal px-4 py-2 text-sm font-semibold text-white"
                 onClick={() => void answerDigest(true)}
               >
                 Yes, send it
               </button>
               <button
                 type="button"
-                className="rounded-xl border border-mist px-4 py-2 text-sm"
+                className="min-h-11 rounded-xl border border-mist px-4 py-2 text-sm"
                 onClick={() => void answerDigest(false)}
               >
                 Not now
@@ -363,6 +412,8 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <CruxyDrawer />
       <ConfettiHost />
       <FirstVisitTour />
+      <ExplainTermListener />
+      <SpokenTranscriptHost />
       <GlobalSearchHost />
       <ReportProblemButton />
     </div>
@@ -371,8 +422,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <CruxyProvider>
-      <ShellInner>{children}</ShellInner>
-    </CruxyProvider>
+    <AccessProvider>
+      <CruxyProvider>
+        <ShellInner>{children}</ShellInner>
+      </CruxyProvider>
+    </AccessProvider>
   );
 }
