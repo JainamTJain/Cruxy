@@ -85,6 +85,8 @@ export interface SessionPayload {
   teamId: string | null;
   adminView: boolean;
   mustConsent: boolean;
+  /** Wave 8: learning profile after consent / voice enrollment. */
+  mustSetLearningProfile: boolean;
   mustChoosePasscode: boolean;
   /** Must match people.session_version or the cookie is rejected. */
   sessionVersion: number;

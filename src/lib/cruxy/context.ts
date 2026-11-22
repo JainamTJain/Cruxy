@@ -1,5 +1,4 @@
-
-import { embedCruxy } from "@/lib/cruxy/callCruxy";
+import { embedCruxy, type CruxyMessage } from "@/lib/cruxy/callCruxy";
 import { sharedSystemPrefix } from "@/lib/cruxy/prompts/shared";
 import { isSampleDataMode } from "@/lib/db/config";
 import {
@@ -10,6 +9,28 @@ import {
 import { listSimilarExamples } from "@/lib/cruxy/examples";
 import type { CruxyAgentName } from "@/lib/cruxy/prompts/shared";
 import type { CitationSource } from "@/lib/cruxy/citations";
+
+/** Short learning-profile system message for any agent with a personId. */
+export async function learningProfileSystemMessages(
+  personId?: string | null,
+): Promise<CruxyMessage[]> {
+  if (!personId) return [];
+  try {
+    const { getLearningProfile } = await import("@/lib/learning/profile");
+    const { formatLearningProfileSummary } = await import(
+      "@/lib/learning/summary"
+    );
+    const summary = formatLearningProfileSummary(
+      await getLearningProfile(personId),
+    );
+    if (!summary) return [];
+    return [
+      { role: "system", content: `--- Learning profile ---\n${summary}` },
+    ];
+  } catch {
+    return [];
+  }
+}
 
 export type ClaimMapNode = {
   id: string;
@@ -107,27 +128,12 @@ export async function packCruxyContext(input: {
     .filter(Boolean)
     .join("\n");
 
-  let learnerBlock = "";
-  if (input.personId) {
-    try {
-      const { getLearningProfile, learningProfilePromptBlock } = await import(
-        "@/lib/learning/read-profile"
-      );
-      learnerBlock = learningProfilePromptBlock(
-        await getLearningProfile(input.personId),
-      );
-    } catch {
-      /* D's profile table may not exist yet */
-    }
-  }
+  const profileMsgs = await learningProfileSystemMessages(input.personId);
+  const profileBlock = profileMsgs[0]?.content
+    ? `\n\n${profileMsgs[0].content}`
+    : "";
 
-  const prefix = [
-    rules,
-    `--- Case card ---\n${caseBlock}`,
-    learnerBlock ? `--- Learner ---\n${learnerBlock}` : null,
-  ]
-    .filter(Boolean)
-    .join("\n\n");
+  const prefix = `${rules}\n\n--- Case card ---\n${caseBlock}${profileBlock}`;
 
   const claimBlock = (input.claimNodes ?? [])
     .slice(0, 24)

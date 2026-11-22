@@ -1018,7 +1018,7 @@ export async function getEnrichedRoadmapView(input: {
     }
   }
 
-  const doNext = buildDoNext({
+  const doNextBase = buildDoNext({
     stages: allStages,
     caseTitles,
     assignments: assignments.map((a) => ({
@@ -1029,6 +1029,24 @@ export async function getEnrichedRoadmapView(input: {
     weakFeedback,
     limit: 3,
   });
+
+  // Wave 8 D: lean toward the person's weakest APPE item (personal only).
+  let doNext = doNextBase;
+  try {
+    const { weakestAppeItemForPerson } = await import(
+      "@/lib/learning/profile"
+    );
+    const weak = await weakestAppeItemForPerson(input.personId);
+    if (weak) {
+      const lean =
+        weak.source === "feedback"
+          ? `Practice ${weak.label}: recent feedback flagged it often.`
+          : `Practice ${weak.label}: your baseline self-rating is lowest there.`;
+      doNext = [lean, ...doNextBase.filter((x) => x !== lean)].slice(0, 3);
+    }
+  } catch {
+    /* profile optional */
+  }
 
   let teamReadiness: number | null = null;
   let teamReadinessByCase: { caseId: string; pct: number }[] = [];
