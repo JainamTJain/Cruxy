@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCruxy, type CruxyMood } from "@/components/cruxy/cruxy-context";
-import { HINT_FALLBACK } from "@/lib/cruxy/character";
+import { CALL_QUESTION, HINT_FALLBACK } from "@/lib/cruxy/character";
 import { cn } from "@/lib/utils";
 
 const MOOD_SRC: Record<CruxyMood, string> = {
@@ -226,14 +226,14 @@ export function FloatingCruxy() {
       else if (e.key === "ArrowDown") next.y += step;
       else if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        setDrawerOpen(true);
+        setBubble(bubble ?? CALL_QUESTION);
         return;
       } else return;
       e.preventDefault();
       setPos(next);
       savePos(next);
     },
-    [pos, setDrawerOpen],
+    [pos, bubble, setBubble],
   );
 
   if ((!awake && floatMotion !== "exit") || hideFigure || recordingOrTimed) {
@@ -276,9 +276,37 @@ export function FloatingCruxy() {
           }
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
-            {MOOD_LABEL[mood]}
-          </p>
+          <div className="mb-2 flex items-start justify-between gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+              {MOOD_LABEL[mood]}
+            </p>
+            <button
+              type="button"
+              aria-label="Expand Cruxy"
+              title="Open the full Cruxy panel"
+              className="shrink-0 rounded-md p-0.5 text-muted hover:bg-ink/5 hover:text-ink"
+              onClick={(e) => {
+                e.stopPropagation();
+                setDrawerOpen(true);
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                aria-hidden
+              >
+                <path
+                  d="M9 2h5v5M7 14H2V9M14 2 9.5 6.5M2 14l4.5-4.5"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
           <p className="text-[13px] leading-snug text-ink">{bubble}</p>
           <label className="mt-3 block">
             <span className="sr-only">Your answer</span>
@@ -293,10 +321,9 @@ export function FloatingCruxy() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && draft.trim()) {
                   e.preventDefault();
-                  setBubble(null);
-                  setDrawerOpen(true);
                   setDraft("");
                   emitCruxyEvent("feedback.answered_well");
+                  setBubble("Nice try. Tap Expand for a fuller chat with Cruxy.");
                 }
               }}
             />
@@ -335,7 +362,9 @@ export function FloatingCruxy() {
         )}
         style={{ width: size }}
         onClick={() => {
-          if (!dragging && !moved) setDrawerOpen(true);
+          if (!dragging && !moved) {
+            setBubble(bubble ? null : CALL_QUESTION);
+          }
         }}
         onKeyDown={onKeyDown}
       >
