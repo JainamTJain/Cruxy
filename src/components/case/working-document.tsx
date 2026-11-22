@@ -5,8 +5,28 @@
  * Builds on Team Brief: import Google Doc or write section by section in Crux.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  AnnotateSurface,
+  ReadingToolbar,
+  ReadingToolsProvider,
+  buildLegend,
+  renderMarkedText,
+  type ReadingMark,
+} from "@/components/case/reading-tools";
 import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
 import { cn } from "@/lib/utils";
+
+type WorkingAnn = {
+  id: string;
+  target_kind: "passage" | "section";
+  target_id: string;
+  kind: "highlight" | "comment";
+  range: string;
+  body: string | null;
+  person_id: string;
+  person_name: string | null;
+  created_at: string;
+};
 
 type Hub = {
   brief: {
@@ -109,6 +129,16 @@ export function WorkingDocument({
   const [socraticAnswers, setSocraticAnswers] = useState<
     Record<string, string>
   >({});
+  const [annotations, setAnnotations] = useState<WorkingAnn[]>([]);
+
+  const loadAnnotations = useCallback(async () => {
+    const res = await fetch(
+      `/api/case/working-annotations?caseId=${encodeURIComponent(caseId)}&teamId=${encodeURIComponent(teamId)}`,
+    );
+    if (!res.ok) return;
+    const json = (await res.json()) as { annotations?: WorkingAnn[] };
+    setAnnotations(json.annotations ?? []);
+  }, [caseId, teamId]);
 
   const load = useCallback(async () => {
     const res = await fetch(
@@ -124,11 +154,71 @@ export function WorkingDocument({
     const drafts: Record<string, string> = {};
     for (const s of json.sections) drafts[s.key] = s.body;
     setSectionDrafts(drafts);
-  }, [caseId, teamId]);
+    await loadAnnotations();
+  }, [caseId, teamId, loadAnnotations]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const saveWorkingAnn = useCallback(
+    async (
+      kind: "highlight" | "comment",
+      targetKind: "passage" | "section",
+      targetId: string,
+      range: string,
+      body?: string,
+    ) => {
+      const res = await fetch("/api/case/working-annotations", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          caseId,
+          teamId,
+          targetKind,
+          targetId,
+          kind,
+          range,
+          body: body ?? null,
+        }),
+      });
+      if (!res.ok) return false;
+      await loadAnnotations();
+      return true;
+    },
+    [caseId, teamId, loadAnnotations],
+  );
+
+  const marksFor = useCallback(
+    (targetKind: "passage" | "section", targetId: string): ReadingMark[] =>
+      annotations
+        .filter(
+          (a) => a.target_kind === targetKind && a.target_id === targetId,
+        )
+        .map((a) => ({
+          id: a.id,
+          needle: a.range,
+          kind: a.kind,
+          personKey: a.person_id,
+          personName: a.person_name,
+          createdAt: a.created_at,
+        })),
+    [annotations],
+  );
+
+  const allMarks: ReadingMark[] = useMemo(
+    () =>
+      annotations.map((a) => ({
+        id: a.id,
+        needle: a.range,
+        kind: a.kind,
+        personKey: a.person_id,
+        personName: a.person_name,
+        createdAt: a.created_at,
+      })),
+    [annotations],
+  );
+  const legend = useMemo(() => buildLegend(allMarks), [allMarks]);
 
   async function post(body: Record<string, unknown>) {
     setBusy(true);
@@ -176,129 +266,151 @@ export function WorkingDocument({
   const editBusy = busy || !canEdit;
 
   return (
-    <div className="flex flex-col gap-4">
-      {error ? (
-        <p className="rounded-xl border border-cardinal/30 bg-cardinal/5 px-3 py-2 text-sm text-cardinal">
-          {error}
-        </p>
-      ) : null}
+    <ReadingToolsProvider caseId={caseId} teamId={teamId}>
+      <div className="flex flex-col gap-4">
+        {error ? (
+          <p className="rounded-xl border border-cardinal/30 bg-cardinal/5 px-3 py-2 text-sm text-cardinal">
+            {error}
+          </p>
+        ) : null}
 
-      {!canEdit ? (
-        <p className="m-0 rounded-xl bg-[#F7F8FA] px-3.5 py-2 text-sm text-muted">
-          Viewing another team&apos;s document. Tick and edits stay on your own
-          team.
-        </p>
-      ) : null}
+        {!canEdit ? (
+          <p className="m-0 rounded-xl bg-[#F7F8FA] px-3.5 py-2 text-sm text-muted">
+            Viewing another team&apos;s document. Tick and edits stay on your own
+            team.
+          </p>
+        ) : null}
 
-      {!path ? (
-        <EmptyChoice
-          busy={editBusy}
-          driveUrl={driveUrl}
-          setDriveUrl={setDriveUrl}
-          onImport={() =>
-            void post({ action: "import_doc", driveUrl: driveUrl.trim() })
-          }
-          onStart={() => void post({ action: "start_crux" })}
-        />
-      ) : null}
+        {path ? <ReadingToolbar legend={legend} /> : null}
 
-      {path === "imported" ? (
-        <ImportedDoc
-          data={data}
-          busy={editBusy}
-          suggestionsByAnchor={suggestionsByAnchor}
-          crossReasons={crossReasons}
-          setCrossReasons={setCrossReasons}
-          onTick={(id) => void post({ action: "tick_suggestion", suggestionId: id })}
-          onCross={(id) =>
-            void post({
-              action: "cross_suggestion",
-              suggestionId: id,
-              reason: crossReasons[id] || null,
-            })
-          }
-        />
-      ) : null}
+        {!path ? (
+          <EmptyChoice
+            busy={editBusy}
+            driveUrl={driveUrl}
+            setDriveUrl={setDriveUrl}
+            onImport={() =>
+              void post({ action: "import_doc", driveUrl: driveUrl.trim() })
+            }
+            onStart={() => void post({ action: "start_crux" })}
+          />
+        ) : null}
 
-      {path === "crux" ? (
-        <CruxDoc
-          data={data}
-          busy={editBusy}
-          sectionDrafts={sectionDrafts}
-          setSectionDrafts={setSectionDrafts}
-          socraticAnswers={socraticAnswers}
-          setSocraticAnswers={setSocraticAnswers}
-          crossReasons={crossReasons}
-          setCrossReasons={setCrossReasons}
-          onSave={(key) =>
-            void post({
-              action: "save_section",
-              sectionKey: key,
-              body: sectionDrafts[key] ?? "",
-            })
-          }
-          onAsk={(key) =>
-            void post({ action: "ask_socratic", sectionKey: key })
-          }
-          onAnswer={(key, socraticId) =>
-            void post({
-              action: "answer_socratic",
-              sectionKey: key,
-              socraticId,
-              answer: socraticAnswers[key] ?? "",
-            }).then((ok) => {
-              if (ok) {
-                setSocraticAnswers((m) => ({ ...m, [key]: "" }));
-              }
-            })
-          }
-          onTick={(id) => void post({ action: "tick_suggestion", suggestionId: id })}
-          onCross={(id) =>
-            void post({
-              action: "cross_suggestion",
-              suggestionId: id,
-              reason: crossReasons[id] || null,
-            })
-          }
-        />
-      ) : null}
-
-      {path ? (
-        <>
-          <ChecklistPanel data={data} />
-          <EvidenceLibraryPanel
+        {path === "imported" ? (
+          <ImportedDoc
             data={data}
             busy={editBusy}
-            factText={factText}
-            setFactText={setFactText}
-            factCite={factCite}
-            setFactCite={setFactCite}
+            suggestionsByAnchor={suggestionsByAnchor}
             crossReasons={crossReasons}
             setCrossReasons={setCrossReasons}
-            onSuggest={() =>
-              void post({
-                action: "suggest_fact",
-                text: factText,
-                citation: factCite,
-              }).then((ok) => {
-                if (ok) {
-                  setFactText("");
-                  setFactCite("");
-                }
-              })
+            marksFor={marksFor}
+            onHighlight={(text, passageId) =>
+              saveWorkingAnn("highlight", "passage", passageId, text)
             }
-            onDecide={(truthItemId, decision) =>
+            onComment={(text, passageId, body) =>
+              saveWorkingAnn("comment", "passage", passageId, text, body)
+            }
+            onTick={(id) =>
+              void post({ action: "tick_suggestion", suggestionId: id })
+            }
+            onCross={(id) =>
               void post({
-                action: "decide_library",
-                truthItemId,
-                decision,
-                reason: crossReasons[truthItemId] || null,
+                action: "cross_suggestion",
+                suggestionId: id,
+                reason: crossReasons[id] || null,
               })
             }
           />
-        </>
-      ) : null}
-    </div>
+        ) : null}
+
+        {path === "crux" ? (
+          <CruxDoc
+            data={data}
+            busy={editBusy}
+            sectionDrafts={sectionDrafts}
+            setSectionDrafts={setSectionDrafts}
+            socraticAnswers={socraticAnswers}
+            setSocraticAnswers={setSocraticAnswers}
+            crossReasons={crossReasons}
+            setCrossReasons={setCrossReasons}
+            marksFor={marksFor}
+            onHighlight={(text, sectionKey) =>
+              saveWorkingAnn("highlight", "section", sectionKey, text)
+            }
+            onComment={(text, sectionKey, body) =>
+              saveWorkingAnn("comment", "section", sectionKey, text, body)
+            }
+            onSave={(key) =>
+              void post({
+                action: "save_section",
+                sectionKey: key,
+                body: sectionDrafts[key] ?? "",
+              })
+            }
+            onAsk={(key) =>
+              void post({ action: "ask_socratic", sectionKey: key })
+            }
+            onAnswer={(key, socraticId) =>
+              void post({
+                action: "answer_socratic",
+                sectionKey: key,
+                socraticId,
+                answer: socraticAnswers[key] ?? "",
+              }).then((ok) => {
+                if (ok) {
+                  setSocraticAnswers((m) => ({ ...m, [key]: "" }));
+                }
+              })
+            }
+            onTick={(id) =>
+              void post({ action: "tick_suggestion", suggestionId: id })
+            }
+            onCross={(id) =>
+              void post({
+                action: "cross_suggestion",
+                suggestionId: id,
+                reason: crossReasons[id] || null,
+              })
+            }
+          />
+        ) : null}
+
+        {path ? (
+          <>
+            <ChecklistPanel data={data} />
+            <EvidenceLibraryPanel
+              data={data}
+              busy={editBusy}
+              factText={factText}
+              setFactText={setFactText}
+              factCite={factCite}
+              setFactCite={setFactCite}
+              crossReasons={crossReasons}
+              setCrossReasons={setCrossReasons}
+              onSuggest={() =>
+                void post({
+                  action: "suggest_fact",
+                  text: factText,
+                  citation: factCite,
+                }).then((ok) => {
+                  if (ok) {
+                    setFactText("");
+                    setFactCite("");
+                  }
+                })
+              }
+              onDecide={(truthItemId, decision) =>
+                void post({
+                  action: "decide_library",
+                  truthItemId,
+                  decision,
+                  reason: crossReasons[truthItemId] || null,
+                })
+              }
+            />
+          </>
+        ) : null}
+      </div>
+    </ReadingToolsProvider>
   );
 }
 
@@ -437,6 +549,9 @@ function ImportedDoc({
   suggestionsByAnchor,
   crossReasons,
   setCrossReasons,
+  marksFor,
+  onHighlight,
+  onComment,
   onTick,
   onCross,
 }: {
@@ -445,6 +560,13 @@ function ImportedDoc({
   suggestionsByAnchor: Map<string, Hub["suggestions"]>;
   crossReasons: Record<string, string>;
   setCrossReasons: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  marksFor: (kind: "passage" | "section", id: string) => ReadingMark[];
+  onHighlight: (text: string, passageId: string) => Promise<boolean>;
+  onComment: (
+    text: string,
+    passageId: string,
+    body: string,
+  ) => Promise<boolean>;
   onTick: (id: string) => void;
   onCross: (id: string) => void;
 }) {
@@ -471,15 +593,32 @@ function ImportedDoc({
       ) : (
         data.passages.map((p) => {
           const beside = suggestionsByAnchor.get(p.anchor) ?? [];
+          const marks = marksFor("passage", p.id);
           return (
             <div
               key={p.id}
               className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)]"
             >
               <article className="rounded-[20px] bg-white p-5">
-                <p className="m-0 whitespace-pre-wrap text-[15px] leading-relaxed">
-                  {p.text}
-                </p>
+                <AnnotateSurface
+                  resolvePassageId={(el) =>
+                    (el.closest("[data-passage-id]") as HTMLElement | null)
+                      ?.dataset.passageId ?? null
+                  }
+                  onHighlight={onHighlight}
+                  onComment={onComment}
+                >
+                  <p
+                    className="m-0 whitespace-pre-wrap text-[15px] leading-relaxed"
+                    data-passage-id={p.id}
+                    style={{
+                      fontFamily:
+                        "var(--font-source-serif), Georgia, serif",
+                    }}
+                  >
+                    {renderMarkedText(p.text, marks)}
+                  </p>
+                </AnnotateSurface>
               </article>
               <aside className="flex flex-col gap-2">
                 <p className="m-0 text-[11px] font-bold uppercase tracking-[0.1em] text-muted">
@@ -545,6 +684,9 @@ function CruxDoc({
   setSocraticAnswers,
   crossReasons,
   setCrossReasons,
+  marksFor,
+  onHighlight,
+  onComment,
   onSave,
   onAsk,
   onAnswer,
@@ -561,6 +703,13 @@ function CruxDoc({
   >;
   crossReasons: Record<string, string>;
   setCrossReasons: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  marksFor: (kind: "passage" | "section", id: string) => ReadingMark[];
+  onHighlight: (text: string, sectionKey: string) => Promise<boolean>;
+  onComment: (
+    text: string,
+    sectionKey: string,
+    body: string,
+  ) => Promise<boolean>;
   onSave: (key: string) => void;
   onAsk: (key: string) => void;
   onAnswer: (key: string, socraticId: string) => void;
@@ -575,14 +724,17 @@ function CruxDoc({
         </h2>
         <p className="mt-1 text-sm text-muted">
           Six sections. In an empty one, Cruxy asks one question at a time.
+          Highlight and comment on the reading view above each editor.
         </p>
       </section>
 
       {data.sections.map((sec) => {
-        const empty = !(sectionDrafts[sec.key] ?? "").trim();
+        const draft = sectionDrafts[sec.key] ?? "";
+        const empty = !draft.trim();
         const sectionSuggestions = data.suggestions.filter(
           (s) => s.section_key === sec.key,
         );
+        const marks = marksFor("section", sec.key);
         return (
           <section key={sec.key} className="rounded-[20px] bg-white p-5">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -635,13 +787,35 @@ function CruxDoc({
               </button>
             ) : null}
 
+            {!empty ? (
+              <AnnotateSurface
+                className="mt-3"
+                resolvePassageId={(el) =>
+                  (el.closest("[data-passage-id]") as HTMLElement | null)
+                    ?.dataset.passageId ?? null
+                }
+                onHighlight={onHighlight}
+                onComment={onComment}
+              >
+                <div
+                  className="rounded-[10px] bg-[#F7F8FA] px-3 py-2.5 text-sm leading-relaxed whitespace-pre-wrap"
+                  data-passage-id={sec.key}
+                  style={{
+                    fontFamily: "var(--font-source-serif), Georgia, serif",
+                  }}
+                >
+                  {renderMarkedText(draft, marks)}
+                </div>
+              </AnnotateSurface>
+            ) : null}
+
             <textarea
               rows={empty ? 3 : 5}
               className={cn(
                 "mt-3 w-full rounded-[10px] border border-mist px-3 py-2 text-sm",
                 empty && sec.socratic ? "opacity-70" : "",
               )}
-              value={sectionDrafts[sec.key] ?? ""}
+              value={draft}
               disabled={busy}
               onChange={(e) =>
                 setSectionDrafts((m) => ({ ...m, [sec.key]: e.target.value }))
