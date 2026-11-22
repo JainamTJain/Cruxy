@@ -50,17 +50,38 @@ export type WorkingSocraticRow = {
   answered_by: string | null;
 };
 
+export type WorkingSuggestionKind =
+  | "evidence"
+  | "gap"
+  | "counter"
+  | "sharper"
+  | "question"
+  | "missing_perspective"
+  | "missing_stakeholder"
+  | "unanswered_counter"
+  | "logical_fallacy"
+  | "disconnected_claim"
+  | "loose_end"
+  | "evidence_gap"
+  | "sharper_wording";
+
+export type WorkingSuggestionSource =
+  | "cruxy"
+  | "evidence_library"
+  | "member"
+  | "anonymous_travel";
+
 export type WorkingSuggestionRow = {
   id: string;
   case_id: string;
   team_id: string;
   brief_id: string | null;
-  kind: "evidence" | "gap" | "counter" | "sharper" | "question";
+  kind: WorkingSuggestionKind;
   text: string;
   citation: string | null;
   paragraph_anchor: string | null;
   section_key: WorkingSectionKey | null;
-  source: "cruxy" | "evidence_library" | "member";
+  source: WorkingSuggestionSource;
   truth_item_id: string | null;
   status: "pending" | "ticked" | "crossed";
   reject_reason: string | null;
@@ -68,6 +89,14 @@ export type WorkingSuggestionRow = {
   created_by: string | null;
   decided_at: string | null;
   decided_by: string | null;
+  /** Critique engine structured fields (00073). */
+  weak_spot?: string | null;
+  why_weak?: string | null;
+  stronger_version?: string | null;
+  question_back?: string | null;
+  fallacy_name?: string | null;
+  truth_source_ref?: string | null;
+  cannot_cite?: boolean;
 };
 
 export type EvidenceTeamDecisionRow = {
@@ -85,6 +114,14 @@ const sampleSections: WorkingSectionRow[] = [];
 const sampleSocratic: WorkingSocraticRow[] = [];
 const sampleSuggestions: WorkingSuggestionRow[] = [];
 const sampleEvidenceDecisions: EvidenceTeamDecisionRow[] = [];
+
+/** Clear in-memory working-doc rows between sample-mode tests. */
+export function __clearSampleWorkingDocForTests(): void {
+  sampleSections.length = 0;
+  sampleSocratic.length = 0;
+  sampleSuggestions.length = 0;
+  sampleEvidenceDecisions.length = 0;
+}
 
 function nowIso() {
   return new Date().toISOString();
@@ -355,6 +392,13 @@ export async function insertSuggestion(
     created_by: input.created_by,
     decided_at: null,
     decided_by: null,
+    weak_spot: input.weak_spot ?? null,
+    why_weak: input.why_weak ?? null,
+    stronger_version: input.stronger_version ?? null,
+    question_back: input.question_back ?? null,
+    fallacy_name: input.fallacy_name ?? null,
+    truth_source_ref: input.truth_source_ref ?? null,
+    cannot_cite: input.cannot_cite ?? false,
   };
   if (isSampleDataMode()) {
     const dup = sampleSuggestions.find(

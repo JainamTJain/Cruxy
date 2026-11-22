@@ -176,6 +176,22 @@ export async function POST(req: Request) {
           sectionKey: body.sectionKey,
           body: body.body ?? "",
         });
+        // Debounced critique: fills the suggestion rail after edits settle.
+        try {
+          const { after } = await import("next/server");
+          const { scheduleCritiqueOnChange } = await import(
+            "@/lib/critique/run"
+          );
+          after(() => {
+            scheduleCritiqueOnChange({
+              caseId,
+              teamId,
+              personId: session.personId,
+            });
+          });
+        } catch {
+          // after() unavailable in some runtimes; nightly cron still covers.
+        }
         break;
       }
       case "ask_socratic": {

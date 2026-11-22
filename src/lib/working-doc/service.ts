@@ -510,6 +510,14 @@ export async function tickSuggestion(opts: {
     counter: "counter",
     sharper: "suggestion",
     question: "question",
+    missing_perspective: "suggestion",
+    missing_stakeholder: "suggestion",
+    unanswered_counter: "counter",
+    logical_fallacy: "suggestion",
+    disconnected_claim: "question",
+    loose_end: "question",
+    evidence_gap: "evidence",
+    sharper_wording: "suggestion",
   };
 
   const item = await addChecklistItem({
