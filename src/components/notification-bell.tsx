@@ -13,7 +13,7 @@ type Note = {
   payload?: Record<string, unknown>;
 };
 
-/** In-app reminders (F-074). Reminders still go here while Cruxy sleeps. */
+/** In-app reminders (F-074). Full list lives on /notifications. */
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -42,6 +42,15 @@ export function NotificationBell() {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ id }),
+    });
+    void load();
+  }
+
+  async function markAll() {
+    await fetch("/api/notifications", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ markAll: true }),
     });
     void load();
   }
@@ -75,9 +84,20 @@ export function NotificationBell() {
       </button>
       {open ? (
         <div className="absolute bottom-full left-0 z-50 mb-2 w-72 rounded-xl border border-mist bg-white p-3 text-ink shadow-lg">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
-            Reminders
-          </p>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+              Reminders
+            </p>
+            {unread > 0 ? (
+              <button
+                type="button"
+                className="text-[11px] text-muted underline"
+                onClick={() => void markAll()}
+              >
+                Mark all read
+              </button>
+            ) : null}
+          </div>
           {notes.length === 0 ? (
             <p className="text-sm text-muted">Nothing waiting.</p>
           ) : (
@@ -118,6 +138,13 @@ export function NotificationBell() {
               ))}
             </ul>
           )}
+          <Link
+            href="/notifications"
+            className="mt-3 block text-center text-xs font-semibold text-cardinal underline"
+            onClick={() => setOpen(false)}
+          >
+            See all notifications
+          </Link>
         </div>
       ) : null}
     </div>

@@ -6,6 +6,7 @@ import { PageIntro } from "@/components/page-intro";
 import { Button } from "@/components/ui/button";
 import {
   OneTapJudgeDrill,
+  PreRoundCalmCta,
   PreRoundWarmupCta,
 } from "@/components/product";
 import type { PracticeMode } from "@/lib/practice/types";
@@ -200,6 +201,7 @@ export default function PracticePage() {
         <p className="mr-auto text-sm text-muted">
           Most useful before a round
         </p>
+        <PreRoundCalmCta caseId={caseId || null} compact />
         <PreRoundWarmupCta caseId={caseId || null} compact />
         <OneTapJudgeDrill caseId={caseId || null} compact />
       </section>

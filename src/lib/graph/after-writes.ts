@@ -333,6 +333,17 @@ export async function afterProposalCreated(opts: {
     inspiredFromTeamId: opts.inspiredFromTeamId,
     citationIds: opts.citationIds,
   });
+  // Wave 9 J: reach people when a Team Brief suggestion lands on their case.
+  void import("@/lib/notify/brief-suggestion")
+    .then((m) =>
+      m.notifyBriefSuggestionOnCase({
+        teamId: opts.teamId,
+        caseId: opts.caseId,
+        authorId: opts.personId,
+        proposalId: opts.proposalId,
+      }),
+    )
+    .catch(() => undefined);
 }
 
 export async function afterTruthAccepted(opts: {

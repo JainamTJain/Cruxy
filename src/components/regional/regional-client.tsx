@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { PageIntro } from "@/components/page-intro";
 import { AppeTimer } from "@/components/regional/appe-timer";
 import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
+import { PreRoundCalmCta } from "@/components/product";
 import { cn } from "@/lib/utils";
 
 type Hub = {
@@ -622,6 +623,13 @@ function RoundDayPanel({
           </button>
         ))}
       </div>
+
+      <PreRoundCalmCta
+        caseId={caseId || null}
+        nextHref="/regional"
+        compact
+        className="w-full sm:w-auto"
+      />
 
       <section className="rounded-[20px] bg-white p-5">
         <h2 className="font-display m-0 text-[28px] font-extrabold leading-tight sm:text-[36px]">

@@ -8,6 +8,7 @@ import { PageIntro } from "@/components/page-intro";
 import { Button } from "@/components/ui/button";
 import { Keypad } from "@/components/keypad";
 import { LearningProfileForm } from "@/components/learning-profile-form";
+import { AlertSettings } from "@/components/notify/alert-settings";
 import { VoiceEnrollment } from "@/components/voice-enrollment";
 import { SAMPLE_MEMBER_STARTER } from "@/lib/constants";
 import { validatePersonalPasscode } from "@/lib/auth/passcode-shape";
@@ -296,6 +297,8 @@ export default function SettingsPage() {
         </label>
       ) : null}
       <Button onClick={() => void saveReminders()}>Save reminders</Button>
+
+      <AlertSettings />
 
       <div className="border-t border-ink/10 pt-4">
         <h2 className="font-display text-lg font-semibold">Learning profile</h2>

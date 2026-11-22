@@ -10,6 +10,7 @@ import { RecordingLayoutPicker } from "@/components/practice/recording-layout-pi
 import { PriorReflectionBanner } from "@/components/practice/prior-reflection-banner";
 import { ScorePredictionForm } from "@/components/practice/score-prediction-form";
 import { TextOnlyBanner } from "@/components/practice/text-only-banner";
+import { PreRoundCalmCta } from "@/components/product";
 import type { RecordingLayout } from "@/lib/practice/types";
 
 type Round = {
@@ -316,14 +317,20 @@ export default function RoundPage() {
         <div className="flex flex-wrap items-stretch gap-5">
           <section className="flex min-w-0 flex-[999] flex-col gap-[22px] rounded-[20px] border border-[#262934] bg-[#16181F] p-8">
             {round.phase === "setup" ? (
-              <>
+              <div className="flex flex-col gap-3">
+                <PreRoundCalmCta
+                  roundId={round.id}
+                  nextHref={`/practice/rounds/${round.id}`}
+                  compact
+                  className="border-[#3A3F4A] bg-[#0C0D11] text-white"
+                />
                 <PriorReflectionBanner caseId={round.case_id} />
                 <ScorePredictionForm
                   roundId={round.id}
                   personId={personId}
                   onGateChange={setPredictionsReady}
                 />
-              </>
+              </div>
             ) : null}
             <div className="flex flex-wrap items-end justify-between gap-3">
               <span className="text-xs font-bold uppercase tracking-[0.12em] text-[#8C929D]">

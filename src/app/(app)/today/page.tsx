@@ -7,6 +7,7 @@ import {
   TodayFocus,
   WinStrip,
   OneTapJudgeDrill,
+  PreRoundCalmCta,
   PreRoundWarmupCta,
 } from "@/components/product";
 import type { TodayAction } from "@/lib/product/today";
@@ -78,6 +79,7 @@ export default function TodayPage() {
           Warm up the morning of a round. Drill Judges&apos; Q&A often.
         </p>
         <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+          <PreRoundCalmCta caseId={data.leadCase?.id} />
           <PreRoundWarmupCta caseId={data.leadCase?.id} />
           <OneTapJudgeDrill caseId={data.leadCase?.id} />
         </div>
