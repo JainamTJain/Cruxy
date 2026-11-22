@@ -19,6 +19,15 @@ export const POSE_HEIGHT = 557;
 /** height / width for layout boxes that keep real proportions */
 export const POSE_ASPECT = POSE_HEIGHT / POSE_WIDTH;
 
+/** One Genie figure size everywhere (Wave 8 J). Never larger. */
+export const GENIE_FIGURE_DESKTOP = 150;
+export const GENIE_FIGURE_PHONE = 96;
+
+/** Floating / popped-out Genie width for the current viewport. */
+export function genieFigureWidth(viewportWidth: number): number {
+  return viewportWidth < 640 ? GENIE_FIGURE_PHONE : GENIE_FIGURE_DESKTOP;
+}
+
 const FILE: Record<Exclude<CruxyPose, "thinking">, string> = {
   curious: "/cruxy/cruxy-curious.png",
   neutral: "/cruxy/cruxy-neutral.png",
