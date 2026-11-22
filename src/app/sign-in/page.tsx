@@ -96,8 +96,8 @@ export default function SignInPage() {
               <Image
                 src="/cruxy/cruxy-lamp.png"
                 alt=""
-                width={160}
-                height={118}
+                width={327}
+                height={235}
                 className="absolute bottom-0 left-1/2 w-[100px] -translate-x-1/2 drop-shadow-[0_8px_16px_rgba(0,0,0,0.35)] sm:w-[120px]"
                 unoptimized
                 priority
@@ -105,8 +105,8 @@ export default function SignInPage() {
               <Image
                 src="/cruxy/cruxy-curious.png"
                 alt="Cruxy rising from the lamp"
-                width={150}
-                height={300}
+                width={273}
+                height={557}
                 className="animate-genie-rise absolute bottom-[40px] left-1/2 w-[88px] -translate-x-1/2 drop-shadow-[0_10px_18px_rgba(0,0,0,0.35)] sm:bottom-[46px] sm:w-[105px]"
                 unoptimized
                 priority

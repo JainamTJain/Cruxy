@@ -42,8 +42,8 @@ export function CruxyLamp() {
             <Image
               src="/cruxy/cruxy-curious.png"
               alt=""
-              width={48}
-              height={96}
+              width={273}
+              height={557}
               className="h-auto w-full"
               unoptimized
             />

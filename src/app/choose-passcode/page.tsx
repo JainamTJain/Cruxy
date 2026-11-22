@@ -114,9 +114,9 @@ export default function ChoosePasscodePage() {
           <Image
             src="/cruxy/cruxy-curious.png"
             alt="Cruxy, thinking"
-            width={170}
-            height={170}
-            className="h-[170px] w-[170px] shrink-0"
+            width={273}
+            height={557}
+            className="h-[190px] w-auto shrink-0 object-contain drop-shadow-[0_10px_18px_rgba(0,0,0,0.3)]"
             unoptimized
             priority
           />

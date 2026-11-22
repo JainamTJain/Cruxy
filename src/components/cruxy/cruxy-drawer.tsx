@@ -167,8 +167,9 @@ export function CruxyDrawer() {
           <Image
             src="/cruxy/cruxy-lamp.png"
             alt=""
-            width={36}
-            height={36}
+            width={44}
+            height={32}
+            className="h-auto w-11 object-contain"
             unoptimized
           />
           <div>
