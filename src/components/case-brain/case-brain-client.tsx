@@ -9,6 +9,7 @@ import { CaseReadings } from "@/components/case/case-readings";
 import { IdeasOverTime } from "@/components/case/ideas-over-time";
 import { TheCaseTab } from "@/components/case/the-case-tab";
 import { WorkingDocument } from "@/components/case/working-document";
+import { DiscussionPanel } from "@/components/discussion/discussion-panel";
 import { SaveShareMenu } from "@/components/case/save-share-menu";
 import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
 import type { CaseHomePayload } from "@/lib/case-home/types";
@@ -111,6 +112,8 @@ type Payload = {
   brain: CaseBrainSnapshot;
   research?: ResearchPayload | null;
   canEdit: boolean;
+  /** Dr. B / Jainam in admin view may open every team's case materials. */
+  canSeeAllTeams?: boolean;
   viewer: { personId: string; teamId: string; name: string };
   meta: {
     truth_count: number;
@@ -148,8 +151,11 @@ const TEAM_COLOUR: Record<string, string> = {
 function originLabel(
   proposal: CaseBrainSnapshot["proposals"][number],
   teams: Team[],
+  seeAllTeams: boolean,
 ) {
   if (proposal.origin === "inspired_by_team") {
+    // Members never learn which USC team an idea came from.
+    if (!seeAllTeams) return "A strong idea from elsewhere";
     const t = teams.find((x) => x.id === proposal.inspired_from_team_id);
     return t ? `Inspired by ${t.name}` : "Inspired by Team";
   }
@@ -211,6 +217,8 @@ export function CaseBrainClient({
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab");
   const focusFileId = searchParams.get("file");
+  const discussionParam = searchParams.get("discussion");
+  const jumpParam = searchParams.get("jump");
   const resolved = resolveTabParam(initialTab);
   const [tab, setTab] = useState<PrimaryTab>(resolved.primary);
   const [moreSection, setMoreSection] = useState<MoreSection | null>(
@@ -218,10 +226,35 @@ export function CaseBrainClient({
   );
   const [rolesOpen, setRolesOpen] = useState(false);
   const [compare, setCompare] = useState(false);
+  const [discussionOpen, setDiscussionOpen] = useState(
+    discussionParam === "1" || discussionParam === "true",
+  );
   const [caseHome, setCaseHome] = useState<CaseHomePayload | null>(null);
   const [briefMode, setBriefMode] = useState<"own_doc" | "build_in_crux" | null>(
     null,
   );
+
+  useEffect(() => {
+    if (discussionParam === "1" || discussionParam === "true") {
+      setDiscussionOpen(true);
+    }
+  }, [discussionParam]);
+
+  useEffect(() => {
+    if (!jumpParam) return;
+    const t = window.setTimeout(() => {
+      const el = document.getElementById(jumpParam);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-cardinal");
+        window.setTimeout(
+          () => el.classList.remove("ring-2", "ring-cardinal"),
+          1600,
+        );
+      }
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [jumpParam, tab]);
 
   useEffect(() => {
     const next = resolveTabParam(initialTab);
@@ -466,47 +499,57 @@ export function CaseBrainClient({
           </div>
         </div>
 
-        <div
-          role="tablist"
-          aria-label="Whose case brain"
-          className="flex gap-1 rounded-xl bg-mist p-1"
-        >
-          {teams.map((t) => {
-            const selected = !compare && t.id === brain.team_id;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                className={cn(
-                  "rounded-[10px] px-3.5 py-2 text-[13px] font-semibold",
-                  selected ? "bg-white" : "bg-transparent text-[#3B404A]",
-                )}
-                style={selected ? { color: TEAM_COLOUR[t.name] ?? "#111318" } : undefined}
-                onClick={() => {
-                  setCompare(false);
-                  setTeamId(t.id);
-                  void load(t.id);
-                }}
-              >
-                {t.name}
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            role="tab"
-            aria-selected={compare}
-            className={cn(
-              "rounded-[10px] px-3.5 py-2 text-[13px] font-semibold",
-              compare ? "bg-white text-ink" : "bg-transparent text-[#3B404A]",
-            )}
-            onClick={() => setCompare(true)}
+        {data.canSeeAllTeams ? (
+          <div
+            role="tablist"
+            aria-label="Whose case brain"
+            className="flex gap-1 rounded-xl bg-mist p-1"
           >
-            Compare
-          </button>
-        </div>
+            {teams.map((t) => {
+              const selected = !compare && t.id === brain.team_id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  className={cn(
+                    "rounded-[10px] px-3.5 py-2 text-[13px] font-semibold",
+                    selected ? "bg-white" : "bg-transparent text-[#3B404A]",
+                  )}
+                  style={
+                    selected
+                      ? { color: TEAM_COLOUR[t.name] ?? "#111318" }
+                      : undefined
+                  }
+                  onClick={() => {
+                    setCompare(false);
+                    setTeamId(t.id);
+                    void load(t.id);
+                  }}
+                >
+                  {t.name}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              role="tab"
+              aria-selected={compare}
+              className={cn(
+                "rounded-[10px] px-3.5 py-2 text-[13px] font-semibold",
+                compare ? "bg-white text-ink" : "bg-transparent text-[#3B404A]",
+              )}
+              onClick={() => setCompare(true)}
+            >
+              Compare
+            </button>
+          </div>
+        ) : (
+          <p className="m-0 text-[13px] font-semibold text-[#3B404A]">
+            {teams.find((t) => t.id === brain.team_id)?.name ?? "Your team"}
+          </p>
+        )}
       </div>
 
       {error ? (
@@ -608,7 +651,20 @@ export function CaseBrainClient({
         ))}
       </nav>
 
-      {compare ? (
+      {!compare ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="rounded-xl border border-mist bg-white px-3.5 py-2 text-sm font-semibold"
+            onClick={() => setDiscussionOpen((v) => !v)}
+            aria-pressed={discussionOpen}
+          >
+            {discussionOpen ? "Hide discussion" : "Discussion"}
+          </button>
+        </div>
+      ) : null}
+
+      {compare && data.canSeeAllTeams ? (
         <ComparePanel caseId={caseId} teams={teams} />
       ) : (
         <div className="flex flex-wrap items-start gap-6">
@@ -1256,7 +1312,13 @@ export function CaseBrainClient({
                           : "",
                       )}
                     >
-                      <OriginTag label={originLabel(p, teams)} />
+                      <OriginTag
+                        label={originLabel(
+                          p,
+                          teams,
+                          Boolean(data.canSeeAllTeams),
+                        )}
+                      />
                       <p className="m-0 text-[15px] font-medium leading-snug">
                         {p.text}
                       </p>
@@ -1451,6 +1513,23 @@ export function CaseBrainClient({
               research={data.research ?? null}
             />
           </aside>
+
+          <DiscussionPanel
+            caseId={caseId}
+            teamId={teamId || brain.team_id}
+            open={discussionOpen}
+            onClose={() => setDiscussionOpen(false)}
+            onJump={(kind, _targetId, nextTab) => {
+              if (
+                nextTab === "reading" ||
+                nextTab === "working" ||
+                nextTab === "one_pager"
+              ) {
+                setTab(nextTab);
+              }
+              if (kind === "general") setDiscussionOpen(true);
+            }}
+          />
         </div>
       )}
 

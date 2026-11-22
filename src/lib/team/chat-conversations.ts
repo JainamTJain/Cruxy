@@ -10,8 +10,10 @@ import { readStore, updateStore } from "@/lib/db/sample-store";
 import {
   caseChatChannel,
   conversationMeta,
+  isLeadsChannel,
   leadsChannel,
   parseCaseChatChannel,
+  parseTeamChannel,
   programChannel,
   teamChannel,
   wholeTeamChannel,
@@ -19,6 +21,14 @@ import {
 import { listCaseRoles, listChats, listMessages } from "@/lib/team/repository";
 import type { ChatChannel, ChatConversation, ChatMessage } from "@/lib/team/types";
 import { nowIso } from "@/lib/utils";
+
+/** Resolve team from chat.team_id or from the channel name when team_id was never set. */
+function chatTeamId(c: ChatChannel): string | null {
+  if (c.team_id) return c.team_id;
+  const fromCase = parseCaseChatChannel(c.channel);
+  if (fromCase) return fromCase.teamId;
+  return parseTeamChannel(c.channel);
+}
 
 export type ChatListPayload = {
   conversations: ChatConversation[];
@@ -93,12 +103,14 @@ async function ensureSupabaseChat(
         audience: meta.audience,
         kind: meta.kind,
         case_id: meta.caseId,
+        // Legacy rows often had channel but null team_id; members then saw nothing.
+        team_id: teamId ?? (existing.team_id as string | null) ?? null,
       })
       .eq("id", existing.id);
     return {
       id: existing.id as string,
       channel: existing.channel as string,
-      team_id: (existing.team_id as string | null) ?? null,
+      team_id: teamId ?? (existing.team_id as string | null) ?? null,
       created_at: existing.created_at as string,
       title: meta.title,
       purpose: meta.purpose,
@@ -154,10 +166,14 @@ async function ensureChat(
   return ensureSupabaseChat(channel, teamId, meta);
 }
 
-/** Ensure Whole team, per-case, and Leads only conversations exist for a team. */
+/**
+ * Always ensure the general Whole team conversation (and Leads only).
+ * Case conversations are created lazily via ensureCaseConversation when
+ * someone starts a thread on that case — not all twelve up front.
+ */
 export async function ensureTeamConversations(input: {
   teamId: string;
-  cases: { id: string; number: number; title: string }[];
+  cases?: { id: string; number: number; title: string }[];
 }): Promise<ChatChannel[]> {
   const out: ChatChannel[] = [];
 
@@ -172,24 +188,6 @@ export async function ensureTeamConversations(input: {
     }),
   );
 
-  for (const c of input.cases) {
-    const channel = caseChatChannel(input.teamId, c.id);
-    const meta = conversationMeta({
-      channel,
-      caseNumber: c.number,
-      caseTitle: c.title,
-    });
-    out.push(
-      await ensureChat(channel, input.teamId, {
-        title: meta.title,
-        purpose: meta.purpose,
-        audience: meta.audience,
-        kind: meta.kind,
-        caseId: c.id,
-      }),
-    );
-  }
-
   const leadsMeta = conversationMeta({ channel: leadsChannel(input.teamId) });
   out.push(
     await ensureChat(leadsChannel(input.teamId), input.teamId, {
@@ -201,7 +199,6 @@ export async function ensureTeamConversations(input: {
     }),
   );
 
-  // Program channel for admins / visibility
   const prog = conversationMeta({ channel: programChannel() });
   out.push(
     await ensureChat(programChannel(), null, {
@@ -214,6 +211,28 @@ export async function ensureTeamConversations(input: {
   );
 
   return out;
+}
+
+/** Create (or refresh) the team's case conversation the first time work starts there. */
+export async function ensureCaseConversation(input: {
+  teamId: string;
+  caseId: string;
+  caseNumber?: number | null;
+  caseTitle?: string | null;
+}): Promise<ChatChannel> {
+  const channel = caseChatChannel(input.teamId, input.caseId);
+  const meta = conversationMeta({
+    channel,
+    caseNumber: input.caseNumber,
+    caseTitle: input.caseTitle,
+  });
+  return ensureChat(channel, input.teamId, {
+    title: meta.title,
+    purpose: meta.purpose,
+    audience: meta.audience,
+    kind: meta.kind,
+    caseId: input.caseId,
+  });
 }
 
 async function getLastRead(
@@ -352,11 +371,30 @@ export async function listConversationsForPerson(input: {
     }));
   }
 
+  let ensured: ChatChannel[] = [];
   if (input.teamId) {
-    await ensureTeamConversations({ teamId: input.teamId, cases });
+    try {
+      ensured = await ensureTeamConversations({ teamId: input.teamId, cases });
+    } catch (err) {
+      // Still try to list; UI should not go empty if create raced.
+      console.error("ensureTeamConversations failed", err);
+    }
   }
 
-  const allChats = await listChats();
+  let allChats: ChatChannel[] = [];
+  try {
+    allChats = await listChats();
+  } catch (err) {
+    console.error("listChats failed", err);
+    allChats = [];
+  }
+
+  // Merge ensured rows so a fresh Whole team chat is never dropped if list lags.
+  const byChannel = new Map<string, ChatChannel>();
+  for (const c of allChats) byChannel.set(c.channel, c);
+  for (const c of ensured) byChannel.set(c.channel, c);
+  allChats = [...byChannel.values()];
+
   const roles = input.teamId ? await listCaseRoles(input.teamId) : [];
   const isLead = input.teamId
     ? personIsLead(roles, input.teamId, input.personId)
@@ -365,29 +403,38 @@ export async function listConversationsForPerson(input: {
   const caseById = new Map(cases.map((c) => [c.id, c]));
 
   const visible = allChats.filter((c) => {
-    if (c.channel === programChannel()) return true;
+    if (c.channel === programChannel()) return input.isAdmin;
     if (!input.teamId) return input.isAdmin;
-    if (c.team_id && c.team_id !== input.teamId && !input.isAdmin) {
+
+    const ownerTeam = chatTeamId(c);
+    if (ownerTeam && ownerTeam !== input.teamId && !input.isAdmin) {
       return false;
     }
-    if (c.channel === leadsChannel(input.teamId) || c.kind === "leads") {
+    if (
+      c.channel === leadsChannel(input.teamId) ||
+      c.kind === "leads" ||
+      isLeadsChannel(c.channel)
+    ) {
       return input.isAdmin || isLead;
     }
-    // Prefer named team conversations for this team
-    if (c.team_id === input.teamId) return true;
+    // Own team (by team_id or channel name), including case chats that already exist.
+    if (ownerTeam === input.teamId) return true;
+    if (c.channel === teamChannel(input.teamId)) return true;
     if (input.isAdmin) return true;
     return false;
   });
 
-  // Prefer whole team / case / leads over legacy duplicates; sort
   const conversations: ChatConversation[] = [];
+  const seenIds = new Set<string>();
   for (const c of visible) {
+    if (seenIds.has(c.id)) continue;
+    seenIds.add(c.id);
     const parsed = parseCaseChatChannel(c.channel);
     const caseRow = parsed ? caseById.get(parsed.caseId) : null;
     const meta = conversationMeta({
       channel: c.channel,
-      caseNumber: caseRow?.number,
-      caseTitle: caseRow?.title,
+      caseNumber: caseRow?.number ?? null,
+      caseTitle: caseRow?.title ?? null,
     });
     // Skip bare team:{other} when we have richer list for own team
     if (
@@ -409,6 +456,7 @@ export async function listConversationsForPerson(input: {
 
     conversations.push({
       ...c,
+      team_id: chatTeamId(c) ?? c.team_id,
       title: c.title || meta.title,
       purpose: c.purpose || meta.purpose,
       audience: c.audience || meta.audience,
@@ -416,6 +464,42 @@ export async function listConversationsForPerson(input: {
       case_id: c.case_id ?? meta.caseId,
       unread,
     });
+  }
+
+  // Last resort: if Whole team is still missing after ensure, surface a clear gap.
+  const ownTeamId = input.teamId;
+  if (
+    ownTeamId &&
+    !conversations.some(
+      (c) =>
+        c.kind === "whole_team" || c.channel === teamChannel(ownTeamId),
+    )
+  ) {
+    try {
+      const whole = await ensureChat(
+        wholeTeamChannel(ownTeamId),
+        ownTeamId,
+        {
+          title: "Whole team",
+          purpose: "Day to day notes for everyone on your team.",
+          audience: "Your whole team can see this.",
+          kind: "whole_team",
+          caseId: null,
+        },
+      );
+      conversations.unshift({
+        ...whole,
+        title: whole.title || "Whole team",
+        purpose:
+          whole.purpose || "Day to day notes for everyone on your team.",
+        audience: whole.audience || "Your whole team can see this.",
+        kind: "whole_team",
+        case_id: null,
+        unread: 0,
+      });
+    } catch {
+      // leave empty; UI copy explains what to tap
+    }
   }
 
   // Stable order: Whole team, cases by number, Leads, program

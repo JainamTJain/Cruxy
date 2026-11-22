@@ -9,6 +9,7 @@ import {
   renderMarkedText,
   type ReadingMark,
 } from "@/components/case/reading-tools";
+import { ThreadInline } from "@/components/discussion/thread-inline";
 import { LinkedText } from "@/components/frameworks/linked-text";
 import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
 import type { CaseHomePayload } from "@/lib/case-home/types";
@@ -224,6 +225,15 @@ export function TheCaseTab({ caseId, teamId, initial = null, className }: Props)
                       caseId={caseId}
                     />
                   </p>
+                  <ThreadInline
+                    caseId={caseId}
+                    teamId={teamId}
+                    kind="annotation"
+                    targetId={q.id}
+                    title={
+                      q.body.replace(/^Question: /, "").slice(0, 80) || "Question"
+                    }
+                  />
                 </li>
               ))}
             </ul>
@@ -253,6 +263,13 @@ export function TheCaseTab({ caseId, teamId, initial = null, className }: Props)
                   <p className="m-0 mt-1">
                     <LinkedText text={n.body} caseId={caseId} />
                   </p>
+                  <ThreadInline
+                    caseId={caseId}
+                    teamId={teamId}
+                    kind="annotation"
+                    targetId={n.id}
+                    title={n.body.slice(0, 80) || "Note"}
+                  />
                 </li>
               ))}
             </ul>
