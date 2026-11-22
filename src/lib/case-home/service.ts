@@ -147,6 +147,7 @@ export async function getCaseHome(args: {
           team_colour: null,
           passage_anchor:
             passages.find((p) => p.id === h.passage_id)?.anchor ?? null,
+          passage_id: h.passage_id,
           created_at: h.created_at,
         });
       }
@@ -160,6 +161,7 @@ export async function getCaseHome(args: {
           team_colour: null,
           passage_anchor:
             passages.find((p) => p.id === c.passage_id)?.anchor ?? null,
+          passage_id: c.passage_id,
           created_at: c.created_at,
         });
       }

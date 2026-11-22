@@ -3,10 +3,14 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { CaseMoreList, type MoreSection } from "@/components/case/case-more-panel";
+import { CaseOnePagerTab } from "@/components/case/case-one-pager-tab";
 import { CaseReadings } from "@/components/case/case-readings";
 import { IdeasOverTime } from "@/components/case/ideas-over-time";
 import { TheCaseTab } from "@/components/case/the-case-tab";
+import { WorkingDocument } from "@/components/case/working-document";
 import { OfflineCaseButton } from "@/components/offline/offline-case-button";
+import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
 import { ClaimRobustness } from "@/components/case-brain/claim-robustness";
 import { OriginTag } from "@/components/case-brain/origin-tag";
 import {
@@ -24,7 +28,6 @@ import {
   ResearchBriefCard,
 } from "@/components/cruxy/claim-research-dossier";
 import { emitMood } from "@/components/cruxy/mood/bus";
-import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
 import { coverageFromFindings } from "@/lib/cruxy/research-gaps";
 import type {
   CaseBrainSnapshot,
@@ -34,28 +37,36 @@ import type {
 import type { CaseRow, Team } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type CaseTab =
-  | "case"
-  | "brief"
-  | "ideas"
-  | "map"
-  | "truth"
-  | "readings"
-  | "flashcards"
-  | "questions"
-  | "research";
+type PrimaryTab = "reading" | "working" | "one_pager" | "more";
 
-const CASE_TABS = new Set<CaseTab>([
-  "case",
+const MORE_SECTIONS = new Set<MoreSection>([
   "brief",
   "ideas",
   "map",
   "truth",
-  "readings",
   "flashcards",
   "questions",
   "research",
 ]);
+
+function resolveTabParam(raw: string | null): {
+  primary: PrimaryTab;
+  more: MoreSection | null;
+} {
+  if (!raw) return { primary: "reading", more: null };
+  if (raw === "reading" || raw === "case" || raw === "readings") {
+    return { primary: "reading", more: null };
+  }
+  if (raw === "working") return { primary: "working", more: null };
+  if (raw === "one_pager" || raw === "one-pager") {
+    return { primary: "one_pager", more: null };
+  }
+  if (raw === "more") return { primary: "more", more: null };
+  if (MORE_SECTIONS.has(raw as MoreSection)) {
+    return { primary: "more", more: raw as MoreSection };
+  }
+  return { primary: "reading", more: null };
+}
 
 type PersonLite = { id: string; name: string; team_id: string | null };
 
@@ -158,8 +169,8 @@ function personName(
   people: PersonLite[],
   id: string | null | undefined,
 ): string {
-  if (!id) return "Not set";
-  return people.find((p) => p.id === id)?.name ?? "Not set";
+  if (!id) return "";
+  return people.find((p) => p.id === id)?.name ?? "";
 }
 
 function formatCrux(crux: string | null | undefined): {
@@ -194,20 +205,21 @@ export function CaseBrainClient({
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab");
   const focusFileId = searchParams.get("file");
-  const [tab, setTab] = useState<CaseTab>(() =>
-    initialTab && CASE_TABS.has(initialTab as CaseTab)
-      ? (initialTab as CaseTab)
-      : "case",
+  const resolved = resolveTabParam(initialTab);
+  const [tab, setTab] = useState<PrimaryTab>(resolved.primary);
+  const [moreSection, setMoreSection] = useState<MoreSection | null>(
+    resolved.more,
   );
+  const [rolesOpen, setRolesOpen] = useState(false);
   const [compare, setCompare] = useState(false);
   const [briefMode, setBriefMode] = useState<"own_doc" | "build_in_crux" | null>(
     null,
   );
 
   useEffect(() => {
-    if (initialTab && CASE_TABS.has(initialTab as CaseTab)) {
-      setTab(initialTab as CaseTab);
-    }
+    const next = resolveTabParam(initialTab);
+    setTab(next.primary);
+    setMoreSection(next.more);
   }, [initialTab]);
 
   const load = useCallback(
@@ -314,7 +326,21 @@ export function CaseBrainClient({
     if (error) {
       return <p className="text-sm text-cardinal">{error}</p>;
     }
-    return <LoadingGenie label="Loading case brain..." />;
+    return (
+      <div className="flex flex-col gap-5" aria-busy aria-label="Loading case">
+        <div className="flex items-end gap-5">
+          <Skeleton className="h-[96px] w-[96px]" />
+          <div className="flex flex-1 flex-col gap-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-10 w-72 max-w-full" />
+            <SkeletonBlock lines={2} className="max-w-md" />
+          </div>
+        </div>
+        <Skeleton className="h-5 w-full max-w-xl" />
+        <Skeleton className="h-10 w-full max-w-lg" rounded="lg" />
+        <Skeleton className="h-64 w-full" rounded="lg" />
+      </div>
+    );
   }
 
   const { brain, case: caseRow, teams, canEdit, meta, viewer } = data;
@@ -338,7 +364,17 @@ export function CaseBrainClient({
 
   const leadNames = [lead1, lead2]
     .map((r) => personName(data.people, r?.person_id))
-    .filter((n) => n !== "Not set");
+    .filter(Boolean);
+  const counterName = personName(data.people, counter?.person_id);
+  const supporterName = personName(
+    data.people,
+    brain.case_roles.find((r) => r.role === "supporter")?.person_id,
+  );
+  const rolesLineParts = [
+    leadNames.length ? `Leads: ${leadNames.join(", ")}` : null,
+    counterName ? `Counter: ${counterName}` : null,
+    supporterName ? `Supporter: ${supporterName}` : null,
+  ].filter(Boolean);
 
   // Design shows "No backing yet" plus waiting count on the first unbacked support only.
   let firstMissingSupportId: string | null = null;
@@ -449,54 +485,67 @@ export function CaseBrainClient({
         </p>
       ) : null}
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="m-0 text-sm text-muted">
-          Case roles for this team. Change one here, or set every case on the
-          roles board.
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#3B404A]">
+        <p className="m-0">
+          {rolesLineParts.length
+            ? `${rolesLineParts.join(". ")}.`
+            : "Roles not assigned yet."}
         </p>
-        <Link
-          href="/team/roles"
-          className="text-sm font-semibold text-cardinal underline"
-        >
-          Roles board
-        </Link>
+        {canEdit ? (
+          <button
+            type="button"
+            onClick={() => setRolesOpen((v) => !v)}
+            className="font-semibold text-cardinal underline"
+          >
+            Change
+          </button>
+        ) : (
+          <Link
+            href="/team/roles"
+            className="font-semibold text-cardinal underline"
+          >
+            Roles board
+          </Link>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {ROLE_KEYS.map((role) => {
-          const current = brain.case_roles.find((r) => r.role === role);
-          return (
-            <label
-              key={role}
-              className="flex flex-col gap-1.5 rounded-[14px] bg-white px-3.5 py-3"
-            >
-              <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-muted">
-                {ROLE_LABELS[role]}
-              </span>
-              <select
-                disabled={!canEdit || busy}
-                className="h-9 rounded-[10px] border border-mist bg-[#F7F8FA] px-2 text-sm font-semibold text-ink disabled:opacity-60"
-                value={current?.person_id ?? ""}
-                onChange={(e) => {
-                  const personId = e.target.value;
-                  if (!personId) return;
-                  void api("/api/case-brain/roles", {
-                    method: "POST",
-                    body: JSON.stringify({ caseId, personId, role }),
-                  });
-                }}
+      {rolesOpen ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {ROLE_KEYS.map((role) => {
+            const current = brain.case_roles.find((r) => r.role === role);
+            return (
+              <label
+                key={role}
+                className="flex flex-col gap-1.5 rounded-[14px] bg-white px-3.5 py-3"
               >
-                <option value="">Unassigned</option>
-                {teamPeople.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          );
-        })}
-      </div>
+                <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-muted">
+                  {ROLE_LABELS[role]}
+                </span>
+                <select
+                  disabled={!canEdit || busy}
+                  className="h-9 rounded-[10px] border border-mist bg-[#F7F8FA] px-2 text-sm font-semibold text-ink disabled:opacity-60"
+                  value={current?.person_id ?? ""}
+                  onChange={(e) => {
+                    const personId = e.target.value;
+                    if (!personId) return;
+                    void api("/api/case-brain/roles", {
+                      method: "POST",
+                      body: JSON.stringify({ caseId, personId, role }),
+                    });
+                  }}
+                >
+                  <option value="">Choose…</option>
+                  {teamPeople.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            );
+          })}
+        </div>
+      ) : null}
 
       <nav
         aria-label="Case sections"
@@ -504,21 +553,19 @@ export function CaseBrainClient({
       >
         {(
           [
-            ["case", "The case", null],
-            ["brief", "Team Brief", null],
-            ["ideas", "Ideas over time", null],
-            ["map", "Claim map", null],
-            ["truth", "Evidence Library", meta.truth_count],
-            ["readings", "Readings", meta.reading_count || null],
-            ["flashcards", "Flashcards", meta.flashcard_count],
-            ["questions", "Questions", meta.question_count],
-            ["research", "Research", null],
+            ["reading", "Reading"],
+            ["working", "Working document"],
+            ["one_pager", "One pager"],
+            ["more", "More"],
           ] as const
-        ).map(([id, label, count]) => (
+        ).map(([id, label]) => (
           <button
             key={id}
             type="button"
-            onClick={() => setTab(id)}
+            onClick={() => {
+              setTab(id);
+              if (id !== "more") setMoreSection(null);
+            }}
             className={cn(
               "inline-flex items-center gap-1.5 border-b-[3px] px-3.5 py-2.5 text-sm font-semibold",
               tab === id
@@ -527,26 +574,8 @@ export function CaseBrainClient({
             )}
           >
             {label}
-            {count != null ? (
-              <span
-                className={cn(
-                  "rounded-md px-1.5 py-0.5 text-[11px] font-bold",
-                  tab === id
-                    ? "bg-cardinal/10 text-cardinal"
-                    : "bg-mist text-[#3B404A]",
-                )}
-              >
-                {count}
-              </span>
-            ) : null}
           </button>
         ))}
-        <Link
-          href={`/revision/one-pagers?caseId=${caseId}&teamId=${brain.team_id}`}
-          className="ml-auto border-b-[3px] border-transparent px-3.5 py-2.5 text-sm font-semibold text-muted hover:text-ink"
-        >
-          One pager
-        </Link>
       </nav>
 
       {compare ? (
@@ -554,7 +583,58 @@ export function CaseBrainClient({
       ) : (
         <div className="flex flex-wrap items-start gap-6">
           <div className="flex min-w-0 flex-[999_1_620px] flex-col gap-4">
-            {tab === "brief" ? (
+            {tab === "reading" ? (
+              <div className="flex flex-col gap-6">
+                <TheCaseTab
+                  caseId={caseId}
+                  teamId={teamId || brain.team_id}
+                />
+                <CaseReadings
+                  caseId={caseId}
+                  teamId={teamId || brain.team_id}
+                  focusFileId={focusFileId}
+                />
+              </div>
+            ) : null}
+
+            {tab === "working" ? (
+              <WorkingDocument
+                caseId={caseId}
+                teamId={teamId || brain.team_id}
+              />
+            ) : null}
+
+            {tab === "one_pager" ? (
+              <CaseOnePagerTab
+                caseId={caseId}
+                teamId={teamId || brain.team_id}
+              />
+            ) : null}
+
+            {tab === "more" ? (
+              <div className="flex flex-col gap-4">
+                <div>
+                  <h2 className="font-display m-0 text-xl font-extrabold">
+                    More for this case
+                  </h2>
+                  <p className="mt-1 text-sm text-muted">
+                    Claim map, evidence, cards, questions, research and history.
+                  </p>
+                </div>
+                <CaseMoreList
+                  active={moreSection}
+                  onPick={setMoreSection}
+                  counts={{
+                    truth: meta.truth_count,
+                    flashcard: meta.flashcard_count,
+                    question: meta.question_count,
+                    reading: meta.reading_count,
+                  }}
+                />
+              </div>
+            ) : null}
+
+            {tab === "more" && moreSection === "brief" ? (
               <TeamBriefPanel
                 caseId={caseId}
                 teamId={teamId}
@@ -576,7 +656,7 @@ export function CaseBrainClient({
               />
             ) : null}
 
-            {tab === "map" ? (
+            {tab === "more" && moreSection === "map" ? (
               <>
                 {Object.keys(brain.peer_claim_scores ?? {}).length > 0 ? (
                   <div className="rounded-[14px] bg-[#F7F8FA] px-3.5 py-3 text-[12px] text-[#3B404A]">
@@ -629,8 +709,11 @@ export function CaseBrainClient({
                             C{idx + 1}
                           </span>
                           <span className="text-[13px] text-muted">
-                            {personName(data.people, ownerId)}, {backed} of{" "}
-                            {node.supports.length || 3} supports backed
+                            {personName(data.people, ownerId)
+                              ? `${personName(data.people, ownerId)}, `
+                              : ""}
+                            {backed} of {node.supports.length || 3} supports
+                            backed
                           </span>
                         </span>
                         <ClaimRobustness
@@ -742,11 +825,11 @@ export function CaseBrainClient({
                     </h2>
                     <p className="m-0 text-[15px] leading-relaxed text-[#D6D9DF]">
                       <strong className="text-white">Concede</strong>{" "}
-                      {allCounterclaims[0].concede || "Not set"}.{" "}
+                      {allCounterclaims[0].concede || "—"}.{" "}
                       <strong className="text-white">Distinguish:</strong>{" "}
-                      {allCounterclaims[0].distinguish || "Not set"}.{" "}
+                      {allCounterclaims[0].distinguish || "—"}.{" "}
                       <strong className="text-white">Rebut:</strong>{" "}
-                      {allCounterclaims[0].rebut || "Not set"}.
+                      {allCounterclaims[0].rebut || "—"}.
                     </p>
                   </section>
                 ) : null}
@@ -804,8 +887,9 @@ export function CaseBrainClient({
                       Flashcards from these readings, {meta.flashcard_count}{" "}
                       cards.
                     </strong>{" "}
-                    Leads {leadNames.join(" and ") || "Not set"} get them
-                    automatically
+                    {leadNames.length
+                      ? `Leads ${leadNames.join(" and ")} get them automatically`
+                      : "Leads get them automatically"}
                     {meta.also_studying.length
                       ? `. Also studying: ${meta.also_studying.join(", ")} `
                       : ". "}
@@ -825,7 +909,7 @@ export function CaseBrainClient({
               </>
             ) : null}
 
-            {tab === "truth" ? (
+            {tab === "more" && moreSection === "truth" ? (
               <section className="space-y-3">
                 <div className="rounded-[20px] bg-white p-5">
                   <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
@@ -876,7 +960,7 @@ export function CaseBrainClient({
               </section>
             ) : null}
 
-            {tab === "flashcards" ? (
+            {tab === "more" && moreSection === "flashcards" ? (
               <section className="rounded-[20px] bg-white p-5">
                 <p className="text-sm">
                   {meta.flashcard_count} cards for this case. Leads get the deck
@@ -891,7 +975,7 @@ export function CaseBrainClient({
               </section>
             ) : null}
 
-            {tab === "questions" ? (
+            {tab === "more" && moreSection === "questions" ? (
               <section className="rounded-[20px] bg-white p-5">
                 <p className="text-sm">
                   {meta.question_count} questions in the bank for this case.
@@ -905,23 +989,11 @@ export function CaseBrainClient({
               </section>
             ) : null}
 
-            {tab === "case" ? (
-              <TheCaseTab caseId={caseId} teamId={teamId || brain.team_id} />
-            ) : null}
-
-            {tab === "ideas" ? (
+            {tab === "more" && moreSection === "ideas" ? (
               <IdeasOverTime caseId={caseId} teamId={teamId || brain.team_id} />
             ) : null}
 
-            {tab === "readings" ? (
-              <CaseReadings
-                caseId={caseId}
-                teamId={teamId || brain.team_id}
-                focusFileId={focusFileId}
-              />
-            ) : null}
-
-            {tab === "research" ? (
+            {tab === "more" && moreSection === "research" ? (
               <div className="space-y-4">
                 <ResearchCoverage
                   brain={brain}

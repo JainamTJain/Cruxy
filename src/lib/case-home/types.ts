@@ -18,6 +18,7 @@ export type CaseAnnotation = {
   person_name: string | null;
   team_colour: string | null;
   passage_anchor: string | null;
+  passage_id?: string | null;
   created_at: string;
 };
 
