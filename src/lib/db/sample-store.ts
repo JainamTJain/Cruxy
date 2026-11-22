@@ -266,6 +266,8 @@ export interface SampleStore {
   arg_edges?: import("@/lib/graph/types").ArgEdge[];
   /** Wave 8 D: personal learning profiles. */
   learning_profiles?: import("@/lib/learning/types").LearningProfile[];
+  /** Workstream D voiceprints: pending Who-is-this rows. */
+  speaker_match_pending?: import("@/lib/voice/types").SpeakerMatchPending[];
   /** Wave 9 H: after the regional. */
   seasons?: import("@/lib/season/types").Season[];
   competition_team_results?: import("@/lib/season/types").CompetitionTeamResult[];
@@ -877,6 +879,7 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     case_role_preferences: raw.case_role_preferences ?? [],
     arg_edges: raw.arg_edges ?? [],
     learning_profiles: raw.learning_profiles ?? [],
+    speaker_match_pending: raw.speaker_match_pending ?? [],
     auth_devices: raw.auth_devices ?? [],
     passcode_reset_requests: raw.passcode_reset_requests ?? [],
     notifications: raw.notifications ?? [],

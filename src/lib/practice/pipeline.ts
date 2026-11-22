@@ -23,6 +23,12 @@ import {
   transcribeWithSpeakerLabels,
   utterancesToLines,
 } from "@/lib/practice/transcription";
+import { fetchAssemblyAiSpeakerNames } from "@/lib/voice/assemblyai-names";
+import {
+  matchSpeakersByVoiceprint,
+  roleOrderMappings,
+} from "@/lib/voice/recognize";
+import type { SpeakerMapping } from "@/lib/voice/types";
 import { runCruxyJudge } from "@/lib/practice/cruxy-judge";
 import { syncCalibratedJudgeForRound } from "@/lib/practice/calibrated-judge";
 import {
@@ -147,13 +153,59 @@ export async function finalizeRound(opts: {
     requireLive: opts.requireLive,
   });
 
-  const speakerMap = matchSpeakersByRole(transcript.utterances, presentIds);
+  // Voiceprints + AssemblyAI name ID (before audio delete). Role order is fallback.
+  const presentPeople = (
+    await Promise.all(presentIds.map((id) => getPersonById(id)))
+  ).filter(Boolean) as { id: string; name: string }[];
+
+  const nameByLabel = await fetchAssemblyAiSpeakerNames({
+    jobId: transcript.jobId,
+    present: presentPeople,
+    utterances: transcript.utterances,
+  });
+
+  let mappings: SpeakerMapping[] = [];
+  try {
+    const matched = await matchSpeakersByVoiceprint({
+      roundId: opts.roundId,
+      audio,
+      utterances: transcript.utterances,
+      presentPersonIds: presentIds,
+      nameByLabel,
+    });
+    mappings = matched.mappings;
+  } catch {
+    mappings = roleOrderMappings(transcript.utterances, presentIds);
+  }
+
+  if (mappings.every((m) => !m.person_id)) {
+    const roleMap = matchSpeakersByRole(transcript.utterances, presentIds);
+    mappings = Object.entries(roleMap).map(([speaker_label, person_id]) => ({
+      speaker_label,
+      person_id,
+      confidence: person_id ? 0.4 : 0,
+      source: "role" as const,
+    }));
+  }
+
+  const speakerMap: Record<string, string | null> = {};
+  for (const m of mappings) speakerMap[m.speaker_label] = m.person_id;
+
   // Own-device: prefer the recording owner as the speaker for that stream.
   for (const o of ownerOffsets) {
     if (o.ownerId && !Object.values(speakerMap).includes(o.ownerId)) {
       const label = Object.keys(speakerMap).find((k) => !speakerMap[k]);
-      if (label) speakerMap[label] = o.ownerId;
-      else speakerMap[`A${Object.keys(speakerMap).length + 1}`] = o.ownerId;
+      if (label) {
+        speakerMap[label] = o.ownerId;
+        const hit = mappings.find((m) => m.speaker_label === label);
+        if (hit) {
+          hit.person_id = o.ownerId;
+          hit.source = "role";
+          hit.confidence = 0.7;
+        }
+      } else {
+        speakerMap[`A${Object.keys(speakerMap).length + 1}`] = o.ownerId;
+      }
     }
   }
   const lines = utterancesToLines(
@@ -166,15 +218,18 @@ export async function finalizeRound(opts: {
 
   await saveSpeakerConfirm({
     round_id: opts.roundId,
-    mappings: Object.entries(speakerMap).map(([speaker_label, person_id]) => ({
-      speaker_label,
-      person_id,
+    mappings: mappings.map((m) => ({
+      speaker_label: m.speaker_label,
+      person_id: speakerMap[m.speaker_label] ?? m.person_id,
+      confidence: m.confidence,
+      source: m.source,
     })),
     confirmed_by: null,
     confirmed_at: null,
   });
 
-  // Audio deleted immediately after transcript saved (every device stream).
+  // Audio deleted immediately after transcript + voice match (every device stream).
+  // Who-is-this 5s clips live under audio-chunks/who-is-this/ until confirmed.
   const cleaned = [];
   for (const r of recordings) {
     if (r.chunk_paths.length > 0) {

@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { CruxWordmark } from "@/components/crux-wordmark";
 import { Button } from "@/components/ui/button";
 import { VoiceEnrollment } from "@/components/voice-enrollment";
-import { VOICED_TARGET_SECONDS } from "@/lib/auth/voice-passages";
 import { CRUXY_PLAIN_WORDS } from "@/lib/types";
+import type { EnrollmentPartId } from "@/lib/voice/types";
 
 const ROWS: [string, string][] = [
   [
@@ -24,7 +24,7 @@ const ROWS: [string, string][] = [
   ],
   [
     "Your voice",
-    `About ${VOICED_TARGET_SECONDS} seconds of clear speech so the transcript knows which lines are yours.`,
+    "About 45 to 60 seconds in three short parts so Crux can tell who said what in a crowded room.",
   ],
   ["Who sees it", "Your team, Dr. B and Jainam. Other teams do not see your work. Nobody else."],
   [
@@ -43,25 +43,41 @@ export default function ConsentPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function postConsent(recordingOk: boolean, voice: Blob | null) {
-    const form = new FormData();
-    form.set("recordingOk", recordingOk ? "true" : "false");
-    if (recordingOk && voice) {
-      const ext = voice.type.includes("mp4") ? "mp4" : "webm";
-      form.set("voice", voice, `sample.${ext}`);
-    }
-    const res = await fetch("/api/auth/consent", { method: "POST", body: form });
+  async function postConsent(recordingOk: boolean) {
+    const res = await fetch("/api/auth/consent", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ recordingOk }),
+    });
     if (!res.ok) {
       const data = (await res.json()) as { error?: string };
       throw new Error(data.error ?? "Could not save consent.");
     }
   }
 
-  async function saveWithVoice(voice: Blob) {
+  async function saveWithVoice(payload: {
+    parts: Record<EnrollmentPartId, Blob>;
+    heardText: string;
+  }) {
     setBusy(true);
     setError(null);
     try {
-      await postConsent(true, voice);
+      await postConsent(true);
+      const form = new FormData();
+      for (const id of ["read", "natural", "competition"] as EnrollmentPartId[]) {
+        const blob = payload.parts[id];
+        const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+        form.set(id, blob, `${id}.${ext}`);
+      }
+      form.set("heardText", payload.heardText);
+      const enroll = await fetch("/api/voice/enroll", {
+        method: "POST",
+        body: form,
+      });
+      const data = (await enroll.json()) as { error?: string; ok?: boolean };
+      if (!enroll.ok) {
+        throw new Error(data.error ?? "Voice enrollment did not pass. Redo the flagged parts.");
+      }
       router.push("/learning-profile");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save consent.");
@@ -73,7 +89,7 @@ export default function ConsentPage() {
     setBusy(true);
     setError(null);
     try {
-      await postConsent(false, null);
+      await postConsent(false);
       router.push("/learning-profile");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save consent.");
@@ -146,7 +162,7 @@ export default function ConsentPage() {
       ) : (
         <VoiceEnrollment
           busy={busy}
-          onDone={(blob) => void saveWithVoice(blob)}
+          onDone={(payload) => void saveWithVoice(payload)}
           onCancelTextOnly={() => void notNow()}
         />
       )}

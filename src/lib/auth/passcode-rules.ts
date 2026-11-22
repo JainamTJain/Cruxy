@@ -352,6 +352,8 @@ export async function updateConsentChoice(opts: {
   if (opts.deleteVoice || !opts.recordingOk) {
     const { deleteVoiceSample } = await import("@/lib/auth/voice-sample");
     await deleteVoiceSample(person.voice_sample_path, person.id);
+    const { clearVoiceprint } = await import("@/lib/voice/repository");
+    await clearVoiceprint(opts.personId);
     const after = await getPersonById(opts.personId);
     if (after) {
       after.consent_version = CONSENT_VERSION;
