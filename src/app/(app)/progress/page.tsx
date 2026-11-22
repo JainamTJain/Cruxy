@@ -209,8 +209,8 @@ export default function ProgressPage() {
               </>
             ) : (
               <p className="mt-2 text-sm text-[#C9CCD3]">
-                Finish one judged round after your learning-profile baselines.
-                Your biggest move shows here.
+                Finish a judged practice round. Your first judge card is the
+                starting level. Your biggest move shows here.
               </p>
             )}
           </section>

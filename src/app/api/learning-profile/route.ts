@@ -1,16 +1,21 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
-import { updateSession } from "@/lib/auth/session";
+import { getSession, updateSession } from "@/lib/auth/session";
 import { getPersonById } from "@/lib/db/repository";
 import {
   getLearningProfile,
   upsertLearningProfile,
 } from "@/lib/learning/profile";
 import {
-  defaultAppeBaselines,
-  defaultSliders,
-  type AppeBaselines,
-  type LearningSliders,
+  DEFAULT_DAILY_MINUTES,
+  formatTailoredLine,
+  parseDailyMinutes,
+  parseExplanationStyle,
+  parseFeedbackTone,
+  parseFocusAreas,
+  type DailyMinutes,
+  type ExplanationStyle,
+  type FeedbackTone,
+  type FocusArea,
 } from "@/lib/learning/types";
 import { isAdminViewer } from "@/lib/ops/privacy-scope";
 
@@ -33,16 +38,16 @@ export async function GET(req: Request) {
   }
 
   const profile = await getLearningProfile(subjectId);
-  if (!profile) {
-    return NextResponse.json({
-      profile: null,
-      defaults: {
-        sliders: defaultSliders(),
-        appeBaselines: defaultAppeBaselines(),
-      },
-    });
-  }
-  return NextResponse.json({ profile });
+  return NextResponse.json({
+    profile,
+    tailored: formatTailoredLine(profile),
+    defaults: {
+      dailyMinutes: DEFAULT_DAILY_MINUTES,
+      focusAreas: [] as FocusArea[],
+      explanationStyle: "example_first" as ExplanationStyle,
+      feedbackTone: "gentle" as FeedbackTone,
+    },
+  });
 }
 
 export async function POST(req: Request) {
@@ -50,23 +55,44 @@ export async function POST(req: Request) {
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  // Only the person can write their own profile (admins coach via viewing).
+
   const body = (await req.json()) as {
-    sliders?: Partial<LearningSliders>;
-    appeBaselines?: AppeBaselines;
+    dailyMinutes?: number | null;
+    focusAreas?: string[];
+    explanationStyle?: string | null;
+    feedbackTone?: string | null;
+    skip?: boolean;
+    // Legacy Wave 8 body (still accepted and migrated).
+    sliders?: Record<string, number>;
+    appeBaselines?: Record<string, number>;
   };
-  if (!body.sliders || !body.appeBaselines) {
-    return NextResponse.json(
-      { error: "Sliders and APPE baselines are required." },
-      { status: 400 },
-    );
+
+  const skip = Boolean(body.skip);
+  const dailyMinutes = parseDailyMinutes(body.dailyMinutes);
+  const focusAreas = parseFocusAreas(body.focusAreas);
+  const explanationStyle = parseExplanationStyle(body.explanationStyle);
+  const feedbackTone = parseFeedbackTone(body.feedbackTone);
+
+  if (!skip && !body.sliders) {
+    // Partial saves are fine; empty skip-only saves still complete.
   }
 
   const profile = await upsertLearningProfile({
     personId: session.personId,
+    dailyMinutes: skip
+      ? (dailyMinutes ?? DEFAULT_DAILY_MINUTES)
+      : (dailyMinutes as DailyMinutes | null | undefined),
+    focusAreas,
+    explanationStyle,
+    feedbackTone,
+    markComplete: true,
     sliders: body.sliders,
     appeBaselines: body.appeBaselines,
   });
   await updateSession({ mustSetLearningProfile: false });
-  return NextResponse.json({ ok: true, profile });
+  return NextResponse.json({
+    ok: true,
+    profile,
+    tailored: formatTailoredLine(profile),
+  });
 }
