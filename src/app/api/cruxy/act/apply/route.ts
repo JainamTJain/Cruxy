@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { canSetCaseRole } from "@/lib/auth/capabilities";
 import { getSession } from "@/lib/auth/session";
+import { applySignedPlan } from "@/lib/cruxy/actions/apply";
 import { readPlan } from "@/lib/cruxy/actions/plan-token";
-import type { RolesPlanData } from "@/lib/cruxy/actions/roles";
 import { getPersonById } from "@/lib/db/repository";
-import { applyRolePlan } from "@/lib/team/roles-board-repository";
 
 export const runtime = "nodejs";
 
@@ -15,40 +13,33 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
   }
   const body = (await req.json().catch(() => ({}))) as { planId?: string };
-  const plan = body.planId ? await readPlan<RolesPlanData>(body.planId) : null;
+  const plan = body.planId ? await readPlan(body.planId) : null;
   if (!plan || plan.personId !== session.personId) {
     return NextResponse.json(
-      { error: "That plan has expired. Ask Cruxy again and it will make a fresh one." },
+      {
+        error:
+          "That plan has expired. Ask Cruxy again and it will make a fresh one.",
+      },
       { status: 400 },
     );
   }
 
-  if (plan.action === "roles.assign" && plan.teamId) {
+  try {
     const person = await getPersonById(session.personId);
-    if (!person || !canSetCaseRole(person, session, plan.teamId)) {
-      return NextResponse.json(
-        { error: "Only a case lead, Dr. B or Jainam can change roles for this team." },
-        { status: 403 },
-      );
-    }
-    try {
-      await applyRolePlan({
-        teamId: plan.teamId,
-        actorId: session.personId,
-        assignments: plan.data.assignments,
-        replaceCases: plan.data.replace,
-      });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "";
-      return NextResponse.json(
-        { error: msg || "That did not go through. Nothing was changed." },
-        { status: 409 },
-      );
-    }
+    const result = await applySignedPlan({ plan, session, person });
     return NextResponse.json({
-      message: `Done. ${plan.data.assignments.length} roles are set, and everyone affected gets a notification.`,
+      message: result.message,
+      navigate: result.navigate ?? null,
     });
+  } catch (err) {
+    const status =
+      err && typeof err === "object" && "status" in err
+        ? Number((err as { status: number }).status)
+        : 409;
+    const msg = err instanceof Error ? err.message : "";
+    return NextResponse.json(
+      { error: msg || "That did not go through. Nothing was changed." },
+      { status: status === 403 || status === 400 ? status : 409 },
+    );
   }
-
-  return NextResponse.json({ error: "I do not know how to apply that yet." }, { status: 400 });
 }

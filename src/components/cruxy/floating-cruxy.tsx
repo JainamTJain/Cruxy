@@ -187,6 +187,7 @@ export function FloatingCruxy() {
       });
       const data = (await res.json().catch(() => ({}))) as {
         message?: string;
+        navigate?: string | null;
         error?: string;
       };
       setPlan(null);
@@ -197,6 +198,9 @@ export function FloatingCruxy() {
       );
       if (res.ok) {
         window.dispatchEvent(new CustomEvent("crux:data-changed"));
+        if (data.navigate) {
+          window.location.assign(data.navigate);
+        }
       }
     } finally {
       setPlanBusy(false);
