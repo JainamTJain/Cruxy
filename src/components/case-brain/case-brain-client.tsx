@@ -45,8 +45,6 @@ const MORE_SECTIONS = new Set<MoreSection>([
   "ideas",
   "map",
   "truth",
-  "flashcards",
-  "questions",
   "research",
 ]);
 
@@ -61,6 +59,10 @@ function resolveTabParam(raw: string | null): {
   if (raw === "working") return { primary: "working", more: null };
   if (raw === "one_pager" || raw === "one-pager") {
     return { primary: "one_pager", more: null };
+  }
+  // Flashcards / Questions moved to Practice (case workflow v2).
+  if (raw === "flashcards" || raw === "questions") {
+    return { primary: "more", more: null };
   }
   if (raw === "more") return { primary: "more", more: null };
   if (MORE_SECTIONS.has(raw as MoreSection)) {
@@ -661,12 +663,14 @@ export function CaseBrainClient({
                     More for this case
                   </h2>
                   <p className="mt-1 text-sm text-muted">
-                    Claim map, evidence, cards, questions, research and history.
+                    Claim map, evidence, research and history. Study cards and
+                    questions live in Practice.
                   </p>
                 </div>
                 <CaseMoreList
                   active={moreSection}
                   onPick={setMoreSection}
+                  caseId={caseId}
                   counts={{
                     truth: meta.truth_count,
                     flashcard: meta.flashcard_count,
@@ -927,26 +931,20 @@ export function CaseBrainClient({
                 <section className="flex flex-wrap items-center justify-between gap-4 rounded-[20px] bg-white px-[22px] py-[18px]">
                   <span className="text-sm leading-snug">
                     <strong>
-                      Flashcards from these readings, {meta.flashcard_count}{" "}
+                      Study this case in Practice, {meta.flashcard_count}{" "}
                       cards.
                     </strong>{" "}
+                    Decks follow your role
                     {leadNames.length
-                      ? `Leads ${leadNames.join(" and ")} get them automatically`
-                      : "Leads get them automatically"}
-                    {meta.also_studying.length
-                      ? `. Also studying: ${meta.also_studying.join(", ")} `
-                      : ". "}
-                    {meta.also_studying.length ? (
-                      <span className="font-semibold text-[#8A6500]">
-                        (not assigned)
-                      </span>
-                    ) : null}
+                      ? `. Leads ${leadNames.join(" and ")} get the deep deck`
+                      : ""}
+                    .
                   </span>
                   <Link
-                    href={`/revision/flashcards?caseId=${caseId}`}
+                    href={`/practice/study?caseId=${encodeURIComponent(caseId)}`}
                     className="rounded-xl bg-ink px-[18px] py-3 text-sm font-semibold text-white"
                   >
-                    Study the deck
+                    Open decks
                   </Link>
                 </section>
               </>
@@ -1000,35 +998,6 @@ export function CaseBrainClient({
                     </article>
                   ))
                 )}
-              </section>
-            ) : null}
-
-            {tab === "more" && moreSection === "flashcards" ? (
-              <section className="rounded-[20px] bg-white p-5">
-                <p className="text-sm">
-                  {meta.flashcard_count} cards for this case. Leads get the deck
-                  automatically.
-                </p>
-                <Link
-                  href={`/revision/flashcards?caseId=${caseId}`}
-                  className="mt-3 inline-flex rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-white"
-                >
-                  Study the deck
-                </Link>
-              </section>
-            ) : null}
-
-            {tab === "more" && moreSection === "questions" ? (
-              <section className="rounded-[20px] bg-white p-5">
-                <p className="text-sm">
-                  {meta.question_count} questions in the bank for this case.
-                </p>
-                <Link
-                  href={`/revision/questions?caseId=${caseId}`}
-                  className="mt-3 inline-flex rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-white"
-                >
-                  Open the bank
-                </Link>
               </section>
             ) : null}
 
