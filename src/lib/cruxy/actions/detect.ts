@@ -47,6 +47,27 @@ export function looksLikeTodayPlan(message: string): boolean {
   );
 }
 
+/** Member offering an idea for the working document (Tell Cruxy an idea). */
+export function looksLikeTellIdea(message: string): boolean {
+  return (
+    /\b(idea|thought|what if|i think|consider|we should|maybe we)\b/i.test(
+      message,
+    ) &&
+    (/\b(tell cruxy|add (this|it|my idea)|suggestion|working (doc|document)|for the (team|doc))\b/i.test(
+      message,
+    ) ||
+      /\b(my idea is|here'?s an idea|idea:)\b/i.test(message))
+  );
+}
+
+export function looksLikeCoherenceCheck(message: string): boolean {
+  return (
+    /\b(coherence|hold together|loose ends?|missing (perspective|stakeholder)|connect(s|ed)? to (the )?answer)\b/i.test(
+      message,
+    ) && /\b(check|review|look|find|scan)\b/i.test(message)
+  );
+}
+
 /** True when the message should go straight to /api/cruxy/act (no ask-first). */
 export function looksLikeActRequest(message: string): boolean {
   return (
@@ -56,6 +77,8 @@ export function looksLikeActRequest(message: string): boolean {
     looksLikeEvidenceQueue(message) ||
     looksLikeFlashcards(message) ||
     looksLikeDrillStart(message) ||
-    looksLikeTodayPlan(message)
+    looksLikeTodayPlan(message) ||
+    looksLikeTellIdea(message) ||
+    looksLikeCoherenceCheck(message)
   );
 }

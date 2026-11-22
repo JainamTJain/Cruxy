@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  canSeeAllTeams,
+  resolveVisibleTeamId,
+} from "@/lib/auth/team-privacy";
 import { requireMemberSession } from "@/lib/case-brain/auth";
 import { ensureDemoProposalQueue } from "@/lib/case-brain/ensure-demo-queue";
 import { ensureClaimMapVersion } from "@/lib/case-brain/ensure-map-version";
@@ -42,7 +46,22 @@ export async function GET(_req: Request, { params }: Params) {
 
   const { caseId } = await params;
   const url = new URL(_req.url);
-  const teamId = url.searchParams.get("teamId") ?? auth.teamId;
+  const me = await getPersonById(auth.session.personId);
+  if (!me) {
+    return NextResponse.json({ error: "Unknown person" }, { status: 401 });
+  }
+  const { teamId } = resolveVisibleTeamId({
+    person: me,
+    session: auth.session,
+    requested: url.searchParams.get("teamId"),
+  });
+  if (!teamId) {
+    return NextResponse.json(
+      { error: "Case brain needs a team membership." },
+      { status: 403 },
+    );
+  }
+  const seeAll = canSeeAllTeams(me, auth.session);
 
   // Independent setup steps run together; each is a no-op once data exists.
   await Promise.all([
@@ -81,7 +100,15 @@ export async function GET(_req: Request, { params }: Params) {
       }),
     ),
   );
-  const refreshed = await getCaseBrain(teamId, caseId);
+  const refreshedRaw = await getCaseBrain(teamId, caseId);
+  // Members never see other teams' decisions or claim scores on this case.
+  const refreshed = seeAll
+    ? refreshedRaw
+    : {
+        ...refreshedRaw,
+        peer_decisions_by_idea: {},
+        peer_claim_scores: {},
+      };
 
   const [teams, cases, peopleFull, flashcards, questions, mapVersion, versions, optIns, researchRuns, libraryFiles] =
     await Promise.all([
@@ -108,9 +135,14 @@ export async function GET(_req: Request, { params }: Params) {
     ? await listConfirmations(mapVersion.id)
     : [];
 
-  const canEdit = teamId === auth.teamId;
-  const me = await getPersonById(auth.session.personId);
+  const canEdit = teamId === auth.teamId || seeAll;
   const teamPeople = people.filter((p) => p.team_id === teamId);
+  const visibleTeams = seeAll
+    ? teams
+    : teams.filter((t) => t.id === teamId);
+  const visiblePeople = seeAll
+    ? people
+    : people.filter((p) => p.team_id === teamId);
   const confirmedIds = new Set(confirmations.map((c) => c.person_id));
   const unconfirmedNames = teamPeople
     .filter((p) => !confirmedIds.has(p.id))
@@ -158,8 +190,8 @@ export async function GET(_req: Request, { params }: Params) {
 
   return NextResponse.json({
     case: caseRow,
-    teams,
-    people,
+    teams: visibleTeams,
+    people: visiblePeople,
     brain: refreshed,
     research: latestResearch
       ? {
@@ -173,10 +205,11 @@ export async function GET(_req: Request, { params }: Params) {
         }
       : null,
     canEdit,
+    canSeeAllTeams: seeAll,
     viewer: {
       personId: auth.session.personId,
       teamId: auth.teamId,
-      name: me?.name ?? auth.session.name,
+      name: me.name ?? auth.session.name,
     },
     meta: {
       truth_count: truthAccepted,

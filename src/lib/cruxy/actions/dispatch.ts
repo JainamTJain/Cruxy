@@ -11,6 +11,10 @@ import {
   planEvidenceQueue,
   planFlashcards,
 } from "@/lib/cruxy/actions/case-actions";
+import {
+  looksLikeCoherenceCheck,
+  looksLikeTellIdea,
+} from "@/lib/cruxy/actions/detect";
 import { looksLikeDrillStart, planDrillStart } from "@/lib/cruxy/actions/drill";
 import {
   answerWhoHasMostLeads,
@@ -20,6 +24,7 @@ import {
   looksLikeRolesRequest,
   planRolesFromMessage,
 } from "@/lib/cruxy/actions/roles";
+import { planTellIdea } from "@/lib/cruxy/actions/tell-idea";
 import {
   looksLikeTodayPlan,
   planToday20,
@@ -81,7 +86,9 @@ export async function planPageAction(input: {
       if (
         looksLikeBriefDecide(msg) ||
         looksLikeEvidenceQueue(msg) ||
-        looksLikeFlashcards(msg)
+        looksLikeFlashcards(msg) ||
+        looksLikeTellIdea(msg) ||
+        looksLikeCoherenceCheck(msg)
       ) {
         return {
           kind: "say",
@@ -92,6 +99,43 @@ export async function planPageAction(input: {
         };
       }
       return { kind: "not_action" };
+    }
+    if (looksLikeTellIdea(msg)) {
+      return planTellIdea({
+        message: msg,
+        page,
+        caseId: input.caseId,
+        teamId: input.teamId,
+        personId: input.personId,
+      });
+    }
+    if (looksLikeCoherenceCheck(msg)) {
+      const caseId =
+        input.caseId ??
+        page.match(/\/(?:case-brain|team\/cases)\/([0-9a-f-]{36})/i)?.[1] ??
+        null;
+      if (!caseId) {
+        return {
+          kind: "say",
+          text: cannotDoYet(
+            "check coherence",
+            "Open the case working document, then ask me again.",
+          ),
+        };
+      }
+      return {
+        kind: "plan",
+        action: "doc.coherence",
+        summary:
+          "I would review your working document for missing perspectives, loose ends, and claims that do not connect to your answer. Each finding becomes a suggestion. Nothing changes until you tap Apply.",
+        lines: [
+          "Missing perspectives and stakeholders",
+          "Claims that do not connect to the one-sentence answer",
+          "Loose ends judges may press",
+        ],
+        data: { caseId },
+        teamId: input.teamId,
+      };
     }
     if (looksLikeBriefDecide(msg)) {
       return planBriefDecide({
@@ -155,7 +199,9 @@ export async function planPageAction(input: {
   if (
     (looksLikeBriefDecide(msg) ||
       looksLikeEvidenceQueue(msg) ||
-      looksLikeFlashcards(msg)) &&
+      looksLikeFlashcards(msg) ||
+      looksLikeTellIdea(msg) ||
+      looksLikeCoherenceCheck(msg)) &&
     !page.startsWith("/case-brain") &&
     !page.startsWith("/team/cases")
   ) {

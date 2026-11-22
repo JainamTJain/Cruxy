@@ -484,6 +484,21 @@ export async function saveWorkingSectionBody(opts: {
     target: row.id,
     meta: { sectionKey: opts.sectionKey },
   });
+  // Strong section text may travel anonymously to other teams.
+  if (opts.body.trim().split(/\s+/).length >= 18) {
+    void import("@/lib/working-doc/idea-travel")
+      .then(({ evaluateAndMaybeTravel }) =>
+        evaluateAndMaybeTravel({
+          caseId: opts.caseId,
+          sourceTeamId: opts.teamId,
+          sourceKind: "working_section",
+          sourceRef: `${opts.sectionKey}:${row.id}`,
+          ideaText: opts.body,
+          personId: opts.personId,
+        }),
+      )
+      .catch(() => undefined);
+  }
   return row;
 }
 
@@ -537,6 +552,21 @@ export async function tickSuggestion(opts: {
     target: decided.id,
     meta: { checklistId: item.id },
   });
+
+  // Accepted suggestions may travel anonymously if Cruxy scores them strong.
+  void import("@/lib/working-doc/idea-travel")
+    .then(({ evaluateAndMaybeTravel }) =>
+      evaluateAndMaybeTravel({
+        caseId: opts.caseId,
+        sourceTeamId: opts.teamId,
+        sourceKind: "accepted_suggestion",
+        sourceRef: decided.id,
+        ideaText: decided.text,
+        personId: opts.personId,
+      }),
+    )
+    .catch(() => undefined);
+
   return { suggestion: decided, checklistItem: item };
 }
 
@@ -645,4 +675,60 @@ export async function getBriefForWorkingPath(
   caseId: string,
 ): Promise<TeamBriefRow | null> {
   return getTeamBrief(teamId, caseId);
+}
+
+/** Member tells Cruxy an idea from the working document UI (with their name). */
+export async function tellIdeaFromWorkingDoc(opts: {
+  caseId: string;
+  teamId: string;
+  personId: string;
+  text: string;
+}) {
+  const people = await listPeopleFull();
+  const name =
+    people.find((p) => p.id === opts.personId)?.name?.split(" ")[0] ??
+    "A teammate";
+  const cleaned = opts.text
+    .trim()
+    .replace(/^(i think|maybe|what if|idea:|my idea is)\s*/i, "")
+    .replace(/[·—–]/g, ",");
+  if (cleaned.length < 8) {
+    throw new Error("Write a bit more so the team can tick or cross it.");
+  }
+  const brief = await ensureTeamBrief(opts);
+  const suggestionText = cleaned.endsWith(".")
+    ? `${name}'s idea: ${cleaned}`
+    : `${name}'s idea: ${cleaned}.`;
+  const sug = await insertSuggestion({
+    case_id: opts.caseId,
+    team_id: opts.teamId,
+    brief_id: brief.id,
+    kind: "sharper",
+    text: suggestionText.slice(0, 500),
+    citation: null,
+    paragraph_anchor: null,
+    section_key: null,
+    source: "member",
+    truth_item_id: null,
+    created_by: opts.personId,
+  });
+  void import("@/lib/working-doc/idea-travel")
+    .then(({ evaluateAndMaybeTravel }) =>
+      evaluateAndMaybeTravel({
+        caseId: opts.caseId,
+        sourceTeamId: opts.teamId,
+        sourceKind: "told_cruxy",
+        sourceRef: sug.id,
+        ideaText: cleaned,
+        personId: opts.personId,
+      }),
+    )
+    .catch(() => undefined);
+  await logActivity({
+    person_id: opts.personId,
+    action: "working_doc_idea_told",
+    target: sug.id,
+    meta: { caseId: opts.caseId, via: "working_document" },
+  });
+  return sug;
 }
