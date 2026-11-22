@@ -58,7 +58,8 @@ function defaultLampPos(w: number, h: number): Pos {
 
 export function CruxyLamp() {
   const { awake, wake, sleep, lampMotion } = useCruxy();
-  const [pos, setPos] = useState<Pos>({ x: 24, y: 120 });
+  // Off-screen until placed on mount, so it never flashes over the sidebar.
+  const [pos, setPos] = useState<Pos>({ x: -9999, y: -9999 });
   const [dragging, setDragging] = useState(false);
   const posRef = useRef(pos);
   posRef.current = pos;

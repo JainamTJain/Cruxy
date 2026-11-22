@@ -89,7 +89,9 @@ export function ReportProblemButton() {
           setError(null);
         }}
         className={cn(
-          "fixed bottom-[96px] right-3 z-40 rounded-full border border-ink/15 bg-white px-3 py-2 text-xs font-semibold text-ink shadow-[0_6px_20px_rgba(17,19,24,0.12)] sm:bottom-6 sm:right-6",
+          // On phones it sits bottom left, clear of the lamp. From sm up it lives in
+          // the empty part of the dark sidebar, so it never covers page content.
+          "fixed bottom-[96px] left-3 z-40 rounded-full border border-ink/15 bg-white px-3 py-2 text-xs font-semibold text-ink shadow-[0_6px_20px_rgba(17,19,24,0.12)] sm:bottom-[136px] sm:left-6 sm:border-white/15 sm:bg-white/10 sm:text-white sm:shadow-none sm:hover:bg-white/20",
         )}
         aria-label="Report a problem or suggest something"
       >

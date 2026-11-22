@@ -794,7 +794,16 @@ function SuggestionCard({
           {s.citation}
         </p>
       ) : null}
-      <Attr name={s.created_by_name} when={s.created_at_label} />
+      <Attr
+        name={
+          s.source === "cruxy"
+            ? "Cruxy"
+            : s.source === "member"
+              ? s.created_by_name
+              : "Evidence Library"
+        }
+        when={s.created_at_label}
+      />
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <button
           type="button"

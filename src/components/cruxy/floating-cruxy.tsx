@@ -78,6 +78,8 @@ function posFromLamp(w: number, h: number): Pos | null {
   const lamp = document.getElementById("cruxy-lamp");
   if (!lamp) return null;
   const r = lamp.getBoundingClientRect();
+  // Not placed yet (still off-screen): fall back to the default corner.
+  if (r.right <= 0 || r.bottom <= 0) return null;
   const size = figureFor(w);
   return clampToViewport(
     {
@@ -167,8 +169,9 @@ export function FloatingCruxy() {
         return;
       }
       setSources(Array.isArray(data.citations) ? data.citations.length : 0);
-      setBubble(data.text ?? "I do not have an answer for that yet.");
+      // Mood first: its own line must never replace the answer.
       emitCruxyEvent("feedback.answered_well");
+      setBubble(data.text ?? "I do not have an answer for that yet.");
     } catch {
       setBubble("I could not reach Cruxy just now. Try again in a moment.");
     } finally {
@@ -212,10 +215,20 @@ export function FloatingCruxy() {
   useEffect(() => {
     const w = window.innerWidth;
     const h = window.innerHeight;
-    const fromLamp = posFromLamp(w, h);
     const saved = loadPos();
-    const start = fromLamp ?? saved ?? { x: 24, y: 120 };
-    setPos(clampToViewport(start, w, h));
+    // Default: bottom right, clear of the sidebar navigation.
+    const size = figureFor(w);
+    const corner = { x: w - size - 24, y: h - size * ASPECT - 96 };
+    setPos(clampToViewport(saved ?? corner, w, h));
+    // Rise from the lamp once the lamp has been placed (two frames later);
+    // reading it sooner gets its placeholder spot over the sidebar.
+    let raf2 = 0;
+    const raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        const fromLamp = posFromLamp(window.innerWidth, window.innerHeight);
+        if (fromLamp) setPos(fromLamp);
+      });
+    });
     const onResize = () => {
       setVw(window.innerWidth);
       setPos((p) => clampToViewport(p, window.innerWidth, window.innerHeight));
@@ -235,6 +248,8 @@ export function FloatingCruxy() {
     window.addEventListener("resize", onResize);
     window.addEventListener("cruxy-prefs-pos", onPrefsPos);
     return () => {
+      window.cancelAnimationFrame(raf1);
+      window.cancelAnimationFrame(raf2);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("cruxy-prefs-pos", onPrefsPos);
     };

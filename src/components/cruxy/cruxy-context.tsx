@@ -62,7 +62,8 @@ export function CruxyProvider({ children }: { children: React.ReactNode }) {
   const [recordingOrTimed, setRecordingOrTimed] = useState(false);
   const [highlight, setHighlight] = useState<string | null>(null);
   const [caseId, setCaseId] = useState<string | null>(null);
-  const [bubble, setBubble] = useState<string | null>(CALL_QUESTION);
+  // The chat opens only when someone calls Cruxy, never on page load.
+  const [bubble, setBubble] = useState<string | null>(null);
   const [lampMotion, setLampMotion] = useState<LampMotion>(null);
   const [floatMotion, setFloatMotion] = useState<"enter" | "exit" | null>(null);
   const moodTimer = useRef<number | null>(null);
