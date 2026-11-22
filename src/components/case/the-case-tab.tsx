@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { ThreadInline } from "@/components/discussion/thread-inline";
 import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
 import type { CaseHomePayload } from "@/lib/case-home/types";
 import { cn } from "@/lib/utils";
@@ -396,6 +397,15 @@ export function TheCaseTab({ caseId, teamId, initial = null, className }: Props)
                   <span className="text-muted"> on “{q.range.slice(0, 60)}”</span>
                 ) : null}
                 <p className="m-0 mt-1">{q.body.replace(/^Question: /, "")}</p>
+                <ThreadInline
+                  caseId={caseId}
+                  teamId={teamId}
+                  kind="annotation"
+                  targetId={q.id}
+                  title={
+                    q.body.replace(/^Question: /, "").slice(0, 80) || "Question"
+                  }
+                />
               </li>
             ))}
           </ul>
@@ -417,6 +427,13 @@ export function TheCaseTab({ caseId, teamId, initial = null, className }: Props)
                   <span className="text-muted"> on “{n.range.slice(0, 40)}”</span>
                 ) : null}
                 <p className="m-0 mt-1">{n.body}</p>
+                <ThreadInline
+                  caseId={caseId}
+                  teamId={teamId}
+                  kind="annotation"
+                  targetId={n.id}
+                  title={n.body.slice(0, 80) || "Note"}
+                />
               </li>
             ))}
           </ul>

@@ -520,6 +520,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
               label="one-sentence answer"
               placeholder="Tap to write the answer"
               displayClassName="text-white"
+              discussion={{ caseId, teamId, fieldKey: "thesis" }}
               onSave={async (next) => {
                 const language = { ...ensureLanguage(page.body), plain: next };
                 const visuals = syncThesisVisual(page.body.visuals, next);
@@ -558,6 +559,11 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                 multiline
                 label={`claim ${i + 1}`}
                 displayClassName="text-[15px] font-semibold"
+                discussion={{
+                  caseId,
+                  teamId,
+                  fieldKey: `claim_${i}_text`,
+                }}
                 onSave={async (next) => {
                   const claims = page.body.claims.map((row, j) =>
                     j === i ? { ...row, text: next } : row,
@@ -574,6 +580,11 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                 multiline
                 label={`logic ${i + 1}`}
                 displayClassName="text-sm"
+                discussion={{
+                  caseId,
+                  teamId,
+                  fieldKey: `claim_${i}_logic`,
+                }}
                 onSave={async (next) => {
                   const claims = page.body.claims.map((row, j) =>
                     j === i ? { ...row, logic_line: next } : row,

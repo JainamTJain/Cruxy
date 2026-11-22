@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -213,8 +214,9 @@ export default function TeamChatPage() {
           Team chat
         </h1>
         <p className="mt-2 max-w-xl text-sm text-muted">
-          Named conversations for the whole team, each case, and leads. Type @
-          to mention someone. Mentions show in notifications and on Home.
+          Whole team chat is always here. Case chats appear when someone starts
+          a thread on that case; open the case to keep discussing where the work
+          is. Type @ to mention someone.
         </p>
       </div>
 
@@ -264,7 +266,8 @@ export default function TeamChatPage() {
           ))}
           {!conversations.length ? (
             <p className="px-1 text-sm text-muted">
-              No conversations yet. They appear once your team is set up.
+              Whole team chat is missing. Tap refresh on this page, or ask Dr. B
+              to confirm you are on a team.
             </p>
           ) : null}
         </aside>
@@ -279,8 +282,24 @@ export default function TeamChatPage() {
               <p className="m-0 mt-1 text-sm text-muted">
                 {active.audience} {active.purpose}
               </p>
+              {active.case_id ? (
+                <p className="m-0 mt-2 text-sm">
+                  <Link
+                    href={`/case-brain/${active.case_id}?tab=reading&discussion=1`}
+                    className="font-semibold text-cardinal underline"
+                  >
+                    Open this case (discussion lives there)
+                  </Link>
+                </p>
+              ) : null}
             </header>
-          ) : null}
+          ) : (
+            <header className="border-b border-[#ECEEF1] px-4 py-3">
+              <p className="m-0 text-sm text-muted">
+                Pick Whole team on the left to start talking.
+              </p>
+            </header>
+          )}
 
           <div
             ref={listRef}
