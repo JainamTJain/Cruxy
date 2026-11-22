@@ -840,7 +840,7 @@ export default function RolesBoardPage() {
                       }))
                     }
                   >
-                    <option value="">Not set</option>
+                    <option value="">No role</option>
                     {board.people.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}

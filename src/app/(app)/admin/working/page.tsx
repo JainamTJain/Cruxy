@@ -100,7 +100,7 @@ export default function WorkingPage() {
               Avg score delta:{" "}
               <span className="font-mono">
                 {data.outcomes.avgDelta == null
-                  ? "Not set"
+                  ? "No data yet"
                   : data.outcomes.avgDelta.toFixed(2)}
               </span>
             </li>
@@ -108,7 +108,7 @@ export default function WorkingPage() {
               Lift rate:{" "}
               <span className="font-mono">
                 {data.outcomes.liftRate == null
-                  ? "Not set"
+                  ? "No data yet"
                   : `${Math.round(data.outcomes.liftRate * 100)}%`}
               </span>
             </li>
@@ -116,7 +116,7 @@ export default function WorkingPage() {
               Judge agree:{" "}
               <span className="font-mono">
                 {data.outcomes.judgeAgreeRate == null
-                  ? "Not set"
+                  ? "No data yet"
                   : `${Math.round(data.outcomes.judgeAgreeRate * 100)}%`}
               </span>
             </li>

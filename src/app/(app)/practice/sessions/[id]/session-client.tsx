@@ -231,7 +231,7 @@ export function SessionClient() {
 
   const codeDisplay = code
     ? `${code.slice(0, 3)} ${code.slice(3)}`.trim()
-    : "Not set";
+    : "No code yet";
 
   const qrUrl =
     typeof window !== "undefined"
