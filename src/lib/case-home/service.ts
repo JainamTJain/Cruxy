@@ -49,7 +49,7 @@ async function ensureSegmentsForFiles(
       passages,
       caseId,
     });
-    await replaceFileSegments(file.id, segments);
+    await replaceFileSegments(file.id, segments, caseId);
   }
 }
 
@@ -81,17 +81,24 @@ export async function getCaseHome(args: {
       f.case_numbers.includes(caseRow.number),
   );
 
-  await ensureSegmentsForFiles(caseFiles, caseId);
-  const segments = await listSegmentsForCase(caseId);
-  const segments_by_file: CaseHomePayload["segments_by_file"] = {};
-  for (const s of segments) {
-    (segments_by_file[s.file_id] ??= []).push(s);
-  }
-
   const caseSet =
     caseFiles.find((f) => f.type === "case_set") ??
     caseFiles.find((f) => /case set|ieb/i.test(f.name)) ??
     null;
+  // The case set covers every case; its own section is shown in Reading, so
+  // it is not distilled or listed as a separate reading.
+  const readingFiles = caseFiles.filter(
+    (f) => f.type !== "case_set" && f.id !== caseSet?.id,
+  );
+
+  await ensureSegmentsForFiles(readingFiles, caseId);
+  const segments = await listSegmentsForCase(caseId);
+  const readingIds = new Set(readingFiles.map((f) => f.id));
+  const segments_by_file: CaseHomePayload["segments_by_file"] = {};
+  for (const s of segments) {
+    if (!readingIds.has(s.file_id)) continue;
+    (segments_by_file[s.file_id] ??= []).push(s);
+  }
 
   let paragraphs: CaseParagraph[] = [];
   let sources: { n: number; text: string }[] = [];
@@ -293,7 +300,7 @@ export async function getCaseHome(args: {
   }
   ideas.sort((a, b) => (a.at < b.at ? 1 : -1));
 
-  const files: CaseFileBrief[] = caseFiles.map((f) => {
+  const files: CaseFileBrief[] = readingFiles.map((f) => {
     const segs = segments_by_file[f.id] ?? [];
     const what = segs.find((s) => s.kind === "what")?.body ?? null;
     return {
