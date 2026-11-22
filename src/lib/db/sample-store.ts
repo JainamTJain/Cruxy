@@ -334,6 +334,8 @@ export interface SampleStore {
   solo_review_comments?: unknown[];
   solo_handoffs?: unknown[];
   solo_case_visits?: unknown[];
+  /** Case workflow v2: resumable solo Q in Practice. */
+  solo_qa_sessions?: import("@/lib/db/supabase/practice-study-extra").SoloQaSession[];
 }
 
 function emptyCaseBrainFields(): Pick<
@@ -897,6 +899,7 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     solo_review_comments: raw.solo_review_comments ?? [],
     solo_handoffs: raw.solo_handoffs ?? [],
     solo_case_visits: raw.solo_case_visits ?? [],
+    solo_qa_sessions: raw.solo_qa_sessions ?? [],
   };
 }
 

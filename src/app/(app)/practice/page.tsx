@@ -193,9 +193,35 @@ export default function PracticePage() {
   return (
     <main className="animate-fade-up space-y-8">
       <PageIntro title="Practice">
-        Run a drill or a full round alone or with your team. Pick a case, start,
-        then share the join code if others should come in.
+        Study flashcards by your role, answer solo questions, or run a drill or
+        full round with your team.
       </PageIntro>
+
+      <section className="rounded-[20px] border border-ink/10 bg-white p-5">
+        <h2 className="font-display m-0 text-xl font-extrabold">Study</h2>
+        <p className="mt-1 text-sm text-muted">
+          Flashcards from one pagers, ordered by role. Solo moderator and judge
+          questions with Cruxy feedback. This is the place to study.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            href="/practice/study"
+            className="inline-flex h-11 items-center rounded-xl bg-cardinal px-4 text-sm font-semibold text-white"
+          >
+            Open decks
+          </Link>
+          <Link
+            href={
+              caseId
+                ? `/practice/solo-qa?caseId=${encodeURIComponent(caseId)}`
+                : "/practice/solo-qa"
+            }
+            className="inline-flex h-11 items-center rounded-xl border border-ink/15 px-4 text-sm font-semibold"
+          >
+            Solo questions
+          </Link>
+        </div>
+      </section>
 
       <section className="flex flex-col gap-2 rounded-[20px] bg-white p-4 sm:flex-row sm:items-center">
         <p className="mr-auto text-sm text-muted">
