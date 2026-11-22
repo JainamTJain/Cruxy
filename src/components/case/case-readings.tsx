@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
+import { AnnotatablePassages } from "@/components/case/annotatable-passages";
+import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
 import type { CaseHomePayload } from "@/lib/case-home/types";
 import type { FileSegment } from "@/lib/library/segments";
 import { cn } from "@/lib/utils";
@@ -33,7 +34,8 @@ function sortSegs(segs: FileSegment[]): FileSegment[] {
 }
 
 /**
- * Distilled Drive readings for one case: short cards, full original one tap away.
+ * Distilled Drive readings for one case: short cards, full original in place
+ * with the same highlight / question / note tools as the case text.
  */
 export function CaseReadings({
   caseId,
@@ -77,8 +79,10 @@ export function CaseReadings({
 
   if (loading) {
     return (
-      <div className={cn("min-h-[200px]", className)}>
-        <LoadingGenie label="Sorting readings…" />
+      <div className={cn("flex flex-col gap-3", className)} aria-busy>
+        <Skeleton className="h-6 w-40" />
+        <Skeleton className="h-28 w-full" rounded="lg" />
+        <SkeletonBlock lines={3} />
       </div>
     );
   }
@@ -114,7 +118,8 @@ export function CaseReadings({
       <div>
         <h2 className="font-display m-0 text-xl font-extrabold">Readings</h2>
         <p className="mt-1 text-sm text-muted">
-          Short takes from Drive. Open the full file when you need the wording.
+          Short takes from Drive. Open a card to highlight, ask or note in
+          place.
         </p>
       </div>
 
@@ -167,18 +172,17 @@ export function CaseReadings({
                 onClick={() => setOpenFull(expanded ? null : f.id)}
                 className="rounded-xl border border-[#E3E5E9] bg-white px-3 py-2 text-sm font-semibold"
               >
-                {expanded ? "Hide full text" : "Full original"}
+                {expanded ? "Hide full text" : "Open in place"}
               </button>
-              <Link
-                href={`/library/${f.id}?fromCase=${caseId}`}
-                className="rounded-xl bg-ink px-3 py-2 text-sm font-semibold text-white"
-              >
-                Open in library
-              </Link>
             </div>
 
             {expanded ? (
-              <FullOriginal fileId={f.id} />
+              <div className="mt-3">
+                <FullOriginal
+                  fileId={f.id}
+                  caseAnnotations={data.annotations}
+                />
+              </div>
             ) : null}
           </article>
         );
@@ -187,9 +191,18 @@ export function CaseReadings({
   );
 }
 
-function FullOriginal({ fileId }: { fileId: string }) {
-  const [text, setText] = useState<string | null>(null);
+function FullOriginal({
+  fileId,
+  caseAnnotations,
+}: {
+  fileId: string;
+  caseAnnotations: CaseHomePayload["annotations"];
+}) {
+  const [passages, setPassages] = useState<
+    { id: string; text: string; ord: number }[] | null
+  >(null);
   const [err, setErr] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -200,36 +213,76 @@ function FullOriginal({ fileId }: { fileId: string }) {
         return;
       }
       const data = (await res.json()) as {
-        passages: { text: string; ord: number }[];
+        passages: { id: string; text: string; ord: number }[];
         file?: { text_content?: string | null };
       };
       if (cancelled) return;
-      const joined = data.passages
+      const rows = data.passages
         .slice()
         .sort((a, b) => a.ord - b.ord)
-        .map((p) => p.text)
-        .join("\n\n");
-      setText(joined || data.file?.text_content || "No text extracted.");
+        .map((p) => ({ id: p.id, text: p.text, ord: p.ord }));
+      if (rows.length === 0 && data.file?.text_content) {
+        setPassages([
+          {
+            id: `file-${fileId}`,
+            text: data.file.text_content,
+            ord: 0,
+          },
+        ]);
+      } else {
+        setPassages(rows);
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [fileId]);
+  }, [fileId, tick]);
 
-  if (err) return <p className="mt-3 text-sm text-cardinal">{err}</p>;
-  if (!text) {
+  if (err) return <p className="text-sm text-cardinal">{err}</p>;
+  if (!passages) {
     return (
-      <div className="mt-3 min-h-[80px]">
-        <LoadingGenie compact label="Loading full text…" size={40} />
+      <div className="flex flex-col gap-2" aria-busy>
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-5/6" />
+        <Skeleton className="h-4 w-4/6" />
       </div>
     );
   }
+
+  const passageIds = new Set(passages.map((p) => p.id));
+  const marks = caseAnnotations
+    .filter(
+      (a) =>
+        (a.kind === "highlight" || a.kind === "comment") &&
+        a.passage_id &&
+        passageIds.has(a.passage_id),
+    )
+    .map((a) => ({
+      needle: a.range && a.range !== "selection" ? a.range : a.body,
+      kind: a.kind as "highlight" | "comment",
+    }));
+
+  if (passages.length === 0) {
+    return <p className="text-sm text-muted">No text extracted.</p>;
+  }
+
+  // Synthetic file-level id cannot post highlights; show plain text.
+  if (passages.length === 1 && passages[0]!.id.startsWith("file-")) {
+    return (
+      <div
+        className="max-h-[320px] overflow-y-auto rounded-xl border border-[#E3E5E9] bg-[#F7F8FA] p-3 text-sm leading-relaxed whitespace-pre-wrap"
+        style={{ fontFamily: "var(--font-source-serif), Georgia, serif" }}
+      >
+        {passages[0]!.text}
+      </div>
+    );
+  }
+
   return (
-    <div
-      className="mt-3 max-h-[320px] overflow-y-auto rounded-xl border border-[#E3E5E9] bg-[#F7F8FA] p-3 text-sm leading-relaxed whitespace-pre-wrap"
-      style={{ fontFamily: "var(--font-source-serif), Georgia, serif" }}
-    >
-      {text}
-    </div>
+    <AnnotatablePassages
+      passages={passages.map((p) => ({ id: p.id, text: p.text }))}
+      marks={marks}
+      onSaved={() => setTick((n) => n + 1)}
+    />
   );
 }
