@@ -290,6 +290,12 @@ export default function TeamBoardPage() {
             Roles board
           </Link>
           <Link
+            href="/prepare"
+            className="inline-flex h-10 items-center rounded-xl border border-mist bg-white px-3 text-sm font-semibold text-ink"
+          >
+            My part
+          </Link>
+          <Link
             href="/team/calendar"
             className="inline-flex h-10 items-center px-2 text-sm text-muted underline-offset-2 hover:underline"
           >
