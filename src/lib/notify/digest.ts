@@ -61,10 +61,10 @@ export async function sendDailyNotificationDigests(): Promise<{
       const label =
         KIND_LABELS[row.kind as NotifyKind] ?? row.kind.replace(/_/g, " ");
       if (note) {
-        lines.push(`• [${label}] ${note.title}`);
+        lines.push(`- [${label}] ${note.title}`);
         if (note.body) lines.push(`  ${note.body}`);
       } else {
-        lines.push(`• [${label}] (open Crux to read)`);
+        lines.push(`- [${label}] (open Crux to read)`);
       }
     }
     lines.push("", "Open Crux to catch up: /notifications");
