@@ -14,6 +14,7 @@ import {
   type ReadingMark,
 } from "@/components/case/reading-tools";
 import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
+import { LinkedText } from "@/components/frameworks/linked-text";
 import { cn } from "@/lib/utils";
 
 type WorkingAnn = {
@@ -298,6 +299,7 @@ export function WorkingDocument({
         {path === "imported" ? (
           <ImportedDoc
             data={data}
+            caseId={caseId}
             busy={editBusy}
             suggestionsByAnchor={suggestionsByAnchor}
             crossReasons={crossReasons}
@@ -325,6 +327,7 @@ export function WorkingDocument({
         {path === "crux" ? (
           <CruxDoc
             data={data}
+            caseId={caseId}
             busy={editBusy}
             sectionDrafts={sectionDrafts}
             setSectionDrafts={setSectionDrafts}
@@ -486,6 +489,7 @@ function EmptyChoice({
 
 function SuggestionCard({
   s,
+  caseId,
   busy,
   reason,
   onReason,
@@ -493,6 +497,7 @@ function SuggestionCard({
   onCross,
 }: {
   s: Hub["suggestions"][number];
+  caseId: string;
   busy: boolean;
   reason: string;
   onReason: (v: string) => void;
@@ -505,7 +510,9 @@ function SuggestionCard({
         {KIND_LABEL[s.kind] ?? "Suggestion"}
         {s.source === "evidence_library" ? " · shared" : ""}
       </p>
-      <p className="m-0 mt-1 text-sm leading-snug">{s.text}</p>
+      <p className="m-0 mt-1 text-sm leading-snug">
+        <LinkedText text={s.text} caseId={caseId} />
+      </p>
       {s.citation ? (
         <p className="m-0 mt-1 font-mono text-[11px] text-muted">{s.citation}</p>
       ) : null}
@@ -545,6 +552,7 @@ function SuggestionCard({
 
 function ImportedDoc({
   data,
+  caseId,
   busy,
   suggestionsByAnchor,
   crossReasons,
@@ -556,6 +564,7 @@ function ImportedDoc({
   onCross,
 }: {
   data: Hub;
+  caseId: string;
   busy: boolean;
   suggestionsByAnchor: Map<string, Hub["suggestions"]>;
   crossReasons: Record<string, string>;
@@ -616,7 +625,7 @@ function ImportedDoc({
                         "var(--font-source-serif), Georgia, serif",
                     }}
                   >
-                    {renderMarkedText(p.text, marks)}
+                    {renderMarkedText(p.text, marks, caseId)}
                   </p>
                 </AnnotateSurface>
               </article>
@@ -632,6 +641,7 @@ function ImportedDoc({
                       <SuggestionCard
                         key={s.id}
                         s={s}
+                        caseId={caseId}
                         busy={busy}
                         reason={crossReasons[s.id] ?? ""}
                         onReason={(v) =>
@@ -659,6 +669,7 @@ function ImportedDoc({
               <SuggestionCard
                 key={s.id}
                 s={s}
+                caseId={caseId}
                 busy={busy}
                 reason={crossReasons[s.id] ?? ""}
                 onReason={(v) =>
@@ -677,6 +688,7 @@ function ImportedDoc({
 
 function CruxDoc({
   data,
+  caseId,
   busy,
   sectionDrafts,
   setSectionDrafts,
@@ -694,6 +706,7 @@ function CruxDoc({
   onCross,
 }: {
   data: Hub;
+  caseId: string;
   busy: boolean;
   sectionDrafts: Record<string, string>;
   setSectionDrafts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
@@ -804,7 +817,7 @@ function CruxDoc({
                     fontFamily: "var(--font-source-serif), Georgia, serif",
                   }}
                 >
-                  {renderMarkedText(draft, marks)}
+                  {renderMarkedText(draft, marks, caseId)}
                 </div>
               </AnnotateSurface>
             ) : null}
@@ -841,6 +854,7 @@ function CruxDoc({
                   <SuggestionCard
                     key={s.id}
                     s={s}
+                    caseId={caseId}
                     busy={busy}
                     reason={crossReasons[s.id] ?? ""}
                     onReason={(v) =>

@@ -50,7 +50,7 @@ export default async function CasePacketPage({ params, searchParams }: Props) {
     .map((q) => q.text);
 
   const stance =
-    brain.claims.map((n) => n.claim.text).join(" · ") ||
+    brain.claims.map((n) => n.claim.text).join(", ") ||
     caseRow.crux ||
     "Stance not set yet.";
 
@@ -70,7 +70,7 @@ export default async function CasePacketPage({ params, searchParams }: Props) {
 
       <article className="rounded-[20px] bg-white p-6 sm:p-10 print:rounded-none print:p-0">
         <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-muted">
-          Case packet · USC Ethics Bowl
+          Case packet, USC Ethics Bowl
         </p>
         <h1 className="font-display mt-2 text-3xl font-extrabold tracking-[-0.02em]">
           Case {caseRow.number}: {caseRow.title}

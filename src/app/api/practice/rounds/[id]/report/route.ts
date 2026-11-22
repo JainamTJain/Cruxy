@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import { getPersonById } from "@/lib/db/repository";
 import { getReport, getRoundById } from "@/lib/db/practice-repository";
 import { getReportExtras } from "@/lib/db/supabase/practice-extra";
+import { isAdminRole } from "@/lib/admin/permissions";
 import {
   isAdminViewer,
   redactPredictions,
@@ -37,6 +38,7 @@ export async function GET(
   const me = await getPersonById(session.personId);
   const tech = session.adminView && session.role === "tech_admin";
   const admin = isAdminViewer(me, session);
+  const coachOrTech = Boolean(me && isAdminRole(me.role));
 
   // Redos are personal: keep own (and unclaimed stubs); admins see all.
   const redos = admin
@@ -56,6 +58,7 @@ export async function GET(
       const redacted = redactPredictions(c, {
         viewerPersonId: session.personId,
         adminViewer: admin,
+        coachOrTech,
       });
       return {
         ...redacted,

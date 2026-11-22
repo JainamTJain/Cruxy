@@ -153,7 +153,7 @@ async function searchSampleAndLiveScan(input: {
       hits.push({
         kind: "evidence",
         id: t.id,
-        title: c ? `Evidence · Case ${c.number}` : "Evidence",
+        title: c ? `Evidence, Case ${c.number}` : "Evidence",
         snippet: clip(t.text),
         href: `/case-brain/${t.case_id}?tab=truth`,
         score,
@@ -196,7 +196,7 @@ async function searchSampleAndLiveScan(input: {
       hits.push({
         kind: "evidence",
         id: t.id,
-        title: c ? `Evidence · Case ${c.number}` : "Evidence",
+        title: c ? `Evidence, Case ${c.number}` : "Evidence",
         snippet: clip(t.text ?? ""),
         href: `/case-brain/${t.case_id}?tab=truth`,
         score: 0.6,
@@ -248,7 +248,7 @@ async function searchSampleAndLiveScan(input: {
       hits.push({
         kind: "brief",
         id: b.id,
-        title: c ? `Team Brief · Case ${c.number}` : "Team Brief",
+        title: c ? `Team Brief, Case ${c.number}` : "Team Brief",
         snippet: clip(thesis || `Mode: ${b.mode}`),
         href: `/case-brain/${b.case_id}?tab=brief`,
         score: Math.max(score, 0.4),
@@ -268,7 +268,7 @@ async function searchSampleAndLiveScan(input: {
     hits.push({
       kind: "flashcard",
       id: card.id,
-      title: c ? `Flashcard · Case ${c.number}` : "Flashcard",
+      title: c ? `Flashcard, Case ${c.number}` : "Flashcard",
       snippet: clip(card.front),
       href: card.case_id
         ? `/revision/flashcards?caseId=${card.case_id}`
@@ -288,7 +288,7 @@ async function searchSampleAndLiveScan(input: {
     hits.push({
       kind: "question",
       id: qq.id,
-      title: c ? `Question · Case ${c.number}` : "Question",
+      title: c ? `Question, Case ${c.number}` : "Question",
       snippet: clip(qq.text),
       href: `/revision/questions?caseId=${qq.case_id}`,
       score,
@@ -338,7 +338,7 @@ async function searchSampleAndLiveScan(input: {
       hits.push({
         kind: "brief",
         id: b.id,
-        title: c ? `Team Brief · Case ${c.number}` : "Team Brief",
+        title: c ? `Team Brief, Case ${c.number}` : "Team Brief",
         snippet: clip(b.thesis ?? b.mode),
         href: `/case-brain/${b.case_id}?tab=brief`,
         score,

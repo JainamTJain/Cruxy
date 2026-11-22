@@ -9,6 +9,7 @@ import {
   renderMarkedText,
   type ReadingMark,
 } from "@/components/case/reading-tools";
+import { LinkedText } from "@/components/frameworks/linked-text";
 import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
 import type { CaseHomePayload } from "@/lib/case-home/types";
 import { cn } from "@/lib/utils";
@@ -148,7 +149,7 @@ export function TheCaseTab({ caseId, teamId, initial = null, className }: Props)
                     (data.source === "case_set" ? p.id : undefined)
                   }
                 >
-                  {renderMarkedText(p.text, marks)}
+                  {renderMarkedText(p.text, marks, caseId)}
                 </p>
               ))}
             </div>
@@ -218,7 +219,10 @@ export function TheCaseTab({ caseId, teamId, initial = null, className }: Props)
                     </span>
                   ) : null}
                   <p className="m-0 mt-1">
-                    {q.body.replace(/^Question: /, "")}
+                    <LinkedText
+                      text={q.body.replace(/^Question: /, "")}
+                      caseId={caseId}
+                    />
                   </p>
                 </li>
               ))}
@@ -246,7 +250,9 @@ export function TheCaseTab({ caseId, teamId, initial = null, className }: Props)
                       on “{n.range.slice(0, 40)}”
                     </span>
                   ) : null}
-                  <p className="m-0 mt-1">{n.body}</p>
+                  <p className="m-0 mt-1">
+                    <LinkedText text={n.body} caseId={caseId} />
+                  </p>
                 </li>
               ))}
             </ul>

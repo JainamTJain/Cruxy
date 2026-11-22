@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { useCruxy } from "@/components/cruxy/cruxy-context";
+import { LinkedText } from "@/components/frameworks/linked-text";
 import {
   colorForPerson,
   formatWhen,
@@ -200,7 +201,11 @@ export function buildLegend(marks: ReadingMark[]) {
 }
 
 /** Render passage text with coloured highlights (never covered by popups). */
-export function renderMarkedText(text: string, marks: ReadingMark[]): ReactNode {
+export function renderMarkedText(
+  text: string,
+  marks: ReadingMark[],
+  caseId?: string | null,
+): ReactNode {
   const hits: {
     from: number;
     to: number;
@@ -213,14 +218,24 @@ export function renderMarkedText(text: string, marks: ReadingMark[]): ReactNode 
     if (idx >= 0) hits.push({ from: idx, to: idx + needle.length, mark: m });
   }
   hits.sort((a, b) => a.from - b.from);
-  if (!hits.length) return text;
+  if (!hits.length) {
+    return <LinkedText text={text} caseId={caseId} />;
+  }
 
   const nodes: ReactNode[] = [];
   let cursor = 0;
   let key = 0;
   for (const h of hits) {
     if (h.from < cursor) continue;
-    if (h.from > cursor) nodes.push(text.slice(cursor, h.from));
+    if (h.from > cursor) {
+      nodes.push(
+        <LinkedText
+          key={`l-${key++}`}
+          text={text.slice(cursor, h.from)}
+          caseId={caseId}
+        />,
+      );
+    }
     const slice = text.slice(h.from, h.to);
     const swatch = colorForPerson(h.mark.personKey || h.mark.personName);
     const who = h.mark.personName || "Someone";
@@ -237,7 +252,7 @@ export function renderMarkedText(text: string, marks: ReadingMark[]): ReactNode 
             boxShadow: `inset 0 -2px 0 ${swatch.border}`,
           }}
         >
-          {slice}
+          <LinkedText text={slice} caseId={caseId} />
         </mark>,
       );
     } else {
@@ -247,13 +262,21 @@ export function renderMarkedText(text: string, marks: ReadingMark[]): ReactNode 
           title={tip}
           className="border-b-2 border-[#0F7B6C] bg-[#D8EEEB]/70"
         >
-          {slice}
+          <LinkedText text={slice} caseId={caseId} />
         </span>,
       );
     }
     cursor = h.to;
   }
-  if (cursor < text.length) nodes.push(text.slice(cursor));
+  if (cursor < text.length) {
+    nodes.push(
+      <LinkedText
+        key={`l-${key++}`}
+        text={text.slice(cursor)}
+        caseId={caseId}
+      />,
+    );
+  }
   return nodes;
 }
 

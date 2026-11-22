@@ -28,6 +28,7 @@ type MarkIn = {
 /**
  * Shared reading tools for case text and full originals:
  * Highlighter toggle, right click / long press menu, coloured highlights.
+ * Framework terms stay linked via LinkedText inside marked text.
  */
 export function AnnotatablePassages({
   passages,
@@ -79,7 +80,7 @@ export function AnnotatablePassages({
                 className="m-0 mb-3 last:mb-0"
                 data-passage-id={p.id}
               >
-                {renderMarkedText(p.text, readingMarks)}
+                {renderMarkedText(p.text, readingMarks, caseId)}
               </p>
             ))}
           </div>

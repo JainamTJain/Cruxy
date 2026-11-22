@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AnnotatablePassages } from "@/components/case/annotatable-passages";
+import { LinkedText } from "@/components/frameworks/linked-text";
 import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
 import type { CaseHomePayload } from "@/lib/case-home/types";
 import type { FileSegment } from "@/lib/library/segments";
@@ -144,7 +145,9 @@ export function CaseReadings({
               </span>
             </div>
             {f.what ? (
-              <p className="mt-2 text-sm text-ink/85">{f.what}</p>
+              <p className="mt-2 text-sm text-ink/85">
+                <LinkedText text={f.what} caseId={caseId} />
+              </p>
             ) : null}
 
             <ul className="mt-3 m-0 list-none space-y-2 p-0">
@@ -164,7 +167,9 @@ export function CaseReadings({
                             ? s.speaker_name ?? "Speaker"
                             : "Note"}
                     </span>
-                    <p className="m-0 mt-0.5 text-ink">{s.body}</p>
+                    <p className="m-0 mt-0.5 text-ink">
+                      <LinkedText text={s.body} caseId={caseId} />
+                    </p>
                   </li>
                 ))}
             </ul>
@@ -286,10 +291,10 @@ function FullOriginal({
   if (passages.length === 1 && passages[0]!.id.startsWith("file-")) {
     return (
       <div
-        className="max-h-[320px] overflow-y-auto rounded-xl border border-[#E3E5E9] bg-[#F7F8FA] p-3 text-sm leading-relaxed whitespace-pre-wrap"
+        className="max-h-[320px] overflow-y-auto rounded-xl border border-[#E3E5E9] bg-[#F7F8FA] p-3 text-sm leading-relaxed"
         style={{ fontFamily: "var(--font-source-serif), Georgia, serif" }}
       >
-        {passages[0]!.text}
+        <LinkedText text={passages[0]!.text} caseId={caseId} preWrap />
       </div>
     );
   }

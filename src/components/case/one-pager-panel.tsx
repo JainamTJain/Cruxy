@@ -488,6 +488,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
             <OnePagerEditableField
               value={thesis}
               canEdit={canEdit}
+              caseId={caseId}
               multiline
               label="one-sentence answer"
               placeholder="Tap to write the answer"
@@ -527,6 +528,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
               <OnePagerEditableField
                 value={c.text}
                 canEdit={canEdit}
+              caseId={caseId}
                 multiline
                 label={`claim ${i + 1}`}
                 displayClassName="text-[15px] font-semibold"
@@ -543,6 +545,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
               <OnePagerEditableField
                 value={c.logic_line}
                 canEdit={canEdit}
+              caseId={caseId}
                 multiline
                 label={`logic ${i + 1}`}
                 displayClassName="text-sm"
@@ -585,6 +588,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                     <OnePagerEditableField
                       value={s}
                       canEdit={canEdit}
+              caseId={caseId}
                       multiline
                       label={`support ${i + 1}-${j + 1}`}
                       displayClassName="text-[13px] leading-snug"
@@ -643,6 +647,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
           <OnePagerEditableField
             value={page.body.counterclaim?.text ?? ""}
             canEdit={canEdit}
+              caseId={caseId}
             multiline
             label="counterclaim"
             displayClassName="text-[15px] font-semibold"
@@ -669,6 +674,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                   <OnePagerEditableField
                     value={page.body.counterclaim?.[key] ?? ""}
                     canEdit={canEdit}
+              caseId={caseId}
                     multiline
                     label={label}
                     placeholder="Tap to add"
@@ -694,6 +700,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
             <OnePagerEditableField
               value={values?.left ?? ""}
               canEdit={canEdit}
+              caseId={caseId}
               label="left value"
               placeholder="Left value"
               displayClassName="text-sm font-semibold"
@@ -707,6 +714,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
             <OnePagerEditableField
               value={values?.right ?? ""}
               canEdit={canEdit}
+              caseId={caseId}
               label="right value"
               placeholder="Right value"
               displayClassName="text-sm font-semibold"
@@ -722,6 +730,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
             <OnePagerEditableField
               value={values?.note ?? ""}
               canEdit={canEdit}
+              caseId={caseId}
               multiline
               label="values note"
               placeholder="Where we land"
@@ -744,6 +753,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
             <OnePagerEditableField
               value={page.body.language?.plain ?? ""}
               canEdit={canEdit}
+              caseId={caseId}
               multiline
               label="plain language"
               placeholder="Plain line"
@@ -756,6 +766,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
             <OnePagerEditableField
               value={page.body.language?.vivid ?? ""}
               canEdit={canEdit}
+              caseId={caseId}
               multiline
               label="vivid line"
               placeholder="Vivid example"
@@ -768,6 +779,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
             <OnePagerEditableField
               value={(page.body.language?.analogies ?? []).join("\n")}
               canEdit={canEdit}
+              caseId={caseId}
               multiline
               label="analogies"
               placeholder="One analogy per line"
@@ -787,6 +799,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
             <OnePagerEditableField
               value={(page.body.language?.avoid ?? []).join(", ")}
               canEdit={canEdit}
+              caseId={caseId}
               label="words to avoid"
               placeholder="Words to avoid, comma separated"
               displayClassName="text-sm"
