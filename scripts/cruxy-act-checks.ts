@@ -8,7 +8,8 @@ process.env.USE_SAMPLE_DATA = "1";
 process.env.SESSION_SECRET =
   process.env.SESSION_SECRET ?? "test-session-secret-for-cruxy-act";
 
-import { resetSampleStore, readStore } from "../src/lib/db/sample-store";
+import { randomUUID } from "crypto";
+import { resetSampleStore, readStore, updateStore } from "../src/lib/db/sample-store";
 import {
   looksLikeActRequest,
   looksLikeBriefDecide,
@@ -25,6 +26,7 @@ import {
 } from "../src/lib/cruxy/actions/types";
 import { answerWhoHasMostLeads } from "../src/lib/cruxy/actions/roles-info";
 import {
+  applyBriefDecide,
   planBriefDecide,
   planEvidenceQueue,
   planFlashcards,
@@ -39,7 +41,7 @@ import {
 import { planPageAction } from "../src/lib/cruxy/actions/dispatch";
 import { signPlan, readPlan } from "../src/lib/cruxy/actions/plan-token";
 import { getRolesBoard } from "../src/lib/team/roles-board-repository";
-import { createProposal } from "../src/lib/case-brain/service";
+import type { Proposal } from "../src/lib/case-brain/types";
 
 function assert(cond: unknown, msg: string) {
   if (!cond) throw new Error(`FAIL: ${msg}`);
@@ -153,17 +155,40 @@ async function main() {
     assert(applied.message.includes("Queued"), "evidence applied");
   }
 
-  // Brief decide: seed a pending proposal then plan
-  const proposal = await createProposal({
-    teamId: team3.id,
-    caseId: caseRow.id,
-    personId: actor.id,
-    text: "Teams should publish consent language before recording.",
-    kind: "fact",
-    origin: "member",
-  });
+  // Brief decide: inject pending rows directly so fire-and-forget notify
+  // from createProposal cannot race the sample store between plan calls.
+  async function injectPending(text: string): Promise<Proposal> {
+    const now = new Date().toISOString();
+    const proposal: Proposal = {
+      id: randomUUID(),
+      team_id: team3.id,
+      case_id: caseRow.id,
+      idea_key: `act-check-${randomUUID()}`,
+      origin: "member",
+      origin_ref: "cruxy:act:check",
+      inspired_from_team_id: null,
+      text,
+      kind: "fact",
+      citation_ids: [],
+      cruxy_note: null,
+      socratic_question: null,
+      socratic_answered: true,
+      status: "pending",
+      created_at: now,
+      created_by: actor.id,
+      updated_at: now,
+    };
+    await updateStore((s) => {
+      s.proposals.push(proposal);
+    });
+    return proposal;
+  }
+
+  const acceptTarget = await injectPending(
+    "Teams should publish consent language before recording.",
+  );
   const acceptPlan = await planBriefDecide({
-    message: "Accept this Team Brief suggestion",
+    message: `Accept this Team Brief suggestion: ${acceptTarget.text}`,
     page: `/case-brain/${caseRow.id}`,
     caseId: caseRow.id,
     teamId: team3.id,
@@ -173,15 +198,29 @@ async function main() {
   if (acceptPlan.kind === "plan") {
     assert(acceptPlan.action === "brief.accept", "brief accept action");
     assert(
-      (acceptPlan.data as { proposalId: string }).proposalId === proposal.id ||
-        typeof (acceptPlan.data as { proposalId: string }).proposalId ===
-          "string",
+      (acceptPlan.data as { proposalId: string }).proposalId === acceptTarget.id,
       "brief picks a proposal",
     );
+    const accepted = await applyBriefDecide({
+      data: acceptPlan.data as {
+        proposalId: string;
+        verdict: "accept" | "reject";
+        text: string;
+        caseId: string;
+      },
+      personId: actor.id,
+      teamId: team3.id,
+    });
+    assert(accepted.message.includes("Accepted"), "brief accept applied");
   }
 
+  // Re-seed a clean store so accept fan-out cannot race the reject apply.
+  await resetSampleStore();
+  const rejectTarget = await injectPending(
+    "Reject-me: recording without a clear opt-in is not fine.",
+  );
   const rejectPlan = await planBriefDecide({
-    message: "Reject this Team Brief suggestion",
+    message: `Reject this Team Brief suggestion: ${rejectTarget.text}`,
     page: `/case-brain/${caseRow.id}`,
     caseId: caseRow.id,
     teamId: team3.id,
@@ -190,6 +229,21 @@ async function main() {
   assert(rejectPlan.kind === "plan", "brief reject plan");
   if (rejectPlan.kind === "plan") {
     assert(rejectPlan.action === "brief.reject", "brief reject action");
+    assert(
+      (rejectPlan.data as { proposalId: string }).proposalId === rejectTarget.id,
+      "brief reject picks the new proposal",
+    );
+    const rejected = await applyBriefDecide({
+      data: rejectPlan.data as {
+        proposalId: string;
+        verdict: "accept" | "reject";
+        text: string;
+        caseId: string;
+      },
+      personId: actor.id,
+      teamId: team3.id,
+    });
+    assert(rejected.message.includes("Rejected"), "brief reject applied");
   }
 
   // Flashcards: may say cannot if no claims; still a valid action path
