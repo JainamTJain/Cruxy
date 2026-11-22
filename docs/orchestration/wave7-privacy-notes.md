@@ -48,6 +48,7 @@ Helpers treat these (and public domain / CC0 / CC BY / CC BY-SA and common open-
 | #62 Genie mood (G) | OK: bus events are keys + generic bubbles; no person ids |
 | #63 Roles board (E) | Mostly OK; notify previous holder when a slot is reassigned |
 | #64 Research reach (H) | Fix: do not fetch closed finding links; use openLinks / `readOpenResultsOnly` |
+| #114 voiceprints (D) | Mostly OK: revoke anon/authenticated on `speaker_match_pending`; scope pending GET (and clip signed URLs) to the round team or admins; keep audio-chunks and voice-samples private |
 
 ## I-side fixes on this branch
 
