@@ -860,42 +860,120 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
 }
 
 let writeChain: Promise<void> = Promise.resolve();
+/** >0 while a runExclusive task is on the stack (avoids readStore deadlock). */
+let writeDepth = 0;
 
-export async function readStore(): Promise<SampleStore> {
+/** Write tmp sibling then rename so readers never see a truncated JSON file. */
+async function writeJsonAtomic(filePath: string, data: unknown): Promise<void> {
   await ensureDir();
+  const tmp = `${filePath}.${process.pid}.${randomUUID()}.tmp`;
   try {
-    const raw = await fs.readFile(STORE_PATH, "utf8");
-    const store = migrateStoreShape(JSON.parse(raw) as Partial<SampleStore>);
-    // Workstream D: inject practice design fixtures when an older store has none.
-    if (store.practice_sessions.length === 0) {
-      const fixtures = await buildPracticeFixtures();
-      Object.assign(store, fixtures);
-      store.glossary = store.glossary ?? [];
-      store.speaker_confirms = store.speaker_confirms ?? [];
-      // Fixture practice day assumes voice consent for seated members.
-      for (const p of store.people) {
-        if (p.role === "member" || p.role === "tech_admin") {
-          p.recording_ok = true;
-          p.consent_version = p.consent_version ?? "2026-11-21-v1";
-          p.consent_at = p.consent_at ?? "2026-11-01T00:00:00.000Z";
-        }
-      }
-      await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2));
-    }
-    return store;
-  } catch {
-    const seeded = await buildSeedStore();
-    await fs.writeFile(STORE_PATH, JSON.stringify(seeded, null, 2));
-    return seeded;
+    await fs.writeFile(tmp, JSON.stringify(data, null, 2), "utf8");
+    await fs.rename(tmp, filePath);
+  } catch (err) {
+    await fs.unlink(tmp).catch(() => undefined);
+    throw err;
   }
 }
 
-export async function writeStore(store: SampleStore): Promise<void> {
-  writeChain = writeChain.then(async () => {
-    await ensureDir();
-    await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2));
+/**
+ * Serialize sample-store mutations. Continues after a prior failure so one
+ * bad write cannot freeze the chain for the rest of the process.
+ */
+function runExclusive<T>(fn: () => Promise<T>): Promise<T> {
+  let result!: T;
+  const task = async () => {
+    writeDepth += 1;
+    try {
+      result = await fn();
+    } finally {
+      writeDepth -= 1;
+    }
+  };
+  const next = writeChain.then(task, task);
+  writeChain = next.then(
+    () => undefined,
+    () => undefined,
+  );
+  return next.then(() => result);
+}
+
+async function parseStoreRaw(raw: string): Promise<SampleStore> {
+  return migrateStoreShape(JSON.parse(raw) as Partial<SampleStore>);
+}
+
+/** Load from disk. `missing` = no file or empty; throws on corrupt JSON. */
+async function loadStoreFromDisk(): Promise<SampleStore | "missing"> {
+  try {
+    const raw = await fs.readFile(STORE_PATH, "utf8");
+    if (!raw.trim()) return "missing";
+    return await parseStoreRaw(raw);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return "missing";
+    throw err;
+  }
+}
+
+async function injectPracticeFixturesIfNeeded(
+  store: SampleStore,
+): Promise<SampleStore> {
+  if (store.practice_sessions.length > 0) return store;
+  return runExclusive(async () => {
+    const current = await loadStoreFromDisk();
+    const base = current === "missing" ? store : current;
+    if (base.practice_sessions.length > 0) return base;
+    const fixtures = await buildPracticeFixtures();
+    Object.assign(base, fixtures);
+    base.glossary = base.glossary ?? [];
+    base.speaker_confirms = base.speaker_confirms ?? [];
+    // Fixture practice day assumes voice consent for seated members.
+    for (const p of base.people) {
+      if (p.role === "member" || p.role === "tech_admin") {
+        p.recording_ok = true;
+        p.consent_version = p.consent_version ?? "2026-11-21-v1";
+        p.consent_at = p.consent_at ?? "2026-11-01T00:00:00.000Z";
+      }
+    }
+    await writeJsonAtomic(STORE_PATH, base);
+    return base;
   });
-  await writeChain;
+}
+
+export async function readStore(): Promise<SampleStore> {
+  // Wait for in-flight writers unless we are already inside one (nested read).
+  if (writeDepth === 0) await writeChain;
+  await ensureDir();
+
+  let store: SampleStore | "missing";
+  try {
+    store = await loadStoreFromDisk();
+  } catch {
+    // Corrupt or torn read (legacy non-atomic writes): wait and retry once.
+    if (writeDepth === 0) await writeChain;
+    try {
+      store = await loadStoreFromDisk();
+    } catch {
+      store = "missing";
+    }
+  }
+
+  if (store === "missing") {
+    store = await runExclusive(async () => {
+      const again = await loadStoreFromDisk();
+      if (again !== "missing") return again;
+      const seeded = await buildSeedStore();
+      await writeJsonAtomic(STORE_PATH, seeded);
+      return seeded;
+    });
+  }
+
+  return injectPracticeFixturesIfNeeded(store);
+}
+
+export async function writeStore(store: SampleStore): Promise<void> {
+  await runExclusive(async () => {
+    await writeJsonAtomic(STORE_PATH, store);
+  });
 }
 
 /**
@@ -905,22 +983,19 @@ export async function writeStore(store: SampleStore): Promise<void> {
 export async function updateStore(
   mutator: (store: SampleStore) => void | Promise<void>,
 ): Promise<SampleStore> {
-  let result!: SampleStore;
-  writeChain = writeChain.then(async () => {
-    await ensureDir();
+  return runExclusive(async () => {
     let store: SampleStore;
     try {
-      const raw = await fs.readFile(STORE_PATH, "utf8");
-      store = migrateStoreShape(JSON.parse(raw) as Partial<SampleStore>);
+      const loaded = await loadStoreFromDisk();
+      store = loaded === "missing" ? await buildSeedStore() : loaded;
     } catch {
+      // Prefer keeping a seed over crashing sample mode; rare after atomic writes.
       store = await buildSeedStore();
     }
     await mutator(store);
-    await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2));
-    result = store;
+    await writeJsonAtomic(STORE_PATH, store);
+    return store;
   });
-  await writeChain;
-  return result;
 }
 
 export async function resetSampleStore(): Promise<SampleStore> {

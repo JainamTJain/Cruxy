@@ -147,7 +147,11 @@ async function runRound(opts: {
     `${opts.label}: every score has quoted evidence line ids`,
   );
 
-  const lines = await getTranscript(round.id);
+  // Prefer persisted lines; fall back to finalize's in-memory lines so a
+  // sample-store race cannot flake the citation check after a good judgment.
+  const stored = await getTranscript(round.id);
+  const lines = stored.length > 0 ? stored : result.lines;
+  assert(lines.length > 0, `${opts.label}: transcript lines readable after judge`);
   for (const f of result.judgment!.feedback) {
     assert(
       feedbackHasCitation(f, lines),
