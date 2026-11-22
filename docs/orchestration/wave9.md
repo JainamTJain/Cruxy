@@ -48,8 +48,8 @@ through meetings.
 | Working alone | No solo mock round where Cruxy plays the other team, the moderator and the judges | E |
 | Working alone | No async review: record my part, teammates and Dr. B leave timed comments whenever | E |
 | Working alone | No handoff note when I stop, no "what changed on my case since I last looked" | E |
-| Competition day | No logistics hub: schedule, departure, carpool, dress, packing, rooms | C |
-| Competition day | Real rounds are not logged: drawn case, opponent, moderator question, judge comments, scores | C |
+| Competition day | Round-day card + APPE timer first; logistics = one plain Dr. B page (carpool list, not sign-up) | C |
+| Competition day | Real rounds logged: drawn case, opponent, moderator question, judge comments, scores, short debrief | C |
 | Competition day | Nerves: no short calm routine before a round | J |
 | After the regional | No retrospective, no season archive, no handoff for next year or Nationals | H |
 | Trust | No page that shows what Crux stores about me, with download and delete | D |
@@ -61,7 +61,7 @@ through meetings.
 
 | Agent | Row | Migration |
 | --- | --- | --- |
-| C | Competition day: round-day card and APPE timer first; real-round log; short debrief; logistics as one plain page | 00055 |
+| C | Competition day: round-day card and APPE timer first; real-round log; short debrief; logistics as one plain page | 00055 + 00065 |
 | D | Personal growth and privacy: my progress, round reflection, goals with Dr. B, privacy centre | 00056 |
 | E | Done (00057, kept quiet). Next: solo async prep: my part, minutes picker, solo mock round, async review, handoff notes | 00064 |
 | F | Search and offline: one search box, installable app with offline case packets, print packet | 00058 |
@@ -80,9 +80,9 @@ docs/design/writing.md. New pieces in new files where another row owns the page.
 
 ## C → H handoff: real-round log fields (for the retrospective)
 
-Row C writes competition-day round logs into `competition_logs` (migration `00055` adds columns).
-H should read these for the after-regional retrospective. Empty logistics fields mean
-"Dr. B will add this" and are never invented.
+Row C writes competition-day round logs into `competition_logs` (migration `00055` adds columns;
+`00065` simplifies logistics to plain text lists). H should read these for the after-regional
+retrospective. Empty logistics fields mean "Dr. B will add this" and are never invented.
 
 | Field | Column | Meaning |
 | --- | --- | --- |
@@ -104,10 +104,13 @@ H should read these for the after-regional retrospective. Empty logistics fields
 
 Related tables for the day itself (not the retrospective core, but useful):
 
-- `competition_day_logistics`: schedule, departure, meeting point, dress, venue, rooms, packing list
-- `competition_carpools` + `competition_carpool_riders`: who drives / rides
-- `competition_packing_ticks`: per-person packing checklist
+- `competition_day_logistics`: one plain page Dr. B fills (schedule, departure, meeting,
+  dress, venue, rooms, packing list text, carpool list text). Empty = "Dr. B will add this".
 - `competition_day_rounds`: round-day card (drawn case, side, speakers, key points, room)
 
-Member hub: `/regional`. APPE timer phases (offline): presentation 10:00, conferral 1:00,
+No carpool sign-up system and no per-person packing ticks: carpool is a simple list field
+on the logistics page. No new nav items for `/regional`; entry is a quiet link from Today.
+
+Member hub: `/regional`. Tab order (solo-first): Round day → APPE timer → Real-round log →
+Debrief → Day info. APPE timer phases (offline): presentation 10:00, conferral 1:00,
 commentary 5:00, response 3:00, judges' questions 10:00 (from `docs/domain/ethics-bowl.md` ranges).
