@@ -25,6 +25,7 @@ jobs:
       - run: npm run check:supabase-wired
       - run: npm run test:cruxy --if-present
       - run: npm run check:cruxy-act
+      - run: npm run check:critique
       # Sample path forces CRUXY_USE_FIXTURES=1 (deterministic judge + bank).
       - run: npm run smoke:practice
       - run: npm run smoke:case-roles

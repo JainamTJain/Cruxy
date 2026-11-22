@@ -9,6 +9,10 @@
       "schedule": "30 7 * * *"
     },
     {
+      "path": "/api/cron/critique",
+      "schedule": "0 8 * * *"
+    },
+    {
       "path": "/api/cron/weekly-summary",
       "schedule": "0 2 * * 1"
     },
