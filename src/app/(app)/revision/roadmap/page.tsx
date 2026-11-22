@@ -4,10 +4,14 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
 } from "react";
 import { useCruxy } from "@/components/cruxy/cruxy-context";
+import { emitMood } from "@/components/cruxy/mood/bus";
+import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
+import { SkeletonBlock } from "@/components/motion/skeleton";
 import type { RoadmapStage, RoadmapStageId } from "@/lib/revision/types";
 import type { CaseRow } from "@/lib/types";
 
@@ -129,6 +133,16 @@ function deadlinePct(
   return Math.min(100, Math.max(0, ((t - start) / span) * 100));
 }
 
+function doneStageKeys(data: View): string[] {
+  const keys: string[] = [];
+  for (const c of data.cases) {
+    for (const s of c.stages) {
+      if (s.done_at) keys.push(`${c.case.id}:${s.stage}`);
+    }
+  }
+  return keys;
+}
+
 export default function RoadmapPage() {
   const { setMood } = useCruxy();
   const [view, setView] = useState<View | null>(null);
@@ -137,6 +151,7 @@ export default function RoadmapPage() {
     {} as Record<RoadmapStageId, string>,
   );
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const prevDone = useRef<Set<string> | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/roadmap");
@@ -145,6 +160,20 @@ export default function RoadmapPage() {
       return;
     }
     const data = (await res.json()) as View;
+    const nowDone = new Set(doneStageKeys(data));
+    if (prevDone.current) {
+      for (const key of nowDone) {
+        if (!prevDone.current.has(key)) {
+          const stage = key.split(":")[1] ?? "Stage";
+          emitMood({
+            type: "roadmap.stage_done",
+            stage: STAGE_LABELS[stage as RoadmapStageId] ?? stage,
+          });
+          break;
+        }
+      }
+    }
+    prevDone.current = nowDone;
     setView(data);
     setDraftDues(data.deadlines);
     if ((data.overdueCount ?? 0) > 0) setMood("curious");
@@ -212,10 +241,19 @@ export default function RoadmapPage() {
     return rows;
   }, [view]);
 
-  const overall = view?.overallReady ?? 0;
+  if (!view) {
+    return (
+      <main className="flex flex-col gap-4 animate-fade-up">
+        <LoadingGenie label="Loading roadmap..." />
+        <SkeletonBlock lines={5} className="max-w-xl" />
+      </main>
+    );
+  }
+
+  const overall = view.overallReady ?? 0;
   const overdue = view?.overdueCount ?? 0;
 
-  const tracks = (view?.cases ?? []).filter(
+  const tracks = view.cases.filter(
     (c) => c.stages.some((s) => s.required) || c.readiness > 0,
   );
 

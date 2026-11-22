@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { GraphSpinePanel } from "@/components/admin/graph-spine-panel";
 import { Keypad } from "@/components/keypad";
 import { REVEAL_SECONDS } from "@/lib/constants";
 import type { ModelSettingRow, ModelTier, ReasoningEffort } from "@/lib/cruxy/models";
@@ -140,6 +141,13 @@ function formatActivity(e: Overview["activity"]["entries"][0]): string {
   if (a === "passcode_reset") return `Reset a passcode`;
   if (a === "sign_in_locked") return `5 wrong codes, locked 10 min`;
   if (a === "sign_in_failed") return `Wrong passcode try`;
+  if (a === "graph_spine_backfill") {
+    const edges = e.meta?.edges_written;
+    return edges != null
+      ? `Ran graph backfill (${String(edges)} new edges)`
+      : "Ran graph backfill";
+  }
+  if (a === "arg_edge_recorded") return "Graph edge (hidden from feed)";
   if (a === "decision_accept") return e.meta?.reason
     ? `✅ ${String(e.meta.reason)}`
     : "Accepted a proposal";
@@ -656,6 +664,8 @@ export function AdminConsole() {
           Open flywheel
         </Link>
       </section>
+
+      {tech ? <GraphSpinePanel /> : null}
 
       <div className="grid gap-3 lg:grid-cols-3">
         {data.teams.map((t) => (

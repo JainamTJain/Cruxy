@@ -27,6 +27,14 @@ export default async function CaseBrainIndexPage() {
           Claim maps, Truth Sources, Inspired-by queues and one pagers for every
           active case.
         </p>
+        <p className="mt-2 text-sm">
+          <Link
+            href="/team/roles"
+            className="font-semibold text-cardinal underline"
+          >
+            Set roles for every case
+          </Link>
+        </p>
       </div>
 
       <ul className="grid gap-3 sm:grid-cols-2">

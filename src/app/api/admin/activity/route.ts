@@ -28,10 +28,14 @@ export async function GET() {
   const names = new Map(people.map((p) => [p.id, p.name]));
 
   return NextResponse.json({
-    entries: log.map((e) => ({
-      ...e,
-      personName: e.person_id ? names.get(e.person_id) ?? "unknown" : "unknown",
-    })),
+    entries: log
+      .filter((e) => e.action !== "arg_edge_recorded")
+      .map((e) => ({
+        ...e,
+        personName: e.person_id
+          ? names.get(e.person_id) ?? "unknown"
+          : "unknown",
+      })),
     readOnly: person.role === "coach_admin",
   });
 }

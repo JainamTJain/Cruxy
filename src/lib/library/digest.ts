@@ -307,18 +307,32 @@ export async function splitAndEmbedPassages(
     const results = await Promise.all(
       batch.map(async (body) => {
         if (opts.skipEmbed || !looksLikeReadableText(body.text)) {
-          return { body, embedding: stubEmbed(body.text || "empty"), calls: 0 };
+          return {
+            body,
+            embedding: stubEmbed(body.text || "empty"),
+            stub: true,
+            calls: 0,
+          };
         }
         const emb = await embedPassageText(body.text, {
           personId: opts.personId ?? opts.createdBy,
           feature: "passage_embed",
         });
-        return { body, embedding: emb.embedding, calls: emb.aiCalls };
+        return {
+          body,
+          embedding: emb.embedding,
+          stub: emb.stub,
+          calls: emb.aiCalls,
+        };
       }),
     );
     for (const r of results) {
       aiCalls += r.calls;
-      passages.push({ ...r.body, embedding: r.embedding });
+      passages.push({
+        ...r.body,
+        embedding: r.embedding,
+        embedding_stub: r.stub,
+      });
     }
   }
   return { passages, aiCalls };

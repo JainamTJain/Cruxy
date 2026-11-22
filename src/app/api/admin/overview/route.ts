@@ -58,7 +58,7 @@ export async function GET() {
     listBookRequests(),
     listDriveSortQueue(),
     listCalibration(),
-    listActivityLog(40),
+    listActivityLog(80),
     buildWeeklyEmailPreview(),
     adminAttendancePct(),
     adminStarterStatus(),
@@ -114,10 +114,15 @@ export async function GET() {
     starters: techOnly ? starters : null,
     activity: {
       readOnly: person.role === "coach_admin",
-      entries: activity.map((e) => ({
-        ...e,
-        personName: e.person_id ? names.get(e.person_id) ?? "unknown" : "system",
-      })),
+      entries: activity
+        .filter((e) => e.action !== "arg_edge_recorded")
+        .slice(0, 40)
+        .map((e) => ({
+          ...e,
+          personName: e.person_id
+            ? names.get(e.person_id) ?? "unknown"
+            : "system",
+        })),
     },
     weekly: {
       optedIn: Boolean(person.digest_opt_in),

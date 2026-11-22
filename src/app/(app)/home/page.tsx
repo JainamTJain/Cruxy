@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
+import { LiftCard } from "@/components/motion/lift-card";
+import { CountUp } from "@/components/motion/count-up";
 
 type Team = { id: string; name: string; colour: string };
 type CaseRow = { id: string; number: number; title: string };
@@ -138,7 +141,7 @@ export default function HomePage() {
     return <p className="text-sm text-cardinal">{error}</p>;
   }
   if (!data) {
-    return <p className="text-sm text-muted">Loading program map…</p>;
+    return <LoadingGenie label="Loading program map..." />;
   }
 
   const cellFor = (teamId: string, caseId: string) =>
@@ -210,7 +213,7 @@ export default function HomePage() {
         {data.daysToCompetition != null && data.competition ? (
           <div className="flex items-center gap-4 rounded-[18px] bg-cardinal px-5 py-3.5 text-white">
             <span className="font-display text-[52px] font-extrabold leading-none">
-              {data.daysToCompetition}
+              <CountUp value={data.daysToCompetition} />
             </span>
             <span className="text-sm leading-snug">
               days to UCSB
@@ -226,11 +229,11 @@ export default function HomePage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <div className="rounded-2xl bg-white p-4">
+        <LiftCard className="rounded-2xl bg-white p-4">
           {drive.synced ? (
             <>
               <div className="font-display text-[44px] font-extrabold leading-none">
-                {drive.fileCount}
+                <CountUp value={drive.fileCount} />
               </div>
               <div className="mt-1.5 text-[13px] text-muted">Drive files read</div>
               {data.deltas?.drive_files ? (
@@ -266,11 +269,11 @@ export default function HomePage() {
               ) : null}
             </>
           )}
-        </div>
+        </LiftCard>
         {totals.map((t) => (
-          <div key={t.key} className="rounded-2xl bg-white p-4">
+          <LiftCard key={t.key} className="rounded-2xl bg-white p-4">
             <div className="font-display text-[44px] font-extrabold leading-none">
-              {data.totals[t.key] ?? 0}
+              <CountUp value={Number(data.totals[t.key] ?? 0)} />
             </div>
             <div className="mt-1.5 text-[13px] text-muted">{t.label}</div>
             {t.delta ? (
@@ -278,7 +281,7 @@ export default function HomePage() {
                 {t.delta}
               </div>
             ) : null}
-          </div>
+          </LiftCard>
         ))}
       </div>
 

@@ -1,9 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { CruxWordmark } from "@/components/crux-wordmark";
 import { useCruxy } from "@/components/cruxy/cruxy-context";
+import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
+import { GeniePose } from "@/components/cruxy/mood/genie-pose";
+import { emitMood } from "@/components/cruxy/mood/bus";
+import { useCruxyMood } from "@/components/cruxy/mood/use-cruxy-mood";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +32,7 @@ export function CruxyDrawer() {
     recordingOrTimed,
     emitCruxyEvent,
   } = useCruxy();
+  const { mood } = useCruxyMood();
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
   const [citations, setCitations] = useState<Cite[]>([]);
@@ -61,6 +65,8 @@ export function CruxyDrawer() {
   async function ask(opts?: { forceAnswer?: boolean; wantHint?: boolean }) {
     if (!question.trim()) return;
     setBusy(true);
+    emitMood({ type: "user.ask" });
+    emitMood({ type: "cruxy.writing" });
     emitCruxyEvent("listen.typing");
     setAdminExtra(null);
     try {
@@ -165,14 +171,11 @@ export function CruxyDrawer() {
     >
       <header className="flex items-center justify-between gap-3 border-b border-mist bg-ink px-4 py-3">
         <div className="flex min-w-0 items-center gap-3">
-          <Image
-            src="/cruxy/cruxy-lamp.png"
-            alt=""
-            width={44}
-            height={32}
-            className="h-auto w-11 shrink-0 object-contain"
-            unoptimized
-          />
+          {busy ? (
+            <LoadingGenie compact size={48} label="Thinking..." />
+          ) : (
+            <GeniePose pose={mood} width={44} />
+          )}
           <div className="min-w-0">
             <CruxWordmark className="text-[22px]" />
             <p className="mt-0.5 text-[11px] text-white/70">
@@ -233,6 +236,10 @@ export function CruxyDrawer() {
             </button>
           ))}
         </div>
+
+        {busy && !answer && !prompt ? (
+          <LoadingGenie label="Cruxy is thinking..." size={88} />
+        ) : null}
 
         {prompt ? (
           <div className="rounded-2xl border border-gold/40 bg-[#FFF7DB] px-3 py-3">

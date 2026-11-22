@@ -249,6 +249,16 @@ export interface SampleStore {
     evidence: Record<string, number>;
     updated_at: string;
   }[];
+  /** Wave 7 E: case preference ranks for Roles board templates. */
+  case_role_preferences?: {
+    id: string;
+    team_id: string;
+    person_id: string;
+    case_id: string;
+    rank: number;
+    updated_at: string;
+    updated_by: string | null;
+  }[];
   /** Workstream K Wave 6: argument graph (recordEdge). Optional until seeded/backfilled. */
   arg_edges?: import("@/lib/graph/types").ArgEdge[];
 }
@@ -782,6 +792,7 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     node_mastery: raw.node_mastery ?? admin.node_mastery ?? [],
     mastery_map_cells:
       raw.mastery_map_cells ?? admin.mastery_map_cells ?? [],
+    case_role_preferences: raw.case_role_preferences ?? [],
     arg_edges: raw.arg_edges ?? [],
   };
 }

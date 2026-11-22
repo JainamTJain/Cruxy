@@ -9,6 +9,8 @@ import { CruxyProvider, useCruxy } from "@/components/cruxy/cruxy-context";
 import { CruxyDrawer } from "@/components/cruxy/cruxy-drawer";
 import { CruxyLamp } from "@/components/cruxy/cruxy-lamp";
 import { FloatingCruxy } from "@/components/cruxy/floating-cruxy";
+import { preloadCruxyPoses } from "@/components/cruxy/mood/poses";
+import { ConfettiHost } from "@/components/motion/confetti";
 import { NotificationBell } from "@/components/notification-bell";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/types";
@@ -103,6 +105,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
+
+  useEffect(() => {
+    preloadCruxyPoses();
+  }, []);
 
   async function toggleAdmin(adminView: boolean) {
     await fetch("/api/auth/admin-view", {
@@ -328,6 +334,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <FloatingCruxy />
       <CruxyLamp />
       <CruxyDrawer />
+      <ConfettiHost />
     </div>
   );
 }
