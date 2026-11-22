@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Keypad } from "@/components/keypad";
 import { NamePicker } from "@/components/name-picker";
+import { CountUp } from "@/components/motion/count-up";
+import { preloadCruxyPoses } from "@/components/cruxy/mood/poses";
 import type { PublicPerson } from "@/lib/db/repository";
 import type { Team } from "@/lib/types";
 
@@ -24,6 +26,10 @@ export default function SignInPage() {
   const [days, setDays] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    preloadCruxyPoses();
+  }, []);
 
   useEffect(() => {
     void fetch("/api/auth/people")
@@ -132,7 +138,7 @@ export default function SignInPage() {
             {built.map(([n, label]) => (
               <div key={label}>
                 <p className="font-display text-3xl font-extrabold tabular-nums">
-                  {n}
+                  {typeof n === "number" ? <CountUp value={n} /> : n}
                 </p>
                 <p className="text-xs text-white/75">{label}</p>
               </div>

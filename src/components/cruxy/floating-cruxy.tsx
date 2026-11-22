@@ -1,39 +1,17 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useCruxy, type CruxyMood } from "@/components/cruxy/cruxy-context";
+import { useCruxy } from "@/components/cruxy/cruxy-context";
+import { GeniePose } from "@/components/cruxy/mood/genie-pose";
+import { POSE_ASPECT, POSE_LABEL } from "@/components/cruxy/mood/poses";
+import { useCruxyMood } from "@/components/cruxy/mood/use-cruxy-mood";
 import { HINT_FALLBACK } from "@/lib/cruxy/character";
 import { cn } from "@/lib/utils";
-
-const MOOD_SRC: Record<CruxyMood, string> = {
-  curious: "/cruxy/cruxy-curious.png",
-  neutral: "/cruxy/cruxy-neutral.png",
-  winking: "/cruxy/cruxy-winking.png",
-  happy: "/cruxy/cruxy-happy.png",
-  excited: "/cruxy/cruxy-excited.png",
-  surprised: "/cruxy/cruxy-surprised.png",
-  sad: "/cruxy/cruxy-sad.png",
-  sleepy: "/cruxy/cruxy-sleepy.png",
-  angry: "/cruxy/cruxy-angry.png",
-};
-
-const MOOD_LABEL: Record<CruxyMood, string> = {
-  curious: "curious",
-  neutral: "listening",
-  winking: "hint",
-  happy: "pleased",
-  excited: "excited",
-  surprised: "surprised",
-  sad: "sad",
-  sleepy: "sleepy",
-  angry: "fierce",
-};
 
 const POS_KEY = "cruxy-float-pos";
 const FIGURE = 150;
 const FIGURE_PHONE = 96;
-const ASPECT = 2;
+const ASPECT = POSE_ASPECT;
 const TAB_BAR = 88;
 const DRAG_THRESHOLD = 6;
 
@@ -121,6 +99,8 @@ export function FloatingCruxy() {
     setBubble,
     emitCruxyEvent,
   } = useCruxy();
+  // Wave 7 G: subscribe mood bus (happy/sad/thinking etc.)
+  useCruxyMood();
   const [pos, setPos] = useState<Pos>({ x: 24, y: 120 });
   const [dragging, setDragging] = useState(false);
   const [moved, setMoved] = useState(false);
@@ -277,7 +257,7 @@ export function FloatingCruxy() {
           onPointerDown={(e) => e.stopPropagation()}
         >
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
-            {MOOD_LABEL[mood]}
+            {POSE_LABEL[mood as keyof typeof POSE_LABEL] ?? mood}
           </p>
           <p className="text-[13px] leading-snug text-ink">{bubble}</p>
           <label className="mt-3 block">
@@ -339,14 +319,10 @@ export function FloatingCruxy() {
         }}
         onKeyDown={onKeyDown}
       >
-        <Image
-          src={MOOD_SRC[mood]}
-          alt=""
+        <GeniePose
+          pose={mood}
           width={size}
-          height={size * ASPECT}
-          className="pointer-events-none block h-auto w-full drop-shadow-[0_12px_18px_rgba(17,19,24,0.22)]"
-          draggable={false}
-          unoptimized
+          imgClassName="drop-shadow-[0_12px_18px_rgba(17,19,24,0.22)]"
         />
       </button>
     </div>

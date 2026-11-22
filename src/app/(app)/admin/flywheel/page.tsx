@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
+import { LiftCard } from "@/components/motion/lift-card";
+import { TabFade } from "@/components/motion/tab-fade";
 import { GraphSpinePanel } from "@/components/admin/graph-spine-panel";
 
 type Row = {
@@ -75,7 +78,7 @@ function FlywheelInner() {
   }
 
   if (!tiles.length) {
-    return <p className="text-sm text-muted">Loading flywheel...</p>;
+    return <LoadingGenie label="Loading flywheel..." />;
   }
 
   return (
@@ -103,15 +106,19 @@ function FlywheelInner() {
         {tiles.map((t) => {
           const on = selected?.id === t.id;
           return (
-            <button
+            <LiftCard
               key={t.id}
-              type="button"
-              onClick={() => setActive(t.id)}
+              as="div"
               className={
                 on
-                  ? "flex flex-col gap-2 rounded-[20px] border border-ink bg-white p-5 text-left"
-                  : "flex flex-col gap-2 rounded-[20px] border border-ink/10 bg-white/70 p-5 text-left"
+                  ? "rounded-[20px] border border-ink bg-white"
+                  : "rounded-[20px] border border-ink/10 bg-white/70"
               }
+            >
+            <button
+              type="button"
+              onClick={() => setActive(t.id)}
+              className="flex w-full flex-col gap-2 p-5 text-left"
             >
               <span className="text-[11px] font-bold tracking-[0.08em] text-muted">
                 {t.source}
@@ -150,11 +157,13 @@ function FlywheelInner() {
                 </div>
               ) : null}
             </button>
+            </LiftCard>
           );
         })}
       </div>
 
       {selected ? (
+        <TabFade tabKey={selected.id}>
         <section className="rounded-[20px] bg-white p-5">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="font-display text-xl font-semibold">
@@ -186,6 +195,7 @@ function FlywheelInner() {
             </ul>
           )}
         </section>
+        </TabFade>
       ) : null}
 
       <GraphSpinePanel />
@@ -200,7 +210,7 @@ function FlywheelInner() {
 export default function FlywheelPage() {
   return (
     <Suspense
-      fallback={<p className="p-4 text-sm text-muted">Loading flywheel...</p>}
+      fallback={<LoadingGenie label="Loading flywheel..." />}
     >
       <FlywheelInner />
     </Suspense>
