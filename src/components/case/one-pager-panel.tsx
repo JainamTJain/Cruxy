@@ -60,6 +60,11 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
   const [versions, setVersions] = useState<VersionRow[]>([]);
   const [peopleMap, setPeopleMap] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
+  const [syncProposal, setSyncProposal] = useState<{
+    id: string;
+    changeSummary: string;
+    createdAt: string;
+  } | null>(null);
 
   const loadPager = useCallback(async () => {
     if (!teamId || !caseId) return;
@@ -74,10 +79,16 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
       onePager: OnePager | null;
       diff: { path: string; before: string; after: string }[];
       canEdit?: boolean;
+      syncProposal?: {
+        id: string;
+        changeSummary: string;
+        createdAt: string;
+      } | null;
     };
     setPage(data.onePager);
     setDiff(data.diff ?? []);
     setCanEdit(Boolean(data.canEdit));
+    setSyncProposal(data.syncProposal ?? null);
     setError(null);
   }, [teamId, caseId]);
 
@@ -318,8 +329,89 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
     );
   }
 
+  async function acceptSync() {
+    if (!syncProposal) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/revision/one-pagers", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action: "accept_sync",
+          teamId,
+          caseId,
+          proposalId: syncProposal.id,
+        }),
+      });
+      const data = (await res.json()) as { onePager?: OnePager; error?: string };
+      if (!res.ok) {
+        setStatus(data.error ?? "Could not accept update");
+        return;
+      }
+      setPage(data.onePager!);
+      setSyncProposal(null);
+      setStatus("Accepted working-document update");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function dismissSync() {
+    if (!syncProposal) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/revision/one-pagers", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action: "dismiss_sync",
+          teamId,
+          caseId,
+          proposalId: syncProposal.id,
+        }),
+      });
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
+        setStatus(data.error ?? "Could not dismiss");
+        return;
+      }
+      setSyncProposal(null);
+      setStatus("Dismissed working-document update");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className={cn("flex flex-col gap-4", className)}>
+      {syncProposal && canEdit ? (
+        <div className="rounded-[16px] border border-[#F5B700]/60 bg-[#FFF8E6] px-4 py-3 print:hidden">
+          <p className="m-0 text-sm font-semibold text-ink">
+            Working document update ready
+          </p>
+          <p className="m-0 mt-1 text-[13px] text-[#3B404A]">
+            {syncProposal.changeSummary}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              className="rounded-xl bg-ink px-3.5 py-2 text-[13px] font-semibold text-white disabled:opacity-60"
+              onClick={() => void acceptSync()}
+            >
+              Accept update
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className="rounded-xl border border-mist bg-white px-3.5 py-2 text-[13px] font-semibold disabled:opacity-60"
+              onClick={() => void dismissSync()}
+            >
+              Keep current
+            </button>
+          </div>
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
         {!embedded ? (
           <Link

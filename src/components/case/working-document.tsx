@@ -1,10 +1,12 @@
 "use client";
 
 /**
- * Working document tab. F renders this on the case page with caseId + teamId.
- * Builds on Team Brief: import Google Doc or write section by section in Crux.
+ * Working document tab (case workflow v2).
+ * Document on the left, suggestions rail on the right, always together.
+ * Import is team-level (all cases); Start creates every active case.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
 import { cn } from "@/lib/utils";
 
@@ -66,8 +68,26 @@ type Hub = {
   canEdit?: boolean;
 };
 
+type ImportSplit = {
+  id: string;
+  kind: "found" | "not_in_regional" | "unmatched";
+  case_number: number | null;
+  case_id: string | null;
+  title_guess: string | null;
+  section_count: number;
+  assigned_case_id: string | null;
+};
+
+type ImportReview = {
+  batchId?: string;
+  batch?: { id: string; status: string };
+  reviewLines: string[];
+  splits: ImportSplit[];
+  cases: Array<{ id: string; number: number; title: string }>;
+};
+
 const KIND_LABEL: Record<string, string> = {
-  evidence: "Evidence Library",
+  evidence: "Evidence",
   gap: "Gap",
   counter: "Counterargument",
   sharper: "Sharper claim",
@@ -84,7 +104,7 @@ function Attr({
   if (!name && !when) return null;
   return (
     <p className="m-0 mt-1 text-[11px] text-muted">
-      {[name, when].filter(Boolean).join(" · ")}
+      {[name, when].filter(Boolean).join(", ")}
     </p>
   );
 }
@@ -99,9 +119,8 @@ export function WorkingDocument({
   const [data, setData] = useState<Hub | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [driveUrl, setDriveUrl] = useState("");
-  const [factText, setFactText] = useState("");
-  const [factCite, setFactCite] = useState("");
+  const [driveUrls, setDriveUrls] = useState("");
+  const [pasteText, setPasteText] = useState("");
   const [crossReasons, setCrossReasons] = useState<Record<string, string>>({});
   const [sectionDrafts, setSectionDrafts] = useState<Record<string, string>>(
     {},
@@ -109,6 +128,8 @@ export function WorkingDocument({
   const [socraticAnswers, setSocraticAnswers] = useState<
     Record<string, string>
   >({});
+  const [review, setReview] = useState<ImportReview | null>(null);
+  const [statusNote, setStatusNote] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch(
@@ -154,17 +175,53 @@ export function WorkingDocument({
     }
   }
 
-  const suggestionsByAnchor = useMemo(() => {
-    const map = new Map<string, Hub["suggestions"]>();
-    if (!data) return map;
-    for (const s of data.suggestions) {
-      const key = s.paragraph_anchor ?? "_doc";
-      const arr = map.get(key) ?? [];
-      arr.push(s);
-      map.set(key, arr);
+  async function teamImport(action: string, extra: Record<string, unknown> = {}) {
+    setBusy(true);
+    setError(null);
+    setStatusNote(null);
+    try {
+      const res = await fetch("/api/team/import-documents", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action, ...extra }),
+      });
+      const json = (await res.json()) as ImportReview & {
+        error?: string;
+        started?: number;
+        filledCases?: number;
+        batchId?: string;
+      };
+      if (!res.ok) {
+        setError(json.error ?? "Could not run import.");
+        return null;
+      }
+      if (action === "start_all") {
+        setStatusNote(
+          `Started working documents for ${json.started ?? 0} cases.`,
+        );
+        await load();
+        return json;
+      }
+      if (action === "confirm") {
+        setStatusNote(
+          `Filled ${json.filledCases ?? 0} case working documents.`,
+        );
+        setReview(null);
+        await load();
+        return json;
+      }
+      setReview({
+        batchId: json.batchId ?? json.batch?.id,
+        batch: json.batch,
+        reviewLines: json.reviewLines ?? [],
+        splits: json.splits ?? [],
+        cases: json.cases ?? [],
+      });
+      return json;
+    } finally {
+      setBusy(false);
     }
-    return map;
-  }, [data]);
+  }
 
   if (!data) {
     if (error) return <p className="text-sm text-cardinal">{error}</p>;
@@ -182,193 +239,320 @@ export function WorkingDocument({
           {error}
         </p>
       ) : null}
-
-      {!canEdit ? (
-        <p className="m-0 rounded-xl bg-[#F7F8FA] px-3.5 py-2 text-sm text-muted">
-          Viewing another team&apos;s document. Tick and edits stay on your own
-          team.
+      {statusNote ? (
+        <p className="m-0 rounded-xl bg-[#F7F8FA] px-3.5 py-2 text-sm text-[#3B404A]">
+          {statusNote}
         </p>
       ) : null}
 
       {!path ? (
-        <EmptyChoice
+        <EmptyTeamChoice
           busy={editBusy}
-          driveUrl={driveUrl}
-          setDriveUrl={setDriveUrl}
-          onImport={() =>
-            void post({ action: "import_doc", driveUrl: driveUrl.trim() })
+          driveUrls={driveUrls}
+          setDriveUrls={setDriveUrls}
+          pasteText={pasteText}
+          setPasteText={setPasteText}
+          review={review}
+          onStartReview={() => {
+            const urls = driveUrls
+              .split(/\n+/)
+              .map((u) => u.trim())
+              .filter(Boolean);
+            const sources = [
+              ...urls.map((driveUrl) => ({ driveUrl })),
+              ...(pasteText.trim()
+                ? [{ pastedText: pasteText.trim(), title: "Pasted file" }]
+                : []),
+            ];
+            void teamImport("start_review", { sources });
+          }}
+          onAssign={(splitId, caseIdAssign) =>
+            void teamImport("assign_split", {
+              batchId: review?.batchId ?? review?.batch?.id,
+              splitId,
+              caseId: caseIdAssign,
+            })
           }
-          onStart={() => void post({ action: "start_crux" })}
+          onConfirm={() =>
+            void teamImport("confirm", {
+              batchId: review?.batchId ?? review?.batch?.id,
+            })
+          }
+          onStartAll={() => void teamImport("start_all")}
         />
-      ) : null}
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
+          <div className="flex min-w-0 flex-col gap-4">
+            {path === "imported" ? (
+              <ImportedBody data={data} />
+            ) : (
+              <CruxBody
+                data={data}
+                busy={editBusy}
+                sectionDrafts={sectionDrafts}
+                setSectionDrafts={setSectionDrafts}
+                socraticAnswers={socraticAnswers}
+                setSocraticAnswers={setSocraticAnswers}
+                onSave={(key) =>
+                  void post({
+                    action: "save_section",
+                    sectionKey: key,
+                    body: sectionDrafts[key] ?? "",
+                  })
+                }
+                onAsk={(key) =>
+                  void post({ action: "ask_socratic", sectionKey: key })
+                }
+                onAnswer={(key, socraticId) =>
+                  void post({
+                    action: "answer_socratic",
+                    sectionKey: key,
+                    socraticId,
+                    answer: socraticAnswers[key] ?? "",
+                  }).then((ok) => {
+                    if (ok) {
+                      setSocraticAnswers((m) => ({ ...m, [key]: "" }));
+                    }
+                  })
+                }
+              />
+            )}
+            <ChecklistPanel data={data} />
+          </div>
 
-      {path === "imported" ? (
-        <ImportedDoc
-          data={data}
-          busy={editBusy}
-          suggestionsByAnchor={suggestionsByAnchor}
-          crossReasons={crossReasons}
-          setCrossReasons={setCrossReasons}
-          onTick={(id) => void post({ action: "tick_suggestion", suggestionId: id })}
-          onCross={(id) =>
-            void post({
-              action: "cross_suggestion",
-              suggestionId: id,
-              reason: crossReasons[id] || null,
-            })
-          }
-        />
-      ) : null}
-
-      {path === "crux" ? (
-        <CruxDoc
-          data={data}
-          busy={editBusy}
-          sectionDrafts={sectionDrafts}
-          setSectionDrafts={setSectionDrafts}
-          socraticAnswers={socraticAnswers}
-          setSocraticAnswers={setSocraticAnswers}
-          crossReasons={crossReasons}
-          setCrossReasons={setCrossReasons}
-          onSave={(key) =>
-            void post({
-              action: "save_section",
-              sectionKey: key,
-              body: sectionDrafts[key] ?? "",
-            })
-          }
-          onAsk={(key) =>
-            void post({ action: "ask_socratic", sectionKey: key })
-          }
-          onAnswer={(key, socraticId) =>
-            void post({
-              action: "answer_socratic",
-              sectionKey: key,
-              socraticId,
-              answer: socraticAnswers[key] ?? "",
-            }).then((ok) => {
-              if (ok) {
-                setSocraticAnswers((m) => ({ ...m, [key]: "" }));
-              }
-            })
-          }
-          onTick={(id) => void post({ action: "tick_suggestion", suggestionId: id })}
-          onCross={(id) =>
-            void post({
-              action: "cross_suggestion",
-              suggestionId: id,
-              reason: crossReasons[id] || null,
-            })
-          }
-        />
-      ) : null}
-
-      {path ? (
-        <>
-          <ChecklistPanel data={data} />
-          <EvidenceLibraryPanel
-            data={data}
+          <SuggestionsRail
+            suggestions={data.suggestions}
             busy={editBusy}
-            factText={factText}
-            setFactText={setFactText}
-            factCite={factCite}
-            setFactCite={setFactCite}
             crossReasons={crossReasons}
             setCrossReasons={setCrossReasons}
-            onSuggest={() =>
-              void post({
-                action: "suggest_fact",
-                text: factText,
-                citation: factCite,
-              }).then((ok) => {
-                if (ok) {
-                  setFactText("");
-                  setFactCite("");
-                }
-              })
+            onTick={(id) =>
+              void post({ action: "tick_suggestion", suggestionId: id })
             }
-            onDecide={(truthItemId, decision) =>
+            onCross={(id) =>
               void post({
-                action: "decide_library",
-                truthItemId,
-                decision,
-                reason: crossReasons[truthItemId] || null,
+                action: "cross_suggestion",
+                suggestionId: id,
+                reason: crossReasons[id] || null,
               })
             }
           />
-        </>
+        </div>
+      )}
+
+      {path ? (
+        <p className="m-0 text-sm text-muted">
+          Need to re-import for the whole team?{" "}
+          <button
+            type="button"
+            className="font-semibold text-cardinal underline"
+            disabled={editBusy}
+            onClick={() => {
+              setData((d) =>
+                d
+                  ? {
+                      ...d,
+                      brief: { ...d.brief, working_path: null },
+                    }
+                  : d,
+              );
+              setReview(null);
+            }}
+          >
+            Import our documents again
+          </button>
+          . Or open{" "}
+          <Link href="/team" className="font-semibold text-cardinal underline">
+            Team
+          </Link>
+          .
+        </p>
       ) : null}
     </div>
   );
 }
 
-function EmptyChoice({
+function EmptyTeamChoice({
   busy,
-  driveUrl,
-  setDriveUrl,
-  onImport,
-  onStart,
+  driveUrls,
+  setDriveUrls,
+  pasteText,
+  setPasteText,
+  review,
+  onStartReview,
+  onAssign,
+  onConfirm,
+  onStartAll,
 }: {
   busy: boolean;
-  driveUrl: string;
-  setDriveUrl: (v: string) => void;
-  onImport: () => void;
-  onStart: () => void;
+  driveUrls: string;
+  setDriveUrls: (v: string) => void;
+  pasteText: string;
+  setPasteText: (v: string) => void;
+  review: ImportReview | null;
+  onStartReview: () => void;
+  onAssign: (splitId: string, caseId: string) => void;
+  onConfirm: () => void;
+  onStartAll: () => void;
 }) {
   return (
     <section className="rounded-[20px] bg-white p-5">
       <h2 className="font-display m-0 text-[28px] font-extrabold leading-tight sm:text-[36px]">
-        Working document
+        Working documents
       </h2>
       <p className="mt-2 text-sm text-muted">
-        One place this team writes from for this case. Pick how you work. You
-        can switch later.
+        One import for the whole team. Crux splits by case. Or start every case
+        from the truth source.
       </p>
+
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <div className="rounded-[16px] border-2 border-mist bg-[#F7F8FA] p-4">
           <h3 className="font-display m-0 text-lg font-extrabold">
-            Import our Google Doc
+            Import our documents
           </h3>
           <p className="mt-1 text-[13px] leading-snug text-[#3B404A]">
-            Crux reads it on sync and never writes to it. Suggestions land in
-            your to-do list.
+            One or more Google Docs or pasted files that usually hold all cases
+            together. Crux splits them and shows a short review before filling.
           </p>
-          <input
-            type="url"
-            className="mt-3 h-10 w-full rounded-[10px] border border-mist bg-white px-3 text-sm"
-            placeholder="https://docs.google.com/document/d/…"
-            value={driveUrl}
+          <textarea
+            rows={3}
+            className="mt-3 w-full rounded-[10px] border border-mist bg-white px-3 py-2 text-sm"
+            placeholder="One Google Doc link per line"
+            value={driveUrls}
             disabled={busy}
-            onChange={(e) => setDriveUrl(e.target.value)}
+            onChange={(e) => setDriveUrls(e.target.value)}
+          />
+          <textarea
+            rows={3}
+            className="mt-2 w-full rounded-[10px] border border-mist bg-white px-3 py-2 text-sm"
+            placeholder="Or paste document text here"
+            value={pasteText}
+            disabled={busy}
+            onChange={(e) => setPasteText(e.target.value)}
           />
           <button
             type="button"
-            disabled={busy || !driveUrl.trim()}
+            disabled={busy || (!driveUrls.trim() && !pasteText.trim())}
             className="mt-3 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-            onClick={onImport}
+            onClick={onStartReview}
           >
-            Import our Google Doc
+            Import our documents
           </button>
         </div>
+
         <div className="rounded-[16px] border-2 border-mist bg-[#F7F8FA] p-4">
           <h3 className="font-display m-0 text-lg font-extrabold">
-            Start our working document here
+            Start our working documents
           </h3>
           <p className="mt-1 text-[13px] leading-snug text-[#3B404A]">
-            Build it section by section. Cruxy asks one question at a time
-            before it answers.
+            Creates one for every active case from the truth source, with
+            perspectives, analogies and research suggestions already waiting.
           </p>
           <button
             type="button"
             disabled={busy}
             className="mt-3 rounded-xl bg-cardinal px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-            onClick={onStart}
+            onClick={onStartAll}
           >
-            Start our working document here
+            Start our working documents
           </button>
         </div>
       </div>
+
+      {review ? (
+        <div className="mt-5 rounded-[16px] border border-mist bg-white p-4">
+          <h3 className="font-display m-0 text-lg font-extrabold">
+            Review before confirm
+          </h3>
+          <ul className="mt-2 m-0 list-disc space-y-1 pl-5 text-sm">
+            {review.reviewLines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+          <div className="mt-3 flex flex-col gap-3">
+            {review.splits
+              .filter((s) => s.kind === "unmatched")
+              .map((s) => (
+                <label
+                  key={s.id}
+                  className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center"
+                >
+                  <span className="text-muted">
+                    Unmatched ({s.section_count} parts), choose a case:
+                  </span>
+                  <select
+                    className="rounded-lg border border-mist px-2 py-1.5"
+                    disabled={busy}
+                    value={s.assigned_case_id ?? ""}
+                    onChange={(e) => {
+                      if (e.target.value) onAssign(s.id, e.target.value);
+                    }}
+                  >
+                    <option value="">Pick case</option>
+                    {review.cases.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        Case {c.number}: {c.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ))}
+          </div>
+          <button
+            type="button"
+            disabled={busy}
+            className="mt-4 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+            onClick={onConfirm}
+          >
+            Confirm and fill working documents
+          </button>
+        </div>
+      ) : null}
     </section>
+  );
+}
+
+function SuggestionsRail({
+  suggestions,
+  busy,
+  crossReasons,
+  setCrossReasons,
+  onTick,
+  onCross,
+}: {
+  suggestions: Hub["suggestions"];
+  busy: boolean;
+  crossReasons: Record<string, string>;
+  setCrossReasons: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  onTick: (id: string) => void;
+  onCross: (id: string) => void;
+}) {
+  return (
+    <aside className="rounded-[20px] bg-white p-4 lg:sticky lg:top-4 lg:self-start">
+      <h3 className="font-display m-0 text-lg font-extrabold">Suggestions</h3>
+      <p className="mt-1 text-[13px] text-muted">
+        Tick to keep, cross to hide. Cruxy, teammates and strong anonymous ideas
+        land here.
+      </p>
+      {suggestions.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">None waiting.</p>
+      ) : (
+        <ul className="mt-3 m-0 list-none space-y-2 p-0">
+          {suggestions.map((s) => (
+            <SuggestionCard
+              key={s.id}
+              s={s}
+              busy={busy}
+              reason={crossReasons[s.id] ?? ""}
+              onReason={(v) =>
+                setCrossReasons((m) => ({ ...m, [s.id]: v }))
+              }
+              onTick={() => onTick(s.id)}
+              onCross={() => onCross(s.id)}
+            />
+          ))}
+        </ul>
+      )}
+    </aside>
   );
 }
 
@@ -388,10 +572,14 @@ function SuggestionCard({
   onCross: () => void;
 }) {
   return (
-    <li className="rounded-[12px] border border-mist bg-white px-3 py-2.5">
+    <li className="rounded-[12px] border border-mist bg-[#F7F8FA] px-3 py-2.5">
       <p className="m-0 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
         {KIND_LABEL[s.kind] ?? "Suggestion"}
-        {s.source === "evidence_library" ? " · shared" : ""}
+        {s.source === "member" && s.created_by_name
+          ? ` from ${s.created_by_name}`
+          : s.source === "cruxy"
+            ? " from Cruxy"
+            : ""}
       </p>
       <p className="m-0 mt-1 text-sm leading-snug">{s.text}</p>
       {s.citation ? (
@@ -402,26 +590,26 @@ function SuggestionCard({
         <button
           type="button"
           disabled={busy}
-          aria-label="Tick: add to to-do list"
+          aria-label="Tick suggestion"
           className="rounded-lg bg-ink px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
           onClick={onTick}
         >
           Tick
         </button>
         <input
-          className="h-8 w-24 rounded-lg border border-mist px-2 text-xs"
+          className="h-8 w-24 rounded-lg border border-mist bg-white px-2 text-xs"
           placeholder="Why not?"
           maxLength={40}
           value={reason}
           disabled={busy}
           onChange={(e) => onReason(e.target.value)}
-          aria-label="Optional one-word reason to hide"
+          aria-label="Reason to cross"
         />
         <button
           type="button"
           disabled={busy}
-          aria-label="Cross: hide for this team"
-          className="rounded-lg border border-mist bg-[#F7F8FA] px-2.5 py-1.5 text-xs font-semibold disabled:opacity-60"
+          aria-label="Cross suggestion"
+          className="rounded-lg border border-mist bg-white px-2.5 py-1.5 text-xs font-semibold disabled:opacity-60"
           onClick={onCross}
         >
           Cross
@@ -431,125 +619,45 @@ function SuggestionCard({
   );
 }
 
-function ImportedDoc({
-  data,
-  busy,
-  suggestionsByAnchor,
-  crossReasons,
-  setCrossReasons,
-  onTick,
-  onCross,
-}: {
-  data: Hub;
-  busy: boolean;
-  suggestionsByAnchor: Map<string, Hub["suggestions"]>;
-  crossReasons: Record<string, string>;
-  setCrossReasons: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  onTick: (id: string) => void;
-  onCross: (id: string) => void;
-}) {
-  const loose = suggestionsByAnchor.get("_doc") ?? [];
+function ImportedBody({ data }: { data: Hub }) {
   return (
     <div className="flex flex-col gap-4">
       <section className="rounded-[20px] bg-white p-5">
         <h2 className="font-display m-0 text-xl font-extrabold">
-          {data.brief.drive_title ?? "Your Google Doc"}
+          {data.brief.drive_title ?? "Imported document"}
         </h2>
         <p className="mt-1 text-sm text-muted">
-          Read-only. Crux never writes into this doc. Tick a suggestion to put
-          it on your to-do list.
+          Read-only source text for this case.
           {data.brief.last_synced_label
             ? ` Last read ${data.brief.last_synced_label}.`
             : ""}
         </p>
       </section>
-
       {data.passages.length === 0 ? (
-        <p className="text-sm text-muted">
-          No text yet. Link may still be syncing, or the doc was empty.
-        </p>
+        <p className="text-sm text-muted">No paragraphs for this case yet.</p>
       ) : (
-        data.passages.map((p) => {
-          const beside = suggestionsByAnchor.get(p.anchor) ?? [];
-          return (
-            <div
-              key={p.id}
-              className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)]"
-            >
-              <article className="rounded-[20px] bg-white p-5">
-                <p className="m-0 whitespace-pre-wrap text-[15px] leading-relaxed">
-                  {p.text}
-                </p>
-              </article>
-              <aside className="flex flex-col gap-2">
-                <p className="m-0 text-[11px] font-bold uppercase tracking-[0.1em] text-muted">
-                  Suggestions
-                </p>
-                {beside.length === 0 ? (
-                  <p className="m-0 text-xs text-muted">None for this paragraph.</p>
-                ) : (
-                  <ul className="m-0 list-none space-y-2 p-0">
-                    {beside.map((s) => (
-                      <SuggestionCard
-                        key={s.id}
-                        s={s}
-                        busy={busy}
-                        reason={crossReasons[s.id] ?? ""}
-                        onReason={(v) =>
-                          setCrossReasons((m) => ({ ...m, [s.id]: v }))
-                        }
-                        onTick={() => onTick(s.id)}
-                        onCross={() => onCross(s.id)}
-                      />
-                    ))}
-                  </ul>
-                )}
-              </aside>
-            </div>
-          );
-        })
+        data.passages.map((p) => (
+          <article key={p.id} className="rounded-[20px] bg-white p-5">
+            <p className="m-0 whitespace-pre-wrap text-[15px] leading-relaxed">
+              {p.text}
+            </p>
+          </article>
+        ))
       )}
-
-      {loose.length > 0 ? (
-        <section className="rounded-[20px] bg-white p-5">
-          <h3 className="font-display m-0 text-lg font-extrabold">
-            More suggestions
-          </h3>
-          <ul className="mt-3 m-0 list-none space-y-2 p-0 sm:max-w-md">
-            {loose.map((s) => (
-              <SuggestionCard
-                key={s.id}
-                s={s}
-                busy={busy}
-                reason={crossReasons[s.id] ?? ""}
-                onReason={(v) =>
-                  setCrossReasons((m) => ({ ...m, [s.id]: v }))
-                }
-                onTick={() => onTick(s.id)}
-                onCross={() => onCross(s.id)}
-              />
-            ))}
-          </ul>
-        </section>
-      ) : null}
     </div>
   );
 }
 
-function CruxDoc({
+function CruxBody({
   data,
   busy,
   sectionDrafts,
   setSectionDrafts,
   socraticAnswers,
   setSocraticAnswers,
-  crossReasons,
-  setCrossReasons,
   onSave,
   onAsk,
   onAnswer,
-  onTick,
-  onCross,
 }: {
   data: Hub;
   busy: boolean;
@@ -559,13 +667,9 @@ function CruxDoc({
   setSocraticAnswers: React.Dispatch<
     React.SetStateAction<Record<string, string>>
   >;
-  crossReasons: Record<string, string>;
-  setCrossReasons: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   onSave: (key: string) => void;
   onAsk: (key: string) => void;
   onAnswer: (key: string, socraticId: string) => void;
-  onTick: (id: string) => void;
-  onCross: (id: string) => void;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -574,15 +678,12 @@ function CruxDoc({
           Working document
         </h2>
         <p className="mt-1 text-sm text-muted">
-          Six sections. In an empty one, Cruxy asks one question at a time.
+          Edit on the left. Suggestions stay on the right.
         </p>
       </section>
 
       {data.sections.map((sec) => {
         const empty = !(sectionDrafts[sec.key] ?? "").trim();
-        const sectionSuggestions = data.suggestions.filter(
-          (s) => s.section_key === sec.key,
-        );
         return (
           <section key={sec.key} className="rounded-[20px] bg-white p-5">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -660,24 +761,6 @@ function CruxDoc({
             >
               Save section
             </button>
-
-            {sectionSuggestions.length > 0 ? (
-              <ul className="mt-3 m-0 list-none space-y-2 p-0 sm:max-w-md">
-                {sectionSuggestions.map((s) => (
-                  <SuggestionCard
-                    key={s.id}
-                    s={s}
-                    busy={busy}
-                    reason={crossReasons[s.id] ?? ""}
-                    onReason={(v) =>
-                      setCrossReasons((m) => ({ ...m, [s.id]: v }))
-                    }
-                    onTick={() => onTick(s.id)}
-                    onCross={() => onCross(s.id)}
-                  />
-                ))}
-              </ul>
-            ) : null}
           </section>
         );
       })}
@@ -687,7 +770,6 @@ function CruxDoc({
 
 function ChecklistPanel({ data }: { data: Hub }) {
   const open = data.checklist.filter((c) => !c.done);
-  const done = data.checklist.filter((c) => c.done);
   if (data.checklist.length === 0) return null;
   return (
     <section className="rounded-[20px] bg-white p-5">
@@ -695,147 +777,18 @@ function ChecklistPanel({ data }: { data: Hub }) {
         To-do for your doc
       </h3>
       <p className="mt-1 text-sm text-muted">
-        Ticked suggestions wait here. Crux never edits your Google Doc.
+        Ticked suggestions wait here.
       </p>
       <ul className="mt-3 m-0 list-none space-y-2 p-0">
         {open.map((c) => (
-          <li
-            key={c.id}
-            className="rounded-[14px] bg-[#F7F8FA] px-3.5 py-3 text-sm"
-          >
-            <p className="m-0 leading-snug">{c.text}</p>
+          <li key={c.id} className="rounded-[12px] bg-[#F7F8FA] px-3 py-2 text-sm">
+            {c.text}
             <Attr name={c.created_by_name} when={c.created_at_label} />
           </li>
         ))}
-        {done.map((c) => (
-          <li
-            key={c.id}
-            className="rounded-[14px] px-3.5 py-2 text-sm text-muted line-through"
-          >
-            {c.text}
-            <Attr name={c.done_by_name} when={c.done_at_label} />
-          </li>
-        ))}
       </ul>
     </section>
   );
 }
 
-function EvidenceLibraryPanel({
-  data,
-  busy,
-  factText,
-  setFactText,
-  factCite,
-  setFactCite,
-  crossReasons,
-  setCrossReasons,
-  onSuggest,
-  onDecide,
-}: {
-  data: Hub;
-  busy: boolean;
-  factText: string;
-  setFactText: (v: string) => void;
-  factCite: string;
-  setFactCite: (v: string) => void;
-  crossReasons: Record<string, string>;
-  setCrossReasons: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  onSuggest: () => void;
-  onDecide: (id: string, decision: "tick" | "cross") => void;
-}) {
-  const visible = data.library.filter((f) => f.decision !== "cross");
-  return (
-    <section className="rounded-[20px] bg-white p-5">
-      <h3 className="font-display m-0 text-lg font-extrabold">
-        Evidence Library
-      </h3>
-      <p className="mt-1 text-sm text-muted">
-        Shared facts with citations. Tick or cross for your team only. One
-        team&apos;s choice never changes another team&apos;s view.
-      </p>
-
-      <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-        <input
-          className="h-10 rounded-[10px] border border-mist px-3 text-sm"
-          placeholder="Fact"
-          value={factText}
-          disabled={busy}
-          onChange={(e) => setFactText(e.target.value)}
-        />
-        <input
-          className="h-10 rounded-[10px] border border-mist px-3 text-sm"
-          placeholder="Citation"
-          value={factCite}
-          disabled={busy}
-          onChange={(e) => setFactCite(e.target.value)}
-        />
-        <button
-          type="button"
-          disabled={busy || !factText.trim() || !factCite.trim()}
-          className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-          onClick={onSuggest}
-        >
-          Suggest fact
-        </button>
-      </div>
-
-      <ul className="mt-4 m-0 list-none space-y-2 p-0">
-        {visible.length === 0 ? (
-          <li className="text-sm text-muted">No shared facts yet for this case.</li>
-        ) : (
-          visible.map((f) => (
-            <li
-              key={f.id}
-              className="flex flex-col gap-2 rounded-[14px] bg-[#F7F8FA] px-3.5 py-3 sm:flex-row sm:items-start"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="m-0 text-sm leading-snug">{f.text}</p>
-                <Attr name={f.created_by_name} when={f.created_at_label} />
-                {f.decision === "tick" ? (
-                  <p className="m-0 mt-1 text-[12px] font-semibold text-[#0F7B6C]">
-                    Your team ticked this
-                    {f.decided_by_name ? ` (${f.decided_by_name})` : ""}.
-                  </p>
-                ) : null}
-              </div>
-              {f.decision !== "tick" ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className="rounded-lg bg-ink px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
-                    onClick={() => onDecide(f.id, "tick")}
-                  >
-                    Tick
-                  </button>
-                  <input
-                    className="h-8 w-24 rounded-lg border border-mist px-2 text-xs"
-                    placeholder="Why not?"
-                    maxLength={40}
-                    value={crossReasons[f.id] ?? ""}
-                    disabled={busy}
-                    onChange={(e) =>
-                      setCrossReasons((m) => ({ ...m, [f.id]: e.target.value }))
-                    }
-                  />
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className="rounded-lg border border-mist bg-white px-2.5 py-1.5 text-xs font-semibold disabled:opacity-60"
-                    onClick={() => onDecide(f.id, "cross")}
-                  >
-                    Cross
-                  </button>
-                </div>
-              ) : null}
-            </li>
-          ))
-        )}
-      </ul>
-    </section>
-  );
-}
-
-/** Default export alias for F's case page import. */
 export default WorkingDocument;

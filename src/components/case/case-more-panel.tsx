@@ -2,6 +2,11 @@
 
 import { cn } from "@/lib/utils";
 
+/**
+ * Case workflow v2: UI lists only Ideas over time.
+ * Legacy ids remain for type-safe dead branches until claim map / truth
+ * panels are fully removed from case-brain-client.
+ */
 export type MoreSection =
   | "ideas"
   | "map"
@@ -15,45 +20,11 @@ const ITEMS: {
   id: MoreSection;
   label: string;
   blurb: string;
-  countKey?: "truth" | "flashcard" | "question" | "reading";
 }[] = [
-  {
-    id: "brief",
-    label: "Team Brief",
-    blurb: "Agreed stance, mode, and suggestions for this case.",
-  },
   {
     id: "ideas",
     label: "Ideas over time",
-    blurb: "How the claim map and questions grew.",
-  },
-  {
-    id: "map",
-    label: "Claim map",
-    blurb: "Claims, supports, backings and counterclaims.",
-  },
-  {
-    id: "truth",
-    label: "Evidence Library",
-    blurb: "Accepted facts, quotes, examples and frameworks.",
-    countKey: "truth",
-  },
-  {
-    id: "flashcards",
-    label: "Flashcards",
-    blurb: "Cards drilled from this case.",
-    countKey: "flashcard",
-  },
-  {
-    id: "questions",
-    label: "Questions",
-    blurb: "Moderator and practice questions for this case.",
-    countKey: "question",
-  },
-  {
-    id: "research",
-    label: "Research",
-    blurb: "Coverage, dossiers, findings and opposing positions.",
+    blurb: "How this case's thinking grew.",
   },
 ];
 
@@ -66,12 +37,12 @@ type Counts = {
 
 /**
  * Everything that is not Reading / Working document / One pager.
- * A simple list; choosing one opens that section in place.
+ * Case workflow v2: only Ideas over time.
  */
 export function CaseMoreList({
   active,
   onPick,
-  counts,
+  counts: _counts,
   className,
 }: {
   active: MoreSection | null;
@@ -79,13 +50,10 @@ export function CaseMoreList({
   counts?: Counts;
   className?: string;
 }) {
+  void _counts;
   return (
     <ul className={cn("m-0 list-none space-y-2 p-0", className)}>
       {ITEMS.map((item) => {
-        const count =
-          item.countKey && counts
-            ? counts[item.countKey]
-            : undefined;
         const selected = active === item.id;
         return (
           <li key={item.id}>
@@ -93,21 +61,14 @@ export function CaseMoreList({
               type="button"
               onClick={() => onPick(item.id)}
               className={cn(
-                "flex w-full flex-col gap-0.5 rounded-[16px] border px-4 py-3 text-left",
+                "flex w-full flex-col items-start rounded-[14px] border px-4 py-3 text-left",
                 selected
-                  ? "border-cardinal/40 bg-cardinal/5"
-                  : "border-[#E3E5E9] bg-white hover:bg-[#F7F8FA]",
+                  ? "border-cardinal bg-cardinal/5"
+                  : "border-mist bg-white",
               )}
             >
-              <span className="flex items-center gap-2 text-sm font-semibold text-ink">
-                {item.label}
-                {count != null && count > 0 ? (
-                  <span className="rounded-md bg-mist px-1.5 py-0.5 text-[11px] font-bold text-[#3B404A]">
-                    {count}
-                  </span>
-                ) : null}
-              </span>
-              <span className="text-xs text-muted">{item.blurb}</span>
+              <span className="text-sm font-semibold text-ink">{item.label}</span>
+              <span className="mt-0.5 text-[13px] text-muted">{item.blurb}</span>
             </button>
           </li>
         );

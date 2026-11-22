@@ -19,10 +19,7 @@ import {
   supportLabel,
 } from "@/components/case-brain/support-label";
 import { VersionConfirm } from "@/components/case-brain/version-confirm";
-import {
-  TeamBriefPanel,
-  suggestionKindFromOrigin,
-} from "@/components/case-brain/team-brief-panel";
+import { suggestionKindFromOrigin } from "@/components/case-brain/team-brief-panel";
 import { FindingCard } from "@/components/cruxy/finding-card";
 import {
   ClaimResearchDossierView,
@@ -41,8 +38,8 @@ import { cn } from "@/lib/utils";
 type PrimaryTab = "reading" | "working" | "one_pager" | "more";
 
 const MORE_SECTIONS = new Set<MoreSection>([
-  "brief",
   "ideas",
+  "brief",
   "map",
   "truth",
   "flashcards",
@@ -62,7 +59,19 @@ function resolveTabParam(raw: string | null): {
   if (raw === "one_pager" || raw === "one-pager") {
     return { primary: "one_pager", more: null };
   }
-  if (raw === "more") return { primary: "more", more: null };
+  // Case workflow v2: More is only Ideas over time. Old deep links land there.
+  if (
+    raw === "more" ||
+    raw === "ideas" ||
+    raw === "brief" ||
+    raw === "map" ||
+    raw === "truth" ||
+    raw === "flashcards" ||
+    raw === "questions" ||
+    raw === "research"
+  ) {
+    return { primary: "more", more: "ideas" };
+  }
   if (MORE_SECTIONS.has(raw as MoreSection)) {
     return { primary: "more", more: raw as MoreSection };
   }
@@ -661,42 +670,15 @@ export function CaseBrainClient({
                     More for this case
                   </h2>
                   <p className="mt-1 text-sm text-muted">
-                    Claim map, evidence, cards, questions, research and history.
+                    Ideas over time. Claim map lives on the one pager; evidence
+                    and research live on Reading.
                   </p>
                 </div>
                 <CaseMoreList
-                  active={moreSection}
+                  active={moreSection ?? "ideas"}
                   onPick={setMoreSection}
-                  counts={{
-                    truth: meta.truth_count,
-                    flashcard: meta.flashcard_count,
-                    question: meta.question_count,
-                    reading: meta.reading_count,
-                  }}
                 />
               </div>
-            ) : null}
-
-            {tab === "more" && moreSection === "brief" ? (
-              <TeamBriefPanel
-                caseId={caseId}
-                teamId={teamId}
-                canEdit={canEdit}
-                busy={busy}
-                onBusy={setBusy}
-                onError={setError}
-                onChanged={() => {
-                  void load(teamId);
-                  void fetch(
-                    `/api/case-brain/brief?caseId=${encodeURIComponent(caseId)}&teamId=${encodeURIComponent(teamId)}`,
-                  )
-                    .then((r) => r.json())
-                    .then((j: { brief?: { mode?: "own_doc" | "build_in_crux" } }) => {
-                      if (j.brief?.mode) setBriefMode(j.brief.mode);
-                    })
-                    .catch(() => undefined);
-                }}
-              />
             ) : null}
 
             {tab === "more" && moreSection === "map" ? (
