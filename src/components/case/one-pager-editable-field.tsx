@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { LinkedText } from "@/components/frameworks/linked-text";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -11,6 +12,8 @@ type Props = {
   displayClassName?: string;
   placeholder?: string;
   label?: string;
+  /** When set, technical phrases get quiet in-place explainers. */
+  caseId?: string | null;
   onSave: (next: string) => Promise<void> | void;
 };
 
@@ -25,6 +28,7 @@ export function OnePagerEditableField({
   displayClassName,
   placeholder = "Tap to add",
   label,
+  caseId,
   onSave,
 }: Props) {
   const [editing, setEditing] = useState(false);
@@ -35,35 +39,31 @@ export function OnePagerEditableField({
     if (!editing) setDraft(value);
   }, [value, editing]);
 
-  if (!canEdit) {
-    return (
-      <span className={cn(displayClassName, className)}>
-        {value.trim() ? value : <span className="text-muted">{placeholder}</span>}
-      </span>
-    );
-  }
+  const display = value.trim() ? (
+    <LinkedText text={value} caseId={caseId} preWrap={multiline} />
+  ) : (
+    <span className="text-muted">{placeholder}</span>
+  );
 
   if (!editing) {
+    // Div (not a wrapping button) so framework marks stay clickable.
     return (
-      <button
-        type="button"
-        className={cn(
-          "w-full rounded-lg text-left transition hover:ring-2 hover:ring-ink/15",
-          displayClassName,
-          className,
-        )}
-        onClick={() => {
-          setDraft(value);
-          setEditing(true);
-        }}
-        aria-label={label ? `Edit ${label}` : "Edit"}
-      >
-        {value.trim() ? (
-          value
-        ) : (
-          <span className="text-muted">{placeholder}</span>
-        )}
-      </button>
+      <div className={cn("group relative", displayClassName, className)}>
+        {display}
+        {canEdit ? (
+          <button
+            type="button"
+            className="mt-1 text-[11px] font-semibold text-muted underline-offset-2 hover:underline"
+            onClick={() => {
+              setDraft(value);
+              setEditing(true);
+            }}
+            aria-label={label ? `Edit ${label}` : "Edit"}
+          >
+            Edit
+          </button>
+        ) : null}
+      </div>
     );
   }
 

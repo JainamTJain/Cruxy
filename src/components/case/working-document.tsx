@@ -6,6 +6,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
+import { LinkedText } from "@/components/frameworks/linked-text";
 import { cn } from "@/lib/utils";
 
 type Hub = {
@@ -205,6 +206,7 @@ export function WorkingDocument({
       {path === "imported" ? (
         <ImportedDoc
           data={data}
+          caseId={caseId}
           busy={editBusy}
           suggestionsByAnchor={suggestionsByAnchor}
           crossReasons={crossReasons}
@@ -223,6 +225,7 @@ export function WorkingDocument({
       {path === "crux" ? (
         <CruxDoc
           data={data}
+          caseId={caseId}
           busy={editBusy}
           sectionDrafts={sectionDrafts}
           setSectionDrafts={setSectionDrafts}
@@ -379,6 +382,7 @@ function SuggestionCard({
   onReason,
   onTick,
   onCross,
+  caseId,
 }: {
   s: Hub["suggestions"][number];
   busy: boolean;
@@ -386,6 +390,7 @@ function SuggestionCard({
   onReason: (v: string) => void;
   onTick: () => void;
   onCross: () => void;
+  caseId: string;
 }) {
   return (
     <li className="rounded-[12px] border border-mist bg-white px-3 py-2.5">
@@ -393,7 +398,9 @@ function SuggestionCard({
         {KIND_LABEL[s.kind] ?? "Suggestion"}
         {s.source === "evidence_library" ? ", shared" : ""}
       </p>
-      <p className="m-0 mt-1 text-sm leading-snug">{s.text}</p>
+      <p className="m-0 mt-1 text-sm leading-snug">
+        <LinkedText text={s.text} caseId={caseId} />
+      </p>
       {s.citation ? (
         <p className="m-0 mt-1 font-mono text-[11px] text-muted">{s.citation}</p>
       ) : null}
@@ -433,6 +440,7 @@ function SuggestionCard({
 
 function ImportedDoc({
   data,
+  caseId,
   busy,
   suggestionsByAnchor,
   crossReasons,
@@ -441,6 +449,7 @@ function ImportedDoc({
   onCross,
 }: {
   data: Hub;
+  caseId: string;
   busy: boolean;
   suggestionsByAnchor: Map<string, Hub["suggestions"]>;
   crossReasons: Record<string, string>;
@@ -477,8 +486,8 @@ function ImportedDoc({
               className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)]"
             >
               <article className="rounded-[20px] bg-white p-5">
-                <p className="m-0 whitespace-pre-wrap text-[15px] leading-relaxed">
-                  {p.text}
+                <p className="m-0 text-[15px] leading-relaxed">
+                  <LinkedText text={p.text} caseId={caseId} preWrap />
                 </p>
               </article>
               <aside className="flex flex-col gap-2">
@@ -493,6 +502,7 @@ function ImportedDoc({
                       <SuggestionCard
                         key={s.id}
                         s={s}
+                        caseId={caseId}
                         busy={busy}
                         reason={crossReasons[s.id] ?? ""}
                         onReason={(v) =>
@@ -520,6 +530,7 @@ function ImportedDoc({
               <SuggestionCard
                 key={s.id}
                 s={s}
+                caseId={caseId}
                 busy={busy}
                 reason={crossReasons[s.id] ?? ""}
                 onReason={(v) =>
@@ -538,6 +549,7 @@ function ImportedDoc({
 
 function CruxDoc({
   data,
+  caseId,
   busy,
   sectionDrafts,
   setSectionDrafts,
@@ -552,6 +564,7 @@ function CruxDoc({
   onCross,
 }: {
   data: Hub;
+  caseId: string;
   busy: boolean;
   sectionDrafts: Record<string, string>;
   setSectionDrafts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
@@ -667,6 +680,7 @@ function CruxDoc({
                   <SuggestionCard
                     key={s.id}
                     s={s}
+                    caseId={caseId}
                     busy={busy}
                     reason={crossReasons[s.id] ?? ""}
                     onReason={(v) =>
