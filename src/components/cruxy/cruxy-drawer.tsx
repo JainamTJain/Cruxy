@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CruxWordmark } from "@/components/crux-wordmark";
 import { useCruxy } from "@/components/cruxy/cruxy-context";
@@ -331,6 +332,15 @@ export function CruxyDrawer() {
             Back to the lamp
           </Button>
         </div>
+        <p className="m-0 text-center text-[11px] text-muted">
+          <Link href="/help" className="underline">
+            Help
+          </Link>
+          {", "}
+          <Link href="/help/ethics-bowl" className="underline">
+            Ethics Bowl in 90 seconds
+          </Link>
+        </p>
       </footer>
     </div>
   );

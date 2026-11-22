@@ -12,6 +12,7 @@ import { FloatingCruxy } from "@/components/cruxy/floating-cruxy";
 import { preloadCruxyPoses } from "@/components/cruxy/mood/poses";
 import { ConfettiHost } from "@/components/motion/confetti";
 import { FirstVisitTour } from "@/components/product/first-visit-tour";
+import { ReportProblemButton } from "@/components/help/report-problem-button";
 import { NotificationBell } from "@/components/notification-bell";
 import {
   GlobalSearchHost,
@@ -43,6 +44,7 @@ const SIDE_NAV: { href: string; label: string; match?: string }[] = [
   { href: "/revision/roadmap", label: "My roadmap" },
   { href: "/case-brain", label: "Cases" },
   { href: "/practice", label: "Practice" },
+  { href: "/regional", label: "Competition Day" },
   { href: "/team/chat", label: "Team chat" },
 ];
 
@@ -59,7 +61,7 @@ const PHONE_TABS = [
   { href: "/today", label: "Today" },
   { href: "/case-brain", label: "Cases" },
   { href: "/practice", label: "Practice" },
-  { href: "/team", label: "Team" },
+  { href: "/regional", label: "Dec 5" },
 ];
 
 function navActive(pathname: string, href: string, match?: string) {
@@ -241,7 +243,19 @@ function ShellInner({ children }: { children: React.ReactNode }) {
               </span>
             </span>
           </div>
-          <div className="flex gap-2 px-1">
+          <div className="flex flex-wrap gap-2 px-1">
+            <Link
+              href="/help"
+              className="text-[11px] text-[#9AA0AA] underline"
+            >
+              Help
+            </Link>
+            <Link
+              href="/help/whats-new"
+              className="text-[11px] text-[#9AA0AA] underline"
+            >
+              What&apos;s new
+            </Link>
             {isAdminRole ? (
               <button
                 type="button"
@@ -350,6 +364,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <ConfettiHost />
       <FirstVisitTour />
       <GlobalSearchHost />
+      <ReportProblemButton />
     </div>
   );
 }

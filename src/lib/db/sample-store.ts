@@ -266,6 +266,8 @@ export interface SampleStore {
   arg_edges?: import("@/lib/graph/types").ArgEdge[];
   /** Wave 8 D: personal learning profiles. */
   learning_profiles?: import("@/lib/learning/types").LearningProfile[];
+  /** Wave 9 G: report a problem / suggest something. */
+  product_feedback?: import("@/lib/db/supabase/product-feedback-extra").ProductFeedback[];
 }
 
 function emptyCaseBrainFields(): Pick<
@@ -806,6 +808,7 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     case_role_preferences: raw.case_role_preferences ?? [],
     arg_edges: raw.arg_edges ?? [],
     learning_profiles: raw.learning_profiles ?? [],
+    product_feedback: raw.product_feedback ?? [],
   };
 }
 
