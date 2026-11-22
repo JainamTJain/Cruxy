@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  OneTapJudgeDrill,
+  PreRoundWarmupCta,
+} from "@/components/product";
 import type { PracticeMode } from "@/lib/practice/types";
 
 type CaseRow = { id: string; number: number; title: string; active: boolean };
@@ -149,9 +153,17 @@ export default function PracticePage() {
       <div>
         <h1 className="font-display text-3xl font-semibold">Practice</h1>
         <p className="mt-1 text-sm text-muted">
-          Start alone or with a team. No admin needed. Admins also set up group days.
+          Warm up, drill, or start a full round. No admin needed.
         </p>
       </div>
+
+      <section className="flex flex-col gap-2 rounded-[20px] bg-white p-4 sm:flex-row sm:items-center">
+        <p className="mr-auto text-sm text-muted">
+          Most useful before a round
+        </p>
+        <PreRoundWarmupCta caseId={caseId || null} compact />
+        <OneTapJudgeDrill caseId={caseId || null} compact />
+      </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-ink/10 bg-white/70 p-4">

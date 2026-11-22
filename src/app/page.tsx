@@ -6,5 +6,6 @@ export default async function RootPage() {
   if (!session) redirect("/sign-in");
   if (session.mustConsent) redirect("/consent");
   if (session.mustChoosePasscode) redirect("/choose-passcode");
-  redirect("/home");
+  // Wave 8 G: members land on Today (three things), not the program board.
+  redirect("/today");
 }

@@ -601,17 +601,18 @@ export function AdminConsole() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
-            Admin console
+            Admin
           </span>
-          <h1 className="font-display m-0 text-[48px] font-extrabold leading-none tracking-[-0.02em]">
-            Running the program
+          <h1 className="font-display m-0 text-[40px] font-extrabold leading-none tracking-[-0.02em] sm:text-[48px]">
+            People and readiness
           </h1>
         </div>
-        <p className="max-w-[360px] text-right text-[13px] text-muted">
-          Dr. B sees everything here except the panels marked{" "}
+        <p className="max-w-[280px] text-right text-[13px] text-muted">
+          Yellow{" "}
           <span className="rounded-md bg-[#FFF3C4] px-1.5 py-0.5 text-[11px] font-bold tracking-[0.08em] text-[#8A6500]">
             ONLY JAINAM
-          </span>
+          </span>{" "}
+          panels are tech-only.
         </p>
       </div>
 

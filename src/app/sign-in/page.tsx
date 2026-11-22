@@ -72,7 +72,7 @@ export default function SignInPage() {
     }
     if (data.mustConsent) router.push("/consent");
     else if (data.mustChoosePasscode) router.push("/choose-passcode");
-    else router.push("/home");
+    else router.push("/today");
   }
 
   const built = [
