@@ -107,7 +107,27 @@ export async function packCruxyContext(input: {
     .filter(Boolean)
     .join("\n");
 
-  const prefix = `${rules}\n\n--- Case card ---\n${caseBlock}`;
+  let learnerBlock = "";
+  if (input.personId) {
+    try {
+      const { getLearningProfile, learningProfilePromptBlock } = await import(
+        "@/lib/learning/read-profile"
+      );
+      learnerBlock = learningProfilePromptBlock(
+        await getLearningProfile(input.personId),
+      );
+    } catch {
+      /* D's profile table may not exist yet */
+    }
+  }
+
+  const prefix = [
+    rules,
+    `--- Case card ---\n${caseBlock}`,
+    learnerBlock ? `--- Learner ---\n${learnerBlock}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const claimBlock = (input.claimNodes ?? [])
     .slice(0, 24)

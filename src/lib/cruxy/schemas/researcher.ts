@@ -44,6 +44,8 @@ export const materialRequestSchema = z.object({
   year: z.number().int().optional().nullable(),
   doi: z.string().optional().nullable(),
   url: z.string().optional().nullable(),
+  /** Rubric composite 0..100; only request if it clears the bar. */
+  rubric_composite: z.number().min(0).max(100).optional().nullable(),
 });
 
 export const researcherSearchSchema = z.object({
@@ -67,5 +69,35 @@ export const researcherVerifySchema = z.object({
   claims: z.array(citedClaimSchema).default([]),
 });
 
+const rubricScoresSchema = z.object({
+  relevance: z.number().min(0).max(100),
+  argumentative_force: z.number().min(0).max(100),
+  credibility: z.number().min(0).max(100),
+});
+
+/** Wave 8: curate and judge after verify. */
+export const researcherCurateSchema = z.object({
+  ranks: z
+    .array(
+      z.object({
+        finding_index: z.number().int().min(0),
+        claim_ref: z.string(),
+        role: z.enum(["support", "steelman", "more"]),
+        why_place: z.string().max(220),
+        scores: rubricScoresSchema,
+      }),
+    )
+    .default([]),
+  /** At most 3 indices into tonight's findings list. */
+  nightly_finding_indices: z.array(z.number().int().min(0)).max(3).default([]),
+  brief: z.object({
+    summary: z.string().max(400),
+    judgment_changes: z.string().max(400),
+    judgment_does_not: z.string().max(400),
+  }),
+  claims: z.array(citedClaimSchema).default([]),
+});
+
 export type ResearcherSearchOutput = z.infer<typeof researcherSearchSchema>;
 export type ResearcherVerifyOutput = z.infer<typeof researcherVerifySchema>;
+export type ResearcherCurateOutput = z.infer<typeof researcherCurateSchema>;

@@ -1,4 +1,3 @@
-
 import { randomUUID } from "crypto";
 import { createProposal } from "@/lib/case-brain/service";
 import { getCaseBrain } from "@/lib/case-brain/service";
@@ -9,23 +8,33 @@ import {
   searchOpenLiterature,
 } from "@/lib/cruxy/literature/search";
 import { isOpenLicence } from "@/lib/cruxy/literature/types";
+import type { LiteratureHit } from "@/lib/cruxy/literature/types";
 import { digestOpenBook, isOpenAccessUrl } from "@/lib/cruxy/open-books";
 import { gapsFromClaimMaps } from "@/lib/cruxy/research-gaps";
 import { dedupeFindings } from "@/lib/cruxy/research-dedupe";
+import {
+  buildClaimDossiers,
+  clearsRubricBar,
+  RESEARCH_RUBRIC_TEXT,
+  selectNightlyFindings,
+} from "@/lib/cruxy/research-rubric";
 import {
   pagesToCitationSources,
   readBestResults,
 } from "@/lib/cruxy/research-read";
 import { capFindingPoint } from "@/lib/cruxy/shorten";
 import {
+  researcherCurateSystemPrompt,
   researcherSearchSystemPrompt,
   researcherVerifySystemPrompt,
 } from "@/lib/cruxy/prompts/researcher";
 import {
+  researcherCurateSchema,
   researcherSearchSchema,
   researcherVerifySchema,
   type ResearcherSearchOutput,
 } from "@/lib/cruxy/schemas/researcher";
+import { getLearningProfile, learningProfilePromptBlock } from "@/lib/learning/read-profile";
 import { createMaterialRequest } from "@/lib/db/supabase/material-requests-extra";
 import {
   listBookRequests,
@@ -39,6 +48,7 @@ import {
 import { listCases, listPeopleFull, logActivity } from "@/lib/db/repository";
 import type {
   BookRequest,
+  ResearchBrief,
   ResearchFinding,
   ResearchGap,
   ResearchRun,
@@ -87,7 +97,7 @@ function stubSearch(caseNumber: number, title: string): ResearcherSearchOutput {
 
 function matchLitHit(
   finding: { link?: string; doi?: string | null; title?: string | null },
-  hits: Awaited<ReturnType<typeof searchOpenLiterature>>,
+  hits: LiteratureHit[],
 ) {
   const doi = finding.doi?.toLowerCase() ?? null;
   if (doi) {
@@ -112,8 +122,9 @@ function matchLitHit(
 }
 
 /**
- * Nightly Researcher: gap finding → open literature + Gateway web search →
- * full read of open copies → verify → dedupe → proposals / material requests.
+ * Nightly Researcher: gap finding → open literature + web search →
+ * full read of open copies → verify → curate (rubric, ≤3, judgment) →
+ * proposals / material requests that clear the bar.
  */
 export async function runNightlyResearcher(opts?: {
   personId?: string | null;
@@ -143,6 +154,10 @@ export async function runNightlyResearcher(opts?: {
     people.find((p) => p.role === "tech_admin")?.id ??
     people[0]?.id ??
     "system";
+
+  const learner = learningProfilePromptBlock(
+    await getLearningProfile(opts?.personId ?? null),
+  );
 
   const runs: ResearchRun[] = [];
   let bookRequestsCreated = 0;
@@ -178,7 +193,7 @@ export async function runNightlyResearcher(opts?: {
       agent: "researcher",
       feature: "research_night_search",
       tier: "small",
-      system: `${researcherSearchSystemPrompt()}\n\n${COPYRIGHT_PROMPT_LINE}\nPrefer the open-literature hits below (OpenAlex, Semantic Scholar, CORE, arXiv, PubMed Central, DOAJ, PhilPapers OA, Crossref/Unpaywall). Use Gateway web search for news, reports, court and government documents. Every finding needs title, authors, year, link, DOI when known, licence, open_access, and a citation line. Store only a short quote unless the source is open licence or public domain. For paywalled sources or books that matter, add material_requests (do not invent full text).`,
+      system: `${researcherSearchSystemPrompt()}\n\n${COPYRIGHT_PROMPT_LINE}\n${RESEARCH_RUBRIC_TEXT}\nPrefer the open-literature hits below. Use Gateway web search for news, reports, court and government documents. Every finding needs bibliographic fields. Short quotes only unless open licence. For paywalled sources or books that clear the rubric bar, add material_requests.${learner ? `\n\n${learner}` : ""}`,
       user: `Case ${c.number}: ${c.title}. Drive files: ${related.map((f) => f.name).join("; ") || "none"}. Seed gaps: ${JSON.stringify(seed.gaps)}\n\nOpen literature hits:\n${litBrief}`,
       schema: researcherSearchSchema,
       personId: opts?.personId,
@@ -193,7 +208,6 @@ export async function runNightlyResearcher(opts?: {
     const gaps: ResearchGap[] = search.ok ? search.data.gaps : seed.gaps;
     if (search.ok && !search.stub) stub = false;
 
-    // Read only open-access / open-licence links in full.
     const openLinks = findings
       .map((f) => {
         const lit = matchLitHit(f, litHits);
@@ -207,7 +221,6 @@ export async function runNightlyResearcher(opts?: {
       })
       .filter((u): u is string => Boolean(u));
 
-    // Never fetch past a paywall: full reads only for open copies.
     const pages = await readBestResults([...new Set(openLinks)], 5);
     const readSources = pagesToCitationSources(pages);
     const readCorpus =
@@ -324,11 +337,124 @@ export async function runNightlyResearcher(opts?: {
       return prior < 2;
     });
 
+    const litByFindingId: Record<string, LiteratureHit | null> = {};
+    for (const f of researchFindings) {
+      litByFindingId[f.id] = matchLitHit(f, litHits);
+    }
+
+    const curate = await runAgent({
+      agent: "researcher",
+      feature: "research_night_curate",
+      tier: "strong",
+      system: `${researcherCurateSystemPrompt()}\n\n${COPYRIGHT_PROMPT_LINE}${learner ? `\n\n${learner}` : ""}`,
+      user: `Case ${c.number}: ${c.title}. Rank and judge these findings. Indices are 0-based into the list below. At most 3 nightly findings. Write judgment_changes and judgment_does_not.\n\nFindings:\n${JSON.stringify(
+        researchFindings.map((f, i) => ({
+          index: i,
+          id: f.id,
+          point: f.point,
+          why_it_matters: f.why_it_matters,
+          claim_ref: f.claim_ref,
+          title: f.title,
+          citation: f.citation,
+          verified: f.verified,
+          open_access: f.open_access,
+        })),
+      )}`,
+      schema: researcherCurateSchema,
+      personId: opts?.personId,
+      fixtureKey: `researcher_curate_case_${c.number}`,
+      estimatedCostUsd: 0.06,
+      stubFallback: () => ({
+        ranks: researchFindings.map((f, i) => ({
+          finding_index: i,
+          claim_ref: f.claim_ref,
+          role:
+            i === 0
+              ? ("support" as const)
+              : /\b(counter|oppose|against)\b/i.test(f.point)
+                ? ("steelman" as const)
+                : ("support" as const),
+          why_place:
+            i === 0
+              ? "Best clear source for the open gap tonight."
+              : "Earns a place on relevance and force.",
+          scores: {
+            relevance: 78 - i * 4,
+            argumentative_force: 72 - i * 3,
+            credibility: 70,
+          },
+        })),
+        nightly_finding_indices: researchFindings
+          .slice(0, 3)
+          .map((_, i) => i),
+        brief: {
+          summary: `Short brief for Case ${c.number}: the strongest open sources for tonight's gaps.`,
+          judgment_changes:
+            "Tightens the backed supports we can cite; sharpens one opposing line to answer.",
+          judgment_does_not:
+            "Does not settle the thesis or replace the team's own stance.",
+        },
+        claims: [],
+      }),
+    });
+    aiCalls += 1;
+    if (curate.ok && !curate.stub) stub = false;
+
+    const modelRanks =
+      curate.ok
+        ? curate.data.ranks
+            .map((r) => {
+              const f = researchFindings[r.finding_index];
+              if (!f) return null;
+              return {
+                finding_id: f.id,
+                claim_ref: r.claim_ref || f.claim_ref,
+                role: r.role,
+                why_place: r.why_place,
+                scores: r.scores,
+              };
+            })
+            .filter((x): x is NonNullable<typeof x> => Boolean(x))
+        : undefined;
+
+    const claimDossiers = buildClaimDossiers({
+      findings: researchFindings,
+      litByFindingId,
+      modelRanks,
+    });
+
+    let nightly = selectNightlyFindings(researchFindings, claimDossiers, 3);
+    if (curate.ok && curate.data.nightly_finding_indices.length) {
+      const picked = curate.data.nightly_finding_indices
+        .map((i) => researchFindings[i])
+        .filter((f): f is ResearchFinding => Boolean(f))
+        .slice(0, 3);
+      if (picked.length) nightly = picked;
+    }
+
+    const brief: ResearchBrief = curate.ok
+      ? {
+          summary: curate.data.brief.summary,
+          finding_ids: nightly.map((f) => f.id),
+          judgment_changes: curate.data.brief.judgment_changes,
+          judgment_does_not: curate.data.brief.judgment_does_not,
+        }
+      : {
+          summary: `Tonight's research on Case ${c.number}.`,
+          finding_ids: nightly.map((f) => f.id),
+          judgment_changes:
+            "Adds the strongest open sources for open gaps.",
+          judgment_does_not:
+            "Does not replace the team's own argument.",
+        };
+
     const run: ResearchRun = {
       id: randomUUID(),
       case_id: c.id,
       gaps,
-      findings: researchFindings,
+      findings: nightly,
+      claim_dossiers: claimDossiers,
+      brief,
       stub: search.ok ? search.stub : true,
       created_at: nowIso(),
       created_by: opts?.personId ?? null,
@@ -337,7 +463,7 @@ export async function runNightlyResearcher(opts?: {
     runs.push(run);
 
     for (const team of teams) {
-      for (const finding of researchFindings) {
+      for (const finding of nightly) {
         await createProposal({
           teamId: team.id,
           caseId: c.id,
@@ -352,7 +478,7 @@ export async function runNightlyResearcher(opts?: {
       }
     }
 
-    for (const finding of researchFindings) {
+    for (const finding of nightly) {
       if (!finding.open_access || !finding.link) continue;
       if (!isOpenAccessUrl(finding.link) && !isOpenLicence(finding.licence)) {
         continue;
@@ -368,9 +494,24 @@ export async function runNightlyResearcher(opts?: {
       }
     }
 
+    // Material requests only for sources that clear the same rubric bar.
+    const barClearingIds = new Set<string>();
+    for (const d of claimDossiers) {
+      for (const s of d.top) {
+        if (s.finding_id && clearsRubricBar(s.rubric)) {
+          barClearingIds.add(s.finding_id);
+        }
+      }
+      if (d.steelman?.finding_id && clearsRubricBar(d.steelman.rubric)) {
+        barClearingIds.add(d.steelman.finding_id);
+      }
+    }
+
     const modelMaterials =
       (search.ok && search.data.material_requests) || [];
     for (const m of modelMaterials) {
+      const composite = m.rubric_composite ?? null;
+      if (composite != null && composite < 70) continue;
       await createMaterialRequest({
         title: m.title,
         citation: m.citation,
@@ -387,8 +528,8 @@ export async function runNightlyResearcher(opts?: {
       materialRequestsCreated += 1;
     }
 
-    // Heuristic: closed / book hits that matter for open gaps.
     for (const finding of researchFindings) {
+      if (!barClearingIds.has(finding.id)) continue;
       const lit = matchLitHit(finding, litHits);
       const paywalled =
         finding.open_access === false ||
@@ -398,10 +539,7 @@ export async function runNightlyResearcher(opts?: {
       if (!gaps.some((g) => g.claim_ref === finding.claim_ref)) continue;
       await createMaterialRequest({
         title: finding.title ?? finding.point.slice(0, 80),
-        citation:
-          finding.citation ??
-          lit?.citation ??
-          finding.link,
+        citation: finding.citation ?? lit?.citation ?? finding.link,
         whyItMatters: `${finding.why_it_matters} (${finding.claim_ref})`,
         caseId: c.id,
         claimRef: finding.claim_ref,
@@ -420,7 +558,7 @@ export async function runNightlyResearcher(opts?: {
     const bookReq =
       (search.ok && search.data.book_request) ||
       (gaps.some((g) => g.kind === "unsupported_support") &&
-      researchFindings.every((f) => !f.open_access)
+      nightly.every((f) => !f.open_access)
         ? {
             title: `Ethics Bowl companion reading for Case ${c.number}`,
             reason: `Gap check on "${c.title}" points to a chapter the team does not own.`,
