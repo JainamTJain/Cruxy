@@ -26,6 +26,29 @@ async function finishOnboarding(ctx) {
       headers: j,
     });
   }
+  const after = await (await ctx.request.get(`${BASE}/api/auth/me`)).json();
+  if (after.session?.mustSetLearningProfile) {
+    await ctx.request.post(`${BASE}/api/learning-profile`, {
+      data: {
+        sliders: {
+          visual_verbal: 50,
+          analogies_formal: 50,
+          ethical_mechanization: 50,
+          short_deep: 50,
+          direct_gentle: 50,
+        },
+        appeBaselines: {
+          presentation_a: 5,
+          presentation_b: 5,
+          presentation_c: 5,
+          commentary: 5,
+          response_to_commentary: 5,
+          response_to_judges: 5,
+        },
+      },
+      headers: j,
+    });
+  }
 }
 
 async function signIn(ctx) {
