@@ -27,10 +27,15 @@ export function NamePicker({
         {byTeam.map(({ team, members }) => (
           <div key={team.id} className="animate-fade-up">
             <p
-              className="mb-2 border-b-[3px] pb-1.5 text-[13px] font-bold"
-              style={{ color: team.colour, borderColor: team.colour }}
+              className="mb-2 flex items-center gap-2 border-b-[3px] pb-1.5 text-[13px] font-bold text-ink"
+              style={{ borderColor: team.colour }}
             >
-              {team.name}
+              <span
+                aria-hidden
+                className="inline-block h-2.5 w-2.5 rounded-full ring-1 ring-ink/20"
+                style={{ backgroundColor: team.colour }}
+              />
+              <span>{team.name}</span>
             </p>
             <ul className="space-y-1.5">
               {members.map((m) => {

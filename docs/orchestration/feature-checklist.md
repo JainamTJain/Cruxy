@@ -456,6 +456,14 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-384 [debate-lab](https://github.com/dinesh-git17/debate-lab): Next.js debate engine with judge and summary views. [`THIRD_PARTY_NOTICES.md`]
 - [x] F-385 These are small projects: read their code and licence, borrow patterns, and don't depend on them. [`THIRD_PARTY_NOTICES.md`]
 
+## Access (Wave 9 I)
+
+- [x] F-395 **Display settings.** Text size (four steps), high contrast, readable font, and reduce motion (follows the system by default, including the Genie). Saved per person in Settings and linked from the user menu. [`src/components/access/display-settings.tsx`, `/api/prefs/access`, migration `00061`]
+- [x] F-396 **Screen reader and keyboard.** Skip to content, labels, visible focus, dialogs trap focus and close with Escape, live regions for Cruxy replies and timers. axe checks in CI. [`src/components/access/`, `scripts/check-a11y.mjs`, `.github/workflows/ci.yml`]
+- [x] F-397 **Captions or transcripts** wherever audio plays (drill read-aloud, voice enrollment preview, live practice captions). [`src/lib/practice/speech.ts`, `src/components/access/spoken-transcript.tsx`, `src/components/practice/live-captions.tsx`]
+- [x] F-398 **Explain this term.** Select a word or phrase for a plain one-line meaning from the glossary first, then Cruxy. Helps when English is a second language. [`src/components/access/explain-term.tsx`, `/api/access/explain`, `src/lib/access/ethics-glossary.ts`]
+- [x] F-399 **Colour is never the only signal.** Team chips and status pills always include a text label with the colour. [`src/components/access/status-pill.tsx`, `src/components/name-picker.tsx`]
+
 ## Privacy and security
 
 - [x] F-386 **Consent before recording.** Nobody is recorded without stored consent; a session with a text only member shows that on every screen, and their own device never records. [`src/lib/ops/consent-recording.ts`, `src/components/practice/text-only-banner.tsx`, `src/app/api/practice/rounds/[id]/chunks/route.ts`, `src/app/api/practice/rounds/[id]/layout/route.ts`, `src/lib/attendance/index.ts`]
