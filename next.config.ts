@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["argon2"],
+  // Case prep (the truth source) is read from disk at runtime by the
+  // working-document start and the critique engine.
+  outputFileTracingIncludes: {
+    "/api/**/*": ["./docs/domain/**/*.md"],
+  },
   async headers() {
     return [
       {

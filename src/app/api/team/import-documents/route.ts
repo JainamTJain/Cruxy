@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { getPersonById } from "@/lib/db/repository";
 import {
@@ -11,7 +11,7 @@ import {
 import { startAllWorkingDocuments } from "@/lib/working-doc/start-all-from-truth";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function GET(req: Request) {
   const session = await getSession();
@@ -131,12 +131,27 @@ export async function POST(req: Request) {
           teamId,
           personId: session.personId,
         });
+        after(async () => {
+          const { critiqueNow } = await import("@/lib/critique/run");
+          await critiqueNow(
+            result.details.map((d) => ({ caseId: d.caseId, teamId })),
+            session.personId,
+          );
+        });
         return NextResponse.json(result);
       }
       case "start_all": {
         const result = await startAllWorkingDocuments({
           teamId,
           personId: session.personId,
+        });
+        // Cruxy critiques every new document after the reply goes out.
+        after(async () => {
+          const { critiqueNow } = await import("@/lib/critique/run");
+          await critiqueNow(
+            result.caseIds.map((caseId) => ({ caseId, teamId })),
+            session.personId,
+          );
         });
         return NextResponse.json(result);
       }

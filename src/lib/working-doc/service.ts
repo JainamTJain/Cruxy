@@ -313,14 +313,32 @@ export async function startCruxWorkingDoc(opts: {
     working_path: "crux",
     created_by: opts.personId,
   });
-  await ensureWorkingSections(brief.id, opts.personId);
-  // Open one Socratic question on the first empty section.
-  await askSocraticForSection({
-    caseId: opts.caseId,
-    teamId: opts.teamId,
-    personId: opts.personId,
-    sectionKey: "answer_one_sentence",
-  });
+  const sections = await ensureWorkingSections(brief.id, opts.personId);
+  // Start from the truth source (our case prep, minus its one-pager page).
+  const { fillWorkingDocFromTruth } = await import(
+    "@/lib/working-doc/start-all-from-truth"
+  );
+  const { listCases } = await import("@/lib/db/repository");
+  const row = (await listCases()).find((c) => c.id === opts.caseId);
+  const filled = row
+    ? await fillWorkingDocFromTruth({
+        briefId: brief.id,
+        caseNumber: row.number,
+        personId: opts.personId,
+        existing: Object.fromEntries(
+          sections.map((x) => [x.section_key, x.body ?? ""]),
+        ),
+      })
+    : 0;
+  if (filled === 0) {
+    // No prep for this case: open one Socratic question instead.
+    await askSocraticForSection({
+      caseId: opts.caseId,
+      teamId: opts.teamId,
+      personId: opts.personId,
+      sectionKey: "answer_one_sentence",
+    });
+  }
   await logActivity({
     person_id: opts.personId,
     action: "working_doc_started_crux",

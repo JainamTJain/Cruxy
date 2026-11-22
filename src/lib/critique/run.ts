@@ -202,27 +202,73 @@ export async function runNightlyCritique(opts?: {
   return { runs, posted };
 }
 
-/** In-process debounce helper for serverless after() hooks. */
-const timers = new Map<string, ReturnType<typeof setTimeout>>();
+/**
+ * In-process debounce for serverless after() hooks. Returns a promise that
+ * settles once this request's critique has run (or been superseded by a newer
+ * edit), so after() keeps the function alive until the work is done.
+ */
+const timers = new Map<
+  string,
+  { handle: ReturnType<typeof setTimeout>; settle: () => void }
+>();
 
 export function scheduleCritiqueOnChange(opts: {
   caseId: string;
   teamId: string;
   personId: string | null;
   delayMs?: number;
-}): void {
+}): Promise<void> {
   const key = `${opts.teamId}:${opts.caseId}`;
   const prev = timers.get(key);
-  if (prev) clearTimeout(prev);
+  if (prev) {
+    clearTimeout(prev.handle);
+    prev.settle();
+  }
   const delay = opts.delayMs ?? 8_000;
-  const handle = setTimeout(() => {
-    timers.delete(key);
-    void runCritiqueForTeamCase({
-      caseId: opts.caseId,
-      teamId: opts.teamId,
-      personId: opts.personId,
-      trigger: "on_change",
-    }).catch(() => undefined);
-  }, delay);
-  timers.set(key, handle);
+  return new Promise<void>((resolve) => {
+    const handle = setTimeout(() => {
+      timers.delete(key);
+      void runCritiqueForTeamCase({
+        caseId: opts.caseId,
+        teamId: opts.teamId,
+        personId: opts.personId,
+        trigger: "on_change",
+      })
+        .catch(() => undefined)
+        .finally(resolve);
+    }, delay);
+    timers.set(key, { handle, settle: resolve });
+  });
+}
+
+/** Run critique now for several team/case pairs, one after another. */
+export async function critiqueNow(
+  pairs: Array<{ caseId: string; teamId: string }>,
+  personId: string | null,
+  opts?: { onlyStartedDocs?: boolean },
+): Promise<number> {
+  let posted = 0;
+  for (const p of pairs) {
+    try {
+      if (opts?.onlyStartedDocs) {
+        const brief = await ensureTeamBrief({
+          teamId: p.teamId,
+          caseId: p.caseId,
+          personId,
+        });
+        // No working document yet: nothing to critique against.
+        if (!brief.working_path) continue;
+      }
+      const r = await runCritiqueForTeamCase({
+        caseId: p.caseId,
+        teamId: p.teamId,
+        personId,
+        trigger: "manual",
+      });
+      posted += r.posted;
+    } catch {
+      // One case failing should not stop the rest.
+    }
+  }
+  return posted;
 }
