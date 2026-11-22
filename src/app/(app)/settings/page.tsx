@@ -300,54 +300,84 @@ export default function SettingsPage() {
 
       <AlertSettings />
 
-      <div className="border-t border-ink/10 pt-4">
-        <h2 className="font-display text-lg font-semibold">Learning profile</h2>
-        <div className="mt-3">
-          <LearningProfileForm />
+      <div
+        id="my-profile"
+        className="scroll-mt-20 space-y-5 border-t border-ink/10 pt-4"
+      >
+        <div>
+          <h2 className="font-display text-lg font-semibold">My profile</h2>
+          <p className="mt-1 text-sm text-muted">
+            Voice, how Cruxy helps you, and consent. Changes apply right away.
+          </p>
         </div>
-      </div>
 
-      <div className="border-t border-ink/10 pt-4">
-        <h2 className="font-display text-lg font-semibold">Consent and voice</h2>
-        <p className="mt-1 text-sm text-muted">
-          {recordingOk
-            ? "You agreed to be recorded in practice."
-            : "Text only. You will not be recorded."}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button
-            variant={recordingOk ? "default" : "outline"}
-            onClick={() => void saveConsent(true)}
-          >
-            I agree to be recorded in practice
-          </Button>
-          <Button
-            variant={!recordingOk ? "default" : "outline"}
-            onClick={() => void saveConsent(false)}
-          >
-            Not now: text only
-          </Button>
-          {recordingOk ? (
-            <Button
-              variant="outline"
-              onClick={() => setReRecord((v) => !v)}
-            >
-              {reRecord ? "Hide re-record" : "Re-record voice sample"}
-            </Button>
-          ) : null}
-        </div>
-        {reRecord ? (
-          <div className="mt-4">
-            <VoiceEnrollment
-              busy={voiceBusy}
-              onDone={(blob) => void saveVoiceSample(blob)}
-              onCancelTextOnly={() => {
-                setReRecord(false);
-                void saveConsent(false);
-              }}
-            />
+        <section className="rounded-2xl border border-ink/10 bg-white p-4">
+          <h3 className="m-0 text-sm font-semibold">Re-record my voice</h3>
+          <p className="mt-1 text-xs text-muted">
+            Guided enrollment. The old sample is replaced only after the new
+            one passes.
+          </p>
+          {!recordingOk ? (
+            <p className="mt-2 text-sm text-muted">
+              Turn on recording consent below first, then re-record.
+            </p>
+          ) : (
+            <div className="mt-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setReRecord((v) => !v)}
+              >
+                {reRecord ? "Hide enrollment" : "Re-record my voice"}
+              </Button>
+              {reRecord ? (
+                <div className="mt-4">
+                  <VoiceEnrollment
+                    busy={voiceBusy}
+                    onDone={(blob) => void saveVoiceSample(blob)}
+                    onCancelTextOnly={() => {
+                      setReRecord(false);
+                    }}
+                  />
+                </div>
+              ) : null}
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-2xl border border-ink/10 bg-white p-4">
+          <h3 className="m-0 text-sm font-semibold">
+            Change how Cruxy helps me
+          </h3>
+          <div className="mt-3">
+            <LearningProfileForm embedded />
           </div>
-        ) : null}
+        </section>
+
+        <section className="rounded-2xl border border-ink/10 bg-white p-4">
+          <h3 className="m-0 text-sm font-semibold">Change consent</h3>
+          <p className="mt-1 text-sm text-muted">
+            {recordingOk
+              ? "You agreed to be recorded in practice."
+              : "Text only. You will not be recorded."}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant={recordingOk ? "default" : "outline"}
+              onClick={() => void saveConsent(true)}
+            >
+              I agree to be recorded in practice
+            </Button>
+            <Button
+              type="button"
+              variant={!recordingOk ? "default" : "outline"}
+              onClick={() => void saveConsent(false)}
+            >
+              Not now: text only
+            </Button>
+          </div>
+        </section>
       </div>
 
       <div className="border-t border-ink/10 pt-4">

@@ -6,10 +6,12 @@ import { useFocusTrap } from "@/components/access/focus-trap";
 import { announceCruxy } from "@/components/access/live-region";
 import { CruxWordmark } from "@/components/crux-wordmark";
 import { useCruxy } from "@/components/cruxy/cruxy-context";
+import { PreferenceChips } from "@/components/cruxy/preference-chips";
 import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
 import { GeniePose } from "@/components/cruxy/mood/genie-pose";
 import { emitMood } from "@/components/cruxy/mood/bus";
 import { useCruxyMood } from "@/components/cruxy/mood/use-cruxy-mood";
+import { TailoredLine } from "@/components/learning/tailored-line";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -225,6 +227,9 @@ export function CruxyDrawer() {
 
       <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 text-sm">
         {!adminMode ? (
+          <TailoredLine className="m-0 text-xs text-muted" />
+        ) : null}
+        {!adminMode ? (
           <p className="rounded-xl bg-mist/60 px-3 py-2 text-xs text-muted">
             Page: <span className="font-mono text-ink">{page}</span>
             {highlight ? (
@@ -279,6 +284,7 @@ export function CruxyDrawer() {
         {answer ? (
           <div className="space-y-2" aria-live="polite">
             <p className="rounded-2xl bg-white px-3 py-3 shadow-sm">{answer}</p>
+            <PreferenceChips />
             {adminExtra?.suggestedNext ? (
               <p className="text-xs text-muted">
                 Suggested next step: {adminExtra.suggestedNext}
