@@ -20,7 +20,7 @@ export type UnifiedSearchHit = {
 };
 
 /**
- * F-092: search passages (embed), comments, Truth Sources, and
+ * F-092: search passages (embed), comments, Evidence Library, and
  * practice-transcript file cards with case / team / type filters.
  */
 export async function searchLibraryUnified(input: {
@@ -102,7 +102,7 @@ export async function searchLibraryUnified(input: {
     });
   }
 
-  // Truth Sources (claims queue / truth_items)
+  // Evidence Library (claims queue / truth_items)
   if (!input.type || input.type === "truth" || input.type === "truth_source") {
     if (isSampleDataMode()) {
       const store = await readStore();

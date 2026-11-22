@@ -111,7 +111,7 @@ export default function WarmUpPage() {
               ))}
               {!warm.flashcards.length ? (
                 <li className="text-muted">
-                  Sync Truth Sources or opt into a deck first.
+                  Sync Evidence Library or opt into a deck first.
                 </li>
               ) : null}
             </ul>

@@ -189,7 +189,7 @@ export function CruxyDrawer() {
                 <>
                   Knows this page
                   <br />
-                  Cites Truth Sources first
+                  Cites Evidence Library first
                 </>
               )}
             </p>

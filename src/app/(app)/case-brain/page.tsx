@@ -24,8 +24,8 @@ export default async function CaseBrainIndexPage() {
           Case brain
         </h1>
         <p className="mt-1 text-sm text-[#3B404A]">
-          Claim maps, Truth Sources, Inspired-by queues and one pagers for every
-          active case.
+          Team Brief, claim maps, Evidence Library, Inspired-by queues and one
+          pagers for every active case.
         </p>
         <p className="mt-2 text-sm">
           <Link

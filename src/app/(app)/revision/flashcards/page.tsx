@@ -388,7 +388,7 @@ export default function FlashcardsPage() {
           <p>
             No cards left for today
             {meta.cramMode ? " (cram target met)" : ""}. Leads get decks from
-            Truth Sources; others can opt in from the roadmap.
+            Evidence Library; others can opt in from the roadmap.
           </p>
           <button
             type="button"

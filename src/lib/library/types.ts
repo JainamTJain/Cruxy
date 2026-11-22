@@ -184,7 +184,7 @@ export interface BookRequest {
   created_by: string | null;
 }
 
-/** Proposals live in case-brain types (shared Truth Sources queue). */
+/** Proposals live in case-brain types (shared Evidence Library queue). */
 
 /** Shared with Track 3 Revision (FSRS + Truth Source sync). */
 export interface Flashcard {

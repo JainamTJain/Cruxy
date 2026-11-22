@@ -6,7 +6,7 @@ import {
   suggestIdeasFromTranscript,
 } from "@/lib/practice/wave5";
 
-/** F-276: queue new ideas from the round into Truth Sources. */
+/** F-276: queue new ideas from the round into Evidence Library. */
 export async function GET(
   _req: Request,
   ctx: { params: Promise<{ id: string }> },

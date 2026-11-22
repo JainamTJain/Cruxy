@@ -287,7 +287,7 @@ export default function RoundReportPage() {
     const d = await res.json();
     setIdeasMsg(
       res.ok
-        ? `${d.queued ?? 0} ideas sent to Truth Sources.`
+        ? `${d.queued ?? 0} ideas sent to Evidence Library.`
         : d.error ?? "Could not queue ideas",
     );
   }
@@ -699,7 +699,7 @@ export default function RoundReportPage() {
       {ideas.length > 0 ? (
         <section className="rounded-[20px] bg-white p-[22px]">
           <h2 className="font-display m-0 text-[22px] font-extrabold">
-            New ideas for Truth Sources
+            New ideas for Evidence Library
           </h2>
           <p className="mt-1 text-sm text-muted">
             Raised in this round. Already queued, or send again with one tap.
@@ -714,7 +714,7 @@ export default function RoundReportPage() {
             onClick={() => void queueIdeas()}
             className="mt-4 h-11 rounded-xl bg-ink px-[18px] text-sm font-semibold text-white"
           >
-            Send to Truth Sources queue
+            Send to Evidence Library queue
           </button>
           {ideasMsg ? <p className="mt-2 text-sm text-muted">{ideasMsg}</p> : null}
         </section>

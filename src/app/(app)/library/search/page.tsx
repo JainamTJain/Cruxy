@@ -110,7 +110,7 @@ export default function LibrarySearchPage() {
           <option value="rules">Rules</option>
           <option value="research">Research</option>
           <option value="coach_guidance">Coach guidance</option>
-          <option value="truth">Truth Sources</option>
+          <option value="truth">Evidence Library</option>
         </select>
         <Button type="submit">Search</Button>
       </form>

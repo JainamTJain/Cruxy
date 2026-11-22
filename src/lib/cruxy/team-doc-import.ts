@@ -276,7 +276,7 @@ async function offerInspiredBy(input: {
 }
 
 /**
- * Import a Drive-linked or pasted team doc into that team's Truth Sources queue.
+ * Import a Drive-linked or pasted team doc into that team's Evidence Library queue.
  */
 export async function importTeamDoc(
   input: TeamDocImportInput,
@@ -406,7 +406,7 @@ export async function importTeamDoc(
         case_numbers: [caseRow.number],
         type: "team_notes" as const,
         confidence: 0.8,
-        card: `What: ${title}\nCase(s): ${caseRow.number}\nType: team_notes\nNew: ${lines[0]?.slice(0, 80) ?? "See passages."}\nOpen: Ready for Truth Sources?`,
+        card: `What: ${title}\nCase(s): ${caseRow.number}\nType: team_notes\nNew: ${lines[0]?.slice(0, 80) ?? "See passages."}\nOpen: Ready for Evidence Library?`,
         ideas: (lines.length ? lines : [text.slice(0, 200)]).map((line, i) => ({
           text: line.slice(0, 280),
           kind: "other" as const,
@@ -542,7 +542,7 @@ export async function importTeamDoc(
     message:
       proposalsCreated === 0 && ideasSkipped > 0
         ? `No new ideas. Skipped ${ideasSkipped} already in the queue.`
-        : `Added ${proposalsCreated} idea${proposalsCreated === 1 ? "" : "s"} to your Truth Sources queue${inspiredOffered ? `; offered ${inspiredOffered} Inspired by recommendation${inspiredOffered === 1 ? "" : "s"}` : ""}.`,
+        : `Added ${proposalsCreated} idea${proposalsCreated === 1 ? "" : "s"} to your Evidence Library queue${inspiredOffered ? `; offered ${inspiredOffered} Inspired by recommendation${inspiredOffered === 1 ? "" : "s"}` : ""}.`,
   };
 }
 

@@ -102,7 +102,7 @@ export function GraphSpinePanel() {
         <div>
           <strong className="font-display text-lg">Graph spine</strong>
           <p className="mt-1 max-w-xl text-sm text-muted">
-            Backfill edges from claim maps, Truth Sources, proposals, and
+            Backfill edges from claim maps, Evidence Library, proposals, and
             practice. Re-embed stub passages and claim nodes. One summary row
             in the activity log; edges themselves stay quiet.
           </p>

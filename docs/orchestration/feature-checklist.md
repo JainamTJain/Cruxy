@@ -131,11 +131,12 @@ Every line below is something Jainam asked for. An agent ticks a box only when t
 - [x] F-106 Open books (public domain, open access) are fetched and digested automatically. [`src/lib/cruxy/open-books.ts`, `src/lib/cruxy/agents/researcher.ts`]
 - [x] F-107 **Copyright rule:** Cruxy stores passages for citation inside Crux, shows short quotes only, and paraphrases the rest. [`src/lib/cruxy/copyright.ts`]
 
-## Case brain and Truth Sources
+## Case brain and Evidence Library
 
 - [x] F-108 Case card: facts from the case set with page numbers, the crux, the trap, stakeholders, likely moderator questions. · [src/lib/seed/, supabase/seed/, src/lib/db/sample-store.ts]
 - [x] F-109 Claim map: at least 2 claims, each with a logic line and 3 supports; each support with its backing (case fact, source, example or framework); at least 1 counterclaim with concede, distinguish and rebut. The same structure as the prep doc. · [src/lib/seed/build-content.ts, supabase/seed/02_claims.sql]
-- [x] F-110 Truth Sources: every fact, quote, example and framework the team has accepted, each linked to its passage, timestamp or page. · [src/lib/seed/build-content.ts, supabase/seed/03_truth_items.sql]
+- [x] F-110 Evidence Library (was Truth Sources): every fact, quote, example and framework the team has accepted, each linked to its passage, timestamp or page. · [src/lib/seed/build-content.ts, supabase/seed/03_truth_items.sql]
+- [x] F-110a **Team Brief (Wave 8):** one Brief per team per case with switchable mode (Our own doc: Drive link, read-only sync via team-doc-import; Build it in Crux: claim map and one pager). Agreed stance bar with version, confirmations and drift flag. Suggestions margin: accept changes Brief only when accepted; own-doc accept → checklist. Cited facts from a team's doc become Evidence Library candidates (facts only). Migration `00050_workstream_c_team_brief.sql`. [`src/lib/case-brain/team-brief.ts`, `src/components/case-brain/team-brief-panel.tsx`, `src/app/api/case-brain/brief/route.ts`]
 - [x] F-111 Case roles: Lead 1, Lead 2, counter-arguer, supporter, shown at the top and editable by any team member (see Assignments). · [src/lib/seed/build-content.ts, supabase/seed/06_flashcards_roles_proposals.sql]
 - [x] F-112 **Likely opposing positions.** For each case, Cruxy builds the 3 or 4 positions other universities are most likely to present, each with its strongest support, its weak point, and two commentary angles. Teams add positions they hear at competitions. This is what the commenter prepares from. · [src/lib/seed/build-content.ts, supabase/seed/05_opposing_and_one_pagers.sql]
 - [x] F-113 Proposals come from five places: practice transcripts, research, the reading room, team doc import, and other teams' edits ("Inspired by Team 1"). [src/lib/cruxy/team-doc-import.ts, src/lib/seed/build-content.ts]
