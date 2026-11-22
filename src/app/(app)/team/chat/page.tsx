@@ -298,9 +298,9 @@ export default function TeamChatPage() {
                     {m.from_cruxy
                       ? "Cruxy"
                       : names[m.person_id ?? ""] ?? "Member"}
-                    {" · "}
+                    {", "}
                     {new Date(m.created_at).toLocaleString()}
-                    {m.is_idea ? " · idea" : ""}
+                    {m.is_idea ? ", idea" : ""}
                   </p>
                   <p className="mt-0.5 break-words whitespace-pre-wrap">
                     {m.body}

@@ -292,7 +292,7 @@ export default function RoadmapPage() {
             return (
               <span
                 key={id}
-                title={`${STAGE_LABELS[id]} · ${formatDue(due)}`}
+                title={`${STAGE_LABELS[id]}, ${formatDue(due)}`}
                 className="absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-ink bg-white"
                 style={{ left: `${pct}%` }}
               />
@@ -328,7 +328,7 @@ export default function RoadmapPage() {
           <p className="mt-1 text-sm text-muted">
             Due {formatDue(nextAction.row.due)}
             {activeCase
-              ? ` · Case ${activeCase.case.number}: ${activeCase.case.title}`
+              ? `, Case ${activeCase.case.number}: ${activeCase.case.title}`
               : ""}
           </p>
           {STAGE_HREF[nextAction.stage] ? (
@@ -377,7 +377,7 @@ export default function RoadmapPage() {
             </h2>
             <p className="m-0 text-sm text-muted">
               {activeCase.readiness}% ready
-              {activeCase.role ? ` · ${activeCase.role}` : ""}
+              {activeCase.role ? `, ${activeCase.role}` : ""}
             </p>
           </div>
           <ul className="m-0 list-none divide-y divide-[#ECEEF1] p-0">
