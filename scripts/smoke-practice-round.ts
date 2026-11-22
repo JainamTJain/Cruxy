@@ -162,6 +162,11 @@ async function runRound(opts: {
       ? result.lines
       : stored.filter((l) => l.round_id === round.id);
   assert(lines.length > 0, `${opts.label}: transcript lines readable after judge`);
+  const fixFeedback = result.judgment!.feedback.filter((f) => f.kind === "fix");
+  assert(
+    fixFeedback.length >= 1,
+    `${opts.label}: at least one cited fix (not a vacuous empty feedback list)`,
+  );
   for (const f of result.judgment!.feedback) {
     assert(
       feedbackHasCitation(f, lines),

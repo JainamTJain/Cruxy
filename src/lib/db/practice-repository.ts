@@ -437,6 +437,18 @@ export async function saveTranscriptLines(lines: TranscriptLine[]) {
   });
 }
 
+/** Finalize path: drop prior lines for the round, then write the new set. */
+export async function replaceTranscriptForRound(
+  roundId: string,
+  lines: TranscriptLine[],
+) {
+  if (!isSampleDataMode()) return sb.replaceTranscriptForRound(roundId, lines);
+  await updateStore((s) => {
+    s.transcript_lines = s.transcript_lines.filter((l) => l.round_id !== roundId);
+    s.transcript_lines.push(...lines);
+  });
+}
+
 export async function getTranscript(roundId: string): Promise<TranscriptLine[]> {
   if (!isSampleDataMode()) return sb.getTranscript(roundId);
   const store = await readStore();

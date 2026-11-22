@@ -6,6 +6,7 @@ import {
   getTranscriptLineById,
   listAttendance,
   listRecordingsForRound,
+  replaceTranscriptForRound,
   saveJudgmentBundle,
   saveRecording,
   saveSpeakerConfirm,
@@ -161,7 +162,7 @@ export async function finalizeRound(opts: {
     glossary,
     speakerMap,
   );
-  await saveTranscriptLines(lines);
+  await replaceTranscriptForRound(opts.roundId, lines);
 
   await saveSpeakerConfirm({
     round_id: opts.roundId,

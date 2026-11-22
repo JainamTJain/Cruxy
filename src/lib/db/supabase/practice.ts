@@ -1010,6 +1010,37 @@ export async function saveTranscriptLines(lines: TranscriptLine[]): Promise<void
   );
 }
 
+/** Full replace for a round (finalize). Avoids orphan line ids on re-run. */
+export async function replaceTranscriptForRound(
+  roundId: string,
+  lines: TranscriptLine[],
+): Promise<void> {
+  const sb = getServiceSupabase();
+  assertOk(
+    (await sb.from("transcript_lines").delete().eq("round_id", roundId)).error,
+    "replaceTranscriptForRound.clear",
+  );
+  if (lines.length === 0) return;
+  assertOk(
+    (
+      await sb.from("transcript_lines").insert(
+        lines.map((l) => ({
+          id: l.id,
+          round_id: l.round_id,
+          start_ms: l.start_ms,
+          end_ms: l.end_ms,
+          speaker_person_id: l.speaker_person_id,
+          speaker_label: l.speaker_label,
+          text: l.text,
+          corrected: l.corrected,
+          created_at: l.created_at,
+        })),
+      )
+    ).error,
+    "replaceTranscriptForRound.insert",
+  );
+}
+
 export async function getTranscript(roundId: string): Promise<TranscriptLine[]> {
   const sb = getServiceSupabase();
   const rows =

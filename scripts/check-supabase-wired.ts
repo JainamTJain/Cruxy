@@ -339,7 +339,7 @@ const WRITE_SURFACE_CONTRACTS: WriteSurfaceContract[] = [
     id: "practice_finalize_moves_roadmap",
     description: "Finalize records practice speak so roadmap/Today move",
     files: ["src/lib/practice/pipeline.ts"],
-    patterns: [/recordPracticeSpeak/],
+    patterns: [/recordPracticeSpeak|replaceTranscriptForRound/],
   },
   {
     id: "practice_drill_resume",
