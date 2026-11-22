@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CaseMoreList, type MoreSection } from "@/components/case/case-more-panel";
-import { CaseOnePagerTab } from "@/components/case/case-one-pager-tab";
+import { OnePagerPanel } from "@/components/case/one-pager-panel";
 import { CaseReadings } from "@/components/case/case-readings";
 import { IdeasOverTime } from "@/components/case/ideas-over-time";
 import { TheCaseTab } from "@/components/case/the-case-tab";
@@ -610,9 +610,10 @@ export function CaseBrainClient({
             ) : null}
 
             {tab === "one_pager" ? (
-              <CaseOnePagerTab
+              <OnePagerPanel
                 caseId={caseId}
                 teamId={teamId || brain.team_id}
+                embedded
               />
             ) : null}
 
