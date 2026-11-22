@@ -204,6 +204,12 @@ export default function PracticePage() {
         <PreRoundCalmCta caseId={caseId || null} compact />
         <PreRoundWarmupCta caseId={caseId || null} compact />
         <OneTapJudgeDrill caseId={caseId || null} compact />
+        <Link
+          href={caseId ? `/prepare/mock?caseId=${caseId}` : "/prepare/mock"}
+          className="inline-flex h-10 items-center rounded-xl border border-ink/15 px-3 text-sm font-semibold"
+        >
+          Solo mock
+        </Link>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
