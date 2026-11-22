@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { getPersonById } from "@/lib/db/repository";
+import { canAccessSoloRecording } from "@/lib/team/solo-prep-access";
 import {
   getSoloRecording,
   listReviewComments,
@@ -24,6 +25,18 @@ export async function GET(
   const recording = await getSoloRecording(id);
   if (!recording) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (
+    !canAccessSoloRecording({
+      person,
+      session,
+      recordingTeamId: recording.team_id,
+    })
+  ) {
+    return NextResponse.json(
+      { error: "You can only open reviews for your own team." },
+      { status: 403 },
+    );
   }
   const comments = await listReviewComments(id);
   return NextResponse.json({
