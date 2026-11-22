@@ -36,6 +36,17 @@ export type RolesLockSnapshot = {
   lockedBy: string | null;
 };
 
+export type WorkloadBalanceRow = {
+  personId: string;
+  name: string;
+  leadCount: number;
+  roleCount: number;
+  openTaskCount: number;
+  total: number;
+  heavy: boolean;
+  suggestSwapWith: { personId: string; name: string } | null;
+};
+
 export type RolesBoardView = {
   teamId: string;
   teamName: string;
@@ -51,6 +62,8 @@ export type RolesBoardView = {
   anyCaseOk: Record<string, boolean>;
   /** Regionals lock; when set, live edits are blocked */
   lock: RolesLockSnapshot | null;
+  /** Wave 9: roles + open tasks; gentle heavy flag + swap suggestion */
+  workload: WorkloadBalanceRow[];
 };
 
 export const REGIONALS_2026_SEASON = "regionals-2026";
@@ -110,6 +123,53 @@ export function computeLoad(
       roleCount: mine.length,
     };
   });
+}
+
+/**
+ * Combine role load with open assignment counts. Flag people well above
+ * the team average and suggest a lighter teammate for a fair swap.
+ */
+export function computeWorkloadBalance(input: {
+  people: { id: string; name: string }[];
+  load: PersonLoad[];
+  openTasksByPerson: Record<string, number>;
+}): WorkloadBalanceRow[] {
+  const rows = input.people.map((p) => {
+    const load = input.load.find((l) => l.personId === p.id);
+    const leadCount = load?.leadCount ?? 0;
+    const roleCount = load?.roleCount ?? 0;
+    const openTaskCount = input.openTasksByPerson[p.id] ?? 0;
+    const total = roleCount + openTaskCount + leadCount;
+    return {
+      personId: p.id,
+      name: p.name,
+      leadCount,
+      roleCount,
+      openTaskCount,
+      total,
+      heavy: false,
+      suggestSwapWith: null as WorkloadBalanceRow["suggestSwapWith"],
+    };
+  });
+  if (!rows.length) return rows;
+  const avg = rows.reduce((s, r) => s + r.total, 0) / rows.length;
+  const sortedAsc = [...rows].sort((a, b) => a.total - b.total);
+  for (const r of rows) {
+    // Gently flag when someone carries far more (about 1.6x average and at least +2)
+    r.heavy = r.total >= Math.max(avg * 1.6, avg + 2) && r.total >= 3;
+    if (r.heavy) {
+      const lighter = sortedAsc.find(
+        (o) => o.personId !== r.personId && o.total < r.total - 1,
+      );
+      if (lighter) {
+        r.suggestSwapWith = {
+          personId: lighter.personId,
+          name: lighter.name,
+        };
+      }
+    }
+  }
+  return rows.sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
 }
 
 export function findGaps(input: {
