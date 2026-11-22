@@ -1,7 +1,8 @@
 /* Crux offline service worker (Wave 9 F).
  * Cache shell + offline pack API + C's competition/timer routes when present.
  */
-const VERSION = "crux-offline-v1";
+// Bump on any change here so every browser drops the old cache.
+const VERSION = "crux-offline-v2";
 const SHELL = [
   "/",
   "/today",
@@ -59,8 +60,15 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (isAppNavigation(req, url) || url.pathname.startsWith("/_next/static/")) {
-    event.respondWith(staleWhileRevalidate(req));
+  // Pages: always try the network first so a new deploy shows at once;
+  // the cached copy is only for when the phone is offline.
+  if (isAppNavigation(req, url)) {
+    event.respondWith(networkFirstPage(req));
+    return;
+  }
+  // Built files have content hashes in their names, so a cached copy is never stale.
+  if (url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(cacheFirst(req));
   }
 });
 
@@ -80,17 +88,29 @@ async function networkFirst(req) {
   }
 }
 
-async function staleWhileRevalidate(req) {
+async function networkFirstPage(req) {
+  const cache = await caches.open(VERSION);
+  try {
+    const fresh = await fetch(req);
+    if (fresh.ok) cache.put(req, fresh.clone());
+    return fresh;
+  } catch {
+    const cached = await cache.match(req);
+    if (cached) return cached;
+    const shell = await cache.match("/today");
+    return shell ?? Response.error();
+  }
+}
+
+async function cacheFirst(req) {
   const cache = await caches.open(VERSION);
   const cached = await cache.match(req);
-  const network = fetch(req)
-    .then((res) => {
-      if (res.ok) cache.put(req, res.clone());
-      return res;
-    })
-    .catch(() => cached);
-  return cached || network;
+  if (cached) return cached;
+  const fresh = await fetch(req);
+  if (fresh.ok) cache.put(req, fresh.clone());
+  return fresh;
 }
+
 
 /* Wave 9 J: web push (same worker as offline so scopes do not fight). */
 self.addEventListener("push", (event) => {
