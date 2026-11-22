@@ -339,19 +339,6 @@ function LogisticsPanel({
                 placeholder={data.emptyLabel}
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-              <span className="font-semibold">Carpool list</span>
-              <textarea
-                rows={4}
-                className="rounded-[10px] border border-mist px-3 py-2"
-                value={draft.carpool_list}
-                disabled={busy}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, carpool_list: e.target.value }))
-                }
-                placeholder="Who drives, seats, who rides. A simple list, not a sign-up."
-              />
-            </label>
             <button
               type="button"
               disabled={busy}
@@ -404,14 +391,6 @@ function LogisticsPanel({
               </dt>
               <dd className="m-0 mt-1 whitespace-pre-wrap text-sm leading-snug">
                 {L.packing_display}
-              </dd>
-            </div>
-            <div className="sm:col-span-2">
-              <dt className="text-[12px] font-bold uppercase tracking-[0.08em] text-muted">
-                Carpool
-              </dt>
-              <dd className="m-0 mt-1 whitespace-pre-wrap text-sm leading-snug">
-                {L.carpool_display}
               </dd>
             </div>
           </dl>
