@@ -13,6 +13,7 @@ import {
   type LibraryFileType,
   type Passage,
 } from "@/lib/library/types";
+import { inferUnreadableReason } from "@/lib/library/unreadable";
 import { nowIso } from "@/lib/utils";
 
 export type DigestedIdea = LibrarianTagOutput["ideas"][number];
@@ -354,6 +355,13 @@ export async function digestListedFile(input: {
         ? "sorting_queue"
         : "digested";
 
+  const unreadable_reason = inferUnreadableReason({
+    scannedPdf: input.scannedPdf,
+    mime: input.listed.mime,
+    name: input.listed.name,
+    text: input.text,
+  });
+
   const file: LibraryFile = {
     id: fileId,
     drive_id: input.listed.drive_id,
@@ -369,7 +377,8 @@ export async function digestListedFile(input: {
     card: tagged.card,
     text_content: input.text,
     scanned_pdf: input.scannedPdf,
-    status,
+    unreadable_reason,
+    status: unreadable_reason ? "sorting_queue" : status,
     extracted_ideas: tagged.ideas.map((i) =>
       i.who ? `${i.who}: ${i.text}` : i.text,
     ),

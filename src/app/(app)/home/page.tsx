@@ -14,11 +14,11 @@ type Cell = {
 };
 type Change = {
   id: string;
-  action: string;
+  text: string;
+  href: string | null;
   personName: string;
-  target: string | null;
   at: string;
-  meta?: Record<string, unknown> | null;
+  caseLabel: string | null;
 };
 type NextAction = {
   label: string;
@@ -459,15 +459,19 @@ export default function HomePage() {
               {data.changes.length === 0 ? (
                 <span className="text-muted">Nothing new yet.</span>
               ) : (
-                data.changes.slice(0, 8).map((e) => (
-                  <span key={e.id}>
-                    <span className="font-bold">{e.personName}</span>{" "}
-                    <span className="text-muted">{e.action}</span>
-                    {e.target ? (
-                      <span className="text-muted"> ({e.target})</span>
-                    ) : null}
-                  </span>
-                ))
+                data.changes.slice(0, 8).map((e) =>
+                  e.href ? (
+                    <Link
+                      key={e.id}
+                      href={e.href}
+                      className="text-ink underline-offset-2 hover:underline"
+                    >
+                      {e.text}
+                    </Link>
+                  ) : (
+                    <span key={e.id}>{e.text}</span>
+                  ),
+                )
               )}
             </div>
           </section>
