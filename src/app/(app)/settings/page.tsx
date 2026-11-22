@@ -209,7 +209,11 @@ export default function SettingsPage() {
         <Link href="/practice/calibration" className="underline">
           Your score prediction trend
         </Link>{" "}
-        stays private to you.
+        stays private to you.{" "}
+        <Link href="/settings/privacy" className="underline">
+          Privacy centre
+        </Link>
+        : what Crux stores about you, with download and delete.
       </p>
 
       <div className="border-t border-ink/10 pt-4">
