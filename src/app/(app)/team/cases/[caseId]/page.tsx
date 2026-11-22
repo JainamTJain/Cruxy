@@ -124,7 +124,7 @@ function CaseClaimMapInner() {
     });
     setMsg(
       res.ok
-        ? "Claim change proposed — needs lead + one more teammate."
+        ? "Claim change proposed. Needs lead plus one more teammate."
         : "Could not propose",
     );
     setReason("");

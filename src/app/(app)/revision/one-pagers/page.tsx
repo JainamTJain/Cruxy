@@ -157,8 +157,8 @@ function OnePagersInner() {
       };
       setStatus(
         data.stub
-          ? `Drive export ready as stub ${data.drive_doc_id}`
-          : `Saved to Drive as ${data.drive_doc_id}`,
+          ? "Drive export prepared locally. Connect Drive to send the file."
+          : "Saved to the team's Drive folder.",
       );
     } finally {
       setBusy(false);

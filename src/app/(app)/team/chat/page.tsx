@@ -105,8 +105,8 @@ export default function TeamChatPage() {
   }
 
   return (
-    <main className="animate-fade-up flex min-h-[70vh] flex-col gap-4">
-      <div>
+    <main className="animate-fade-up flex min-h-[70vh] w-full min-w-0 flex-col gap-4">
+      <div className="min-w-0">
         <h1 className="font-display text-3xl font-semibold">Team chat</h1>
         <p className="mt-1 text-sm text-muted">
           Everyone can read every channel. Posting is for your team (admins
@@ -115,7 +115,7 @@ export default function TeamChatPage() {
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex min-w-0 flex-wrap gap-2">
         {chats.map((c) => (
           <button
             key={c.id}
@@ -137,8 +137,8 @@ export default function TeamChatPage() {
         ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col rounded-2xl border border-ink/10 bg-white/60">
-        <div className="flex-1 space-y-3 overflow-y-auto p-4">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white/60">
+        <div className="min-w-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto p-4">
           {messages.map((m) => {
             const refs = m.link_refs ?? {};
             const bits: string[] = [];
@@ -150,8 +150,8 @@ export default function TeamChatPage() {
               bits.push(`at ${refs.timestamp}`);
             }
             return (
-              <div key={m.id} className="text-sm">
-                <p className="text-[11px] text-muted">
+              <div key={m.id} className="min-w-0 text-sm">
+                <p className="break-words text-[11px] text-muted">
                   {m.from_cruxy
                     ? "Cruxy"
                     : names[m.person_id ?? ""] ?? "Member"}
@@ -164,7 +164,9 @@ export default function TeamChatPage() {
                     </>
                   ) : null}
                 </p>
-                <p className="mt-0.5 whitespace-pre-wrap">{m.body}</p>
+                <p className="mt-0.5 break-words whitespace-pre-wrap">
+                  {m.body}
+                </p>
                 {m.mention_ids?.length ? (
                   <p className="text-[11px] text-muted">
                     Mentions:{" "}
@@ -257,9 +259,9 @@ export default function TeamChatPage() {
               />
             </label>
           </div>
-          <div className="flex gap-2">
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
             <input
-              className="flex-1 rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm"
+              className="min-w-0 flex-1 rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm"
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Message the channel…"
@@ -267,10 +269,12 @@ export default function TeamChatPage() {
                 if (e.key === "Enter") void send();
               }}
             />
-            <Button onClick={() => void send()}>Send</Button>
-            <Button variant="outline" onClick={() => void send(true)}>
-              Send as idea
-            </Button>
+            <div className="flex shrink-0 gap-2">
+              <Button onClick={() => void send()}>Send</Button>
+              <Button variant="outline" onClick={() => void send(true)}>
+                Send as idea
+              </Button>
+            </div>
           </div>
         </div>
       </div>
