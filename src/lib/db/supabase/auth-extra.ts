@@ -203,6 +203,10 @@ export async function createNotification(input: {
       if (!bag.notifications) bag.notifications = [];
       bag.notifications.push(row);
     });
+    // Wave 9 J: push / email fan-out (never blocks the in-app write).
+    void import("@/lib/notify/fanout")
+      .then((m) => m.fanOutNotification(row))
+      .catch(() => undefined);
     return row;
   }
   const sb = getServiceSupabase();
@@ -221,7 +225,12 @@ export async function createNotification(input: {
     .select("*")
     .single();
   assertOk(error, "createNotification");
-  return data as AppNotification;
+  const saved = data as AppNotification;
+  // Wave 9 J: push / email fan-out (never blocks the in-app write).
+  void import("@/lib/notify/fanout")
+    .then((m) => m.fanOutNotification(saved))
+    .catch(() => undefined);
+  return saved;
 }
 
 export async function listNotifications(
