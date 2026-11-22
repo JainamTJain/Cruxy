@@ -595,22 +595,94 @@ export async function listChats(): Promise<ChatChannel[]> {
   assertOk(teamErr, "listChats(teams)");
 
   const have = new Set(chats.map((c) => c.channel));
-  const missing: { channel: string; team_id: string | null }[] = [];
+  const missing: {
+    channel: string;
+    team_id: string | null;
+    title: string;
+    purpose: string;
+    audience: string;
+    kind: string;
+    case_id: string | null;
+  }[] = [];
   if (!have.has(programChannel())) {
-    missing.push({ channel: programChannel(), team_id: null });
+    missing.push({
+      channel: programChannel(),
+      team_id: null,
+      title: "All program",
+      purpose: "Notes for every USC Ethics Bowl team.",
+      audience: "Everyone in the program can see this.",
+      kind: "program",
+      case_id: null,
+    });
   }
   for (const t of teamRows ?? []) {
     const channel = teamChannel(t.id);
-    if (!have.has(channel)) missing.push({ channel, team_id: t.id });
+    if (!have.has(channel)) {
+      missing.push({
+        channel,
+        team_id: t.id,
+        title: "Whole team",
+        purpose: "Day to day notes for everyone on your team.",
+        audience: "Your whole team can see this.",
+        kind: "whole_team",
+        case_id: null,
+      });
+    }
   }
   if (missing.length > 0) {
     const { data: added, error: addErr } = await sb
       .from("chats")
-      .upsert(missing, { onConflict: "channel", ignoreDuplicates: true })
+      .upsert(missing, { onConflict: "channel" })
       .select("*");
     assertOk(addErr, "listChats(seed)");
     chats.push(...(added ?? []).map(mapChat));
   }
+
+  // Backfill team_id / kind on legacy rows that only had a channel string.
+  for (const c of chats) {
+    if (c.channel === programChannel()) continue;
+    const needsTeam = !c.team_id;
+    const needsKind = !c.kind;
+    if (!needsTeam && !needsKind) continue;
+    const parsedCase = (() => {
+      const rest = c.channel.startsWith("team:")
+        ? c.channel.slice("team:".length)
+        : "";
+      const i = rest.indexOf(":case:");
+      if (i < 0) return null;
+      return {
+        teamId: rest.slice(0, i),
+        caseId: rest.slice(i + ":case:".length),
+      };
+    })();
+    const teamFromChannel = parsedCase
+      ? parsedCase.teamId
+      : c.channel.startsWith("team:")
+        ? c.channel
+            .slice("team:".length)
+            .replace(/:leads$/, "")
+            .split(":")[0] ?? null
+        : null;
+    const kind =
+      c.kind ||
+      (c.channel === programChannel()
+        ? "program"
+        : c.channel.endsWith(":leads")
+          ? "leads"
+          : parsedCase
+            ? "case"
+            : "whole_team");
+    const patch: Record<string, unknown> = {};
+    if (needsTeam && teamFromChannel) patch.team_id = teamFromChannel;
+    if (needsKind) patch.kind = kind;
+    if (parsedCase && !c.case_id) patch.case_id = parsedCase.caseId;
+    if (!Object.keys(patch).length) continue;
+    await sb.from("chats").update(patch).eq("id", c.id);
+    if (patch.team_id) c.team_id = patch.team_id as string;
+    if (patch.kind) c.kind = patch.kind as string;
+    if (patch.case_id) c.case_id = patch.case_id as string;
+  }
+
   return chats;
 }
 

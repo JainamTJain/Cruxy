@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AccessProvider } from "@/components/access/access-provider";
 import { AccessLiveRegions } from "@/components/access/live-region";
-import { ExplainTermListener } from "@/components/access/explain-term";
 import { SkipLink } from "@/components/access/skip-link";
 import { SpokenTranscriptHost } from "@/components/access/spoken-transcript";
 import { useFocusTrap } from "@/components/access/focus-trap";
@@ -498,7 +497,6 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <CruxyDrawer />
       <ConfettiHost />
       <FirstVisitTour />
-      <ExplainTermListener />
       <SpokenTranscriptHost />
       <GlobalSearchHost />
       <ReportProblemButton />

@@ -12,6 +12,7 @@ import {
 import { getReportExtras } from "@/lib/db/supabase/practice-extra";
 import { getPersonById } from "@/lib/db/repository";
 import { sessionHasTextOnlyMembers } from "@/lib/attendance";
+import { isAdminRole } from "@/lib/admin/permissions";
 import {
   isAdminViewer,
   redactPredictions,
@@ -43,10 +44,12 @@ export async function GET(
       ? `Case ${round.case_number}`
       : null;
   const admin = isAdminViewer(me, session);
+  const coachOrTech = Boolean(me && isAdminRole(me.role));
   const safeCards = cards.map((c) =>
     redactPredictions(c, {
       viewerPersonId: session.personId,
       adminViewer: admin,
+      coachOrTech,
     }),
   );
 

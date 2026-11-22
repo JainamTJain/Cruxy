@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
+import {
+  canWriteTeamData,
+  resolveVisibleTeamId,
+} from "@/lib/auth/team-privacy";
 import { getPersonById, listPeopleFull } from "@/lib/db/repository";
 import {
   acceptBriefSuggestion,
@@ -21,9 +25,17 @@ export async function GET(req: Request) {
   if (!session) {
     return NextResponse.json({ error: "Sign in required" }, { status: 401 });
   }
+  const person = await getPersonById(session.personId);
+  if (!person) {
+    return NextResponse.json({ error: "Unknown person" }, { status: 401 });
+  }
   const url = new URL(req.url);
   const caseId = url.searchParams.get("caseId");
-  const teamId = url.searchParams.get("teamId") ?? session.teamId;
+  const { teamId } = resolveVisibleTeamId({
+    person,
+    session,
+    requested: url.searchParams.get("teamId"),
+  });
   if (!caseId || !teamId) {
     return NextResponse.json(
       { error: "caseId and teamId are required." },
@@ -73,11 +85,21 @@ export async function POST(req: Request) {
   };
 
   const caseId = body.caseId;
-  const teamId = body.teamId ?? session.teamId;
+  const { teamId } = resolveVisibleTeamId({
+    person,
+    session,
+    requested: body.teamId ?? null,
+  });
   if (!caseId || !teamId) {
     return NextResponse.json(
       { error: "caseId and teamId are required." },
       { status: 400 },
+    );
+  }
+  if (!canWriteTeamData(person, session, teamId)) {
+    return NextResponse.json(
+      { error: "You can only edit your own team's brief." },
+      { status: 403 },
     );
   }
 

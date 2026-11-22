@@ -108,6 +108,21 @@ export async function createSignedDownloadUrl(
   return data?.signedUrl ?? null;
 }
 
+/** Read bytes back (who-is-this clips, sample mode). */
+export async function downloadBytes(
+  bucket: OpsBucket,
+  path: string,
+): Promise<Buffer | null> {
+  if (isSampleDataMode()) {
+    const hit = sampleBlobs.get(sampleKey(bucket, path));
+    return hit ? Buffer.from(hit) : null;
+  }
+  const sb = getServiceSupabase();
+  const { data, error } = await sb.storage.from(bucket).download(path);
+  if (error || !data) return null;
+  return Buffer.from(await data.arrayBuffer());
+}
+
 /** Test helper: clear in-memory sample blobs. */
 export function clearSampleStorage() {
   sampleBlobs.clear();

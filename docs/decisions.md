@@ -89,6 +89,11 @@ Each line is a decision already made. Quotes are Jainam's own words. Don't rever
 - Small tier: GPT-6 Luna, backup Gemini 3.8 Flash. Strong tier: GPT-6.2 Sol, backup Gemini 4 Carbon. Embeddings: OpenAI text-embedding-3-small. All through Vercel AI Gateway with per-request zero data retention. No Anthropic, no direct provider SDKs. Details: `docs/orchestration/model-routing.md`.
 - Dr. B has his own starter code (`COACH_STARTER_CODE_HASH`), separate from the shared member starter code.
 
+## Voiceprints (Jainam, Nov 22, 2026)
+
+- **Speaker embeddings are not language-model calls.** Group voice matching uses Apache-2.0 ECAPA-TDNN ONNX via `onnxruntime-node` on the server (`src/lib/voice/embed.ts`). It does **not** go through `callCruxy()` or the Vercel AI Gateway. Confirm this split stays: gateway for text/LLM only; local ONNX for voiceprints.
+- Enrollment is three concrete parts (read / natural / competition), not a single unused sample file. Raw enrollment audio is deleted after the embedding is stored, same rule as practice audio.
+
 ## Team privacy and shared ideas (Jainam, Nov 21, 2026)
 
 - **Teams do not see each other's work.** A member never sees another team's roles, leads, working document, one pager or discussion. Dr. B and Jainam see every team.

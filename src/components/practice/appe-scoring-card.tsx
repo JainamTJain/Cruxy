@@ -130,6 +130,7 @@ export function AppeScoringCard({
           From the Fillable Scoring Sheet, 1 to 10 per item
         </p>
       </div>
+      <div className="-mx-1 overflow-x-auto px-1">
       <table className="w-full min-w-[560px] text-left text-sm">
         <thead>
           <tr className="border-b border-ink/10 text-xs uppercase text-muted">
@@ -189,6 +190,7 @@ export function AppeScoringCard({
           </tr>
         </tbody>
       </table>
+      </div>
 
       <label className="block text-sm">
         Spirit (1 to 5)

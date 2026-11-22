@@ -114,7 +114,7 @@ export function IdeasOverTime({
                 </span>
                 <span className="text-xs text-muted">{dayLabel(ev.at)}</span>
                 {ev.by_name ? (
-                  <span className="text-xs text-muted">· {ev.by_name}</span>
+                  <span className="text-xs text-muted">by {ev.by_name}</span>
                 ) : null}
               </div>
               <p className="m-0 mt-0.5 text-sm font-semibold text-ink">

@@ -15,6 +15,7 @@ export type CaseAnnotation = {
   kind: "highlight" | "comment" | "question";
   body: string;
   range: string | null;
+  person_id?: string | null;
   person_name: string | null;
   team_colour: string | null;
   passage_anchor: string | null;

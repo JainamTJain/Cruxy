@@ -266,6 +266,8 @@ export interface SampleStore {
   arg_edges?: import("@/lib/graph/types").ArgEdge[];
   /** Wave 8 D: personal learning profiles. */
   learning_profiles?: import("@/lib/learning/types").LearningProfile[];
+  /** Workstream D voiceprints: pending Who-is-this rows. */
+  speaker_match_pending?: import("@/lib/voice/types").SpeakerMatchPending[];
   /** Wave 9 H: after the regional. */
   seasons?: import("@/lib/season/types").Season[];
   competition_team_results?: import("@/lib/season/types").CompetitionTeamResult[];
@@ -319,6 +321,23 @@ export interface SampleStore {
   }[];
   /** Wave 9 G: report a problem / suggest something. */
   product_feedback?: import("@/lib/db/supabase/product-feedback-extra").ProductFeedback[];
+  /** Wave 9 I: cached cited framework-on-case lines. */
+  framework_case_applies?: {
+    term_id: string;
+    case_id: string;
+    apply_text: string;
+    citation_ids: string[];
+    source_url: string;
+    created_at: string;
+  }[];
+  /** Wave 9 E solo async soft bags (solo-prep-repository). */
+  solo_part_progress?: unknown[];
+  solo_recordings?: unknown[];
+  solo_review_comments?: unknown[];
+  solo_handoffs?: unknown[];
+  solo_case_visits?: unknown[];
+  /** Case workflow v2: resumable solo Q in Practice. */
+  solo_qa_sessions?: import("@/lib/db/supabase/practice-study-extra").SoloQaSession[];
 }
 
 function emptyCaseBrainFields(): Pick<
@@ -862,6 +881,7 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     case_role_preferences: raw.case_role_preferences ?? [],
     arg_edges: raw.arg_edges ?? [],
     learning_profiles: raw.learning_profiles ?? [],
+    speaker_match_pending: raw.speaker_match_pending ?? [],
     auth_devices: raw.auth_devices ?? [],
     passcode_reset_requests: raw.passcode_reset_requests ?? [],
     notifications: raw.notifications ?? [],
@@ -876,6 +896,13 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     availability_poll_votes: raw.availability_poll_votes ?? [],
     calendar_feed_tokens: raw.calendar_feed_tokens ?? [],
     product_feedback: raw.product_feedback ?? [],
+    framework_case_applies: raw.framework_case_applies ?? [],
+    solo_part_progress: raw.solo_part_progress ?? [],
+    solo_recordings: raw.solo_recordings ?? [],
+    solo_review_comments: raw.solo_review_comments ?? [],
+    solo_handoffs: raw.solo_handoffs ?? [],
+    solo_case_visits: raw.solo_case_visits ?? [],
+    solo_qa_sessions: raw.solo_qa_sessions ?? [],
   };
 }
 

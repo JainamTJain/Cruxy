@@ -29,6 +29,10 @@ export interface Person {
   consent_at: string | null;
   recording_ok: boolean;
   voice_sample_path: string | null;
+  /** ECAPA 192-dim voiceprint; raw enrollment audio deleted after this is set (00076). */
+  voiceprint?: number[] | null;
+  voiceprint_at?: string | null;
+  voiceprint_meta?: Record<string, unknown> | null;
   /** Set by the person, tech admin, or transcription vendor after a voice sample. */
   pronunciation_note: string | null;
   first_run_checklist: Record<string, boolean>;

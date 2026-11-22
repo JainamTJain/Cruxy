@@ -102,6 +102,7 @@ export async function isCaseLead(opts: {
 /**
  * Personal learning rows (mastery, Brier, predictions, Socratic outcomes).
  * Visible to: the person, case leads (when caseId given), coach/tech in admin view.
+ * Score predictions specifically: person, Dr. B, Jainam (docs/decisions.md).
  */
 export async function canViewPersonalLearning(opts: {
   viewer: Person;
@@ -120,6 +121,19 @@ export async function canViewPersonalLearning(opts: {
     });
   }
   return false;
+}
+
+/**
+ * Score predictions: the person, Dr. B (coach_admin), Jainam (tech_admin).
+ * Decisions Nov 21 2026 — not limited to admin-view switch.
+ */
+export function canViewScorePredictions(opts: {
+  viewer: Person | null | undefined;
+  subjectPersonId: string;
+}): boolean {
+  if (!opts.viewer) return false;
+  if (opts.viewer.id === opts.subjectPersonId) return true;
+  return isAdminRole(opts.viewer.role);
 }
 
 /**
@@ -145,9 +159,14 @@ export async function canViewMasteryMap(opts: {
 /** Strip score predictions from a judge card unless the viewer may see them. */
 export function redactPredictions<T extends { predictions?: unknown; created_by?: string | null }>(
   card: T,
-  opts: { viewerPersonId: string; adminViewer: boolean },
+  opts: {
+    viewerPersonId: string;
+    adminViewer: boolean;
+    /** Coach/tech by role (predictions visible to Dr. B and Jainam). */
+    coachOrTech?: boolean;
+  },
 ): T {
-  if (opts.adminViewer) return card;
+  if (opts.adminViewer || opts.coachOrTech) return card;
   if (card.created_by && card.created_by === opts.viewerPersonId) return card;
   if (card.predictions == null) return card;
   return { ...card, predictions: undefined };

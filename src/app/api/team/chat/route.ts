@@ -4,6 +4,7 @@ import { isSampleDataMode } from "@/lib/db/config";
 import { getPersonById } from "@/lib/db/repository";
 import { updateStore } from "@/lib/db/sample-store";
 import {
+  ensureCaseConversation,
   getMessageChatId,
   listConversationsForPerson,
   markChatRead,
@@ -12,6 +13,7 @@ import {
   personCanAccessChat,
 } from "@/lib/team/chat-conversations";
 import {
+  getCaseById,
   listMessages,
   markMessageIdea,
   postMessage,
@@ -213,6 +215,21 @@ export async function POST(req: Request) {
   if (body.passageRef) linkRefs.passage = body.passageRef;
   if (body.timestampRef) linkRefs.timestamp = body.timestampRef;
 
+  // Linking a case (or posting in a case chat) creates that case conversation.
+  if (body.caseId && teamId) {
+    try {
+      const caseRow = await getCaseById(body.caseId);
+      await ensureCaseConversation({
+        teamId,
+        caseId: body.caseId,
+        caseNumber: caseRow?.number ?? null,
+        caseTitle: caseRow?.title ?? null,
+      });
+    } catch {
+      // Discussion / chat still proceeds if ensure races.
+    }
+  }
+
   try {
     const message = await postMessage({
       chatId: body.chatId,
@@ -222,7 +239,7 @@ export async function POST(req: Request) {
       caseId: body.caseId,
       isIdea: body.isIdea,
       linkRefs: Object.keys(linkRefs).length ? linkRefs : null,
-      actorTeamId: session.teamId,
+      actorTeamId: person.team_id ?? session.teamId,
       actorRole: session.adminView ? session.role : "member",
     });
 

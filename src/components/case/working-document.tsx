@@ -6,9 +6,31 @@
  * Import is team-level (all cases); Start creates every active case.
  */
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ThreadInline } from "@/components/discussion/thread-inline";
+import {
+  AnnotateSurface,
+  ReadingToolbar,
+  ReadingToolsProvider,
+  buildLegend,
+  renderMarkedText,
+  type ReadingMark,
+} from "@/components/case/reading-tools";
 import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
+import { LinkedText } from "@/components/frameworks/linked-text";
 import { cn } from "@/lib/utils";
+
+type WorkingAnn = {
+  id: string;
+  target_kind: "passage" | "section";
+  target_id: string;
+  kind: "highlight" | "comment";
+  range: string;
+  body: string | null;
+  person_id: string;
+  person_name: string | null;
+  created_at: string;
+};
 
 type Hub = {
   brief: {
@@ -47,6 +69,7 @@ type Hub = {
     text: string;
     kind: string;
     done: boolean;
+    suggestion_id?: string | null;
     created_by_name: string | null;
     created_at_label: string | null;
     done_by_name: string | null;
@@ -109,6 +132,58 @@ function Attr({
   );
 }
 
+function IdeaAndCoherenceBar({
+  busy,
+  ideaDraft,
+  setIdeaDraft,
+  onTellIdea,
+  onCoherence,
+}: {
+  busy: boolean;
+  ideaDraft: string;
+  setIdeaDraft: (v: string) => void;
+  onTellIdea: () => void;
+  onCoherence: () => void;
+}) {
+  return (
+    <section className="rounded-[20px] bg-white p-5">
+      <h3 className="font-display m-0 text-lg font-extrabold">
+        Tell Cruxy an idea
+      </h3>
+      <p className="mt-1 text-sm text-muted">
+        Cruxy writes it up as a suggestion with your name for the team to tick
+        or cross. Strong ideas may also reach other teams anonymously.
+      </p>
+      <textarea
+        rows={3}
+        className="mt-3 w-full rounded-[10px] border border-mist px-3 py-2 text-sm"
+        placeholder="My idea is…"
+        value={ideaDraft}
+        disabled={busy}
+        onChange={(e) => setIdeaDraft(e.target.value)}
+      />
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={busy || !ideaDraft.trim()}
+          className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          onClick={onTellIdea}
+        >
+          Add as suggestion
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          className="rounded-xl border border-mist bg-[#F7F8FA] px-4 py-2 text-sm font-semibold disabled:opacity-60"
+          onClick={onCoherence}
+        >
+          Check coherence
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export function WorkingDocument({
   caseId,
   teamId,
@@ -130,6 +205,17 @@ export function WorkingDocument({
   >({});
   const [review, setReview] = useState<ImportReview | null>(null);
   const [statusNote, setStatusNote] = useState<string | null>(null);
+  const [ideaDraft, setIdeaDraft] = useState("");
+  const [annotations, setAnnotations] = useState<WorkingAnn[]>([]);
+
+  const loadAnnotations = useCallback(async () => {
+    const res = await fetch(
+      `/api/case/working-annotations?caseId=${encodeURIComponent(caseId)}&teamId=${encodeURIComponent(teamId)}`,
+    );
+    if (!res.ok) return;
+    const json = (await res.json()) as { annotations?: WorkingAnn[] };
+    setAnnotations(json.annotations ?? []);
+  }, [caseId, teamId]);
 
   const load = useCallback(async () => {
     const res = await fetch(
@@ -145,11 +231,68 @@ export function WorkingDocument({
     const drafts: Record<string, string> = {};
     for (const s of json.sections) drafts[s.key] = s.body;
     setSectionDrafts(drafts);
-  }, [caseId, teamId]);
+    await loadAnnotations();
+  }, [caseId, teamId, loadAnnotations]);
 
   useEffect(() => {
     void load();
   }, [load]);
+  const saveWorkingAnn = useCallback(
+    async (
+      kind: "highlight" | "comment",
+      targetKind: "passage" | "section",
+      targetId: string,
+      range: string,
+      body?: string,
+    ) => {
+      const res = await fetch("/api/case/working-annotations", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          caseId,
+          teamId,
+          targetKind,
+          targetId,
+          kind,
+          range,
+          body: body ?? null,
+        }),
+      });
+      if (!res.ok) return false;
+      await loadAnnotations();
+      return true;
+    },
+    [caseId, teamId, loadAnnotations],
+  );
+
+  const marksFor = useCallback(
+    (targetKind: "passage" | "section", targetId: string): ReadingMark[] =>
+      annotations
+        .filter((a) => a.target_kind === targetKind && a.target_id === targetId)
+        .map((a) => ({
+          id: a.id,
+          needle: a.range,
+          kind: a.kind,
+          personKey: a.person_id,
+          personName: a.person_name,
+          createdAt: a.created_at,
+        })),
+    [annotations],
+  );
+
+  const allMarks: ReadingMark[] = useMemo(
+    () =>
+      annotations.map((a) => ({
+        id: a.id,
+        needle: a.range,
+        kind: a.kind,
+        personKey: a.person_id,
+        personName: a.person_name,
+        createdAt: a.created_at,
+      })),
+    [annotations],
+  );
+  const legend = useMemo(() => buildLegend(allMarks), [allMarks]);
 
   async function post(body: Record<string, unknown>) {
     setBusy(true);
@@ -175,7 +318,10 @@ export function WorkingDocument({
     }
   }
 
-  async function teamImport(action: string, extra: Record<string, unknown> = {}) {
+  async function teamImport(
+    action: string,
+    extra: Record<string, unknown> = {},
+  ) {
     setBusy(true);
     setError(null);
     setStatusNote(null);
@@ -233,141 +379,192 @@ export function WorkingDocument({
   const editBusy = busy || !canEdit;
 
   return (
-    <div className="flex flex-col gap-4">
-      {error ? (
-        <p className="rounded-xl border border-cardinal/30 bg-cardinal/5 px-3 py-2 text-sm text-cardinal">
-          {error}
-        </p>
-      ) : null}
-      {statusNote ? (
-        <p className="m-0 rounded-xl bg-[#F7F8FA] px-3.5 py-2 text-sm text-[#3B404A]">
-          {statusNote}
-        </p>
-      ) : null}
+    <ReadingToolsProvider caseId={caseId} teamId={teamId}>
+      <div className="flex flex-col gap-4">
+        {error ? (
+          <p className="rounded-xl border border-cardinal/30 bg-cardinal/5 px-3 py-2 text-sm text-cardinal">
+            {error}
+          </p>
+        ) : null}
+        {statusNote ? (
+          <p className="m-0 rounded-xl bg-[#F7F8FA] px-3.5 py-2 text-sm text-[#3B404A]">
+            {statusNote}
+          </p>
+        ) : null}
 
-      {!path ? (
-        <EmptyTeamChoice
-          busy={editBusy}
-          driveUrls={driveUrls}
-          setDriveUrls={setDriveUrls}
-          pasteText={pasteText}
-          setPasteText={setPasteText}
-          review={review}
-          onStartReview={() => {
-            const urls = driveUrls
-              .split(/\n+/)
-              .map((u) => u.trim())
-              .filter(Boolean);
-            const sources = [
-              ...urls.map((driveUrl) => ({ driveUrl })),
-              ...(pasteText.trim()
-                ? [{ pastedText: pasteText.trim(), title: "Pasted file" }]
-                : []),
-            ];
-            void teamImport("start_review", { sources });
-          }}
-          onAssign={(splitId, caseIdAssign) =>
-            void teamImport("assign_split", {
-              batchId: review?.batchId ?? review?.batch?.id,
-              splitId,
-              caseId: caseIdAssign,
-            })
-          }
-          onConfirm={() =>
-            void teamImport("confirm", {
-              batchId: review?.batchId ?? review?.batch?.id,
-            })
-          }
-          onStartAll={() => void teamImport("start_all")}
-        />
-      ) : (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
-          <div className="flex min-w-0 flex-col gap-4">
-            {path === "imported" ? (
-              <ImportedBody data={data} />
-            ) : (
-              <CruxBody
-                data={data}
-                busy={editBusy}
-                sectionDrafts={sectionDrafts}
-                setSectionDrafts={setSectionDrafts}
-                socraticAnswers={socraticAnswers}
-                setSocraticAnswers={setSocraticAnswers}
-                onSave={(key) =>
-                  void post({
-                    action: "save_section",
-                    sectionKey: key,
-                    body: sectionDrafts[key] ?? "",
-                  })
-                }
-                onAsk={(key) =>
-                  void post({ action: "ask_socratic", sectionKey: key })
-                }
-                onAnswer={(key, socraticId) =>
-                  void post({
-                    action: "answer_socratic",
-                    sectionKey: key,
-                    socraticId,
-                    answer: socraticAnswers[key] ?? "",
-                  }).then((ok) => {
-                    if (ok) {
-                      setSocraticAnswers((m) => ({ ...m, [key]: "" }));
-                    }
-                  })
-                }
-              />
-            )}
-            <ChecklistPanel data={data} />
-          </div>
+        {!canEdit ? (
+          <p className="m-0 rounded-xl bg-[#F7F8FA] px-3.5 py-2 text-sm text-muted">
+            Read only. Only Dr. B and Jainam can open another team&apos;s
+            document.
+          </p>
+        ) : null}
 
-          <SuggestionsRail
-            suggestions={data.suggestions}
+        {path ? <ReadingToolbar legend={legend} /> : null}
+
+        {path && canEdit ? (
+          <IdeaAndCoherenceBar
             busy={editBusy}
-            crossReasons={crossReasons}
-            setCrossReasons={setCrossReasons}
-            onTick={(id) =>
-              void post({ action: "tick_suggestion", suggestionId: id })
-            }
-            onCross={(id) =>
+            ideaDraft={ideaDraft}
+            setIdeaDraft={setIdeaDraft}
+            onTellIdea={() =>
               void post({
-                action: "cross_suggestion",
-                suggestionId: id,
-                reason: crossReasons[id] || null,
+                action: "tell_idea",
+                text: ideaDraft.trim(),
+              }).then((ok) => {
+                if (ok) setIdeaDraft("");
               })
             }
+            onCoherence={() => void post({ action: "coherence_check" })}
           />
-        </div>
-      )}
+        ) : null}
 
-      {path ? (
-        <p className="m-0 text-sm text-muted">
-          Need to re-import for the whole team?{" "}
-          <button
-            type="button"
-            className="font-semibold text-cardinal underline"
-            disabled={editBusy}
-            onClick={() => {
-              setData((d) =>
-                d
-                  ? {
-                      ...d,
-                      brief: { ...d.brief, working_path: null },
-                    }
-                  : d,
-              );
-              setReview(null);
+        {!path ? (
+          <EmptyTeamChoice
+            busy={editBusy}
+            driveUrls={driveUrls}
+            setDriveUrls={setDriveUrls}
+            pasteText={pasteText}
+            setPasteText={setPasteText}
+            review={review}
+            onStartReview={() => {
+              const urls = driveUrls
+                .split(/\n+/)
+                .map((u) => u.trim())
+                .filter(Boolean);
+              const sources = [
+                ...urls.map((driveUrl) => ({ driveUrl })),
+                ...(pasteText.trim()
+                  ? [{ pastedText: pasteText.trim(), title: "Pasted file" }]
+                  : []),
+              ];
+              void teamImport("start_review", { sources });
             }}
-          >
-            Import our documents again
-          </button>
-          . Or open{" "}
-          <Link href="/team" className="font-semibold text-cardinal underline">
-            Team
-          </Link>
-          .
-        </p>
-      ) : null}
-    </div>
+            onAssign={(splitId, caseIdAssign) =>
+              void teamImport("assign_split", {
+                batchId: review?.batchId ?? review?.batch?.id,
+                splitId,
+                caseId: caseIdAssign,
+              })
+            }
+            onConfirm={() =>
+              void teamImport("confirm", {
+                batchId: review?.batchId ?? review?.batch?.id,
+              })
+            }
+            onStartAll={() => void teamImport("start_all")}
+          />
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
+            <div className="flex min-w-0 flex-col gap-4">
+              {path === "imported" ? (
+                <ImportedBody
+                  caseId={caseId}
+                  data={data}
+                  marksFor={marksFor}
+                  onHighlight={(text, passageId) =>
+                    saveWorkingAnn("highlight", "passage", passageId, text)
+                  }
+                  onComment={(text, passageId, body) =>
+                    saveWorkingAnn("comment", "passage", passageId, text, body)
+                  }
+                />
+              ) : (
+                <CruxBody
+                  caseId={caseId}
+                  data={data}
+                  marksFor={marksFor}
+                  onHighlight={(text, sectionKey) =>
+                    saveWorkingAnn("highlight", "section", sectionKey, text)
+                  }
+                  onComment={(text, sectionKey, body) =>
+                    saveWorkingAnn("comment", "section", sectionKey, text, body)
+                  }
+                  busy={editBusy}
+                  sectionDrafts={sectionDrafts}
+                  setSectionDrafts={setSectionDrafts}
+                  socraticAnswers={socraticAnswers}
+                  setSocraticAnswers={setSocraticAnswers}
+                  onSave={(key) =>
+                    void post({
+                      action: "save_section",
+                      sectionKey: key,
+                      body: sectionDrafts[key] ?? "",
+                    })
+                  }
+                  onAsk={(key) =>
+                    void post({ action: "ask_socratic", sectionKey: key })
+                  }
+                  onAnswer={(key, socraticId) =>
+                    void post({
+                      action: "answer_socratic",
+                      sectionKey: key,
+                      socraticId,
+                      answer: socraticAnswers[key] ?? "",
+                    }).then((ok) => {
+                      if (ok) {
+                        setSocraticAnswers((m) => ({ ...m, [key]: "" }));
+                      }
+                    })
+                  }
+                />
+              )}
+              <ChecklistPanel caseId={caseId} teamId={teamId} data={data} />
+            </div>
+
+            <SuggestionsRail
+              caseId={caseId}
+              teamId={teamId}
+              suggestions={data.suggestions}
+              busy={editBusy}
+              crossReasons={crossReasons}
+              setCrossReasons={setCrossReasons}
+              onTick={(id) =>
+                void post({ action: "tick_suggestion", suggestionId: id })
+              }
+              onCross={(id) =>
+                void post({
+                  action: "cross_suggestion",
+                  suggestionId: id,
+                  reason: crossReasons[id] || null,
+                })
+              }
+            />
+          </div>
+        )}
+
+        {path ? (
+          <p className="m-0 text-sm text-muted">
+            Need to re-import for the whole team?{" "}
+            <button
+              type="button"
+              className="font-semibold text-cardinal underline"
+              disabled={editBusy}
+              onClick={() => {
+                setData((d) =>
+                  d
+                    ? {
+                        ...d,
+                        brief: { ...d.brief, working_path: null },
+                      }
+                    : d,
+                );
+                setReview(null);
+              }}
+            >
+              Import our documents again
+            </button>
+            . Or open{" "}
+            <Link
+              href="/team"
+              className="font-semibold text-cardinal underline"
+            >
+              Team
+            </Link>
+            .
+          </p>
+        ) : null}
+      </div>
+    </ReadingToolsProvider>
   );
 }
 
@@ -512,6 +709,8 @@ function EmptyTeamChoice({
 }
 
 function SuggestionsRail({
+  caseId,
+  teamId,
   suggestions,
   busy,
   crossReasons,
@@ -519,6 +718,8 @@ function SuggestionsRail({
   onTick,
   onCross,
 }: {
+  caseId: string;
+  teamId: string;
   suggestions: Hub["suggestions"];
   busy: boolean;
   crossReasons: Record<string, string>;
@@ -541,11 +742,11 @@ function SuggestionsRail({
             <SuggestionCard
               key={s.id}
               s={s}
+              caseId={caseId}
+              teamId={teamId}
               busy={busy}
               reason={crossReasons[s.id] ?? ""}
-              onReason={(v) =>
-                setCrossReasons((m) => ({ ...m, [s.id]: v }))
-              }
+              onReason={(v) => setCrossReasons((m) => ({ ...m, [s.id]: v }))}
               onTick={() => onTick(s.id)}
               onCross={() => onCross(s.id)}
             />
@@ -558,6 +759,8 @@ function SuggestionsRail({
 
 function SuggestionCard({
   s,
+  caseId,
+  teamId,
   busy,
   reason,
   onReason,
@@ -565,6 +768,8 @@ function SuggestionCard({
   onCross,
 }: {
   s: Hub["suggestions"][number];
+  caseId: string;
+  teamId: string;
   busy: boolean;
   reason: string;
   onReason: (v: string) => void;
@@ -581,9 +786,13 @@ function SuggestionCard({
             ? " from Cruxy"
             : ""}
       </p>
-      <p className="m-0 mt-1 text-sm leading-snug">{s.text}</p>
+      <p className="m-0 mt-1 text-sm leading-snug">
+        <LinkedText text={s.text} caseId={caseId} />
+      </p>
       {s.citation ? (
-        <p className="m-0 mt-1 font-mono text-[11px] text-muted">{s.citation}</p>
+        <p className="m-0 mt-1 font-mono text-[11px] text-muted">
+          {s.citation}
+        </p>
       ) : null}
       <Attr name={s.created_by_name} when={s.created_at_label} />
       <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -615,11 +824,34 @@ function SuggestionCard({
           Cross
         </button>
       </div>
+      <ThreadInline
+        caseId={caseId}
+        teamId={teamId}
+        kind="suggestion"
+        targetId={s.id}
+        title={s.text.slice(0, 80)}
+      />
     </li>
   );
 }
 
-function ImportedBody({ data }: { data: Hub }) {
+function ImportedBody({
+  caseId,
+  data,
+  marksFor,
+  onHighlight,
+  onComment,
+}: {
+  caseId: string;
+  data: Hub;
+  marksFor: (kind: "passage" | "section", id: string) => ReadingMark[];
+  onHighlight: (text: string, passageId: string) => Promise<boolean>;
+  onComment: (
+    text: string,
+    passageId: string,
+    body: string,
+  ) => Promise<boolean>;
+}) {
   return (
     <div className="flex flex-col gap-4">
       <section className="rounded-[20px] bg-white p-5">
@@ -638,9 +870,24 @@ function ImportedBody({ data }: { data: Hub }) {
       ) : (
         data.passages.map((p) => (
           <article key={p.id} className="rounded-[20px] bg-white p-5">
-            <p className="m-0 whitespace-pre-wrap text-[15px] leading-relaxed">
-              {p.text}
-            </p>
+            <AnnotateSurface
+              resolvePassageId={(el) =>
+                (el.closest("[data-passage-id]") as HTMLElement | null)?.dataset
+                  .passageId ?? null
+              }
+              onHighlight={onHighlight}
+              onComment={onComment}
+            >
+              <p
+                className="m-0 whitespace-pre-wrap text-[15px] leading-relaxed"
+                data-passage-id={p.id}
+                style={{
+                  fontFamily: "var(--font-source-serif), Georgia, serif",
+                }}
+              >
+                {renderMarkedText(p.text, marksFor("passage", p.id), caseId)}
+              </p>
+            </AnnotateSurface>
           </article>
         ))
       )}
@@ -649,7 +896,11 @@ function ImportedBody({ data }: { data: Hub }) {
 }
 
 function CruxBody({
+  caseId,
   data,
+  marksFor,
+  onHighlight,
+  onComment,
   busy,
   sectionDrafts,
   setSectionDrafts,
@@ -659,10 +910,20 @@ function CruxBody({
   onAsk,
   onAnswer,
 }: {
+  caseId: string;
   data: Hub;
+  marksFor: (kind: "passage" | "section", id: string) => ReadingMark[];
+  onHighlight: (text: string, sectionKey: string) => Promise<boolean>;
+  onComment: (
+    text: string,
+    sectionKey: string,
+    body: string,
+  ) => Promise<boolean>;
   busy: boolean;
   sectionDrafts: Record<string, string>;
-  setSectionDrafts: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  setSectionDrafts: React.Dispatch<
+    React.SetStateAction<Record<string, string>>
+  >;
   socraticAnswers: Record<string, string>;
   setSocraticAnswers: React.Dispatch<
     React.SetStateAction<Record<string, string>>
@@ -736,6 +997,32 @@ function CruxBody({
               </button>
             ) : null}
 
+            {!empty ? (
+              <AnnotateSurface
+                className="mt-3"
+                resolvePassageId={(el) =>
+                  (el.closest("[data-passage-id]") as HTMLElement | null)
+                    ?.dataset.passageId ?? null
+                }
+                onHighlight={onHighlight}
+                onComment={onComment}
+              >
+                <div
+                  className="rounded-[10px] bg-[#F7F8FA] px-3 py-2.5 text-sm leading-relaxed whitespace-pre-wrap"
+                  data-passage-id={sec.key}
+                  style={{
+                    fontFamily: "var(--font-source-serif), Georgia, serif",
+                  }}
+                >
+                  {renderMarkedText(
+                    sectionDrafts[sec.key] ?? "",
+                    marksFor("section", sec.key),
+                    caseId,
+                  )}
+                </div>
+              </AnnotateSurface>
+            ) : null}
+
             <textarea
               rows={empty ? 3 : 5}
               className={cn(
@@ -768,8 +1055,17 @@ function CruxBody({
   );
 }
 
-function ChecklistPanel({ data }: { data: Hub }) {
+function ChecklistPanel({
+  caseId,
+  teamId,
+  data,
+}: {
+  caseId: string;
+  teamId: string;
+  data: Hub;
+}) {
   const open = data.checklist.filter((c) => !c.done);
+  const done = data.checklist.filter((c) => c.done);
   if (data.checklist.length === 0) return null;
   return (
     <section className="rounded-[20px] bg-white p-5">
@@ -777,13 +1073,40 @@ function ChecklistPanel({ data }: { data: Hub }) {
         To-do for your doc
       </h3>
       <p className="mt-1 text-sm text-muted">
-        Ticked suggestions wait here.
+        Ticked suggestions wait here. Reply to disagree. Crux never edits your
+        Google Doc.
       </p>
       <ul className="mt-3 m-0 list-none space-y-2 p-0">
         {open.map((c) => (
-          <li key={c.id} className="rounded-[12px] bg-[#F7F8FA] px-3 py-2 text-sm">
-            {c.text}
+          <li
+            key={c.id}
+            className="rounded-[14px] bg-[#F7F8FA] px-3.5 py-3 text-sm"
+          >
+            <p className="m-0 leading-snug">{c.text}</p>
             <Attr name={c.created_by_name} when={c.created_at_label} />
+            <ThreadInline
+              caseId={caseId}
+              teamId={teamId}
+              kind="suggestion"
+              targetId={c.suggestion_id || c.id}
+              title={c.text.slice(0, 80)}
+            />
+          </li>
+        ))}
+        {done.map((c) => (
+          <li
+            key={c.id}
+            className="rounded-[14px] px-3.5 py-2 text-sm text-muted"
+          >
+            <span className="line-through">{c.text}</span>
+            <Attr name={c.done_by_name} when={c.done_at_label} />
+            <ThreadInline
+              caseId={caseId}
+              teamId={teamId}
+              kind="suggestion"
+              targetId={c.suggestion_id || c.id}
+              title={c.text.slice(0, 80)}
+            />
           </li>
         ))}
       </ul>
