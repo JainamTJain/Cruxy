@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import { useFocusTrap } from "@/components/access/focus-trap";
+import { announceCruxy } from "@/components/access/live-region";
 import { CruxWordmark } from "@/components/crux-wordmark";
 import { useCruxy } from "@/components/cruxy/cruxy-context";
 import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
@@ -44,6 +47,12 @@ export function CruxyDrawer() {
   const [hintOnly, setHintOnly] = useState(false);
   const [wantsMore, setWantsMore] = useState(false);
 
+  const closeDrawer = useCallback(() => setDrawerOpen(false), [setDrawerOpen]);
+  const trapRef = useFocusTrap({
+    active: drawerOpen,
+    onEscape: closeDrawer,
+  });
+
   useEffect(() => {
     if (!drawerOpen) return;
     void fetch("/api/auth/me")
@@ -59,6 +68,14 @@ export function CruxyDrawer() {
       )
       .catch(() => undefined);
   }, [drawerOpen]);
+
+  useEffect(() => {
+    if (answer) announceCruxy(answer.slice(0, 240));
+  }, [answer]);
+
+  useEffect(() => {
+    if (prompt) announceCruxy(prompt);
+  }, [prompt]);
 
   if (!drawerOpen) return null;
 
@@ -163,10 +180,12 @@ export function CruxyDrawer() {
 
   return (
     <div
+      ref={trapRef}
       className={cn(
         "fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-mist bg-paper shadow-xl",
       )}
       role="dialog"
+      aria-modal="true"
       aria-label="Cruxy assistant"
     >
       <header className="flex items-center justify-between gap-3 border-b border-mist bg-ink px-4 py-3">
@@ -197,8 +216,8 @@ export function CruxyDrawer() {
         </div>
         <button
           type="button"
-          className="shrink-0 rounded-lg px-2 py-1 text-sm text-white/80"
-          onClick={() => setDrawerOpen(false)}
+          className="min-h-11 shrink-0 rounded-lg px-2 py-1 text-sm text-white/80"
+          onClick={closeDrawer}
         >
           Close
         </button>
@@ -258,7 +277,7 @@ export function CruxyDrawer() {
         ) : null}
 
         {answer ? (
-          <div className="space-y-2">
+          <div className="space-y-2" aria-live="polite">
             <p className="rounded-2xl bg-white px-3 py-3 shadow-sm">{answer}</p>
             {adminExtra?.suggestedNext ? (
               <p className="text-xs text-muted">
@@ -331,6 +350,15 @@ export function CruxyDrawer() {
             Back to the lamp
           </Button>
         </div>
+        <p className="m-0 text-center text-[11px] text-muted">
+          <Link href="/help" className="underline">
+            Help
+          </Link>
+          {", "}
+          <Link href="/help/ethics-bowl" className="underline">
+            Ethics Bowl in 90 seconds
+          </Link>
+        </p>
       </footer>
     </div>
   );

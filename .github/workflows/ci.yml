@@ -10,6 +10,9 @@ jobs:
     env:
       USE_SAMPLE_DATA: "1"
       NEXT_TELEMETRY_DISABLED: "1"
+      # Dummy secrets for sample-data sign-in during axe checks (not production).
+      SESSION_SECRET: "ci-session-secret-for-sample-data-only-32"
+      PASSCODE_VIEW_KEY: "0123456789abcdef0123456789abcdef"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,6 +21,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run check:access
       - run: npm run check:supabase-wired
       - run: npm run test:cruxy --if-present
       - run: npm run smoke:practice
@@ -25,3 +29,16 @@ jobs:
       - run: npm run smoke:socratic-outcomes
       # Google Fonts downloads sometimes fail in CI (next/font); retry before failing.
       - run: npm run build || (sleep 20 && npm run build) || (sleep 40 && npm run build)
+      # Wave 9 I: axe checks on key pages (sample data).
+      - name: Accessibility (axe)
+        run: |
+          set -euo pipefail
+          npx playwright install chromium
+          npm run start -- --hostname 127.0.0.1 --port 3000 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:3000/api/auth/people >/dev/null; then break; fi
+            sleep 1
+          done
+          A11Y_BASE=http://127.0.0.1:3000 npm run check:a11y

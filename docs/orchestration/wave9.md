@@ -77,3 +77,37 @@ Real data only; never invent records about real people. Gateway only for AI. Den
 service role server-side. Secrets only in Vercel env (name any new env var in the PR so Jainam can
 add it; features must degrade quietly without it). No em dashes or middle dots in copy. Follow
 docs/design/writing.md. New pieces in new files where another row owns the page.
+
+## C → H handoff: real-round log fields (for the retrospective)
+
+Row C writes competition-day round logs into `competition_logs` (migration `00055` adds columns).
+H should read these for the after-regional retrospective. Empty logistics fields mean
+"Dr. B will add this" and are never invented.
+
+| Field | Column | Meaning |
+| --- | --- | --- |
+| Competition | `competition_id` | Usually California Regional 2026-12-05 |
+| Team | `team_id` | Which USC team logged the round |
+| Round number | `round_number` | Prelims 1–3, then SF/F as numbered |
+| Side | `side` | `presenting` or `commenting` |
+| Case | `case_id`, `case_number` | Drawn case |
+| Opponent school | `opponent` | As reported by the team |
+| Moderator question | `moderator_question` | Also banked as `asked_at_round` / "Asked at UCSB" |
+| Judges' questions | `judges_questions` | Optional free text |
+| Judge comments | `judge_comments` | As reported |
+| Scores | `score_us`, `score_them` | As reported |
+| Result | `result` | `win` / `loss` / `tie` / `pending` |
+| Debrief worked | `debrief_worked` | One thing that worked (between-round) |
+| Debrief change | `debrief_change` | One thing to change (between-round) |
+| Round card link | `day_round_id` | Optional link to `competition_day_rounds` |
+| Who logged | `created_by`, `created_at` | Person and time |
+
+Related tables for the day itself (not the retrospective core, but useful):
+
+- `competition_day_logistics`: schedule, departure, meeting point, dress, venue, rooms, packing list
+- `competition_carpools` + `competition_carpool_riders`: who drives / rides
+- `competition_packing_ticks`: per-person packing checklist
+- `competition_day_rounds`: round-day card (drawn case, side, speakers, key points, room)
+
+Member hub: `/regional`. APPE timer phases (offline): presentation 10:00, conferral 1:00,
+commentary 5:00, response 3:00, judges' questions 10:00 (from `docs/domain/ethics-bowl.md` ranges).

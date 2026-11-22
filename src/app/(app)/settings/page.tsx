@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { DisplaySettings } from "@/components/access/display-settings";
+import { StatusPill } from "@/components/access/status-pill";
+import { PageIntro } from "@/components/page-intro";
 import { Button } from "@/components/ui/button";
 import { Keypad } from "@/components/keypad";
 import { LearningProfileForm } from "@/components/learning-profile-form";
@@ -197,21 +200,24 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="animate-fade-up max-w-lg space-y-6">
-      <div>
-        <h1 className="font-display text-3xl font-semibold">Settings</h1>
-        <p className="mt-1 text-sm text-muted">
-          Reminders stay in-app by default. Email only if you add an address and
-          opt in.{" "}
-          <Link href="/practice/calibration" className="underline">
-            Your score prediction trend
-          </Link>{" "}
-          stays private to you.{" "}
-          <Link href="/settings/privacy" className="underline">
-            Privacy centre
-          </Link>
-          : what we store, download, delete.
-        </p>
+    <div className="animate-fade-up max-w-lg space-y-6">
+      <PageIntro title="Settings">
+        Reminders, display, consent, passcode and Cruxy. Change what helps you
+        read and move through Crux.
+      </PageIntro>
+      <p className="text-sm text-muted">
+        <Link href="/practice/calibration" className="underline">
+          Your score prediction trend
+        </Link>{" "}
+        stays private to you.{" "}
+        <Link href="/settings/privacy" className="underline">
+          Privacy centre
+        </Link>
+        : what Crux stores about you, with download and delete.
+      </p>
+
+      <div className="border-t border-ink/10 pt-4">
+        <DisplaySettings />
       </div>
       <label className="block text-sm">
         Email
@@ -353,11 +359,12 @@ export default function SettingsPage() {
                   key={o.id}
                   className="rounded-xl border border-ink/10 bg-white/70 px-3 py-2 text-sm"
                 >
-                  <span className="font-medium">
-                    {improved ? "Improved" : "No lift"}
-                  </span>
+                  <StatusPill
+                    tone={improved ? "ok" : "neutral"}
+                    label={improved ? "Improved" : "No lift"}
+                  />
                   {o.attempt_kind ? (
-                    <span className="text-muted"> on {o.attempt_kind}</span>
+                    <span className="ml-2 text-muted">on {o.attempt_kind}</span>
                   ) : null}
                   {o.score_delta != null ? (
                     <span className="ml-2 font-mono text-xs text-muted">
@@ -389,7 +396,11 @@ export default function SettingsPage() {
           Save Cruxy
         </Button>
       </div>
-      {msg ? <p className="text-sm text-muted">{msg}</p> : null}
-    </main>
+      {msg ? (
+        <p className="text-sm text-muted" role="status" aria-live="polite">
+          {msg}
+        </p>
+      ) : null}
+    </div>
   );
 }

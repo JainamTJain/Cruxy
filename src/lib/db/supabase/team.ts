@@ -219,12 +219,27 @@ function mapTruth(r: Row): TruthItem {
 }
 
 function mapPrefs(r: Row): PersonPrefs {
+  const textSize = r.text_size;
+  const reduce = r.reduce_motion;
   return {
     person_id: r.person_id,
     hide_floating_cruxy: Boolean(r.hide_floating_cruxy),
     cruxy_x: r.cruxy_x ?? null,
     cruxy_y: r.cruxy_y ?? null,
     cruxy_device: r.cruxy_device ?? null,
+    text_size:
+      textSize === "sm" ||
+      textSize === "md" ||
+      textSize === "lg" ||
+      textSize === "xl"
+        ? textSize
+        : "md",
+    high_contrast: Boolean(r.high_contrast),
+    readable_font: Boolean(r.readable_font),
+    reduce_motion:
+      reduce === "system" || reduce === "on" || reduce === "off"
+        ? reduce
+        : "system",
     updated_at: iso(r.updated_at),
   };
 }
@@ -1078,6 +1093,10 @@ export async function getPersonPrefs(personId: string): Promise<PersonPrefs> {
     cruxy_x: null,
     cruxy_y: null,
     cruxy_device: null,
+    text_size: "md",
+    high_contrast: false,
+    readable_font: false,
+    reduce_motion: "system",
     updated_at: nowIso(),
   };
 }
@@ -1096,6 +1115,10 @@ export async function savePersonPrefs(
         cruxy_x: merged.cruxy_x,
         cruxy_y: merged.cruxy_y,
         cruxy_device: merged.cruxy_device,
+        text_size: merged.text_size,
+        high_contrast: merged.high_contrast,
+        readable_font: merged.readable_font,
+        reduce_motion: merged.reduce_motion,
         updated_at: merged.updated_at,
       },
       { onConflict: "person_id" },

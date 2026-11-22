@@ -278,6 +278,8 @@ export interface SampleStore {
     body: string;
     created_at: string;
   }[];
+  /** Wave 9 G: report a problem / suggest something. */
+  product_feedback?: import("@/lib/db/supabase/product-feedback-extra").ProductFeedback[];
 }
 
 function emptyCaseBrainFields(): Pick<
@@ -822,6 +824,7 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     personal_goals: raw.personal_goals ?? [],
     personal_goal_comments: raw.personal_goal_comments ?? [],
     kudos: raw.kudos ?? [],
+    product_feedback: raw.product_feedback ?? [],
   };
 }
 
