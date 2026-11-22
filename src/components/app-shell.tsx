@@ -38,6 +38,7 @@ const SIDE_NAV: { href: string; label: string; match?: string }[] = [
   { href: "/revision/roadmap", label: "My roadmap" },
   { href: "/case-brain", label: "Cases" },
   { href: "/practice", label: "Practice" },
+  { href: "/regional", label: "Competition Day" },
   { href: "/team/chat", label: "Team chat" },
 ];
 
@@ -54,7 +55,7 @@ const PHONE_TABS = [
   { href: "/today", label: "Today" },
   { href: "/case-brain", label: "Cases" },
   { href: "/practice", label: "Practice" },
-  { href: "/team", label: "Team" },
+  { href: "/regional", label: "Dec 5" },
 ];
 
 function navActive(pathname: string, href: string, match?: string) {
