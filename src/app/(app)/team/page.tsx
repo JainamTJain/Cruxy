@@ -291,15 +291,9 @@ export default function TeamBoardPage() {
           </Link>
           <Link
             href="/team/calendar"
-            className="inline-flex h-10 items-center rounded-xl border border-mist bg-white px-3 text-sm font-semibold text-ink"
+            className="inline-flex h-10 items-center px-2 text-sm text-muted underline-offset-2 hover:underline"
           >
-            Calendar
-          </Link>
-          <Link
-            href="/team/kudos"
-            className="inline-flex h-10 items-center rounded-xl border border-mist bg-white px-3 text-sm font-semibold text-ink"
-          >
-            Kudos
+            More team tools
           </Link>
           {data.teams.map((t) => (
             <button

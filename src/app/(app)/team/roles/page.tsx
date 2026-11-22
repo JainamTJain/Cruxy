@@ -177,12 +177,6 @@ export default function RolesBoardPage() {
           >
             Team board
           </Link>
-          <Link
-            href="/team/calendar"
-            className="inline-flex h-10 items-center rounded-xl border border-mist bg-white px-3 text-sm font-semibold text-ink"
-          >
-            Calendar
-          </Link>
         </div>
       </div>
 
@@ -190,10 +184,10 @@ export default function RolesBoardPage() {
 
       {/* Workload balance */}
       {(board.workload?.length ?? 0) > 0 ? (
-        <section className="rounded-[20px] bg-white p-4">
-          <h2 className="font-display m-0 text-lg font-extrabold">
+        <details className="rounded-[20px] bg-white p-4">
+          <summary className="cursor-pointer font-display text-base font-bold">
             Workload balance
-          </h2>
+          </summary>
           <p className="mt-1 text-sm text-muted">
             Roles and open tasks per person. When one person carries far more,
             we suggest a fair swap. No ranking against other teams.
@@ -224,7 +218,7 @@ export default function RolesBoardPage() {
               </li>
             ))}
           </ul>
-        </section>
+        </details>
       ) : null}
 
       {board.lock ? (
