@@ -3,6 +3,7 @@ import {
   Bricolage_Grotesque,
   IBM_Plex_Mono,
   Inter,
+  Lexend,
 } from "next/font/google";
 import "./globals.css";
 
@@ -24,6 +25,12 @@ const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
 });
 
+const lexend = Lexend({
+  variable: "--font-lexend",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: "Crux",
   description:
@@ -41,7 +48,7 @@ export const viewport: Viewport = {
   themeColor: "#9D2235",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  // Wave 9 I: allow pinch zoom for low vision (do not lock maximumScale).
 };
 
 export default function RootLayout({
@@ -50,9 +57,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-text-size="md" data-reduce-motion="system">
       <body
-        className={`${bricolage.variable} ${inter.variable} ${ibmPlexMono.variable} antialiased`}
+        className={`${bricolage.variable} ${inter.variable} ${ibmPlexMono.variable} ${lexend.variable} antialiased`}
       >
         {children}
       </body>

@@ -8,6 +8,15 @@ not just on one page. Each row below came from walking a journey as a specific p
 
 13 days to Dec 5. Everything that helps on competition day ships first in each row.
 
+## The principle (Jainam, Nov 21)
+
+With so few days left, people will prepare **alone and asynchronously**, not together. So every
+feature is judged by: does it help one person, working alone at odd hours, make real progress in
+the time they have? Group features (calendar, availability polls, kudos, workload) stay in the app
+but quiet: no nav items, no big cards, one small "More team tools" link from the Team page.
+Coordination happens through the work itself (Team Brief, async comments, handoff notes), not
+through meetings.
+
 ## Who we walked as
 
 | Person | What they need most |
@@ -28,12 +37,17 @@ not just on one page. Each row below came from walking a journey as a specific p
 | Getting in | Forgot passcode means "Ask Jainam"; no list of signed-in devices | K |
 | Getting in | No "what is Ethics Bowl in 90 seconds"; jargon on day one | G |
 | Staying informed | Mentions and assignments only reach the in-app bell; nothing reaches a closed phone | J |
-| Staying informed | No shared calendar of practices and deadlines; no way to say when you are free | E |
+| Staying informed | No shared calendar or availability poll (built, kept quiet: async matters more now) | E (done, tucked away) |
 | Doing the work | No search across cases, library, chat and cards | F |
 | Doing the work | Nothing works offline; UCSB wifi is unreliable | F |
 | Doing the work | No live round timer with APPE timings; no phone "in the room" card | C |
 | Getting better | No personal progress over time; no quick reflection after a round; no goals with Dr. B | D |
-| Getting better | No kudos or peer notes; workload is invisible, so the same people carry everything | E |
+| Getting better | Kudos and workload (built, kept quiet) | E (done, tucked away) |
+| Working alone | No single "my part" list: what I personally deliver on each case, done and left, minutes each | E |
+| Working alone | No "I have 15 minutes" picker that builds a session from my part | E |
+| Working alone | No solo mock round where Cruxy plays the other team, the moderator and the judges | E |
+| Working alone | No async review: record my part, teammates and Dr. B leave timed comments whenever | E |
+| Working alone | No handoff note when I stop, no "what changed on my case since I last looked" | E |
 | Competition day | No logistics hub: schedule, departure, carpool, dress, packing, rooms | C |
 | Competition day | Real rounds are not logged: drawn case, opponent, moderator question, judge comments, scores | C |
 | Competition day | Nerves: no short calm routine before a round | J |
@@ -47,9 +61,9 @@ not just on one page. Each row below came from walking a journey as a specific p
 
 | Agent | Row | Migration |
 | --- | --- | --- |
-| C | Competition day: logistics hub, round-day mode, APPE timers, real-round log, between-round debrief | 00055 |
+| C | Competition day: round-day card and APPE timer first; real-round log; short debrief; logistics as one plain page | 00055 |
 | D | Personal growth and privacy: my progress, round reflection, goals with Dr. B, privacy centre | 00056 |
-| E | Team coordination: calendar with .ics, availability poll, kudos, workload balance | 00057 |
+| E | Done (00057, kept quiet). Next: solo async prep: my part, minutes picker, solo mock round, async review, handoff notes | 00064 |
 | F | Search and offline: one search box, installable app with offline case packets, print packet | 00058 |
 | G | Help: Ethics Bowl in 90 seconds, glossary, help page, report a problem, what's new | 00059 |
 | H | After the regional: results, retrospective, season archive, next-year and Nationals handoff | 00060 |
@@ -63,3 +77,37 @@ Real data only; never invent records about real people. Gateway only for AI. Den
 service role server-side. Secrets only in Vercel env (name any new env var in the PR so Jainam can
 add it; features must degrade quietly without it). No em dashes or middle dots in copy. Follow
 docs/design/writing.md. New pieces in new files where another row owns the page.
+
+## C → H handoff: real-round log fields (for the retrospective)
+
+Row C writes competition-day round logs into `competition_logs` (migration `00055` adds columns).
+H should read these for the after-regional retrospective. Empty logistics fields mean
+"Dr. B will add this" and are never invented.
+
+| Field | Column | Meaning |
+| --- | --- | --- |
+| Competition | `competition_id` | Usually California Regional 2026-12-05 |
+| Team | `team_id` | Which USC team logged the round |
+| Round number | `round_number` | Prelims 1–3, then SF/F as numbered |
+| Side | `side` | `presenting` or `commenting` |
+| Case | `case_id`, `case_number` | Drawn case |
+| Opponent school | `opponent` | As reported by the team |
+| Moderator question | `moderator_question` | Also banked as `asked_at_round` / "Asked at UCSB" |
+| Judges' questions | `judges_questions` | Optional free text |
+| Judge comments | `judge_comments` | As reported |
+| Scores | `score_us`, `score_them` | As reported |
+| Result | `result` | `win` / `loss` / `tie` / `pending` |
+| Debrief worked | `debrief_worked` | One thing that worked (between-round) |
+| Debrief change | `debrief_change` | One thing to change (between-round) |
+| Round card link | `day_round_id` | Optional link to `competition_day_rounds` |
+| Who logged | `created_by`, `created_at` | Person and time |
+
+Related tables for the day itself (not the retrospective core, but useful):
+
+- `competition_day_logistics`: schedule, departure, meeting point, dress, venue, rooms, packing list
+- `competition_carpools` + `competition_carpool_riders`: who drives / rides
+- `competition_packing_ticks`: per-person packing checklist
+- `competition_day_rounds`: round-day card (drawn case, side, speakers, key points, room)
+
+Member hub: `/regional`. APPE timer phases (offline): presentation 10:00, conferral 1:00,
+commentary 5:00, response 3:00, judges' questions 10:00 (from `docs/domain/ethics-bowl.md` ranges).

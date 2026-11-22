@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { PriorReflectionBanner } from "@/components/practice/prior-reflection-banner";
 import { TextOnlyBanner } from "@/components/practice/text-only-banner";
 
 type Round = {
@@ -285,6 +286,7 @@ export function SessionClient() {
 
       <div className="flex min-w-0 flex-1 flex-col gap-5 px-1 sm:px-0">
         <TextOnlyBanner names={textOnlyNames} />
+        <PriorReflectionBanner compact />
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex flex-col gap-1.5">
             <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted">

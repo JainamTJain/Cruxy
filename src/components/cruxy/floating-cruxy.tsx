@@ -9,6 +9,7 @@ import {
   genieFigureWidth,
 } from "@/components/cruxy/mood/poses";
 import { useCruxyMood } from "@/components/cruxy/mood/use-cruxy-mood";
+import { usePrefersReducedMotion } from "@/components/motion/reduced-motion";
 import { CALL_QUESTION, HINT_FALLBACK } from "@/lib/cruxy/character";
 import { cn } from "@/lib/utils";
 
@@ -109,9 +110,7 @@ export function FloatingCruxy() {
   const [vw, setVw] = useState(1440);
   const [draft, setDraft] = useState("");
   const dragRef = useRef<{ ox: number; oy: number } | null>(null);
-  const reduced =
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reduced = usePrefersReducedMotion();
 
   useEffect(() => {
     const w = window.innerWidth;

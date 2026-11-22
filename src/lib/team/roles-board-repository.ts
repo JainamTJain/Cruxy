@@ -8,6 +8,7 @@ import { createNotification } from "@/lib/db/supabase/auth-extra";
 import { logActivity } from "@/lib/db/repository";
 import { readStore, updateStore } from "@/lib/db/sample-store";
 import {
+  listAssignments,
   listCaseRoles,
   setCaseRole,
 } from "@/lib/team/repository";
@@ -19,6 +20,7 @@ import {
 } from "@/lib/team/types";
 import {
   computeLoad,
+  computeWorkloadBalance,
   findGaps,
   plainRoleChange,
   planByPreference,
@@ -360,6 +362,28 @@ export async function getRolesBoard(input: {
     if (r.any_case_ok) anyCaseOk[r.person_id] = true;
   }
   const lock = await getLock(input.teamId);
+  const load = computeLoad(
+    roles,
+    input.teamId,
+    people.map((p) => p.id),
+  );
+  const openTasksByPerson: Record<string, number> = {};
+  for (const p of people) openTasksByPerson[p.id] = 0;
+  try {
+    const assignments = await listAssignments({ teamId: input.teamId });
+    for (const a of assignments) {
+      if (a.status && a.status !== "open") continue;
+      openTasksByPerson[a.person_id] =
+        (openTasksByPerson[a.person_id] ?? 0) + 1;
+    }
+  } catch {
+    // ignore
+  }
+  const workload = computeWorkloadBalance({
+    people,
+    load,
+    openTasksByPerson,
+  });
   return {
     teamId: input.teamId,
     teamName,
@@ -367,11 +391,7 @@ export async function getRolesBoard(input: {
     people,
     cases: boardCases,
     cells,
-    load: computeLoad(
-      roles,
-      input.teamId,
-      people.map((p) => p.id),
-    ),
+    load,
     gaps: findGaps({
       roles,
       teamId: input.teamId,
@@ -381,6 +401,7 @@ export async function getRolesBoard(input: {
     preferences,
     anyCaseOk,
     lock,
+    workload,
   };
 }
 

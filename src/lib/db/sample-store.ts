@@ -291,6 +291,20 @@ export interface SampleStore {
   }[];
   /** In-app reminders bag used by auth-extra createNotification. */
   notifications?: import("@/lib/types").AppNotification[];
+  /** Wave 9 D: round reflections and personal goals. */
+  round_reflections?: import("@/lib/learning/growth-types").RoundReflection[];
+  personal_goals?: import("@/lib/learning/growth-types").PersonalGoal[];
+  personal_goal_comments?: import("@/lib/learning/growth-types").PersonalGoalComment[];
+  /** Wave 9 E (soft-read when present): peer kudos. */
+  kudos?: {
+    id: string;
+    to_person_id: string;
+    from_person_id: string;
+    body: string;
+    created_at: string;
+  }[];
+  /** Wave 9 G: report a problem / suggest something. */
+  product_feedback?: import("@/lib/db/supabase/product-feedback-extra").ProductFeedback[];
 }
 
 function emptyCaseBrainFields(): Pick<
@@ -837,6 +851,11 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     auth_devices: raw.auth_devices ?? [],
     passcode_reset_requests: raw.passcode_reset_requests ?? [],
     notifications: raw.notifications ?? [],
+    round_reflections: raw.round_reflections ?? [],
+    personal_goals: raw.personal_goals ?? [],
+    personal_goal_comments: raw.personal_goal_comments ?? [],
+    kudos: raw.kudos ?? [],
+    product_feedback: raw.product_feedback ?? [],
   };
 }
 

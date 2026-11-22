@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AppeScoringCard } from "@/components/practice/appe-scoring-card";
 import { CalibratedJudgeSummary } from "@/components/practice/calibrated-judge-summary";
+import { RoundReflectionPrompt } from "@/components/practice/round-reflection-prompt";
 import { SpeakerConfirmPanel } from "@/components/practice/speaker-confirm";
 import { APPE_SCORE_ITEMS } from "@/lib/practice/types";
 
@@ -360,6 +361,7 @@ export default function RoundReportPage() {
 
   return (
     <main className="flex flex-col gap-[22px]">
+      <RoundReflectionPrompt roundId={params.id} />
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="flex max-w-[760px] flex-col gap-2">
           <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted">

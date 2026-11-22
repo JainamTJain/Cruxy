@@ -11,13 +11,15 @@ const STORAGE_KEY = "crux-first-visit-tour-v1";
 const STEPS = [
   {
     title: "Start on Today",
-    body: "Three things to do. Tap one and go.",
+    body: "Three things to do. New to Ethics Bowl? Read it in 90 seconds first.",
     href: "/today",
     cta: "Open Today",
+    secondaryHref: "/help/ethics-bowl",
+    secondaryCta: "90 seconds",
   },
   {
     title: "Open your case",
-    body: "Evidence and your team's brief live on the case page.",
+    body: "Evidence Library and Team Brief live on the case page.",
     href: "/case-brain",
     cta: "See cases",
   },
@@ -104,6 +106,15 @@ export function FirstVisitTour() {
             >
               {current.cta}
             </Link>
+            {"secondaryHref" in current && current.secondaryHref ? (
+              <Link
+                href={current.secondaryHref}
+                onClick={() => setStep((s) => Math.min(s + 1, STEPS.length - 1))}
+                className="inline-flex h-9 items-center rounded-lg border border-ink/15 px-3 text-xs font-semibold text-ink"
+              >
+                {current.secondaryCta}
+              </Link>
+            ) : null}
             <button
               type="button"
               className="h-9 rounded-lg px-3 text-xs font-semibold text-muted underline"
