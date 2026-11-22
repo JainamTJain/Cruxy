@@ -92,7 +92,7 @@ export default function SignInPage() {
         {/* Hero stays below the label at every width; Genie is clipped to its stack. */}
         <div className="relative z-10 flex min-h-0 flex-1 flex-col justify-center">
           <div className="flex flex-col items-start gap-5 min-[520px]:flex-row min-[520px]:items-end min-[520px]:gap-6">
-            <div className="relative h-[220px] w-[120px] shrink-0 overflow-hidden sm:h-[260px] sm:w-[140px]">
+            <div className="relative h-[220px] w-[120px] shrink-0 [clip-path:inset(-80px_-80px_0_-80px)] sm:h-[260px] sm:w-[140px]">
               <Image
                 src="/cruxy/cruxy-lamp.png"
                 alt=""
