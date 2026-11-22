@@ -1,11 +1,11 @@
 /**
- * Wave 8 wiring audit (workstream K).
+ * Wave 8 + Wave 9 wiring audit (workstream K).
  *
  * 1. Repository exports that touch the sample store must guard with isSampleDataMode().
  * 2. Every UI fetch/form to /api/... must match a real App Router route.
  * 3. Every API route must reach a repository / service (or an allowed exception).
- * 4. Critical write → surface contracts must stay wired (mention → notification,
- *    accept → Team Brief / Evidence Library, drill → roadmap, admin health 24h).
+ * 4. Critical write → surface contracts must stay wired (Wave 8 flywheel + Wave 9
+ *    C–K account, coach, regional, growth, calendar, search, help, access).
  *
  * Run: npm run check:supabase-wired
  */
@@ -176,6 +176,116 @@ const WRITE_SURFACE_CONTRACTS: WriteSurfaceContract[] = [
       "src/app/api/coach/nudge/route.ts",
     ],
     patterns: [/Gentle nudge|sendCoachNudge|Open Team Brief/],
+  },
+  {
+    id: "coach_printable_weekly_report",
+    description: "Printable weekly coach report page",
+    files: ["src/app/(app)/coach/[teamId]/report/page.tsx"],
+    patterns: [
+      /Printable weekly team report/,
+      /\/api\/coach\/teams\//,
+      /window\.print/,
+    ],
+  },
+  {
+    id: "wave9_c_competition_day",
+    description: "Competition day hub: logistics, real-round log, debrief",
+    files: [
+      "src/lib/regional/service.ts",
+      "src/app/api/regional/route.ts",
+      "src/components/regional/regional-client.tsx",
+    ],
+    patterns: [
+      /logRealRound|saveDebrief|getCompetitionDayHub|\/api\/regional/,
+    ],
+  },
+  {
+    id: "wave9_d_progress_privacy",
+    description: "Progress and privacy centre call their APIs",
+    files: [
+      "src/app/(app)/progress/page.tsx",
+      "src/app/(app)/settings/privacy/page.tsx",
+    ],
+    patterns: [
+      /\/api\/my-progress|\/api\/goals|\/api\/privacy\/inventory|\/api\/privacy\/export/,
+    ],
+  },
+  {
+    id: "wave9_d_growth_services",
+    description: "Growth services: progress, reflections, goals, export",
+    files: [
+      "src/lib/learning/progress.ts",
+      "src/lib/learning/reflections.ts",
+      "src/lib/learning/goals.ts",
+      "src/lib/ops/personal-export.ts",
+    ],
+    patterns: [
+      /getMyProgressView|upsertReflection|createGoal|buildPersonalDataExport/,
+    ],
+  },
+  {
+    id: "wave9_e_team_calendar_kudos",
+    description: "Team calendar and kudos APIs reach calendar-repository",
+    files: [
+      "src/lib/team/calendar-repository.ts",
+      "src/app/api/team/calendar/route.ts",
+      "src/app/api/team/kudos/route.ts",
+    ],
+    patterns: [/createTeamEvent|createKudos|peer_kudos|kind:\s*["']kudos["']/],
+  },
+  {
+    id: "wave9_f_search_offline",
+    description: "Global search and offline case pack API",
+    files: [
+      "src/lib/search/global.ts",
+      "src/app/api/search/route.ts",
+      "src/app/api/offline/pack/[caseId]/route.ts",
+      "src/components/search/command-palette.tsx",
+    ],
+    patterns: [
+      /searchGlobal|\/api\/search|Bundle everything a person needs offline|getCaseHome/,
+    ],
+  },
+  {
+    id: "wave9_g_help_feedback",
+    description: "Help report button posts product_feedback",
+    files: [
+      "src/lib/db/supabase/product-feedback-extra.ts",
+      "src/app/api/help/feedback/route.ts",
+      "src/components/help/report-problem-button.tsx",
+    ],
+    patterns: [
+      /createProductFeedback|product_feedback|\/api\/help\/feedback|Report a problem/,
+    ],
+  },
+  {
+    id: "wave9_i_access",
+    description: "Display prefs and explain-this-term via callCruxy",
+    files: [
+      "src/app/api/prefs/access/route.ts",
+      "src/app/api/access/explain/route.ts",
+      "src/components/access/display-settings.tsx",
+      "src/components/access/explain-term.tsx",
+    ],
+    patterns: [
+      /\/api\/prefs\/access|\/api\/access\/explain|callCruxy|access_explain_term|text_size|high_contrast|readable_font/,
+    ],
+  },
+  {
+    id: "wave9_sample_store_bags",
+    description:
+      "migrateStoreShape keeps Wave 9 sample bags (devices, reset, growth, calendar, feedback)",
+    files: ["src/lib/db/sample-store.ts"],
+    patterns: [
+      /auth_devices:\s*raw\.auth_devices/,
+      /passcode_reset_requests:\s*raw\.passcode_reset_requests/,
+      /round_reflections:\s*raw\.round_reflections/,
+      /personal_goals:\s*raw\.personal_goals/,
+      /peer_kudos:\s*raw\.peer_kudos/,
+      /team_events:\s*raw\.team_events/,
+      /calendar_feed_tokens:\s*raw\.calendar_feed_tokens/,
+      /product_feedback:\s*raw\.product_feedback/,
+    ],
   },
 ];
 
