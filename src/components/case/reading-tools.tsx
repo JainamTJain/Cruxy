@@ -300,6 +300,46 @@ type SurfaceProps = {
  * Selection surface: Highlighter-on auto-highlights; right click / long press
  * opens the quiet context menu. Popups never cover the highlight layer.
  */
+/** Select the word under a point, if the point is over text. */
+function selectWordAt(x: number, y: number): void {
+  try {
+    const doc = document as Document & {
+      caretRangeFromPoint?: (x: number, y: number) => Range | null;
+      caretPositionFromPoint?: (
+        x: number,
+        y: number,
+      ) => { offsetNode: Node; offset: number } | null;
+    };
+    let node: Node | null = null;
+    let offset = 0;
+    if (doc.caretRangeFromPoint) {
+      const r = doc.caretRangeFromPoint(x, y);
+      node = r?.startContainer ?? null;
+      offset = r?.startOffset ?? 0;
+    } else if (doc.caretPositionFromPoint) {
+      const p = doc.caretPositionFromPoint(x, y);
+      node = p?.offsetNode ?? null;
+      offset = p?.offset ?? 0;
+    }
+    if (!node || node.nodeType !== Node.TEXT_NODE) return;
+    const text = node.textContent ?? "";
+    const isWord = (ch: string) => /[\p{L}\p{N}'’-]/u.test(ch);
+    let start = Math.min(offset, text.length);
+    let end = start;
+    while (start > 0 && isWord(text[start - 1] ?? "")) start -= 1;
+    while (end < text.length && isWord(text[end] ?? "")) end += 1;
+    if (end - start < 2) return;
+    const range = document.createRange();
+    range.setStart(node, start);
+    range.setEnd(node, end);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  } catch {
+    // Leave the browser's own menu in place.
+  }
+}
+
 export function AnnotateSurface({
   children,
   resolvePassageId,
@@ -545,6 +585,9 @@ export function AnnotateSurface({
         void saveHighlight(sel.text, sel.passageId);
       }}
       onContextMenu={(e) => {
+        // Right click on a word with nothing selected: select that word, so
+        // "Explain this" works on a single term without dragging first.
+        if (!readSelection()) selectWordAt(e.clientX, e.clientY);
         const sel = readSelection();
         if (!sel) return;
         e.preventDefault();

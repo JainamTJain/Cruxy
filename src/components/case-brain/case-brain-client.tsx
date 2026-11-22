@@ -195,6 +195,18 @@ export function CaseBrainClient({
   const initialTab = searchParams.get("tab");
   const focusFileId = searchParams.get("file");
   const [tab, setTab] = useState<PrimaryTab>(() => resolveTabParam(initialTab));
+
+  // Keep the open tab in the address bar so a reload or shared link lands on it.
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("tab") === tab) return;
+      url.searchParams.set("tab", tab);
+      window.history.replaceState(window.history.state, "", url.toString());
+    } catch {
+      // ignore
+    }
+  }, [tab]);
   const [rolesOpen, setRolesOpen] = useState(false);
   const [compare, setCompare] = useState(false);
   const [caseHome, setCaseHome] = useState<CaseHomePayload | null>(null);
@@ -571,6 +583,7 @@ export function CaseBrainClient({
       ) : null}
 
       <nav
+        role="tablist"
         aria-label="Case sections"
         className="flex flex-wrap gap-1 border-b border-mist"
       >
@@ -585,6 +598,8 @@ export function CaseBrainClient({
           <button
             key={id}
             type="button"
+            role="tab"
+            aria-selected={tab === id}
             onClick={() => setTab(id)}
             className={cn(
               "inline-flex items-center gap-1.5 border-b-[3px] px-3.5 py-2.5 text-sm font-semibold",

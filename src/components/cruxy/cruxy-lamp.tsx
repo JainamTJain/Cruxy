@@ -58,7 +58,8 @@ function defaultLampPos(w: number, h: number): Pos {
 
 export function CruxyLamp() {
   const { awake, wake, sleep, lampMotion } = useCruxy();
-  const [pos, setPos] = useState<Pos>({ x: 24, y: 120 });
+  // Off-screen until placed on mount, so it never flashes over the sidebar.
+  const [pos, setPos] = useState<Pos>({ x: -9999, y: -9999 });
   const [dragging, setDragging] = useState(false);
   const posRef = useRef(pos);
   posRef.current = pos;
@@ -144,7 +145,8 @@ export function CruxyLamp() {
   return (
     <div
       className={cn(
-        "fixed z-30 touch-none select-none",
+        // Phones call Cruxy from the tab bar, so the lamp stays off the page.
+        "fixed z-30 touch-none select-none max-sm:hidden",
         dragging && "cursor-grabbing",
         // Instant tuck when Genie is out so a second figure never lingers.
         tucked && "pointer-events-none opacity-0 scale-50",

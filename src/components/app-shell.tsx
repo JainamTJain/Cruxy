@@ -91,7 +91,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const [teamLabel, setTeamLabel] = useState<string | null>(null);
   const [digestPrompt, setDigestPrompt] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const { wake, awake } = useCruxy();
+  const { wake, awake, sleep } = useCruxy();
 
   async function refresh() {
     const res = await fetch("/api/auth/me");
@@ -344,6 +344,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           </Link>
           <div className="flex items-center gap-2">
             <SearchOpenButton className="rounded-lg px-2 py-1 text-sm font-semibold text-white/85 hover:bg-white/10" />
+            <ReportProblemButton placement="header" />
             <button
               type="button"
               className="text-xs text-white/70 underline"
@@ -432,10 +433,11 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           <button
             type="button"
             onClick={() => {
-              if (!awake) wake();
+              if (awake) sleep();
+              else wake();
             }}
             className="flex flex-1 flex-col items-center gap-0.5 px-1 py-1 text-muted"
-            aria-label={awake ? "Cruxy is awake" : "Call Cruxy"}
+            aria-label={awake ? "Send Cruxy to rest" : "Call Cruxy"}
           >
             <Image
               src="/cruxy/cruxy-lamp.png"
