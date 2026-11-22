@@ -488,15 +488,20 @@ export async function getLastVisit(personId: string): Promise<string | null> {
   return store.last_visits[personId] ?? null;
 }
 
+const HIDDEN_ACTIVITY_ACTIONS = new Set(["arg_edge_recorded"]);
+
 export async function changesSince(
   sinceIso: string | null,
   limit = 20,
 ): Promise<ActivityLogEntry[]> {
   if (!isSampleDataMode()) return sbProgram.changesSince(sinceIso, limit);
   const log = await listActivityLog(200);
-  if (!sinceIso) return log.slice(0, limit);
+  const visible = log.filter((e) => !HIDDEN_ACTIVITY_ACTIONS.has(e.action));
+  if (!sinceIso) return visible.slice(0, limit);
   const since = new Date(sinceIso).getTime();
-  return log.filter((e) => new Date(e.at).getTime() > since).slice(0, limit);
+  return visible
+    .filter((e) => new Date(e.at).getTime() > since)
+    .slice(0, limit);
 }
 
 export async function featureUsageStats(): Promise<FeatureUsageStat[]> {

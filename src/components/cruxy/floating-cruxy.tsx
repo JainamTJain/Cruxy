@@ -1,43 +1,19 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useCruxy, type CruxyMood } from "@/components/cruxy/cruxy-context";
-import { HINT_FALLBACK } from "@/lib/cruxy/character";
+import { useCruxy } from "@/components/cruxy/cruxy-context";
+import { GeniePose } from "@/components/cruxy/mood/genie-pose";
+import { POSE_ASPECT, POSE_LABEL } from "@/components/cruxy/mood/poses";
+import { useCruxyMood } from "@/components/cruxy/mood/use-cruxy-mood";
+import { CALL_QUESTION, HINT_FALLBACK } from "@/lib/cruxy/character";
 import { cn } from "@/lib/utils";
-
-const MOOD_SRC: Record<CruxyMood, string> = {
-  curious: "/cruxy/cruxy-curious.png",
-  neutral: "/cruxy/cruxy-neutral.png",
-  winking: "/cruxy/cruxy-winking.png",
-  happy: "/cruxy/cruxy-happy.png",
-  excited: "/cruxy/cruxy-excited.png",
-  surprised: "/cruxy/cruxy-surprised.png",
-  sad: "/cruxy/cruxy-sad.png",
-  sleepy: "/cruxy/cruxy-sleepy.png",
-  angry: "/cruxy/cruxy-angry.png",
-};
-
-const MOOD_LABEL: Record<CruxyMood, string> = {
-  curious: "curious",
-  neutral: "listening",
-  winking: "hint",
-  happy: "pleased",
-  excited: "excited",
-  surprised: "surprised",
-  sad: "sad",
-  sleepy: "sleepy",
-  angry: "fierce",
-};
 
 const POS_KEY = "cruxy-float-pos";
 const FIGURE = 150;
 const FIGURE_PHONE = 96;
-const ASPECT = 2;
+const ASPECT = POSE_ASPECT;
 const TAB_BAR = 88;
-/** Lamp sits bottom-right; keep the figure clear so the lamp stays tappable. */
-const LAMP_CLEAR_X = 140;
-const LAMP_CLEAR_Y = 160;
+const DRAG_THRESHOLD = 6;
 
 function figureFor(w: number): number {
   return w < 640 ? FIGURE_PHONE : FIGURE;
@@ -56,7 +32,11 @@ function loadPos(): Pos | null {
 }
 
 function savePos(pos: Pos) {
-  localStorage.setItem(POS_KEY, JSON.stringify(pos));
+  try {
+    localStorage.setItem(POS_KEY, JSON.stringify(pos));
+  } catch {
+    // ignore
+  }
   void fetch("/api/prefs/cruxy", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -71,8 +51,8 @@ function savePos(pos: Pos) {
 function snapToEdge(x: number, y: number, w: number, h: number): Pos {
   const size = figureFor(w);
   const midX = w / 2;
-  const bottom = w < 640 ? TAB_BAR + LAMP_CLEAR_Y : LAMP_CLEAR_Y;
-  const nx = x < midX ? 12 : Math.max(12, w - size - LAMP_CLEAR_X);
+  const bottom = w < 640 ? TAB_BAR + 12 : 24;
+  const nx = x < midX ? 12 : Math.max(12, w - size - 12);
   return {
     x: nx,
     y: Math.min(Math.max(12, y), h - size * ASPECT - bottom),
@@ -84,18 +64,26 @@ function clampToViewport(p: Pos, w: number, h: number): Pos {
   const bottom = w < 640 ? TAB_BAR + 12 : 24;
   const maxY = h - size * ASPECT - bottom;
   const maxX = w - size - 8;
-  let x = Math.min(Math.max(8, p.x), maxX);
-  let y = Math.min(Math.max(8, p.y), maxY);
-  // If the figure sits over the lamp corner, nudge left (and up if needed)
-  const lampLeft = w - LAMP_CLEAR_X;
-  const lampTop = h - (w < 640 ? TAB_BAR : 0) - LAMP_CLEAR_Y;
-  if (x + size > lampLeft && y + size * ASPECT > lampTop) {
-    x = Math.max(8, lampLeft - size - 8);
-    if (x + size > lampLeft) {
-      y = Math.max(8, lampTop - size * ASPECT - 8);
-    }
-  }
-  return { x, y };
+  return {
+    x: Math.min(Math.max(8, p.x), maxX),
+    y: Math.min(Math.max(8, p.y), maxY),
+  };
+}
+
+/** Place the Genie so it rises out of the current lamp position. */
+function posFromLamp(w: number, h: number): Pos | null {
+  const lamp = document.getElementById("cruxy-lamp");
+  if (!lamp) return null;
+  const r = lamp.getBoundingClientRect();
+  const size = figureFor(w);
+  return clampToViewport(
+    {
+      x: r.left + r.width / 2 - size / 2,
+      y: r.top - size * ASPECT * 0.55,
+    },
+    w,
+    h,
+  );
 }
 
 export function FloatingCruxy() {
@@ -111,6 +99,8 @@ export function FloatingCruxy() {
     setBubble,
     emitCruxyEvent,
   } = useCruxy();
+  // Wave 7 G: subscribe mood bus (happy/sad/thinking etc.)
+  useCruxyMood();
   const [pos, setPos] = useState<Pos>({ x: 24, y: 120 });
   const [dragging, setDragging] = useState(false);
   const [moved, setMoved] = useState(false);
@@ -124,16 +114,9 @@ export function FloatingCruxy() {
   useEffect(() => {
     const w = window.innerWidth;
     const h = window.innerHeight;
+    const fromLamp = posFromLamp(w, h);
     const saved = loadPos();
-    const size = figureFor(w);
-    // Default: above and left of the lamp so the lamp stays open for taps.
-    const start = saved ?? {
-      x: Math.max(8, w - size - LAMP_CLEAR_X - 8),
-      y: Math.max(
-        8,
-        h - size * ASPECT - (w < 640 ? TAB_BAR + LAMP_CLEAR_Y : LAMP_CLEAR_Y),
-      ),
-    };
+    const start = fromLamp ?? saved ?? { x: 24, y: 120 };
     setPos(clampToViewport(start, w, h));
     const onResize = () => {
       setVw(window.innerWidth);
@@ -143,7 +126,11 @@ export function FloatingCruxy() {
       const detail = (e as CustomEvent<Pos>).detail;
       if (typeof detail?.x === "number" && typeof detail?.y === "number") {
         setPos(clampToViewport(detail, window.innerWidth, window.innerHeight));
-        localStorage.setItem(POS_KEY, JSON.stringify(detail));
+        try {
+          localStorage.setItem(POS_KEY, JSON.stringify(detail));
+        } catch {
+          // ignore
+        }
       }
     };
     onResize();
@@ -154,6 +141,16 @@ export function FloatingCruxy() {
       window.removeEventListener("cruxy-prefs-pos", onPrefsPos);
     };
   }, []);
+
+  // When Cruxy pops out, rise from wherever the lamp currently sits.
+  useEffect(() => {
+    if (floatMotion !== "enter") return;
+    const next = posFromLamp(window.innerWidth, window.innerHeight);
+    if (next) {
+      setPos(next);
+      savePos(next);
+    }
+  }, [floatMotion]);
 
   const onPointerDown = (e: React.PointerEvent) => {
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -168,7 +165,9 @@ export function FloatingCruxy() {
       x: e.clientX - dragRef.current.ox,
       y: e.clientY - dragRef.current.oy,
     };
-    if (Math.abs(next.x - pos.x) + Math.abs(next.y - pos.y) > 4) setMoved(true);
+    const dist =
+      Math.abs(next.x - pos.x) + Math.abs(next.y - pos.y);
+    if (dist > DRAG_THRESHOLD) setMoved(true);
     setPos(next);
   };
 
@@ -190,6 +189,8 @@ export function FloatingCruxy() {
     }
     if (window.innerWidth < 640) {
       next = snapToEdge(next.x, next.y, window.innerWidth, window.innerHeight);
+    } else {
+      next = clampToViewport(next, window.innerWidth, window.innerHeight);
     }
     setPos(next);
     savePos(next);
@@ -205,14 +206,14 @@ export function FloatingCruxy() {
       else if (e.key === "ArrowDown") next.y += step;
       else if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        setDrawerOpen(true);
+        setBubble(bubble ?? CALL_QUESTION);
         return;
       } else return;
       e.preventDefault();
       setPos(next);
       savePos(next);
     },
-    [pos, setDrawerOpen],
+    [pos, bubble, setBubble],
   );
 
   if ((!awake && floatMotion !== "exit") || hideFigure || recordingOrTimed) {
@@ -255,9 +256,37 @@ export function FloatingCruxy() {
           }
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
-            {MOOD_LABEL[mood]}
-          </p>
+          <div className="mb-2 flex items-start justify-between gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+              {POSE_LABEL[mood as keyof typeof POSE_LABEL] ?? mood}
+            </p>
+            <button
+              type="button"
+              aria-label="Expand Cruxy"
+              title="Open the full Cruxy panel"
+              className="shrink-0 rounded-md p-0.5 text-muted hover:bg-ink/5 hover:text-ink"
+              onClick={(e) => {
+                e.stopPropagation();
+                setDrawerOpen(true);
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                aria-hidden
+              >
+                <path
+                  d="M9 2h5v5M7 14H2V9M14 2 9.5 6.5M2 14l4.5-4.5"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
           <p className="text-[13px] leading-snug text-ink">{bubble}</p>
           <label className="mt-3 block">
             <span className="sr-only">Your answer</span>
@@ -272,10 +301,9 @@ export function FloatingCruxy() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && draft.trim()) {
                   e.preventDefault();
-                  setBubble(null);
-                  setDrawerOpen(true);
                   setDraft("");
                   emitCruxyEvent("feedback.answered_well");
+                  setBubble("Nice try. Tap Expand for a fuller chat with Cruxy.");
                 }
               }}
             />
@@ -314,18 +342,16 @@ export function FloatingCruxy() {
         )}
         style={{ width: size }}
         onClick={() => {
-          if (!dragging && !moved) setDrawerOpen(true);
+          if (!dragging && !moved) {
+            setBubble(bubble ? null : CALL_QUESTION);
+          }
         }}
         onKeyDown={onKeyDown}
       >
-        <Image
-          src={MOOD_SRC[mood]}
-          alt=""
+        <GeniePose
+          pose={mood}
           width={size}
-          height={size * ASPECT}
-          className="pointer-events-none block h-auto w-full drop-shadow-[0_12px_18px_rgba(17,19,24,0.22)]"
-          draggable={false}
-          unoptimized
+          imgClassName="drop-shadow-[0_12px_18px_rgba(17,19,24,0.22)]"
         />
       </button>
     </div>

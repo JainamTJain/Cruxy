@@ -30,6 +30,8 @@ export interface LibraryFile {
   card: string | null;
   text_content: string | null;
   scanned_pdf: boolean;
+  /** Why text could not be extracted; null when readable (Wave 7). */
+  unreadable_reason: string | null;
   status: LibraryFileStatus;
   /** Ideas extracted during digest (transcript → proposals). */
   extracted_ideas: string[];
@@ -44,6 +46,8 @@ export interface Passage {
   anchor: string;
   text: string;
   embedding: number[] | null;
+  /** True when the vector is a local stub (gateway refused / missing). */
+  embedding_stub?: boolean;
   ord: number;
   created_at: string;
   created_by: string | null;
@@ -87,6 +91,14 @@ export interface ResearchFinding {
   verified: boolean;
   needs_check: boolean;
   source_ids: string[];
+  /** Bibliographic fields (Wave 7). */
+  title?: string | null;
+  authors?: string[] | null;
+  year?: number | null;
+  doi?: string | null;
+  licence?: string | null;
+  open_access?: boolean | null;
+  citation?: string | null;
 }
 
 export interface ResearchRun {

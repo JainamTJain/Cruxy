@@ -11,6 +11,8 @@ import {
 import { VersionConfirm } from "@/components/case-brain/version-confirm";
 import { TeamDocImport } from "@/components/team-doc-import";
 import { FindingCard } from "@/components/cruxy/finding-card";
+import { emitMood } from "@/components/cruxy/mood/bus";
+import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
 import { coverageFromFindings } from "@/lib/cruxy/research-gaps";
 import type {
   CaseBrainSnapshot,
@@ -48,6 +50,8 @@ type ResearchPayload = {
     link: string;
     verified: boolean;
     needs_check: boolean;
+    citation?: string | null;
+    open_access?: boolean | null;
   }>;
 };
 
@@ -221,12 +225,16 @@ export function CaseBrainClient({
         editedText: editDrafts[proposalId] ?? null,
       }),
     });
+    if (verdict === "accept") {
+      emitMood({ type: "idea.accepted" });
+    }
   }
 
   if (!data) {
-    return (
-      <p className="text-sm text-muted">{error ?? "Loading case brain…"}</p>
-    );
+    if (error) {
+      return <p className="text-sm text-cardinal">{error}</p>;
+    }
+    return <LoadingGenie label="Loading case brain..." />;
   }
 
   const { brain, case: caseRow, teams, canEdit, meta, viewer } = data;
@@ -348,6 +356,19 @@ export function CaseBrainClient({
           {error}
         </p>
       ) : null}
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="m-0 text-sm text-muted">
+          Case roles for this team. Change one here, or set every case on the
+          roles board.
+        </p>
+        <Link
+          href="/team/roles"
+          className="text-sm font-semibold text-cardinal underline"
+        >
+          Roles board
+        </Link>
+      </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {ROLE_KEYS.map((role) => {
@@ -801,6 +822,8 @@ export function CaseBrainClient({
                         link={f.link}
                         verified={f.verified}
                         needsCheck={f.needs_check}
+                        citation={f.citation}
+                        openAccess={f.open_access}
                       />
                     ))
                   )}

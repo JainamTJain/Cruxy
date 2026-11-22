@@ -1,7 +1,6 @@
 import "server-only";
 import { randomUUID } from "crypto";
 import { isSampleDataMode } from "@/lib/db/config";
-import { logActivity } from "@/lib/db/repository";
 import { readStore, updateStore } from "@/lib/db/sample-store";
 import { assertOk, getServiceSupabase } from "@/lib/db/supabase/client";
 import {
@@ -89,6 +88,9 @@ function buildEdge(input: RecordEdgeInput): ArgEdge {
 /**
  * Idempotent write of one typed argument edge.
  * Same (from, to, type, source) updates weight and provenance; does not duplicate.
+ * Never writes activity_log (per-edge rows flooded "Since you were here").
+ * Callers that need a human-visible trail log one summary row themselves
+ * (e.g. graph_spine_backfill).
  */
 export async function recordEdge(input: RecordEdgeInput): Promise<ArgEdge> {
   const edge = buildEdge(input);
@@ -118,19 +120,6 @@ export async function recordEdge(input: RecordEdgeInput): Promise<ArgEdge> {
       }
       bag.arg_edges = list;
     });
-    if (!input.skipActivityLog) {
-      await logActivity({
-        person_id: input.created_by ?? null,
-        action: "arg_edge_recorded",
-        target: saved.id,
-        meta: {
-          type: saved.type,
-          from_kind: saved.from_kind,
-          to_kind: saved.to_kind,
-          edge_key: saved.edge_key,
-        },
-      });
-    }
     return saved;
   }
 
@@ -160,22 +149,7 @@ export async function recordEdge(input: RecordEdgeInput): Promise<ArgEdge> {
     .select("*")
     .single();
   assertOk(error, "recordEdge");
-  const saved = rowToEdge((data ?? edge) as Record<string, unknown>);
-
-  if (!input.skipActivityLog) {
-    await logActivity({
-      person_id: input.created_by ?? null,
-      action: "arg_edge_recorded",
-      target: saved.id,
-      meta: {
-        type: saved.type,
-        from_kind: saved.from_kind,
-        to_kind: saved.to_kind,
-        edge_key: saved.edge_key,
-      },
-    });
-  }
-  return saved;
+  return rowToEdge((data ?? edge) as Record<string, unknown>);
 }
 
 /** List edges touching a node (as from or to). */
@@ -247,11 +221,28 @@ export type GraphSpineStats = {
   claims_missing_embedding: number;
   supports_missing_embedding: number;
   counterclaims_missing_embedding: number;
+  passages_stub_embedding: number;
+  passages_total: number;
+  claims_total: number;
+  supports_total: number;
+  counterclaims_total: number;
+  /** Readers that soft-depend on arg_edges. */
+  readers: {
+    robustness: "arg_edges + synthesize";
+    mastery: "arg_edges claim nodes";
+    calibration: "judge cards (not edges); flywheel uses edges tile";
+  };
 };
 
 /** Admin / flywheel: edge totals and embedding gaps (real counts only). */
 export async function getGraphSpineStats(): Promise<GraphSpineStats> {
   const ready = await isGraphSpineReady();
+  const readers = {
+    robustness: "arg_edges + synthesize" as const,
+    mastery: "arg_edges claim nodes" as const,
+    calibration:
+      "judge cards (not edges); flywheel uses edges tile" as const,
+  };
 
   if (isSampleDataMode()) {
     const store = (await readStore()) as unknown as {
@@ -259,6 +250,7 @@ export async function getGraphSpineStats(): Promise<GraphSpineStats> {
       claims: unknown[];
       supports: unknown[];
       counterclaims: unknown[];
+      passages: unknown[];
     };
     const edges = store.arg_edges ?? [];
     const by_type: Record<string, number> = {};
@@ -269,10 +261,15 @@ export async function getGraphSpineStats(): Promise<GraphSpineStats> {
       ready,
       edge_count: edges.length,
       by_type,
-      // Sample store has no vectors; report row counts as still missing.
       claims_missing_embedding: store.claims.length,
       supports_missing_embedding: store.supports.length,
       counterclaims_missing_embedding: store.counterclaims.length,
+      passages_stub_embedding: 0,
+      passages_total: store.passages?.length ?? 0,
+      claims_total: store.claims.length,
+      supports_total: store.supports.length,
+      counterclaims_total: store.counterclaims.length,
+      readers,
     };
   }
 
@@ -289,20 +286,54 @@ export async function getGraphSpineStats(): Promise<GraphSpineStats> {
   }
 
   async function missingEmbed(table: string): Promise<number> {
-    const { count, error } = await sb
+    const nullRes = await sb
       .from(table)
       .select("*", { count: "exact", head: true })
       .is("embedding", null);
-    assertOk(error, `getGraphSpineStats.missing.${table}`);
+    assertOk(nullRes.error, `getGraphSpineStats.missing.${table}`);
+    const stubRes = await sb
+      .from(table)
+      .select("*", { count: "exact", head: true })
+      .eq("embedding_stub", true);
+    // Column may not exist until 00041 is applied.
+    const stubCount = stubRes.error ? 0 : (stubRes.count ?? 0);
+    return (nullRes.count ?? 0) + stubCount;
+  }
+
+  async function totalRows(table: string): Promise<number> {
+    const { count, error } = await sb
+      .from(table)
+      .select("*", { count: "exact", head: true });
+    assertOk(error, `getGraphSpineStats.total.${table}`);
     return count ?? 0;
   }
 
-  const [claims_missing_embedding, supports_missing_embedding, counterclaims_missing_embedding] =
-    await Promise.all([
-      missingEmbed("claims"),
-      missingEmbed("supports"),
-      missingEmbed("counterclaims"),
-    ]);
+  const [
+    claims_missing_embedding,
+    supports_missing_embedding,
+    counterclaims_missing_embedding,
+    claims_total,
+    supports_total,
+    counterclaims_total,
+    passages_total,
+  ] = await Promise.all([
+    missingEmbed("claims"),
+    missingEmbed("supports"),
+    missingEmbed("counterclaims"),
+    totalRows("claims"),
+    totalRows("supports"),
+    totalRows("counterclaims"),
+    totalRows("passages"),
+  ]);
+
+  let passages_stub_embedding = 0;
+  {
+    const stubRes = await sb
+      .from("passages")
+      .select("*", { count: "exact", head: true })
+      .eq("embedding_stub", true);
+    if (!stubRes.error) passages_stub_embedding = stubRes.count ?? 0;
+  }
 
   return {
     ready,
@@ -311,5 +342,11 @@ export async function getGraphSpineStats(): Promise<GraphSpineStats> {
     claims_missing_embedding,
     supports_missing_embedding,
     counterclaims_missing_embedding,
+    passages_stub_embedding,
+    passages_total,
+    claims_total,
+    supports_total,
+    counterclaims_total,
+    readers,
   };
 }

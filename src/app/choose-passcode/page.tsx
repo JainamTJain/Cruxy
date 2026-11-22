@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { CruxWordmark } from "@/components/crux-wordmark";
 import { Keypad } from "@/components/keypad";
 import { Button } from "@/components/ui/button";
 import { SAMPLE_MEMBER_STARTER } from "@/lib/constants";
@@ -78,9 +79,7 @@ export default function ChoosePasscodePage() {
           <p className="text-[13px] font-semibold tracking-[0.08em]">
             USC ETHICS BOWL
           </p>
-          <h1 className="font-display inline-block rounded-[18px] border-[3px] border-genie-bright px-3 py-1 text-[120px] font-extrabold leading-[0.82] tracking-[-0.05em]">
-            crux
-          </h1>
+          <CruxWordmark as="h1" className="inline-block pb-2 pr-3 text-[120px]" />
         </section>
         <section className="flex flex-1 flex-col justify-center bg-white px-10 py-12 sm:px-14">
           <h2 className="font-display text-3xl font-extrabold">Passcode saved</h2>
@@ -128,9 +127,10 @@ export default function ChoosePasscodePage() {
             </p>
           </div>
         </div>
-        <h1 className="font-display inline-block rounded-[18px] border-[3px] border-genie-bright px-3 py-1 text-[clamp(4.5rem,14vw,7.5rem)] font-extrabold leading-[0.82] tracking-[-0.05em]">
-          crux
-        </h1>
+        <CruxWordmark
+          as="h1"
+          className="inline-block pb-2 pr-3 text-[clamp(4.5rem,14vw,7.5rem)]"
+        />
       </section>
 
       <section className="flex flex-1 flex-col gap-5 bg-white px-8 py-10 sm:px-14 sm:py-12">

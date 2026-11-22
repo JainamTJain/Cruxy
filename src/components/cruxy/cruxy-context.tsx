@@ -181,7 +181,9 @@ export function CruxyProvider({ children }: { children: React.ReactNode }) {
       // ignore
     }
     emitCruxyEvent("call.wake");
-    setDrawerOpen(true);
+    // Short floating chat only. Side panel opens from Expand on that chat.
+    setDrawerOpen(false);
+    setBubble(CALL_QUESTION);
     if (motionTimer.current) window.clearTimeout(motionTimer.current);
     motionTimer.current = window.setTimeout(() => {
       setFloatMotion(null);

@@ -485,7 +485,7 @@ For each screen, every visible label, number, button and image in the reference 
 - [x] D-0458 Reports [src/components/app-shell.tsx]
 - [x] D-0459 Team chat [src/components/app-shell.tsx]
 - [x] D-0460 [image] /cruxy/cruxy-lamp.png
-- [x] D-0461 Ask Cruxy [src/components/app-shell.tsx]
+- [x] D-0461 Ask Cruxy removed from side nav (Wave 7: lamp + floating chat only) [src/components/app-shell.tsx]
 - [x] D-0462 J [src/components/app-shell.tsx]
 - [x] D-0463 Jainam [src/components/app-shell.tsx]
 - [x] D-0464 Team 3 · admin [src/components/app-shell.tsx]
@@ -622,7 +622,7 @@ For each screen, every visible label, number, button and image in the reference 
 - [x] D-0597 What [src/app/consent/page.tsx]
 - [x] D-0598 Audio of the room, turned into a transcript of who said what, and when. [src/app/consent/page.tsx]
 - [x] D-0599 Your voice [src/app/consent/page.tsx]
-- [x] D-0600 A 20 second sample so the transcript knows which lines are yours. [src/app/consent/page.tsx]
+- [x] D-0600 About 30 seconds of clear speech so the transcript knows which lines are yours. [src/app/consent/page.tsx, src/components/voice-enrollment.tsx]
 - [x] D-0601 Who sees it [src/app/consent/page.tsx]
 - [x] D-0602 All three teams, Dr. B and Jainam. Nobody else. [src/app/consent/page.tsx]
 - [x] D-0603 How long [src/app/consent/page.tsx]
@@ -929,7 +929,7 @@ For each screen, every visible label, number, button and image in the reference 
 - [x] D-0886 Reports [src/components/app-shell.tsx]
 - [x] D-0887 Team [src/components/app-shell.tsx]
 - [x] D-0888 [image] /cruxy/cruxy-lamp.png [src/components/app-shell.tsx]
-- [x] D-0889 Ask Cruxy [src/components/app-shell.tsx]
+- [x] D-0889 Ask Cruxy removed from side nav (Wave 7) [src/components/app-shell.tsx]
 - [x] D-0890 Team 3 · sample data [src/app/(app)/team/page.tsx] (shows Team 3; no "sample data" label per Wave 2 rules)
 - [x] D-0891 Who's on what [src/app/(app)/team/page.tsx]
 - [x] D-0892 Assign [src/app/(app)/team/page.tsx]

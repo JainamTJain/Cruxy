@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSwipeable } from "react-swipeable";
 import { useCruxy } from "@/components/cruxy/cruxy-context";
+import { emitMood } from "@/components/cruxy/mood/bus";
 import type { Flashcard } from "@/lib/revision/types";
 
 type DueItem = {
@@ -101,12 +102,13 @@ export default function FlashcardsPage() {
   function applyStreakMood(nextStreak: number, missed: boolean) {
     if (missed) {
       setSessionStreak(0);
-      setMood("sad");
-      setBubble("Missed that one. Try it again soon.");
+      emitMood({ type: "flashcard.miss" });
       return;
     }
     setSessionStreak(nextStreak);
+    emitMood({ type: "flashcard.correct" });
     if (nextStreak >= 8) {
+      emitMood({ type: "milestone", label: `${nextStreak} in a row. Keep going.` });
       emitCruxyEvent("personal_best");
       setBubble(`${nextStreak} in a row. Keep going.`);
     } else if (nextStreak >= 5) {
@@ -115,8 +117,6 @@ export default function FlashcardsPage() {
     } else if (nextStreak >= 3) {
       emitCruxyEvent("feedback.answered_well");
       setBubble(`${nextStreak} in a row.`);
-    } else {
-      setMood("happy");
     }
   }
 
@@ -127,7 +127,12 @@ export default function FlashcardsPage() {
     setFlipped(false);
     setSpoken(false);
     if (next.length === 0) {
-      setMood("excited");
+      emitMood({
+        type: "milestone",
+        label: meta.cramMode
+          ? "Cram target done for today."
+          : "Today's cards done.",
+      });
       setBubble(
         meta.cramMode
           ? "Cram target done for today. One more round if you want."
