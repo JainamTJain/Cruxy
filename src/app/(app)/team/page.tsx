@@ -283,6 +283,12 @@ export default function TeamBoardPage() {
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/team/roles"
+            className="inline-flex h-10 items-center rounded-xl border border-mist bg-white px-3 text-sm font-semibold text-ink"
+          >
+            Roles board
+          </Link>
           {data.teams.map((t) => (
             <button
               key={t.id}
@@ -442,7 +448,13 @@ export default function TeamBoardPage() {
                 id="board"
                 className="px-5 pb-2.5 pt-[18px] text-left font-display text-[22px] font-extrabold"
               >
-                Roles and versions, 12 cases
+                Roles and versions, 12 cases{" "}
+                <Link
+                  href="/team/roles"
+                  className="ml-2 text-sm font-semibold text-cardinal underline"
+                >
+                  Open full board
+                </Link>
               </caption>
               <thead>
                 <tr className="bg-[#F7F8FA] text-left text-[13px]">
