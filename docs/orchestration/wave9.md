@@ -48,6 +48,7 @@ through meetings.
 | Working alone | Solo mock round where Cruxy plays the other team, the moderator and the judges | E (done, `/prepare/mock`) |
 | Working alone | Async review: record my part, teammates and Dr. B leave timed comments whenever | E (done, `/prepare/review`) |
 | Working alone | Handoff note when I stop, "what changed on my case since I last looked" | E (done) |
+| Working together | Discussion lives on the annotation, suggestion and one-pager field; Discussion panel + Catch me up; Team chat always has Whole team | E (done, 00069) |
 | Competition day | Round-day card + APPE timer first; logistics = one plain Dr. B page (carpool list, not sign-up) | C |
 | Competition day | Real rounds logged: drawn case, opponent, moderator question, judge comments, scores, short debrief | C |
 | Competition day | Nerves: no short calm routine before a round | J |
@@ -63,7 +64,7 @@ through meetings.
 | --- | --- | --- |
 | C | Competition day: round-day card and APPE timer first; real-round log; short debrief; logistics as one plain page | 00055 + 00065 |
 | D | Personal growth and privacy: my progress, round reflection, goals with Dr. B, privacy centre | 00056 |
-| E | Done (00057 quiet). Done: solo async prep (my part, minutes picker, solo mock, async review, handoff) | 00064 |
+| E | Done (00057 quiet). Done: solo async prep (00064). Done: discussion in place on the case (threads, Discussion panel, Catch me up, Team chat general + case links) | 00064 + 00069 |
 | F | Search and offline: one search box, installable app with offline case packets, print packet | 00058 |
 | G | Help: Ethics Bowl in 90 seconds, glossary, help page, report a problem, what's new | 00059 |
 | H | After the regional: results, retrospective, season archive, next-year and Nationals handoff | 00060 |

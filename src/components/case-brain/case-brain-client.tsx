@@ -9,6 +9,7 @@ import { CaseReadings } from "@/components/case/case-readings";
 import { IdeasOverTime } from "@/components/case/ideas-over-time";
 import { TheCaseTab } from "@/components/case/the-case-tab";
 import { WorkingDocument } from "@/components/case/working-document";
+import { DiscussionPanel } from "@/components/discussion/discussion-panel";
 import { SaveShareMenu } from "@/components/case/save-share-menu";
 import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
 import type { CaseHomePayload } from "@/lib/case-home/types";
@@ -211,6 +212,8 @@ export function CaseBrainClient({
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab");
   const focusFileId = searchParams.get("file");
+  const discussionParam = searchParams.get("discussion");
+  const jumpParam = searchParams.get("jump");
   const resolved = resolveTabParam(initialTab);
   const [tab, setTab] = useState<PrimaryTab>(resolved.primary);
   const [moreSection, setMoreSection] = useState<MoreSection | null>(
@@ -218,10 +221,35 @@ export function CaseBrainClient({
   );
   const [rolesOpen, setRolesOpen] = useState(false);
   const [compare, setCompare] = useState(false);
+  const [discussionOpen, setDiscussionOpen] = useState(
+    discussionParam === "1" || discussionParam === "true",
+  );
   const [caseHome, setCaseHome] = useState<CaseHomePayload | null>(null);
   const [briefMode, setBriefMode] = useState<"own_doc" | "build_in_crux" | null>(
     null,
   );
+
+  useEffect(() => {
+    if (discussionParam === "1" || discussionParam === "true") {
+      setDiscussionOpen(true);
+    }
+  }, [discussionParam]);
+
+  useEffect(() => {
+    if (!jumpParam) return;
+    const t = window.setTimeout(() => {
+      const el = document.getElementById(jumpParam);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-cardinal");
+        window.setTimeout(
+          () => el.classList.remove("ring-2", "ring-cardinal"),
+          1600,
+        );
+      }
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [jumpParam, tab]);
 
   useEffect(() => {
     const next = resolveTabParam(initialTab);
@@ -607,6 +635,19 @@ export function CaseBrainClient({
           </button>
         ))}
       </nav>
+
+      {!compare ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="rounded-xl border border-mist bg-white px-3.5 py-2 text-sm font-semibold"
+            onClick={() => setDiscussionOpen((v) => !v)}
+            aria-pressed={discussionOpen}
+          >
+            {discussionOpen ? "Hide discussion" : "Discussion"}
+          </button>
+        </div>
+      ) : null}
 
       {compare ? (
         <ComparePanel caseId={caseId} teams={teams} />
@@ -1451,6 +1492,23 @@ export function CaseBrainClient({
               research={data.research ?? null}
             />
           </aside>
+
+          <DiscussionPanel
+            caseId={caseId}
+            teamId={teamId || brain.team_id}
+            open={discussionOpen}
+            onClose={() => setDiscussionOpen(false)}
+            onJump={(kind, _targetId, nextTab) => {
+              if (
+                nextTab === "reading" ||
+                nextTab === "working" ||
+                nextTab === "one_pager"
+              ) {
+                setTab(nextTab);
+              }
+              if (kind === "general") setDiscussionOpen(true);
+            }}
+          />
         </div>
       )}
 
