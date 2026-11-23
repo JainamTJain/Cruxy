@@ -112,16 +112,56 @@ function htmlToText(html: string): { text: string; title: string | null } {
     .split(/\n{2,}/)
     .map((p) => p.replace(/\n/g, " ").trim())
     .filter((p) => p && p !== "-" && !BOILERPLATE.test(p.replace(/^## /, "")));
-  // Drop the page title, byline and kicker lines that sit above the first real paragraph.
+  // Drop the page title, byline and author box that sit above the first real paragraph.
   const firstBody = paras.findIndex((p) => !p.startsWith("## ") && p.length >= 200);
   if (firstBody > 0) {
-    paras = paras.filter(
-      (p, i) =>
-        i >= firstBody ||
-        (p.startsWith("## ") && !(titleCore && p.slice(3).toLowerCase().startsWith(titleCore))) ||
-        p.length >= 120,
-    );
+    paras = paras.filter((p, i) => i >= firstBody || (!p.startsWith("## ") && p.length >= 120));
   }
+  void titleCore;
+  // Cut the tail: topic tags, related links and the author bio.
+  const tailAt = paras.findIndex(
+    (p, i) =>
+      i > paras.length * 0.6 &&
+      /^(## )?(topics?|tags?|filed under|related( articles| reading| posts)?|more (from|on) |about the authors?|recommended)\b:?/i.test(p),
+  );
+  if (tailAt > 0) paras = paras.slice(0, tailAt);
+  for (let i = paras.length - 1; i > paras.length * 0.6; i--) {
+    const p = paras[i]!;
+    const name = p.startsWith("## ") ? p.slice(3).trim() : null;
+    if (name && name.split(" ").length <= 4 && (paras[i + 1] ?? "").startsWith(`${name} is `)) {
+      paras = paras.slice(0, i);
+    }
+  }
+  // Sites often style section titles as bold paragraphs: a short title-like
+  // line followed by a real paragraph becomes a heading.
+  paras = paras.map((p, i) => {
+    if (p.startsWith("## ") || p.startsWith("- ")) return p;
+    const next = paras[i + 1] ?? "";
+    const words = p.split(" ");
+    const big = words.filter((w) => /^[A-Za-z]{4,}/.test(w));
+    const titleish = big.length > 0 && big.filter((w) => /^[A-Z]/.test(w)).length / big.length >= 0.6;
+    if (
+      p.length <= 90 &&
+      words.length >= 2 &&
+      /^[A-Z0-9"]/.test(p) &&
+      !/[.?!;,"\u201d)]$/.test(p) &&
+      titleish &&
+      next.length >= 150 &&
+      !next.startsWith("## ")
+    ) {
+      return `## ${p}`;
+    }
+    return p;
+  });
+  // One copy of each heading.
+  const seen = new Set<string>();
+  paras = paras.filter((p) => {
+    if (!p.startsWith("## ")) return true;
+    const k = p.toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
   text = paras.join("\n\n");
   return { text, title };
 }
