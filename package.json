@@ -10,6 +10,7 @@
     "check:track3": "tsx scripts/track3-checks.ts",
     "check:track4": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/track4-checks.ts",
     "check:track5": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/track5-checks.ts",
+    "check:practice-robustness": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/practice-robustness-checks.ts",
     "check:track6": "tsx scripts/track6-checks.ts",
     "dev": "next dev",
     "lint": "eslint",
