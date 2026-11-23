@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { draftWeeklyReview } from "@/lib/cruxy/weekly-review";
 
+export const runtime = "nodejs";
+export const maxDuration = 300;
+
 /** Vercel cron: draft Cruxy's weekly review for the technical admin. */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET?.trim();

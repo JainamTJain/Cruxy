@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["argon2", "onnxruntime-node"],
+  // Trim client bundles that pull large icon/util trees.
+  experimental: {
+    optimizePackageImports: ["lucide-react", "date-fns", "zod"],
+  },
   // Case prep (the truth source) is read from disk at runtime by the
   // working-document start and the critique engine.
   outputFileTracingIncludes: {
@@ -48,6 +52,38 @@ const nextConfig: NextConfig = {
             value: "max-age=63072000; includeSubDomains; preload",
           },
         ],
+      },
+      // Fingerprinted Next assets: cache hard. Safe for phone reconnects.
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/cruxy/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+      {
+        source: "/fonts/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/api/health",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
       },
     ];
   },

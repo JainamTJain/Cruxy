@@ -4,6 +4,9 @@ import { runNightlyResearch } from "@/lib/library/researcher";
 import { listResearchRuns } from "@/lib/db/library-repository";
 import { cleanResearchForReaders } from "@/lib/library/research-display";
 
+export const runtime = "nodejs";
+export const maxDuration = 300;
+
 export async function GET() {
   const auth = await requireSession();
   if ("error" in auth) return auth.error;

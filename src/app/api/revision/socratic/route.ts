@@ -9,6 +9,9 @@ import {
   startSocraticDrill,
 } from "@/lib/revision/repository";
 
+export const runtime = "nodejs";
+export const maxDuration = 180;
+
 export async function POST(req: Request) {
   const auth = await requirePerson();
   if ("error" in auth) return auth.error;

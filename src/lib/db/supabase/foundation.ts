@@ -242,13 +242,18 @@ export async function ensureAdminCodeFromEnv(
 }
 
 export async function listTeams(): Promise<Team[]> {
-  const sb = getServiceSupabase();
-  const { data, error } = await sb
-    .from("teams")
-    .select("id, name, colour, created_at")
-    .order("name");
-  assertOk(error, "listTeams");
-  return (data ?? []) as Team[];
+  const { cachedRead, READ_CACHE_KEYS } = await import(
+    "@/lib/db/supabase/read-cache"
+  );
+  return cachedRead(READ_CACHE_KEYS.teams, async () => {
+    const sb = getServiceSupabase();
+    const { data, error } = await sb
+      .from("teams")
+      .select("id, name, colour, created_at")
+      .order("name");
+    assertOk(error, "listTeams");
+    return (data ?? []) as Team[];
+  });
 }
 
 export async function listPeoplePublic(): Promise<{

@@ -12,6 +12,9 @@ import {
   teamMemberOptions,
 } from "@/lib/practice/drills-extra";
 
+export const runtime = "nodejs";
+export const maxDuration = 120;
+
 export async function GET() {
   const session = await getSession();
   if (!session) {

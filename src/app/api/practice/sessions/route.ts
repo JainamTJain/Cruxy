@@ -9,15 +9,20 @@ import { listTeams } from "@/lib/db/repository";
 import type { PracticeMode, SessionKind } from "@/lib/practice/types";
 import { appToday } from "@/lib/time/app-day";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 export async function GET() {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const admin = session.adminView && (session.role === "tech_admin" || session.role === "coach_admin");
-  const sessions = await listSessions({ admin, forPersonId: session.personId });
-  const cases = await listCases();
-  const teams = await listTeams();
+  const [sessions, cases, teams] = await Promise.all([
+    listSessions({ admin, forPersonId: session.personId }),
+    listCases(),
+    listTeams(),
+  ]);
   return NextResponse.json({
     sessions: sessions.map((s) => ({
       ...s,

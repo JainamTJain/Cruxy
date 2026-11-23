@@ -8,6 +8,7 @@ import {
 import { DriveAccessError } from "@/lib/library/drive";
 
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
 /** List recent team doc imports for the caller's team (or ?teamId=). */
 export async function GET(req: Request) {

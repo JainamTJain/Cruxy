@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sendDailyNotificationDigests } from "@/lib/notify/digest";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 /** Daily digest email for queued notification items. */
 export async function GET(req: Request) {

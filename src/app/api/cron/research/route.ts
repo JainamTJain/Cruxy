@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { runNightlyResearch } from "@/lib/library/researcher";
 
+export const runtime = "nodejs";
+export const maxDuration = 300;
+
 /** Vercel cron: nightly Researcher loop. */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET?.trim();

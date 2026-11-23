@@ -8,6 +8,7 @@ import {
 import { catchMeUp } from "@/lib/discussion/catch-up";
 
 export const runtime = "nodejs";
+export const maxDuration = 120;
 
 export async function POST(req: Request) {
   const session = await getSession();

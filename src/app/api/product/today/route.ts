@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
-import { getPersonById, listCases } from "@/lib/db/repository";
 import { GET as programMapGet } from "@/app/api/program-map/route";
 import { getLearningProfile } from "@/lib/learning/profile";
 import { formatTailoredLine, type FocusArea } from "@/lib/learning/types";
@@ -10,6 +9,8 @@ import {
 } from "@/lib/product/today";
 
 export const runtime = "nodejs";
+/** Today reuses program-map; keep headroom for that fan-out. */
+export const maxDuration = 60;
 
 function focusExtras(focus: FocusArea[], minutes: number | null) {
   const budget =
@@ -70,7 +71,11 @@ export async function GET() {
     return NextResponse.json({ error: "Sign in first" }, { status: 401 });
   }
 
-  const programRes = await programMapGet();
+  // Program map and the learning profile are independent.
+  const [programRes, profile] = await Promise.all([
+    programMapGet(),
+    getLearningProfile(session.personId),
+  ]);
   if (!programRes.ok) {
     return NextResponse.json(
       { error: "Could not load Today" },
@@ -93,7 +98,6 @@ export async function GET() {
     cases?: { id: string; number: number; title: string }[];
   };
 
-  const profile = await getLearningProfile(session.personId);
   const minutes = profile?.daily_minutes ?? null;
   const focus = profile?.focus_areas ?? [];
 
@@ -112,8 +116,8 @@ export async function GET() {
 
   const extras = focusExtras(focus, minutes);
   const actions = buildFocusActions(rawActions, extras);
-  const person = await getPersonById(session.personId);
-  const allCases = (await listCases()).filter((c) => c.active);
+  // Reuse cases already loaded by program-map; skip a second catalog round-trip.
+  const allCases = map.cases ?? [];
 
   const sessionCaseNum = map.todaySessions?.find((s) => s.caseNumber != null)
     ?.caseNumber;
@@ -129,7 +133,7 @@ export async function GET() {
     "/practice/drills/judges-qa";
 
   return NextResponse.json({
-    personName: person?.name ?? session.name,
+    personName: session.name,
     todayLabel: map.todayLabel ?? null,
     daysToCompetition: map.daysToCompetition ?? null,
     competition: map.competition ?? null,

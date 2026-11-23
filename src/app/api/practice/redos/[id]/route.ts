@@ -10,6 +10,9 @@ import {
 import { logActivity } from "@/lib/db/repository";
 import { updateSkillsAfterRedo } from "@/lib/practice/feedback";
 
+export const runtime = "nodejs";
+export const maxDuration = 120;
+
 export async function POST(
   req: Request,
   ctx: { params: Promise<{ id: string }> },

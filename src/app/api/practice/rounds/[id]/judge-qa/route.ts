@@ -5,6 +5,9 @@ import { getRoundById } from "@/lib/db/practice-repository";
 import { ensureCruxyJudgeQa } from "@/lib/practice/judge-qa";
 import { listCruxyJudgeQa } from "@/lib/db/supabase/judge-card-extra";
 
+export const runtime = "nodejs";
+export const maxDuration = 180;
+
 type Params = { params: Promise<{ id: string }> };
 
 /** F-251: Cruxy judge Q&A seats (question + follow-up). */

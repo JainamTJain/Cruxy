@@ -38,23 +38,33 @@ async function countRows(
 }
 
 export async function listCompetitions(): Promise<Competition[]> {
-  const { data, error } = await getServiceSupabase()
-    .from("competitions")
-    .select("id, name, date, place, timings, created_at")
-    .order("date", { ascending: true });
-  assertOk(error, "listCompetitions");
-  return (data ?? []) as Competition[];
+  const { cachedRead, READ_CACHE_KEYS } = await import(
+    "@/lib/db/supabase/read-cache"
+  );
+  return cachedRead(READ_CACHE_KEYS.competitions, async () => {
+    const { data, error } = await getServiceSupabase()
+      .from("competitions")
+      .select("id, name, date, place, timings, created_at")
+      .order("date", { ascending: true });
+    assertOk(error, "listCompetitions");
+    return (data ?? []) as Competition[];
+  });
 }
 
 export async function listCases(): Promise<CaseRow[]> {
-  const { data, error } = await getServiceSupabase()
-    .from("cases")
-    .select(
-      "id, number, title, case_set_page, crux, trap, closing_question, active, created_at",
-    )
-    .order("number", { ascending: true });
-  assertOk(error, "listCases");
-  return (data ?? []) as CaseRow[];
+  const { cachedRead, READ_CACHE_KEYS } = await import(
+    "@/lib/db/supabase/read-cache"
+  );
+  return cachedRead(READ_CACHE_KEYS.cases, async () => {
+    const { data, error } = await getServiceSupabase()
+      .from("cases")
+      .select(
+        "id, number, title, case_set_page, crux, trap, closing_question, active, created_at",
+      )
+      .order("number", { ascending: true });
+    assertOk(error, "listCases");
+    return (data ?? []) as CaseRow[];
+  });
 }
 
 /** Live counts from the real tables; pipeline-maintained counters come from program_totals. */

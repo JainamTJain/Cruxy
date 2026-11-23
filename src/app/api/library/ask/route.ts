@@ -3,6 +3,9 @@ import { requireSession } from "@/lib/auth/require-session";
 import { callCruxy } from "@/lib/cruxy/callCruxy";
 import { getPassage, getLibraryFile } from "@/lib/db/library-repository";
 
+export const runtime = "nodejs";
+export const maxDuration = 120;
+
 const ACTIONS = ["explain", "counterexample", "cited_elsewhere"] as const;
 
 export async function POST(req: Request) {

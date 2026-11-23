@@ -5,6 +5,7 @@ import {
 } from "@/lib/notify/reach-jobs";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 /** Session-soon (≈15 min) and Dec 5 reminder windows. */
 export async function GET(req: Request) {

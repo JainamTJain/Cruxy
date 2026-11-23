@@ -326,23 +326,11 @@ function mapBank(r: Row): BankEntry {
 // ---------- cases / sessions ----------
 
 export async function listCases(): Promise<CaseRow[]> {
-  const sb = getServiceSupabase();
-  const rows =
-    must(
-      await sb.from("cases").select("*").order("number", { ascending: true }),
-      "listCases",
-    ) ?? [];
-  return rows.map((r: Row) => ({
-    id: r.id,
-    number: r.number,
-    title: r.title,
-    case_set_page: r.case_set_page ?? null,
-    crux: r.crux ?? null,
-    trap: r.trap ?? null,
-    closing_question: r.closing_question ?? null,
-    active: Boolean(r.active),
-    created_at: iso(r.created_at),
-  }));
+  // Same catalog as program map: reuse the short TTL cache.
+  const { listCases: listProgramCases } = await import(
+    "@/lib/db/supabase/program"
+  );
+  return listProgramCases();
 }
 
 async function roundsForSessions(sessionIds: string[]): Promise<PracticeRound[]> {
@@ -376,13 +364,19 @@ export async function listSessions(opts?: {
       "listSessions",
     ) ?? [];
   const rounds = await roundsForSessions(sessionRows.map((s: Row) => s.id));
+  const roundsBySession = new Map<string, PracticeRound[]>();
+  for (const r of rounds) {
+    const list = roundsBySession.get(r.session_id) ?? [];
+    list.push(r);
+    roundsBySession.set(r.session_id, list);
+  }
   return sessionRows.map((row: Row) => {
     const s = mapSession(row);
     return {
       ...s,
       code: opts?.admin ? null : undefined,
       code_hash: opts?.admin ? s.code_hash : null,
-      rounds: rounds.filter((r) => r.session_id === s.id),
+      rounds: roundsBySession.get(s.id) ?? [],
     };
   });
 }

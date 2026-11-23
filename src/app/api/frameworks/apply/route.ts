@@ -4,6 +4,7 @@ import { getFrameworkById, lookupFramework } from "@/lib/frameworks/catalog";
 import { getOrCreateFrameworkApply } from "@/lib/frameworks/apply";
 
 export const runtime = "nodejs";
+export const maxDuration = 120;
 
 /**
  * Static term card + optional cached, cited "how it applies to this case".

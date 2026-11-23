@@ -6,6 +6,9 @@ import {
   listClaimTextsForDrill,
 } from "@/lib/practice/drills-extra";
 
+export const runtime = "nodejs";
+export const maxDuration = 120;
+
 export async function POST(req: Request) {
   const session = await getSession();
   if (!session) {

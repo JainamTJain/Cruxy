@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import { askTeamAssistant } from "@/lib/team/assistant";
 
 export const runtime = "nodejs";
+export const maxDuration = 180;
 
 export async function POST(req: Request) {
   const session = await getSession();

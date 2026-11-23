@@ -186,32 +186,41 @@ export async function getCaseBrain(
   caseId: string,
 ): Promise<CaseBrainSnapshot> {
   const db = getServiceSupabase();
-  const nodes = await loadClaimNodes(teamId, caseId);
 
-  const [truthRes, proposalsRes, rolesRes, opposingRes, historyRes, principlesRes, ctfRes] =
-    await Promise.all([
-      db.from("truth_items").select("*").eq("team_id", teamId).eq("case_id", caseId),
-      db
-        .from("proposals")
-        .select("*")
-        .eq("team_id", teamId)
-        .eq("case_id", caseId)
-        .order("created_at", { ascending: false }),
-      db.from("case_roles").select("*").eq("team_id", teamId).eq("case_id", caseId),
-      db.from("opposing_positions").select("*").eq("case_id", caseId),
-      db
-        .from("item_history")
-        .select("*")
-        .eq("case_id", caseId)
-        .or(`team_id.eq.${teamId},team_id.is.null`)
-        .order("at", { ascending: false }),
-      db.from("team_principles").select("*").eq("team_id", teamId),
-      db
-        .from("change_the_facts")
-        .select("*")
-        .eq("team_id", teamId)
-        .eq("case_id", caseId),
-    ]);
+  // Claim nodes and the case snapshot tables are independent: load together.
+  const [
+    nodes,
+    truthRes,
+    proposalsRes,
+    rolesRes,
+    opposingRes,
+    historyRes,
+    principlesRes,
+    ctfRes,
+  ] = await Promise.all([
+    loadClaimNodes(teamId, caseId),
+    db.from("truth_items").select("*").eq("team_id", teamId).eq("case_id", caseId),
+    db
+      .from("proposals")
+      .select("*")
+      .eq("team_id", teamId)
+      .eq("case_id", caseId)
+      .order("created_at", { ascending: false }),
+    db.from("case_roles").select("*").eq("team_id", teamId).eq("case_id", caseId),
+    db.from("opposing_positions").select("*").eq("case_id", caseId),
+    db
+      .from("item_history")
+      .select("*")
+      .eq("case_id", caseId)
+      .or(`team_id.eq.${teamId},team_id.is.null`)
+      .order("at", { ascending: false }),
+    db.from("team_principles").select("*").eq("team_id", teamId),
+    db
+      .from("change_the_facts")
+      .select("*")
+      .eq("team_id", teamId)
+      .eq("case_id", caseId),
+  ]);
 
   const truth_items = (unwrap(truthRes) as Row[]).map(toTruth);
   const proposals = (unwrap(proposalsRes) as Row[]).map(toProposal);
@@ -222,56 +231,89 @@ export async function getCaseBrain(
 
   const decisions_by_proposal: Record<string, Decision[]> = {};
   for (const p of proposals) decisions_by_proposal[p.id] = [];
-  if (proposalIds.length > 0) {
-    const decisions = unwrap(
-      await db
-        .from("decisions")
-        .select("*")
-        .in("proposal_id", proposalIds)
-        .order("created_at", { ascending: true }),
-    ) as Decision[];
-    for (const d of decisions) decisions_by_proposal[d.proposal_id]?.push(d);
-  }
 
   const peer_decisions_by_idea: CaseBrainSnapshot["peer_decisions_by_idea"] = {};
   for (const key of ideaKeys) peer_decisions_by_idea[key] = [];
-  if (ideaKeys.length > 0) {
-    const peers = (
-      unwrap(
-        await db
+
+  // Own decisions, peer proposals, claim scores and peer scores are independent
+  // once proposals and nodes are known.
+  const decisionsPromise =
+    proposalIds.length > 0
+      ? db
+          .from("decisions")
+          .select("*")
+          .in("proposal_id", proposalIds)
+          .order("created_at", { ascending: true })
+      : Promise.resolve({ data: [] as Row[], error: null });
+
+  const peersPromise =
+    ideaKeys.length > 0
+      ? db
           .from("proposals")
           .select("id, team_id, idea_key, text")
           .in("idea_key", ideaKeys)
-          .neq("team_id", teamId),
-      ) as Array<{ id: string; team_id: string; idea_key: string; text: string }>
+          .neq("team_id", teamId)
+      : Promise.resolve({ data: [] as Row[], error: null });
+
+  const scoredPromise = scoreClaimsForTeamCase({
+    teamId,
+    caseId,
+    nodes,
+  });
+
+  const peerScoresPromise = Promise.all([
+    listClaimRobustnessScoresForCase(caseId),
+    listTeams(),
+  ]).catch(() => null);
+
+  const [decisionsRaw, peersRaw, scored, peerScoresBundle] = await Promise.all([
+    decisionsPromise,
+    peersPromise,
+    scoredPromise,
+    peerScoresPromise,
+  ]);
+
+  for (const d of unwrap(decisionsRaw) as Decision[]) {
+    decisions_by_proposal[d.proposal_id]?.push(d);
+  }
+
+  const peers = unwrap(peersRaw) as Array<{
+    id: string;
+    team_id: string;
+    idea_key: string;
+    text: string;
+  }>;
+  if (peers.length > 0) {
+    const [peerDecisions, teams] = await Promise.all([
+      db
+        .from("decisions")
+        .select("*")
+        .in(
+          "proposal_id",
+          peers.map((p) => p.id),
+        ),
+      db.from("teams").select("id, name"),
+    ]);
+    const teamNames = new Map(
+      (unwrap(teams) as Array<{ id: string; name: string }>).map((t) => [
+        t.id,
+        t.name,
+      ]),
     );
-    if (peers.length > 0) {
-      const [peerDecisions, teams] = await Promise.all([
-        db
-          .from("decisions")
-          .select("*")
-          .in(
-            "proposal_id",
-            peers.map((p) => p.id),
-          ),
-        db.from("teams").select("id, name"),
-      ]);
-      const teamNames = new Map(
-        (unwrap(teams) as Array<{ id: string; name: string }>).map((t) => [
-          t.id,
-          t.name,
-        ]),
-      );
-      const peerById = new Map(peers.map((p) => [p.id, p]));
-      for (const peer of peers) {
-        for (const d of unwrap(peerDecisions) as Decision[]) {
-          if (d.proposal_id !== peer.id) continue;
-          peer_decisions_by_idea[peerById.get(peer.id)!.idea_key].push({
-            ...d,
-            team_name: teamNames.get(peer.team_id) ?? "Team",
-            proposal_text: peer.text,
-          });
-        }
+    const peerById = new Map(peers.map((p) => [p.id, p]));
+    const byProposal = new Map<string, Decision[]>();
+    for (const d of unwrap(peerDecisions) as Decision[]) {
+      const list = byProposal.get(d.proposal_id) ?? [];
+      list.push(d);
+      byProposal.set(d.proposal_id, list);
+    }
+    for (const peer of peers) {
+      for (const d of byProposal.get(peer.id) ?? []) {
+        peer_decisions_by_idea[peerById.get(peer.id)!.idea_key].push({
+          ...d,
+          team_name: teamNames.get(peer.team_id) ?? "Team",
+          proposal_text: peer.text,
+        });
       }
     }
   }
@@ -280,16 +322,11 @@ export async function getCaseBrain(
     (f) => f.case_id_a === caseId || f.case_id_b === caseId,
   );
 
-  const scored = await scoreClaimsForTeamCase({
-    teamId,
-    caseId,
-    nodes,
-  });
   const claim_scores = scoresByClaimId(scored);
   const peer_claim_scores: CaseBrainSnapshot["peer_claim_scores"] = {};
-  try {
-    const allScores = await listClaimRobustnessScoresForCase(caseId);
-    const teams = await listTeams();
+  if (peerScoresBundle) {
+    const [allScores, teams] = peerScoresBundle;
+    const nameById = new Map(teams.map((t) => [t.id, t.name]));
     const byTeam = new Map<string, typeof allScores>();
     for (const row of allScores) {
       if (row.team_id === teamId) continue;
@@ -299,12 +336,10 @@ export async function getCaseBrain(
     }
     for (const [tid, scores] of byTeam) {
       peer_claim_scores[tid] = {
-        team_name: teams.find((t) => t.id === tid)?.name ?? "Team",
+        team_name: nameById.get(tid) ?? "Team",
         scores,
       };
     }
-  } catch {
-    // 00029 may not be applied yet.
   }
 
   return {
