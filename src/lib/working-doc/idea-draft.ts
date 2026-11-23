@@ -107,6 +107,16 @@ export async function draftIdea(opts: {
   personId: string;
   name: string;
   idea: string;
+  /**
+   * The idea is a note left while reading: a starting point in thinking, not a
+   * finished point. Cruxy develops the thought before drafting.
+   */
+  fromNote?: {
+    readingTitle: string;
+    passage: string | null;
+    note: string;
+    thought: string;
+  } | null;
 }): Promise<IdeaDraft | null> {
   const [sections, truth] = await Promise.all([
     listWorkingSections(opts.briefId),
@@ -175,6 +185,16 @@ export async function draftIdea(opts: {
       sharedSystemPrefix(),
       "",
       `Task: ${opts.name} on this team has an idea for their Ethics Bowl working document. Do the work a good teammate would before bringing it to the team:`,
+      ...(opts.fromNote
+        ? [
+            `This idea is a note ${opts.name} left while reading "${opts.fromNote.readingTitle}". Notes are starting points in thinking: often a half formed reaction, a question, a hunch or one word next to a passage. Do not draft the note as written. First develop the thought it is reaching for (read here as: ${opts.fromNote.thought}):`,
+            "   a. name the value, principle, right, duty or stakeholder interest at stake;",
+            "   b. tie it to specific facts of this case, not to the reading in general;",
+            "   c. say exactly what it does for the argument: the claim it supports, the objection it raises or answers, the distinction it draws, or the judge question it prepares for;",
+            `   d. use the passage as evidence and name the reading ("${opts.fromNote.readingTitle}") as the source, quoting only words that appear in the passage;`,
+            "   e. keep the note writer's angle: finish their thought, do not swap it for a different point.",
+          ]
+        : []),
       "0. Read what kind of idea it is. Ideas come in any shape: a claim, a rough note, an analogy or example, a thought experiment, a thinker or paper, a fact or statistic, a case or news story, an objection, a question, a link, or an instruction like 'search on X' or 'look into Y'. Work out what the person is pointing at and what job it could do in this argument (support with backing, analogy, reply to an objection, a stakeholder, a judge question, a sharper claim). If it names something to look up, look it up first and confirm the facts before using them.",
       "1. Research it widely, not just in the team's own material. Use:",
       "   a. the truth source, library passages, and the team's own readings and reading notes below (use these first when they bear on the idea);",
@@ -192,6 +212,12 @@ export async function draftIdea(opts: {
     user: [
       `Case ${truth.caseNumber ?? ""}: ${truth.caseTitle ?? ""}`,
       `Idea from ${opts.name}: ${opts.idea}`,
+      ...(opts.fromNote
+        ? [
+            `Their note: ${opts.fromNote.note}`,
+            opts.fromNote.passage ? `The passage they were reading, from "${opts.fromNote.readingTitle}":\n${opts.fromNote.passage}` : "",
+          ]
+        : []),
       "",
       "Working document:",
       doc,

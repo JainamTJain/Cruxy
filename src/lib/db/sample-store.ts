@@ -368,6 +368,7 @@ export interface SampleStore {
     id: string;
   })[];
   reading_annotations?: import("@/lib/reading/reading-room").ReadingAnnotation[];
+  reading_note_suggestions?: import("@/lib/reading/note-to-suggestion").NoteSuggestionRow[];
   /** Cached text for web open-readings opened in the reading room. */
   case_open_reading_passages?: {
     open_reading_id: string;
@@ -949,6 +950,7 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     case_reading_digests: raw.case_reading_digests ?? [],
     case_reading_passages: raw.case_reading_passages ?? [],
     reading_annotations: raw.reading_annotations ?? [],
+    reading_note_suggestions: raw.reading_note_suggestions ?? [],
     case_open_reading_passages: raw.case_open_reading_passages ?? [],
     case_open_reading_digests: raw.case_open_reading_digests ?? [],
   };

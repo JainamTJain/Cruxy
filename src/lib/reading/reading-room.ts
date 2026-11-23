@@ -22,7 +22,7 @@ import { listOpenReadings } from "@/lib/reading/open-reading";
 import { randomUUID } from "crypto";
 import { nowIso } from "@/lib/utils";
 
-export type ReadingKind = "web" | "import";
+export type ReadingKind = "web" | "import" | "case";
 
 export type ReadingAnnotation = {
   id: string;
@@ -58,6 +58,8 @@ type OpenReadingTextRow = {
   url: string;
   title: string;
   text_status?: "none" | "done" | "failed";
+  /** An existing digest is kept when the text is extracted again. */
+  digest?: ReadingDigest | null;
 };
 
 /** Fetch, split and digest a web reading the first time someone opens it. */
@@ -70,12 +72,14 @@ export async function ensureWebText(
     const text = got.text.replace(/[·—–]/g, ",").slice(0, 400_000);
     if (text.length < 200) throw new Error("This page has too little readable text here. Open the original.");
     const parts = splitPassages(text).map((p, i) => ({ ord: i, anchor: p.anchor, text: p.text }));
-    const digest = await digestText({
-      caseId: row.case_id,
-      title: row.title,
-      text,
-      personId,
-    }).catch(() => null);
+    const digest =
+      row.digest ??
+      (await digestText({
+        caseId: row.case_id,
+        title: row.title,
+        text,
+        personId,
+      }).catch(() => null));
     if (isSampleDataMode()) {
       await updateStore((store) => {
         const passages =
@@ -268,6 +272,30 @@ export async function loadReading(opts: {
     };
   }
 
+  // The case text itself: every team reads it; notes stay with each team.
+  if (opts.kind === "case") {
+    if (opts.id !== opts.caseId) return null;
+    const { listCases } = await import("@/lib/db/repository");
+    const caseRow = (await listCases()).find((c) => c.id === opts.caseId);
+    if (!caseRow) return null;
+    const { getCaseHome } = await import("@/lib/case-home/service");
+    const home = await getCaseHome({ caseId: opts.caseId, teamId: opts.teamId, caseRow, viewerTeamId: opts.teamId });
+    const passages = home.paragraphs.map((p, i) => ({ ord: i, anchor: p.anchor, text: p.text }));
+    return {
+      kind: "case",
+      id: opts.caseId,
+      caseId: opts.caseId,
+      title: `Case ${caseRow.number}: ${caseRow.title}`,
+      sourceUrl: null,
+      byline: "The case, as published in the case set",
+      why: caseRow.crux ? `The crux: ${caseRow.crux}` : null,
+      passages,
+      digest: null,
+      textStatus: passages.length ? "done" : "failed",
+      textError: passages.length ? null : "The case text is not loaded yet.",
+    };
+  }
+
   // A team's own import: only that team can open it.
   const digests = await listReadingDigests({ teamId: opts.teamId, caseId: opts.caseId });
   const d = digests.find((x) => x.import_id === opts.id);
@@ -376,7 +404,9 @@ export async function readingNotesForCruxy(opts: {
     listOpenReadings(opts.caseId).catch(() => []),
   ]);
   const titleOf = (a: ReadingAnnotation) =>
-    a.reading_kind === "web"
+    a.reading_kind === "case"
+      ? "the case text"
+      : a.reading_kind === "web"
       ? web.find((w) => w.id === a.reading_id)?.title ?? "a reading"
       : digests.find((d) => d.import_id === a.reading_id)?.title ?? "an imported reading";
   const out: { id: string; label: string; text: string }[] = [];
@@ -393,4 +423,69 @@ export async function readingNotesForCruxy(opts: {
     });
   }
   return out;
+}
+
+/** Run one comment or sticky note through Cruxy's ethical weight check. */
+export async function considerAnnotation(opts: {
+  annotationId: string;
+  teamId: string;
+  caseId: string;
+  personId: string;
+  force?: boolean;
+}) {
+  try {
+    return await considerAnnotationInner(opts);
+  } catch (e) {
+    console.error("[reading-note] considerAnnotation failed", e);
+    const { markNoteFailed } = await import("@/lib/reading/note-to-suggestion");
+    await markNoteFailed({
+      sourceKind: "annotation",
+      sourceId: opts.annotationId,
+      teamId: opts.teamId,
+      caseId: opts.caseId,
+      personId: opts.personId,
+    }).catch(() => undefined);
+    return "failed" as const;
+  }
+}
+
+async function considerAnnotationInner(opts: {
+  annotationId: string;
+  teamId: string;
+  caseId: string;
+  personId: string;
+  force?: boolean;
+}) {
+  const ann = (await listAnnotations({ teamId: opts.teamId, caseId: opts.caseId })).find(
+    (a) => a.id === opts.annotationId,
+  );
+  if (!ann || ann.kind === "highlight") return null;
+  const reading = await loadReading({
+    kind: ann.reading_kind,
+    id: ann.reading_id,
+    caseId: opts.caseId,
+    teamId: opts.teamId,
+    personId: opts.personId,
+  }).catch(() => null);
+  const passage =
+    ann.passage_ord != null
+      ? reading?.passages.find((p) => p.ord === ann.passage_ord)?.text ?? null
+      : ann.quote
+        ? reading?.passages.find((p) => p.text.includes(ann.quote!.slice(0, 60)))?.text ?? null
+        : null;
+  const { considerNote } = await import("@/lib/reading/note-to-suggestion");
+  return considerNote({
+    sourceKind: "annotation",
+    sourceId: ann.id,
+    teamId: opts.teamId,
+    caseId: opts.caseId,
+    personId: ann.person_id ?? opts.personId,
+    readingTitle: reading?.title ?? "a reading",
+    readingUrl: reading?.sourceUrl ?? null,
+    quote: ann.quote,
+    note: ann.body ?? "",
+    // A sticky note with no passage: give Cruxy the reading's own summary.
+    passage: passage ?? (reading?.digest ? reading.digest.summary : null),
+    force: opts.force,
+  });
 }
