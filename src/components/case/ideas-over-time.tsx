@@ -47,32 +47,39 @@ export function IdeasOverTime({
   const loadedOnce = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    if (initial) {
-      setIdeas(initial.ideas);
+  const load = useCallback(
+    async (force = false) => {
+      if (initial && !force) {
+        setIdeas(initial.ideas);
+        loadedOnce.current = true;
+        setLoading(false);
+        return;
+      }
+      if (!loadedOnce.current) setLoading(true);
+      setError(null);
+      const q = teamId ? `?teamId=${encodeURIComponent(teamId)}` : "";
+      const res = await fetch(`/api/case-home/${caseId}${q}`);
+      const json = (await res.json()) as CaseHomePayload & { error?: string };
+      if (!res.ok) {
+        setError(json.error ?? "Could not load ideas.");
+        loadedOnce.current = true;
+        setLoading(false);
+        return;
+      }
+      setIdeas(json.ideas);
       loadedOnce.current = true;
       setLoading(false);
-      return;
-    }
-    if (!loadedOnce.current) setLoading(true);
-    setError(null);
-    const q = teamId ? `?teamId=${encodeURIComponent(teamId)}` : "";
-    const res = await fetch(`/api/case-home/${caseId}${q}`);
-    const json = (await res.json()) as CaseHomePayload & { error?: string };
-    if (!res.ok) {
-      setError(json.error ?? "Could not load ideas.");
-      loadedOnce.current = true;
-      setLoading(false);
-      return;
-    }
-    setIdeas(json.ideas);
-    loadedOnce.current = true;
-    setLoading(false);
-  }, [caseId, teamId, initial]);
+    },
+    [caseId, teamId, initial],
+  );
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (initial?.ideas) setIdeas(initial.ideas);
+  }, [initial]);
 
   if (loading) {
     return (

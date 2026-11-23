@@ -14,6 +14,7 @@ import { WorkingDocument } from "@/components/case/working-document";
 import { OriginTag } from "@/components/case-brain/origin-tag";
 import { suggestionKindFromOrigin } from "@/components/case-brain/team-brief-panel";
 import { emitMood } from "@/components/cruxy/mood/bus";
+import { OfflineCaseBanner } from "@/components/offline/offline-case-view";
 import { coverageFromFindings } from "@/lib/cruxy/research-gaps";
 import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
 import type { CaseHomePayload } from "@/lib/case-home/types";
@@ -180,12 +181,19 @@ function formatCrux(crux: string | null | undefined): {
 export function CaseBrainClient({
   caseId,
   initialTeamId,
+  initialData = null,
+  initialCaseHome = null,
 }: {
   caseId: string;
   initialTeamId?: string;
+  /** Server-rendered first paint; skips the empty skeleton on phones. */
+  initialData?: Payload | null;
+  initialCaseHome?: CaseHomePayload | null;
 }) {
-  const [data, setData] = useState<Payload | null>(null);
-  const [teamId, setTeamId] = useState(initialTeamId ?? "");
+  const [data, setData] = useState<Payload | null>(initialData);
+  const [teamId, setTeamId] = useState(
+    initialData?.brain.team_id ?? initialTeamId ?? "",
+  );
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [reasonDrafts, setReasonDrafts] = useState<Record<string, string>>({});
@@ -209,17 +217,29 @@ export function CaseBrainClient({
   }, [tab]);
   const [rolesOpen, setRolesOpen] = useState(false);
   const [compare, setCompare] = useState(false);
-  const [caseHome, setCaseHome] = useState<CaseHomePayload | null>(null);
+  const [caseHome, setCaseHome] = useState<CaseHomePayload | null>(
+    initialCaseHome,
+  );
   const [briefMode, setBriefMode] = useState<
     "own_doc" | "build_in_crux" | null
   >(null);
+  /** Extra reading / research wait until the case text is on screen. */
+  const [readingExtrasReady, setReadingExtrasReady] = useState(false);
 
   useEffect(() => {
     setTab(resolveTabParam(initialTab));
   }, [initialTab]);
 
+  useEffect(() => {
+    if (tab !== "reading") return;
+    const id = window.setTimeout(() => setReadingExtrasReady(true), 50);
+    return () => window.clearTimeout(id);
+  }, [tab]);
+
   // Which team's case text is on screen; only a team switch clears it.
-  const loadedTeamRef = useRef<string | null>(null);
+  const loadedTeamRef = useRef<string | null>(
+    initialData?.brain.team_id ?? null,
+  );
 
   const load = useCallback(
     async (tid?: string) => {
@@ -251,8 +271,10 @@ export function CaseBrainClient({
   );
 
   useEffect(() => {
+    // SSR already filled the first paint; team switcher calls load() itself.
+    if (initialData) return;
     void load(initialTeamId);
-  }, [load, initialTeamId]);
+  }, [load, initialTeamId, initialData]);
 
   useEffect(() => {
     if (!teamId || !caseId) return;
@@ -654,6 +676,7 @@ export function CaseBrainClient({
 
   return (
     <div className="flex flex-col gap-5 animate-fade-up">
+      <OfflineCaseBanner caseId={caseId} />
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="flex items-end gap-5">
           <span className="font-display text-[120px] font-extrabold leading-[0.8] tracking-[-0.05em] text-cardinal">
@@ -661,7 +684,7 @@ export function CaseBrainClient({
           </span>
           <div className="flex max-w-[620px] flex-col gap-1.5">
             <span className="flex flex-wrap items-center gap-2 text-[12px] font-bold uppercase tracking-[0.12em] text-muted">
-              <span>Case brain</span>
+              <span>Case</span>
               <span className="rounded-md bg-mist px-2 py-0.5 font-semibold normal-case tracking-normal text-[#3B404A]">
                 {viewingTeam?.name ?? "Team"}
               </span>
@@ -868,24 +891,33 @@ export function CaseBrainClient({
                     initial={caseHome}
                   />
                 )}
-                <ExtraReadingSection
-                  caseId={caseId}
-                  teamId={teamId || brain.team_id}
-                  truthItems={brain.truth_items}
-                  canEdit={canEdit}
-                />
-                {caseHome ? (
-                  <CaseReadings
-                    caseId={caseId}
-                    teamId={teamId || brain.team_id}
-                    focusFileId={focusFileId}
-                    initial={caseHome}
-                  />
-                ) : null}
-                <ReadingResearchSection
-                  brain={brain}
-                  research={data.research ?? null}
-                />
+                {readingExtrasReady ? (
+                  <>
+                    <ExtraReadingSection
+                      caseId={caseId}
+                      teamId={teamId || brain.team_id}
+                      truthItems={brain.truth_items}
+                      canEdit={canEdit}
+                    />
+                    {caseHome ? (
+                      <CaseReadings
+                        caseId={caseId}
+                        teamId={teamId || brain.team_id}
+                        focusFileId={focusFileId}
+                        initial={caseHome}
+                      />
+                    ) : null}
+                    <ReadingResearchSection
+                      brain={brain}
+                      research={data.research ?? null}
+                    />
+                  </>
+                ) : (
+                  <div className="flex flex-col gap-3" aria-busy>
+                    <Skeleton className="h-6 w-40" />
+                    <Skeleton className="h-24 w-full" rounded="lg" />
+                  </div>
+                )}
               </div>
             ) : null}
 
@@ -945,6 +977,7 @@ export function CaseBrainClient({
                 <IdeasOverTime
                   caseId={caseId}
                   teamId={teamId || brain.team_id}
+                  initial={caseHome}
                 />
               </div>
             ) : null}
@@ -1062,22 +1095,40 @@ function CoverageRow({
   );
 }
 
+type CompareSnap = {
+  team: Team;
+  claims: Array<{
+    text: string;
+    supports: string[];
+    counter: string | null;
+  }>;
+  truthAccepted: number;
+  pendingIdeas: number;
+  mapVersion: number | null;
+};
+
 function ComparePanel({ caseId, teams }: { caseId: string; teams: Team[] }) {
-  const [snaps, setSnaps] = useState<{ team: Team; claims: string[] }[] | null>(
-    null,
-  );
+  const [snaps, setSnaps] = useState<CompareSnap[] | null>(null);
 
   useEffect(() => {
     void (async () => {
       const rows = await Promise.all(
         teams.map(async (t) => {
           const res = await fetch(
-            `/api/case-brain/${caseId}?teamId=${encodeURIComponent(t.id)}`,
+            `/api/case-brain/${caseId}?teamId=${encodeURIComponent(t.id)}&lite=1`,
           );
           const json = (await res.json()) as Payload;
+          const claims = (json.brain?.claims ?? []).map((n) => ({
+            text: n.claim.text,
+            supports: n.supports.map((s) => s.support.text).slice(0, 3),
+            counter: n.counterclaims[0]?.text ?? null,
+          }));
           return {
             team: t,
-            claims: (json.brain?.claims ?? []).map((n) => n.claim.text),
+            claims,
+            truthAccepted: json.meta?.truth_accepted ?? 0,
+            pendingIdeas: json.meta?.truth_waiting ?? 0,
+            mapVersion: json.meta?.map_version?.version ?? null,
           };
         }),
       );
@@ -1090,25 +1141,62 @@ function ComparePanel({ caseId, teams }: { caseId: string; teams: Team[] }) {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      {snaps.map((s) => (
-        <section
-          key={s.team.id}
-          className="rounded-[20px] bg-white p-5"
-          style={{
-            borderTop: `4px solid ${TEAM_COLOUR[s.team.name] ?? "#111"}`,
-          }}
-        >
-          <h3 className="font-display text-lg font-extrabold">{s.team.name}</h3>
-          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm">
-            {s.claims.length ? (
-              s.claims.map((c) => <li key={c.slice(0, 24)}>{c}</li>)
+    <div className="flex flex-col gap-3">
+      <p className="m-0 text-sm text-muted">
+        Side by side for coaches. Members never see this.
+      </p>
+      <div className="grid gap-4 md:grid-cols-3">
+        {snaps.map((s) => (
+          <section
+            key={s.team.id}
+            className="rounded-[20px] bg-white p-5"
+            style={{
+              borderTop: `4px solid ${TEAM_COLOUR[s.team.name] ?? "#111"}`,
+            }}
+          >
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h3 className="font-display m-0 text-lg font-extrabold">
+                {s.team.name}
+              </h3>
+              {s.mapVersion != null ? (
+                <span className="rounded-md bg-ink px-2 py-0.5 text-[11px] font-semibold text-white">
+                  Map v{s.mapVersion}
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-2 text-[12px] text-muted">
+              {s.truthAccepted} Evidence Library item
+              {s.truthAccepted === 1 ? "" : "s"} accepted
+              {s.pendingIdeas
+                ? `, ${s.pendingIdeas} idea${s.pendingIdeas === 1 ? "" : "s"} waiting`
+                : ""}
+            </p>
+            {s.claims.length === 0 ? (
+              <p className="mt-3 text-sm text-muted">No claims yet</p>
             ) : (
-              <li className="text-muted">No claims yet</li>
+              <ol className="mt-3 list-decimal space-y-3 pl-5 text-sm">
+                {s.claims.map((c) => (
+                  <li key={c.text.slice(0, 32)}>
+                    <p className="m-0 font-semibold">{c.text}</p>
+                    {c.supports.length ? (
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[13px] text-[#3B404A]">
+                        {c.supports.map((sup) => (
+                          <li key={sup.slice(0, 24)}>{sup}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {c.counter ? (
+                      <p className="m-0 mt-1 text-[13px] text-muted">
+                        Counter: {c.counter}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
             )}
-          </ol>
-        </section>
-      ))}
+          </section>
+        ))}
+      </div>
     </div>
   );
 }

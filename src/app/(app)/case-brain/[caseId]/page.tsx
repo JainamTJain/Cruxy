@@ -1,7 +1,11 @@
 import { Suspense } from "react";
 import { CaseBrainClient } from "@/components/case-brain/case-brain-client";
 import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
-import { getSession } from "@/lib/auth/session";
+import { requireMemberSession } from "@/lib/case-brain/auth";
+import { loadCaseBrainPage } from "@/lib/case-brain/load-page";
+import { getCaseHome } from "@/lib/case-home/service";
+import { listCases } from "@/lib/db/repository";
+import { canSeeAllTeams } from "@/lib/auth/team-privacy";
 import { redirect } from "next/navigation";
 
 type Props = {
@@ -13,10 +17,40 @@ export default async function CaseBrainDetailPage({
   params,
   searchParams,
 }: Props) {
-  const session = await getSession();
-  if (!session) redirect("/sign-in");
+  const auth = await requireMemberSession();
+  if (!auth.ok) redirect("/sign-in");
   const { caseId } = await params;
   const { team } = await searchParams;
+
+  const page = await loadCaseBrainPage({
+    caseId,
+    requestedTeamId: team || auth.teamId,
+    auth,
+  });
+  if (!page.ok) {
+    return (
+      <p className="text-sm text-cardinal">
+        {page.error || "Could not open this case."}
+      </p>
+    );
+  }
+
+  const teamId = page.data.brain.team_id;
+  let caseRow = page.data.case;
+  if (!caseRow) {
+    const cases = await listCases();
+    caseRow = cases.find((c) => c.id === caseId) ?? null;
+  }
+  const caseHome =
+    caseRow != null
+      ? await getCaseHome({
+          caseId,
+          teamId,
+          caseRow,
+          viewerTeamId: teamId,
+          seeAllTeams: canSeeAllTeams(auth.person, auth.session),
+        })
+      : null;
 
   return (
     <Suspense
@@ -40,7 +74,9 @@ export default async function CaseBrainDetailPage({
     >
       <CaseBrainClient
         caseId={caseId}
-        initialTeamId={team || session.teamId || undefined}
+        initialTeamId={teamId}
+        initialData={page.data}
+        initialCaseHome={caseHome}
       />
     </Suspense>
   );
