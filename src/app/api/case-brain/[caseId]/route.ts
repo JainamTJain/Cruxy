@@ -1,42 +1,12 @@
 import { NextResponse } from "next/server";
-import {
-  canSeeAllTeams,
-  resolveVisibleTeamId,
-} from "@/lib/auth/team-privacy";
 import { requireMemberSession } from "@/lib/case-brain/auth";
-import { ensureDemoProposalQueue } from "@/lib/case-brain/ensure-demo-queue";
+import { loadCaseBrainPage } from "@/lib/case-brain/load-page";
 import { ensureClaimMapVersion } from "@/lib/case-brain/ensure-map-version";
-import {
-  diffClaimMapBodies,
-  previousClaimMapVersion,
-} from "@/lib/case-brain/map-diff";
 import { publishClaimMapFromBrain } from "@/lib/case-brain/publish-from-brain";
-import {
-  ensureChangeTheFacts,
-  ensureClaimMapShell,
-  ensureOpposingPositions,
-  getCaseBrain,
-} from "@/lib/case-brain/service";
-import {
-  listCases,
-  listPeopleFull,
-  listTeams,
-} from "@/lib/db/repository";
-import { listDeckOptInsForCase } from "@/lib/db/supabase/case-brain-extra";
-import {
-  listLibraryFiles,
-  listResearchRuns,
-} from "@/lib/db/library-repository";
-import { listFlashcards, listQuestions } from "@/lib/revision/repository";
 import {
   confirmClaimMapVersion,
   getCurrentClaimMap,
-  listClaimMapVersions,
-  listConfirmations,
 } from "@/lib/team/repository";
-import { cleanResearchForReaders } from "@/lib/library/research-display";
-import { opposingFromPrep } from "@/lib/seed/opposing";
-import { truthSourceForCase } from "@/lib/working-doc/start-all-from-truth";
 
 type Params = { params: Promise<{ caseId: string }> };
 
@@ -48,239 +18,19 @@ export async function GET(_req: Request, { params }: Params) {
 
   const { caseId } = await params;
   const url = new URL(_req.url);
-  const me = auth.person;
-  const { teamId } = resolveVisibleTeamId({
-    person: me,
-    session: auth.session,
-    requested: url.searchParams.get("teamId") ?? auth.teamId,
+  const result = await loadCaseBrainPage({
+    caseId,
+    requestedTeamId: url.searchParams.get("teamId") ?? auth.teamId,
+    lite: url.searchParams.get("lite") === "1",
+    auth,
   });
-  if (!teamId) {
+  if (!result.ok) {
     return NextResponse.json(
-      { error: "Case brain needs a team membership." },
-      { status: 403 },
+      { error: result.error },
+      { status: result.status },
     );
   }
-  const seeAll = canSeeAllTeams(me, auth.session);
-  const lite = url.searchParams.get("lite") === "1";
-
-  // Independent setup steps run together; each is a no-op once data exists.
-  // Lite (roles / one-pager chrome) skips seeding so the tab can open fast.
-  if (!lite) {
-    await Promise.all([
-      ensureClaimMapShell({
-        teamId,
-        caseId,
-        personId: auth.session.personId,
-      }),
-      ensureOpposingPositions({
-        caseId,
-        personId: auth.session.personId,
-      }),
-      // Sample-mode only; never invents live student-attributed proposals.
-      ensureDemoProposalQueue({
-        teamId,
-        caseId,
-        personId: auth.session.personId,
-      }),
-    ]);
-    if (teamId === auth.teamId) {
-      await ensureClaimMapVersion({
-        teamId,
-        caseId,
-        personId: auth.session.personId,
-      });
-    }
-  }
-
-  let refreshed = await getCaseBrain(teamId, caseId);
-  if (!lite) {
-    const missingCtf = refreshed.claims.filter(
-      (node) =>
-        !refreshed.change_the_facts.some((c) => c.claim_id === node.claim.id),
-    );
-    if (missingCtf.length > 0) {
-      await Promise.all(
-        missingCtf.map((node) =>
-          ensureChangeTheFacts({
-            teamId,
-            caseId,
-            claimId: node.claim.id,
-            personId: auth.session.personId,
-          }),
-        ),
-      );
-      refreshed = await getCaseBrain(teamId, caseId);
-    }
-  }
-
-  // Members never see other teams' decisions or claim scores on this case.
-  if (!seeAll) {
-    refreshed = {
-      ...refreshed,
-      peer_decisions_by_idea: {},
-      peer_claim_scores: {},
-    };
-  }
-
-  const [teams, cases, peopleFull, flashcards, questions, mapVersion, versions, optIns, researchRuns, libraryFiles] =
-    await Promise.all([
-      listTeams(),
-      listCases(),
-      listPeopleFull(),
-      lite ? Promise.resolve([]) : listFlashcards({ teamId, caseId }),
-      lite ? Promise.resolve([]) : listQuestions({ caseId }),
-      lite ? Promise.resolve(null) : getCurrentClaimMap(teamId, caseId),
-      lite ? Promise.resolve([]) : listClaimMapVersions(teamId, caseId),
-      lite ? Promise.resolve([]) : listDeckOptInsForCase(caseId),
-      lite ? Promise.resolve([]) : listResearchRuns(12),
-      lite ? Promise.resolve([]) : listLibraryFiles(),
-    ]);
-  const researchForCase = researchRuns.filter((r) => r.case_id === caseId);
-  const latestResearch = researchForCase[0] ?? null;
-  const caseRow = cases.find((c) => c.id === caseId) ?? null;
-
-  // Positions seeded before each got its own counterclaim all repeat the
-  // same support; rebuild their text from the case prep.
-  if (caseRow && refreshed.opposing_positions.length > 1) {
-    const supports = new Set(
-      refreshed.opposing_positions.map((o) => o.strongest_support),
-    );
-    if (supports.size === 1) {
-      const prep = truthSourceForCase(caseRow.number);
-      if (prep) {
-        const derived = opposingFromPrep(prep);
-        const byTitle = new Map(derived.map((d) => [d.title.toLowerCase(), d]));
-        refreshed = {
-          ...refreshed,
-          opposing_positions: refreshed.opposing_positions.map((o, i) => {
-            const d = byTitle.get(o.title.toLowerCase()) ?? derived[i];
-            return d && o.origin === "team"
-              ? {
-                  ...o,
-                  strongest_support: d.strongest_support,
-                  weak_point: d.weak_point,
-                  commentary_angles: d.commentary_angles,
-                }
-              : o;
-          }),
-        };
-      }
-    }
-  }
-  const people = peopleFull.map((p) => ({
-    id: p.id,
-    name: p.name,
-    team_id: p.team_id,
-  }));
-  const confirmations = mapVersion
-    ? await listConfirmations(mapVersion.id)
-    : [];
-
-  const canEdit = teamId === auth.teamId || seeAll;
-  const visibleTeams = seeAll
-    ? teams
-    : teams.filter((t) => t.id === teamId);
-  const visiblePeople = seeAll
-    ? people
-    : people.filter((p) => p.team_id === teamId);
-  const teamPeople = people.filter((p) => p.team_id === teamId);
-  const confirmedIds = new Set(confirmations.map((c) => c.person_id));
-  const unconfirmedNames = teamPeople
-    .filter((p) => !confirmedIds.has(p.id))
-    .map((p) => p.name);
-
-  const prev = mapVersion
-    ? previousClaimMapVersion(versions, mapVersion.id)
-    : null;
-  const diff_lines = mapVersion
-    ? diffClaimMapBodies(prev?.body ?? null, mapVersion.body)
-    : [];
-
-  // Leads get the deck automatically. Anyone else on the case (or an
-  // explicit unassigned opt-in) shows as "Also studying (not assigned)".
-  const leadIds = new Set(
-    refreshed.case_roles
-      .filter((r) => r.role === "lead_1" || r.role === "lead_2")
-      .map((r) => r.person_id),
-  );
-  const alsoIds = new Set<string>();
-  for (const o of optIns) {
-    if (!o.assigned && !leadIds.has(o.person_id)) alsoIds.add(o.person_id);
-  }
-  for (const r of refreshed.case_roles) {
-    if (!leadIds.has(r.person_id)) alsoIds.add(r.person_id);
-  }
-  const alsoStudying = [...alsoIds]
-    .map((id) => people.find((p) => p.id === id)?.name)
-    .filter((n): n is string => Boolean(n));
-
-  const truthAccepted = refreshed.truth_items.filter(
-    (t) => t.status === "accepted",
-  ).length;
-  const truthRejected = refreshed.truth_items.filter(
-    (t) => t.status === "rejected",
-  ).length;
-  const waitingProposals = refreshed.proposals.filter(
-    (p) => p.status === "pending",
-  ).length;
-  const readingCount = libraryFiles.filter(
-    (f) =>
-      f.case_ids.includes(caseId) ||
-      (caseRow != null && f.case_numbers.includes(caseRow.number)),
-  ).length;
-
-  return NextResponse.json({
-    case: caseRow,
-    teams: visibleTeams,
-    people: visiblePeople,
-    brain: refreshed,
-    research: latestResearch
-      ? (() => {
-          const readable = cleanResearchForReaders(latestResearch);
-          return {
-            id: latestResearch.id,
-            stub: latestResearch.stub,
-            created_at: latestResearch.created_at,
-            gaps: latestResearch.gaps,
-            findings: readable.findings,
-            claim_dossiers: readable.claim_dossiers ?? null,
-            brief: readable.brief ?? null,
-          };
-        })()
-      : null,
-    canEdit,
-    canSeeAllTeams: seeAll,
-    viewer: {
-      personId: auth.session.personId,
-      teamId: auth.teamId,
-      name: me.name ?? auth.session.name,
-    },
-    meta: {
-      truth_count: truthAccepted,
-      truth_accepted: truthAccepted,
-      truth_rejected: truthRejected,
-      truth_waiting: waitingProposals,
-      flashcard_count: flashcards.length,
-      question_count: questions.filter((q) => q.status === "active").length,
-      reading_count: readingCount,
-      also_studying: alsoStudying,
-      map_version: mapVersion
-        ? {
-            id: mapVersion.id,
-            version: mapVersion.version,
-            change_summary: mapVersion.change_summary,
-            confirmed_by: confirmations.map((c) => c.person_id),
-            confirmed_count: confirmations.length,
-            team_size: Math.max(teamPeople.length, 1),
-            viewer_confirmed: confirmations.some(
-              (c) => c.person_id === auth.session.personId,
-            ),
-            unconfirmed_names: unconfirmedNames,
-            diff_lines,
-          }
-        : null,
-    },
-  });
+  return NextResponse.json(result.data);
 }
 
 export async function POST(req: Request, { params }: Params) {

@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { resolveVisibleTeamId } from "@/lib/auth/team-privacy";
+import {
+  canSeeAllTeams,
+  resolveVisibleTeamId,
+} from "@/lib/auth/team-privacy";
 import { requireMemberSession } from "@/lib/case-brain/auth";
 import { getCaseHome } from "@/lib/case-home/service";
 import { isSampleDataMode } from "@/lib/db/config";
@@ -41,9 +44,16 @@ export async function GET(req: Request, { params }: Params) {
     return NextResponse.json({ error: "Case not found" }, { status: 404 });
   }
 
+  const seeAll = canSeeAllTeams(auth.person, auth.session);
   const [home, brain, flashcards, questions, onePager, brief] =
     await Promise.all([
-      getCaseHome({ caseId, teamId, caseRow }),
+      getCaseHome({
+        caseId,
+        teamId,
+        caseRow,
+        viewerTeamId: teamId,
+        seeAllTeams: seeAll,
+      }),
       getCaseBrain(teamId, caseId),
       listFlashcards({ teamId, caseId }),
       listQuestions({ caseId }),

@@ -159,7 +159,7 @@ export function ReadingToolbar({
       <p className="m-0 text-xs text-muted">
         {highlighterOn
           ? "Select text to highlight it. Right click or long press for more."
-          : "Selecting does nothing extra. Right click or long press for Highlight, Comment, Explain this, Ask Cruxy."}
+          : "Selecting does nothing extra. Right click or long press for Highlight, Comment, Explain this, Find a counterexample, Ask Cruxy."}
       </p>
       {legend && legend.length > 0 ? (
         <ul className="m-0 flex list-none flex-wrap gap-2 p-0 sm:ml-auto">
@@ -645,6 +645,7 @@ export function AnnotateSurface({
               ["Highlight", "highlight"],
               ["Comment", "comment"],
               ["Explain this", "explain"],
+              ["Find a counterexample", "counter"],
               ["Ask Cruxy", "cruxy"],
             ] as const
           ).map(([label, action]) => (
@@ -668,6 +669,12 @@ export function AnnotateSurface({
                   });
                 } else if (action === "explain") {
                   void runExplain(snap.text, snap.x, snap.y);
+                } else if (action === "counter") {
+                  setHighlight(snap.text);
+                  wake();
+                  setBubble(
+                    `Find a strong counterexample to: “${snap.text.slice(0, 140)}${snap.text.length > 140 ? "…" : ""}”. Prefer our Evidence Library, then the case set.`,
+                  );
                 } else {
                   setHighlight(snap.text);
                   wake();

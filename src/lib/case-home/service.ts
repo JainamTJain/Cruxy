@@ -117,8 +117,20 @@ export async function getCaseHome(args: {
   caseId: string;
   teamId: string;
   caseRow: CaseRow;
+  /**
+   * Whose marks to show. Members only see their own team's highlights and
+   * comments (team privacy). Admins with seeAllTeams see every team's marks.
+   */
+  viewerTeamId?: string;
+  seeAllTeams?: boolean;
 }): Promise<CaseHomePayload> {
-  const { caseId, teamId, caseRow } = args;
+  const {
+    caseId,
+    teamId,
+    caseRow,
+    viewerTeamId = teamId,
+    seeAllTeams = false,
+  } = args;
 
   const [allFiles, stakeholders, brain, questions, versions] =
     await Promise.all([
@@ -185,7 +197,12 @@ export async function getCaseHome(args: {
         listHighlightsForFile(caseSet.id),
         listCommentsForFile(caseSet.id),
       ]);
-      let people: { id: string; name: string; team_id: string | null }[] = [];
+      let people: {
+        id: string;
+        name: string;
+        team_id: string | null;
+      }[] = [];
+      let teams: { id: string; colour: string }[] = [];
       if (isSampleDataMode()) {
         const store = await readStore();
         people = store.people.map((p) => ({
@@ -193,16 +210,35 @@ export async function getCaseHome(args: {
           name: p.name,
           team_id: p.team_id,
         }));
+        teams = store.teams.map((t) => ({ id: t.id, colour: t.colour }));
       } else {
-        const { listPeopleFull } = await import("@/lib/db/repository");
+        const { listPeopleFull, listTeams } = await import(
+          "@/lib/db/repository"
+        );
         people = (await listPeopleFull()).map((p) => ({
           id: p.id,
           name: p.name,
           team_id: p.team_id,
         }));
+        teams = (await listTeams()).map((t) => ({
+          id: t.id,
+          colour: t.colour,
+        }));
       }
       const names = personNameMap(people);
+      const teamByPerson = new Map(
+        people.map((p) => [p.id, p.team_id] as const),
+      );
+      const colourByTeam = new Map(teams.map((t) => [t.id, t.colour]));
+      const allowPerson = (personId: string | null | undefined) => {
+        if (!personId) return seeAllTeams;
+        const pt = teamByPerson.get(personId);
+        if (seeAllTeams) return true;
+        return Boolean(pt && pt === viewerTeamId);
+      };
       for (const h of highlights) {
+        if (!allowPerson(h.person_id)) continue;
+        const pt = teamByPerson.get(h.person_id) ?? null;
         annotations.push({
           id: h.id,
           kind: "highlight",
@@ -210,7 +246,7 @@ export async function getCaseHome(args: {
           range: h.range,
           person_id: h.person_id,
           person_name: names.get(h.person_id) ?? null,
-          team_colour: null,
+          team_colour: pt ? (colourByTeam.get(pt) ?? null) : null,
           passage_anchor:
             passages.find((p) => p.id === h.passage_id)?.anchor ?? null,
           passage_id: h.passage_id,
@@ -218,6 +254,8 @@ export async function getCaseHome(args: {
         });
       }
       for (const c of comments) {
+        if (!allowPerson(c.person_id)) continue;
+        const pt = teamByPerson.get(c.person_id) ?? null;
         annotations.push({
           id: c.id,
           kind: "comment",
@@ -225,7 +263,7 @@ export async function getCaseHome(args: {
           range: c.range,
           person_id: c.person_id,
           person_name: names.get(c.person_id) ?? null,
-          team_colour: null,
+          team_colour: pt ? (colourByTeam.get(pt) ?? null) : null,
           passage_anchor:
             passages.find((p) => p.id === c.passage_id)?.anchor ?? null,
           passage_id: c.passage_id,

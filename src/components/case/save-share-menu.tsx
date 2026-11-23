@@ -224,6 +224,22 @@ export function SaveShareMenu({
             </span>
           </button>
 
+          {offlineLabel ? (
+            <Link
+              role="menuitem"
+              href={`/case-brain/${caseId}/offline`}
+              onClick={() => setOpen(false)}
+              className="flex w-full flex-col gap-0.5 rounded-xl px-3 py-2.5 text-left hover:bg-[#F7F8FA]"
+            >
+              <span className="text-sm font-semibold text-ink">
+                Open offline copy
+              </span>
+              <span className="text-xs text-muted">
+                Read the saved pack even when wifi is bad.
+              </span>
+            </Link>
+          ) : null}
+
           {status ? (
             <p className="m-0 px-3 py-2 text-xs font-semibold text-[#1F7A4D]" role="status">
               {status}

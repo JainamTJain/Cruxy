@@ -135,6 +135,10 @@ export function TheCaseTab({
         </div>
 
         <ReadingToolbar legend={legend} />
+        <p className="m-0 text-[12px] text-muted">
+          Highlights and notes here are your team&apos;s. Coaches can open other
+          teams from the switcher.
+        </p>
 
         <article className="relative rounded-[20px] bg-white p-5 sm:p-7">
           <AnnotateSurface
