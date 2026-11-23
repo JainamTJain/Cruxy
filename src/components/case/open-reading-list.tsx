@@ -43,7 +43,7 @@ export function OpenReadingList({ caseId }: { caseId: string }) {
     <section className="rounded-[20px] bg-white p-4">
       <h3 className="font-display m-0 text-lg font-extrabold">Deeper reading from the web</h3>
       <p className="mt-1 text-[13px] text-muted">
-        Free to read. Cruxy found these for a deeper dive: encyclopedia entries,
+        Free to read, right here in Crux. Highlight, comment and leave sticky notes; Cruxy uses them in your working document. Cruxy found these for a deeper dive: encyclopedia entries,
         papers on both sides, the primary sources behind the case and serious
         reporting.
       </p>
@@ -60,15 +60,19 @@ export function OpenReadingList({ caseId }: { caseId: string }) {
                 {it.year ? `, ${it.year}` : ""}
               </p>
               <a
-                href={it.url}
-                target="_blank"
-                rel="noreferrer"
+                href={`/case-brain/${caseId}/read/web/${it.id}`}
                 className="text-sm font-semibold text-cardinal underline"
               >
                 {it.title}
               </a>
               {it.authors ? <span className="text-[13px] text-muted"> by {it.authors}</span> : null}
               {it.why ? <p className="m-0 mt-1 text-[13px] leading-snug text-[#3B404A]">{it.why}</p> : null}
+              <p className="m-0 mt-1 text-[12px] text-muted">
+                Opens inside Crux with your notes.{" "}
+                <a href={it.url} target="_blank" rel="noreferrer" className="underline">
+                  Original
+                </a>
+              </p>
             </li>
           ))}
         </ul>

@@ -79,6 +79,7 @@ export async function POST(req: Request) {
     batchId?: string;
     splitId?: string;
     caseId?: string;
+    replace?: boolean;
   };
 
   try {
@@ -130,6 +131,7 @@ export async function POST(req: Request) {
           batchId: body.batchId,
           teamId,
           personId: session.personId,
+          replace: body.replace !== false,
         });
         after(async () => {
           const { critiqueNow } = await import("@/lib/critique/run");

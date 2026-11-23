@@ -23,7 +23,9 @@ export type TruthSourceKind =
   | "domain_prep"
   | "research"
   | "transcript"
-  | "traveled_idea";
+  | "traveled_idea"
+  /** This team's own notes, highlights and imported readings (never shared). */
+  | "team_reading";
 
 export type TruthSourceItem = {
   id: string;

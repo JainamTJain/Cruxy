@@ -581,24 +581,12 @@ export function WorkingDocument({
         {path ? (
           <p className="m-0 text-sm text-muted">
             Have your own documents?{" "}
-            <button
-              type="button"
+            <Link
+              href="/case-brain?import=1#import"
               className="font-semibold text-cardinal underline"
-              disabled={editBusy}
-              onClick={() => {
-                setData((d) =>
-                  d
-                    ? {
-                        ...d,
-                        brief: { ...d.brief, working_path: null },
-                      }
-                    : d,
-                );
-                setReview(null);
-              }}
             >
               Import them to replace it
-            </button>
+            </Link>
             . Or open{" "}
             <Link
               href="/team"

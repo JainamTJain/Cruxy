@@ -240,7 +240,27 @@ export async function askTeamAssistant(
       });
     });
   }
-  const pool = [...teamPool.slice(0, 4), ...outside];
+  // The team's own imported readings and reading notes for this case.
+  const own: Array<{ id: string; text: string; kind: "other" }> = [];
+  if (ctx.teamId && ctx.caseId) {
+    const [passages, notes] = await Promise.all([
+      import("@/lib/reading/import-reading")
+        .then((m) => m.searchReadingPassages({ teamId: ctx.teamId!, caseId: ctx.caseId!, query: question, limit: 2 }))
+        .catch(() => []),
+      import("@/lib/reading/reading-room")
+        .then((m) => m.readingNotesForCruxy({ teamId: ctx.teamId!, caseId: ctx.caseId! }))
+        .catch(() => []),
+    ]);
+    passages.forEach((p, i) => own.push({ id: `reading:${p.import_id}:${i}`, text: `Your imported reading${p.anchor ? `, ${p.anchor}` : ""}: ${p.text.slice(0, 700)}`, kind: "other" }));
+    const words = new Set(question.toLowerCase().match(/[a-z]{4,}/g) ?? []);
+    notes
+      .map((n) => ({ n, score: (n.text.toLowerCase().match(/[a-z]{4,}/g) ?? []).filter((w) => words.has(w)).length }))
+      .filter((x) => x.score >= 2)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 2)
+      .forEach(({ n }) => own.push({ id: n.id, text: `${n.label}: ${n.text}`, kind: "other" }));
+  }
+  const pool = [...teamPool.slice(0, 4), ...own, ...outside];
   if (pool.length === 0) {
     return {
       text: "I couldn't find a source for this.",

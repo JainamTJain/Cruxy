@@ -128,6 +128,21 @@ export async function draftIdea(opts: {
     personId: opts.personId,
     limit: 8,
   }).catch(() => []);
+  // This team's own reading room: passages from readings they imported and
+  // their notes, comments and highlights on any reading for this case.
+  const reading = await import("@/lib/reading/reading-room")
+    .then(async (m) => {
+      const { searchReadingPassages } = await import("@/lib/reading/import-reading");
+      const [passages, notes] = await Promise.all([
+        searchReadingPassages({ teamId: opts.teamId, caseId: opts.caseId, query: opts.idea, limit: 4 }),
+        m.readingNotesForCruxy({ teamId: opts.teamId, caseId: opts.caseId }),
+      ]);
+      return [
+        ...passages.map((p, i) => `[R${i + 1}] Imported reading${p.anchor ? `, ${p.anchor}` : ""}: ${p.text.slice(0, 600)}`),
+        ...notes.slice(0, 12).map((n, i) => `[N${i + 1}] ${n.label}: ${n.text.slice(0, 400)}`),
+      ].join("\n");
+    })
+    .catch(() => "");
   const library = hits
     .filter((h) => (h.kind === "passage" || h.kind === "truth") && (!h.team_id || h.team_id === opts.teamId))
     .slice(0, 6)
@@ -162,7 +177,7 @@ export async function draftIdea(opts: {
       `Task: ${opts.name} on this team has an idea for their Ethics Bowl working document. Do the work a good teammate would before bringing it to the team:`,
       "0. Read what kind of idea it is. Ideas come in any shape: a claim, a rough note, an analogy or example, a thought experiment, a thinker or paper, a fact or statistic, a case or news story, an objection, a question, a link, or an instruction like 'search on X' or 'look into Y'. Work out what the person is pointing at and what job it could do in this argument (support with backing, analogy, reply to an objection, a stakeholder, a judge question, a sharper claim). If it names something to look up, look it up first and confirm the facts before using them.",
       "1. Research it widely, not just in the team's own material. Use:",
-      "   a. the truth source and library passages below;",
+      "   a. the truth source, library passages, and the team's own readings and reading notes below (use these first when they bear on the idea);",
       "   b. the open scholarship list below (philosophy papers and books);",
       "   c. web search: look up the strongest treatment of this idea in the Stanford or Internet Encyclopedia of Philosophy, a real case, report, court decision or data point that backs or undercuts it, and the best published objection to it;",
       "   d. the framework catalogue below and your own knowledge of moral philosophy: which frameworks, thinkers or classic arguments support it, which cut against it, and which distinction or principle would make it sharper.",
@@ -186,6 +201,9 @@ export async function draftIdea(opts: {
       "",
       "Library passages:",
       library || "(none found)",
+      "",
+      "The team's own readings and reading notes:",
+      reading || "(none)",
       "",
       "Open scholarship found for this idea:",
       literature || "(none found; use web search)",
