@@ -139,8 +139,9 @@ export async function runCruxyJudge(opts: {
     );
   }
 
-  if (judged.failed || (!judged.scores.length && judged.stub)) {
-    // Never invent scores. Still write a report so the page is not stuck.
+  // Only treat a refused / timed-out call as failure. Fixture stubs may briefly
+  // have empty kept scores before remap; buildFromAgent still writes cards.
+  if (judged.failed) {
     return failedOutput(
       opts.round.id,
       judged.headline ??

@@ -149,6 +149,10 @@ async function runRound(opts: {
     `${opts.label}: at least one Cruxy card`,
   );
   assert(
+    result.judgment!.scores.length >= 1,
+    `${opts.label}: at least one Cruxy score`,
+  );
+  assert(
     result.judgment!.scores.every((s) => s.evidence_line_ids.length >= 1),
     `${opts.label}: every score has quoted evidence line ids`,
   );

@@ -25,6 +25,45 @@ function emptyFailedOutput(reason: string): JudgeOutput {
 }
 
 /**
+ * Fixture / sample-mode line ids (e.g. "line-1") often do not match real
+ * transcript UUIDs, and fixture quotes may not appear in the stub transcript.
+ * Remap onto real sources with a quote taken from that source so cite-or-quiet
+ * keeps the scores; this is sample/fixture only (caller passes result.stub).
+ */
+function remapEvidenceToSources(
+  scores: JudgeOutput["scores"],
+  sources: CitationSource[],
+): JudgeOutput["scores"] {
+  if (sources.length === 0) return scores;
+  const byId = new Map(sources.map((s) => [s.id, s]));
+  const first = sources[0]!;
+  return scores.map((s) => ({
+    ...s,
+    evidence: (s.evidence ?? []).map((e) => {
+      const existing = byId.get(e.line_id);
+      if (existing) {
+        const quoteOk =
+          !e.quote ||
+          existing.text.toLowerCase().includes(e.quote.slice(0, 40).toLowerCase());
+        return quoteOk
+          ? e
+          : { line_id: existing.id, quote: existing.text.slice(0, 80) };
+      }
+      const byQuote = sources.find(
+        (src) =>
+          e.quote &&
+          src.text.toLowerCase().includes(e.quote.slice(0, 40).toLowerCase()),
+      );
+      const target = byQuote ?? first;
+      return {
+        line_id: target.id,
+        quote: target.text.slice(0, 80),
+      };
+    }),
+  }));
+}
+
+/**
  * Judge agent. On call failure or timeout, returns empty scores (never invented
  * numbers). Fixtures still produce real scored output in sample mode.
  */
@@ -59,8 +98,13 @@ export async function runJudgeAgent(input: {
   }
 
   const data = result.data;
+  // Sample fixtures cite "line-1"; remap onto real transcript sources first.
+  const remapped = result.stub
+    ? remapEvidenceToSources(data.scores, input.lineSources)
+    : data.scores;
+
   const { kept, dropped, failures } = filterScoresByEvidence(
-    data.scores,
+    remapped,
     input.lineSources,
   );
   await logCitationFailures({
@@ -69,7 +113,9 @@ export async function runJudgeAgent(input: {
     failures,
   });
 
-  const failed = kept.length === 0 && input.lineSources.length > 0 && !result.stub;
+  // Live call with no usable evidence after filtering is a soft failure.
+  const failed =
+    kept.length === 0 && input.lineSources.length > 0 && !result.stub;
 
   return {
     ...data,

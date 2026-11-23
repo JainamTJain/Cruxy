@@ -163,6 +163,14 @@ async function main() {
   assert(result.lines.length > 0, "transcript after finalize");
   assert(result.judgment, "Cruxy judgment present");
   assert(
+    result.judgment!.cards.length >= 1,
+    "Cruxy judgment includes at least one card",
+  );
+  assert(
+    result.judgment!.scores.length >= 1,
+    "Cruxy judgment includes scored items",
+  );
+  assert(
     result.judgment!.scores.every((s) => s.evidence_line_ids.length >= 1),
     "Cruxy scores carry evidence",
   );
