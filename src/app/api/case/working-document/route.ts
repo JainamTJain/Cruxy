@@ -32,7 +32,7 @@ function isSectionKey(v: unknown): v is WorkingSectionKey {
   );
 }
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 export async function GET(req: Request) {
   const session = await getSession();

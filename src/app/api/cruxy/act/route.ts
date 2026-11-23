@@ -8,7 +8,7 @@ import { askTeamAssistant } from "@/lib/team/assistant";
 import { getRolesBoard } from "@/lib/team/roles-board-repository";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 180;
 
 /**
  * One door for Cruxy chat (drawer and floating): do something on this page when
