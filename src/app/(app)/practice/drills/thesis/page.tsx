@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ChunkedRecorder } from "@/components/practice/chunked-recorder";
+import { DrillFinalizeBar } from "@/components/practice/drill-finalize-bar";
 import { useDrillSession } from "../use-drill-session";
 
 const PROMPT =
@@ -144,15 +145,25 @@ export default function ThesisDrillPage() {
           <p className="m-0 text-center text-[15px] leading-snug text-[#C9CCD3]">
             &ldquo;{caption}&rdquo;
           </p>
+          {seconds === 0 ? (
+            <p className="m-0 text-sm font-semibold text-[#F87171]" role="status">
+              That&apos;s time.
+            </p>
+          ) : null}
           {session?.roundId ? (
-            <ChunkedRecorder
-              roundId={session.roundId}
-              embedded
-              consentOk={session.recordingOk}
-              onRecordingChange={(on) => {
-                if (!on) setRunning(false);
-              }}
-            />
+            <>
+              <ChunkedRecorder
+                roundId={session.roundId}
+                embedded
+                consentOk={session.recordingOk}
+                onRecordingChange={(on) => {
+                  if (!on) setRunning(false);
+                }}
+              />
+              <div className="w-full">
+                <DrillFinalizeBar roundId={session.roundId} />
+              </div>
+            </>
           ) : null}
         </div>
 

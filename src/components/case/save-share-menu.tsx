@@ -98,7 +98,7 @@ export function SaveShareMenu({
         payload,
       });
       if ("caches" in window) {
-        const cache = await caches.open("crux-offline-v2");
+        const cache = await caches.open("crux-offline-v3");
         await cache.put(
           `/api/offline/pack/${caseId}?teamId=${encodeURIComponent(teamId)}`,
           new Response(raw, {

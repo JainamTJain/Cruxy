@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 type Note = {
@@ -19,16 +19,21 @@ export function NotificationBell() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [unread, setUnread] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   async function load() {
-    const res = await fetch("/api/notifications?unread=0");
-    if (!res.ok) return;
-    const data = (await res.json()) as {
-      notifications: Note[];
-      unread: number;
-    };
-    setNotes(data.notifications.slice(0, 8));
-    setUnread(data.unread);
+    try {
+      const res = await fetch("/api/notifications?unread=0");
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        notifications: Note[];
+        unread: number;
+      };
+      setNotes(data.notifications.slice(0, 8));
+      setUnread(data.unread);
+    } catch {
+      /* bell is best-effort; full page has the error state */
+    }
   }
 
   useEffect(() => {
@@ -36,6 +41,22 @@ export function NotificationBell() {
     const t = window.setInterval(() => void load(), 60_000);
     return () => window.clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(e: MouseEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   async function markRead(id: string) {
     await fetch("/api/notifications", {
@@ -70,11 +91,13 @@ export function NotificationBell() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative" ref={rootRef}>
       <button
         type="button"
         aria-label={unread > 0 ? `Notifications, ${unread} new` : "Notifications"}
-        className="relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-[#C9CCD3] hover:bg-white/10"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        className="relative flex min-h-11 items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-[#C9CCD3] hover:bg-white/10"
         onClick={() => setOpen((v) => !v)}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -94,7 +117,11 @@ export function NotificationBell() {
         ) : null}
       </button>
       {open ? (
-        <div className="absolute bottom-full left-0 z-50 mb-2 w-72 rounded-xl border border-mist bg-white p-3 text-ink shadow-lg">
+        <div
+          role="dialog"
+          aria-label="Notifications"
+          className="absolute bottom-full left-0 z-50 mb-2 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-mist bg-white p-3 text-ink shadow-lg"
+        >
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted">
               Notifications

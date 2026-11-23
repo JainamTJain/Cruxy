@@ -76,13 +76,17 @@ export default function TeamCalendarPage() {
   const [slotC, setSlotC] = useState("");
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/team/calendar");
-    if (!res.ok) {
-      setStatus("Could not load the calendar.");
-      return;
+    try {
+      const res = await fetch("/api/team/calendar");
+      if (!res.ok) {
+        setStatus("Could not load the calendar.");
+        return;
+      }
+      setData((await res.json()) as Payload);
+      setStatus(null);
+    } catch {
+      setStatus("Could not reach the calendar. Check signal and try again.");
     }
-    setData((await res.json()) as Payload);
-    setStatus(null);
   }, []);
 
   useEffect(() => {
@@ -121,6 +125,20 @@ export default function TeamCalendarPage() {
   }
 
   if (!data) {
+    if (status) {
+      return (
+        <div className="animate-fade-up flex flex-col gap-3 p-4">
+          <p className="m-0 text-sm text-cardinal">{status}</p>
+          <button
+            type="button"
+            className="w-fit min-h-11 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white"
+            onClick={() => void load()}
+          >
+            Try again
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="animate-fade-up p-4 text-sm text-muted">
         Loading team calendar…

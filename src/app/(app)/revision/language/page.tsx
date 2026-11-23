@@ -11,6 +11,7 @@ type Suggestions = {
   analogies: string[];
   vivid: string;
   avoid: string[];
+  citation_ids?: string[];
 };
 
 export default function LanguagePage() {
@@ -22,72 +23,155 @@ export default function LanguagePage() {
   const [claimId, setClaimId] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestions | null>(null);
   const [entries, setEntries] = useState<PhrasebookEntry[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadPhrases = useCallback(async () => {
-    const qs = teamId && caseId ? `?teamId=${teamId}&caseId=${caseId}` : "";
-    const res = await fetch(`/api/revision/language${qs}`);
-    const data = (await res.json()) as {
-      entries: PhrasebookEntry[];
-      claims?: ClaimRow[];
-    };
-    setEntries(data.entries ?? []);
-    if (data.claims) {
-      setClaims(data.claims);
-      if (!claimId && data.claims[0]) setClaimId(data.claims[0].id);
+    if (!teamId || !caseId) return;
+    try {
+      const qs = `?teamId=${teamId}&caseId=${caseId}`;
+      const res = await fetch(`/api/revision/language${qs}`);
+      const data = (await res.json()) as {
+        entries?: PhrasebookEntry[];
+        claims?: ClaimRow[];
+        error?: string;
+      };
+      if (!res.ok) {
+        setError(data.error ?? "Could not load phrases. Try again.");
+        return;
+      }
+      setEntries(data.entries ?? []);
+      const nextClaims = data.claims ?? [];
+      setClaims(nextClaims);
+      setClaimId((prev) => {
+        if (prev && nextClaims.some((c) => c.id === prev)) return prev;
+        return nextClaims[0]?.id ?? "";
+      });
+      setError(null);
+    } catch {
+      setError("Could not load phrases. Try again.");
     }
   }, [teamId, caseId]);
 
   useEffect(() => {
     void (async () => {
-      const meta = await fetch("/api/revision/one-pagers").then((r) => r.json());
-      setTeams(meta.teams ?? []);
-      setCases(meta.cases ?? []);
-      if (meta.teams?.[0]) setTeamId(meta.teams[0].id);
-      if (meta.cases?.[0]) setCaseId(meta.cases[0].id);
+      try {
+        const res = await fetch("/api/revision/one-pagers");
+        const meta = (await res.json()) as {
+          teams?: Team[];
+          cases?: CaseRow[];
+          error?: string;
+        };
+        if (!res.ok) {
+          setError(meta.error ?? "Could not load cases. Try again.");
+          return;
+        }
+        setTeams(meta.teams ?? []);
+        setCases(meta.cases ?? []);
+        if (meta.teams?.[0]) setTeamId(meta.teams[0].id);
+        if (meta.cases?.[0]) setCaseId(meta.cases[0].id);
+      } catch {
+        setError("Could not load cases. Try again.");
+      }
     })();
   }, []);
 
   useEffect(() => {
+    setSuggestions(null);
     void loadPhrases();
   }, [loadPhrases]);
 
   async function suggest() {
-    const res = await fetch("/api/revision/language", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        action: "suggest",
-        teamId,
-        caseId,
-        claimId: claimId || undefined,
-      }),
-    });
-    const data = (await res.json()) as { suggestions: Suggestions };
-    setSuggestions(data.suggestions);
+    if (!teamId || !caseId || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/revision/language", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action: "suggest",
+          teamId,
+          caseId,
+          claimId: claimId || undefined,
+        }),
+      });
+      const data = (await res.json()) as {
+        suggestions?: Suggestions;
+        error?: string;
+      };
+      if (!res.ok || !data.suggestions) {
+        setError(
+          data.error ?? "Cruxy could not suggest language. Try again.",
+        );
+        return;
+      }
+      // No citation, no display for Cruxy-written lines.
+      if (!(data.suggestions.citation_ids?.length ?? 0)) {
+        setSuggestions(null);
+        setError(
+          "Cruxy could not cite sources for these lines. Try again, or pick another claim.",
+        );
+        return;
+      }
+      setSuggestions(data.suggestions);
+    } catch {
+      setError("Cruxy could not suggest language. Try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function save(text: string, kind: PhrasebookEntry["kind"]) {
-    await fetch("/api/revision/language", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        action: "save",
-        text,
-        kind,
-        caseId,
-        claimId: claimId || undefined,
-      }),
-    });
-    await loadPhrases();
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/revision/language", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action: "save",
+          text,
+          kind,
+          caseId,
+          claimId: claimId || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
+        setError(data.error ?? "Could not save. Try again.");
+        return;
+      }
+      await loadPhrases();
+    } catch {
+      setError("Could not save. Try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function remove(entryId: string) {
-    await fetch("/api/revision/language", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "delete", entryId }),
-    });
-    await loadPhrases();
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/revision/language", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "delete", entryId }),
+      });
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
+        setError(data.error ?? "Could not remove. Try again.");
+        return;
+      }
+      await loadPhrases();
+    } catch {
+      setError("Could not remove. Try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -104,48 +188,83 @@ export default function LanguagePage() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <select
-          className="w-full max-w-full rounded-xl border border-ink/15 bg-white/80 px-3 py-2 text-sm sm:w-auto sm:max-w-md"
-          value={teamId}
-          onChange={(e) => setTeamId(e.target.value)}
-        >
-          {teams.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-        <select
-          className="w-full max-w-full rounded-xl border border-ink/15 bg-white/80 px-3 py-2 text-sm sm:w-auto sm:max-w-md"
-          value={caseId}
-          onChange={(e) => setCaseId(e.target.value)}
-        >
-          {cases.map((c) => (
-            <option key={c.id} value={c.id}>
-              {String(c.number).padStart(2, "0")} {c.title}
-            </option>
-          ))}
-        </select>
-        {claims.length ? (
+        <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
+          Team
           <select
-            className="w-full max-w-full rounded-xl border border-ink/15 bg-white/80 px-3 py-2 text-sm sm:w-auto sm:max-w-md"
-            value={claimId}
-            onChange={(e) => setClaimId(e.target.value)}
+            className="w-full max-w-full rounded-xl border border-ink/15 bg-white/80 px-3 py-2 text-sm text-ink sm:w-auto sm:max-w-md"
+            value={teamId}
+            onChange={(e) => setTeamId(e.target.value)}
+            disabled={busy}
           >
-            {claims.map((c, i) => (
-              <option key={c.id} value={c.id}>
-                Claim {i + 1}: {c.text.slice(0, 48)}
-                {c.text.length > 48 ? "…" : ""}
+            {teams.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
               </option>
             ))}
           </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
+          Case
+          <select
+            className="w-full max-w-full rounded-xl border border-ink/15 bg-white/80 px-3 py-2 text-sm text-ink sm:w-auto sm:max-w-md"
+            value={caseId}
+            onChange={(e) => setCaseId(e.target.value)}
+            disabled={busy}
+          >
+            {cases.map((c) => (
+              <option key={c.id} value={c.id}>
+                {String(c.number).padStart(2, "0")} {c.title}
+              </option>
+            ))}
+          </select>
+        </label>
+        {claims.length ? (
+          <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
+            Claim
+            <select
+              className="w-full max-w-full rounded-xl border border-ink/15 bg-white/80 px-3 py-2 text-sm text-ink sm:w-auto sm:max-w-md"
+              value={claimId}
+              onChange={(e) => setClaimId(e.target.value)}
+              disabled={busy}
+            >
+              {claims.map((c, i) => (
+                <option key={c.id} value={c.id}>
+                  Claim {i + 1}: {c.text.slice(0, 48)}
+                  {c.text.length > 48 ? "…" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
         ) : (
-          <span className="self-center text-xs text-muted">No claims yet</span>
+          <span className="self-end text-xs text-muted">No claims yet</span>
         )}
-        <Button type="button" onClick={() => void suggest()}>
-          Suggest
+        <Button
+          type="button"
+          className="self-end"
+          disabled={busy || !teamId || !caseId}
+          aria-busy={busy}
+          onClick={() => void suggest()}
+        >
+          {busy ? "Working…" : "Suggest"}
         </Button>
       </div>
+
+      {error ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-cardinal" role="alert">
+            {error}
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() => void suggest()}
+          >
+            Try again
+          </Button>
+        </div>
+      ) : null}
 
       {suggestions ? (
         <div className="space-y-3 rounded-2xl border border-ink/10 bg-white/70 p-4">
@@ -157,6 +276,7 @@ export default function LanguagePage() {
               size="sm"
               variant="ghost"
               className="mt-1"
+              disabled={busy}
               onClick={() => void save(suggestions.plain, "plain")}
             >
               Save to phrasebook
@@ -170,10 +290,11 @@ export default function LanguagePage() {
                   <span>{a}</span>
                   <button
                     type="button"
-                    className="text-xs text-cardinal underline"
+                    className="min-h-11 text-xs font-semibold text-cardinal underline"
+                    disabled={busy}
                     onClick={() => void save(a, "analogy")}
                   >
-                    save
+                    Save
                   </button>
                 </li>
               ))}
@@ -188,6 +309,7 @@ export default function LanguagePage() {
                 size="sm"
                 variant="ghost"
                 className="mt-1"
+                disabled={busy}
                 onClick={() => void save(suggestions.vivid, "vivid")}
               >
                 Save to phrasebook
@@ -215,7 +337,8 @@ export default function LanguagePage() {
               </div>
               <button
                 type="button"
-                className="shrink-0 text-xs text-muted underline"
+                className="min-h-11 shrink-0 text-xs font-semibold text-muted underline"
+                disabled={busy}
                 onClick={() => void remove(e.id)}
               >
                 Remove

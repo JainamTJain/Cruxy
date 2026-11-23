@@ -147,6 +147,7 @@ async function searchSampleAndLiveScan(input: {
   if (isSampleDataMode()) {
     const store = await readStore();
     for (const t of store.truth_items.filter((x) => x.status === "accepted")) {
+      if (!input.isAdmin && t.team_id !== input.teamId) continue;
       const score = scoreText(q, t.kind, t.text);
       if (score <= 0) continue;
       const c = caseById.get(t.case_id);
@@ -176,7 +177,7 @@ async function searchSampleAndLiveScan(input: {
         id: m.id,
         title: "Team chat",
         snippet: clip(m.body),
-        href: `/team/chat`,
+        href: `/team/chat?chatId=${encodeURIComponent(m.chat_id)}&jump=${encodeURIComponent(m.id)}`,
         score: score * 0.9,
         case_id: m.case_id,
         case_number: m.case_id ? caseById.get(m.case_id)?.number ?? null : null,
@@ -185,12 +186,16 @@ async function searchSampleAndLiveScan(input: {
     }
   } else {
     const sb = getServiceSupabase();
-    const { data: truth } = await sb
+    let truthQuery = sb
       .from("truth_items")
       .select("id,text,kind,case_id,team_id,status")
       .eq("status", "accepted")
       .ilike("text", `%${q}%`)
       .limit(20);
+    if (!input.isAdmin) {
+      truthQuery = truthQuery.eq("team_id", input.teamId);
+    }
+    const { data: truth } = await truthQuery;
     for (const t of truth ?? []) {
       const c = caseById.get(t.case_id);
       hits.push({
@@ -210,9 +215,10 @@ async function searchSampleAndLiveScan(input: {
       teamId: input.teamId,
       isAdmin: input.isAdmin,
     });
-    const chatIdList = [...allowedChatIds].slice(0, 40);
+    // Cap chats and recent messages so Cmd K stays usable on Dec 5 wifi.
+    const chatIdList = [...allowedChatIds].slice(0, 12);
     for (const chatId of chatIdList) {
-      const msgs = await listMessages(chatId);
+      const msgs = (await listMessages(chatId)).slice(-40);
       for (const m of msgs) {
         const score = scoreText(q, "Chat", m.body);
         if (score <= 0) continue;
@@ -221,7 +227,7 @@ async function searchSampleAndLiveScan(input: {
           id: m.id,
           title: "Team chat",
           snippet: clip(m.body),
-          href: `/team/chat?chatId=${encodeURIComponent(chatId)}`,
+          href: `/team/chat?chatId=${encodeURIComponent(chatId)}&jump=${encodeURIComponent(m.id)}`,
           score: score * 0.9,
           case_id: m.case_id,
           case_number: m.case_id

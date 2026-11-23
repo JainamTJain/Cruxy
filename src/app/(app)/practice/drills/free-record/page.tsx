@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ChunkedRecorder } from "@/components/practice/chunked-recorder";
+import { DrillFinalizeBar } from "@/components/practice/drill-finalize-bar";
 import { DrillShell } from "@/components/practice/drill-shell";
 import { useDrillSession } from "../use-drill-session";
 
@@ -69,11 +70,17 @@ export default function FreeRecordPage() {
       <button
         type="button"
         disabled={extracting || !session?.roundId}
-        className="h-[46px] rounded-xl bg-[#F2F3F5] px-4 text-sm font-semibold text-[#0C0D11] disabled:opacity-50"
+        className="h-[46px] rounded-xl border border-[#3B404A] px-4 text-sm font-semibold disabled:opacity-50"
         onClick={() => void pullIdeas()}
       >
         {extracting ? "Pulling ideas…" : "Pull ideas for Evidence Library"}
       </button>
+      {session?.roundId ? (
+        <DrillFinalizeBar
+          roundId={session.roundId}
+          label="Finish, save transcript, open report"
+        />
+      ) : null}
       {msg ? <p className="text-sm text-[#8C929D]">{msg}</p> : null}
       {ideas.length > 0 ? (
         <ul className="space-y-2 text-sm text-[#C9CCD3]">
