@@ -417,6 +417,241 @@ export function CaseBrainClient({
     if (firstMissingSupportId) break;
   }
 
+
+  // Ideas waiting on this case, shown inside the working document's one Suggestions rail.
+  const proposalQueue = pending.map((p, i) => {
+                    const peers =
+                      brain.peer_decisions_by_idea[p.idea_key] ?? [];
+                    const researchLink =
+                      p.origin === "research" && p.origin_ref?.includes("|")
+                        ? p.origin_ref.split("|").slice(1).join("|")
+                        : null;
+                    const sources = (p.origin_ref ?? "")
+                      .split(/[,;]/)
+                      .map((s) => s.trim())
+                      .filter(Boolean)
+                      .filter((s) => !s.startsWith("http"))
+                      // Internal ids are never shown; only named sources.
+                      .filter(
+                        (s) =>
+                          !s.includes("|") &&
+                          !/^(research|transcript|truth|session):/i.test(s) &&
+                          !/[0-9a-f]{8}-[0-9a-f]{4}-/i.test(s),
+                      );
+                    return (
+                      <article
+                        key={p.id}
+                        className={cn(
+                          "flex flex-col gap-2.5",
+                          i < pending.length - 1
+                            ? "border-b border-[#ECEEF1] pb-3.5"
+                            : "",
+                        )}
+                      >
+                        <OriginTag
+                          label={originLabel(
+                            p,
+                            teams,
+                            Boolean(data.canSeeAllTeams),
+                          )}
+                        />
+                        <p className="m-0 text-[15px] font-medium leading-snug">
+                          {p.text}
+                        </p>
+                        {researchLink ? (
+                          <a
+                            href={researchLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm font-medium text-cardinal underline"
+                          >
+                            Full source
+                          </a>
+                        ) : null}
+                        {sources.length && p.origin !== "transcript" ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {sources.map((s) => (
+                              <span
+                                key={s}
+                                className="inline-flex rounded-md bg-paper px-2 py-0.5 font-mono text-[12px] font-medium text-[#3B404A]"
+                              >
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                        {p.cruxy_note ? (
+                          <span className="text-[13px] font-semibold text-[#C62828]">
+                            {p.cruxy_note}
+                          </span>
+                        ) : null}
+
+                        {p.origin === "inspired_by_team" &&
+                        !p.socratic_answered ? (
+                          <div className="rounded-xl border border-gold/50 bg-gold/10 p-3">
+                            <p className="text-[12px] font-bold uppercase tracking-wide text-ink">
+                              Cruxy asks first
+                            </p>
+                            <p className="mt-1 text-sm leading-snug">
+                              {p.socratic_question}
+                            </p>
+                            {canEdit ? (
+                              <button
+                                type="button"
+                                disabled={busy}
+                                className="mt-2 rounded-xl bg-ink px-3 py-2 text-xs font-semibold text-white"
+                                onClick={() =>
+                                  void api("/api/case-brain/proposals", {
+                                    method: "PATCH",
+                                    body: JSON.stringify({
+                                      proposalId: p.id,
+                                      action: "socratic_answered",
+                                    }),
+                                  })
+                                }
+                              >
+                                I&apos;ve thought it through
+                              </button>
+                            ) : null}
+                          </div>
+                        ) : null}
+
+                        {canEdit &&
+                        (p.origin !== "inspired_by_team" ||
+                          p.socratic_answered) ? (
+                          <>
+                            <label
+                              htmlFor={`reason-${p.id}`}
+                              className="text-[13px] font-semibold"
+                            >
+                              Why? One line, then tick to keep or cross to drop
+                            </label>
+                            <input
+                              id={`reason-${p.id}`}
+                              placeholder="One line on why"
+                              className="h-[42px] rounded-[10px] border border-mist px-3 text-sm"
+                              value={reasonDrafts[`prop:${p.id}`] ?? ""}
+                              onChange={(e) =>
+                                setReasonDrafts((d) => ({
+                                  ...d,
+                                  [`prop:${p.id}`]: e.target.value,
+                                }))
+                              }
+                            />
+                            {editingId === p.id ? (
+                              <input
+                                placeholder="Revised text"
+                                className="h-[42px] rounded-[10px] border border-mist px-3 text-sm"
+                                value={editDrafts[p.id] ?? p.text}
+                                onChange={(e) =>
+                                  setEditDrafts((d) => ({
+                                    ...d,
+                                    [p.id]: e.target.value,
+                                  }))
+                                }
+                              />
+                            ) : null}
+                            <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                              <button
+                                type="button"
+                                disabled={busy}
+                                aria-label={
+                                  briefMode === "own_doc"
+                                    ? "Add to checklist"
+                                    : "Accept"
+                                }
+                                className="flex h-[42px] items-center justify-center gap-1.5 rounded-xl border border-mist bg-white text-sm font-semibold"
+                                onClick={() => void decide(p.id, "accept")}
+                              >
+                                <span
+                                  aria-hidden
+                                  className="text-lg text-[#1F7A4D]"
+                                >
+                                  ✓
+                                </span>
+                                {briefMode === "own_doc" ? "To-do" : null}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                aria-label="Reject"
+                                className="flex h-[42px] items-center justify-center gap-1.5 rounded-xl border border-mist bg-white text-sm font-semibold"
+                                onClick={() => void decide(p.id, "reject")}
+                              >
+                                <span
+                                  aria-hidden
+                                  className="text-lg text-cardinal"
+                                >
+                                  ✗
+                                </span>
+                              </button>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                className="flex h-[42px] items-center justify-center rounded-xl border border-mist bg-white px-3.5 text-sm font-semibold"
+                                onClick={() => {
+                                  if (editingId !== p.id) {
+                                    setEditingId(p.id);
+                                    setEditDrafts((d) => ({
+                                      ...d,
+                                      [p.id]: d[p.id] ?? p.text,
+                                    }));
+                                    return;
+                                  }
+                                  void decide(p.id, "edit");
+                                }}
+                              >
+                                {editingId === p.id ? "Save edit" : "Edit"}
+                              </button>
+                            </div>
+                          </>
+                        ) : null}
+
+                        {peers.length > 0 ? (
+                          <span className="text-[13px] text-muted">
+                            {peers.map((d, di) => {
+                              const colour =
+                                TEAM_COLOUR[d.team_name] ?? "#5A606B";
+                              const mark =
+                                d.verdict === "accept"
+                                  ? "✅"
+                                  : d.verdict === "reject"
+                                    ? "❌"
+                                    : "✎";
+                              return (
+                                <span key={d.id}>
+                                  {di > 0 ? (
+                                    <span className="mx-1 text-muted">,</span>
+                                  ) : null}
+                                  <span
+                                    className="font-bold"
+                                    style={{ color: colour }}
+                                  >
+                                    {d.team_name} {mark}
+                                  </span>{" "}
+                                  {personName(data.people, d.person_id)}:{" "}
+                                  {d.reason}
+                                </span>
+                              );
+                            })}
+                            {!peers.some((d) => d.team_name === "Team 2") ? (
+                              <>
+                                <span className="mx-1 text-muted">,</span>
+                                <span
+                                  className="font-bold"
+                                  style={{ color: "var(--crux-team-2)" }}
+                                >
+                                  Team 2
+                                </span>{" "}
+                                hasn&apos;t decided
+                              </>
+                            ) : null}
+                          </span>
+                        ) : null}
+                      </article>
+                    );
+                  });
+
   return (
     <div className="flex flex-col gap-5 animate-fade-up">
       <div className="flex flex-wrap items-end justify-between gap-5">
@@ -655,10 +890,17 @@ export function CaseBrainClient({
             ) : null}
 
             {tab === "working" ? (
-              <WorkingDocument
-                caseId={caseId}
-                teamId={teamId || brain.team_id}
-              />
+              <div className="flex flex-col gap-4">
+                <WorkingDocument
+                  caseId={caseId}
+                  teamId={teamId || brain.team_id}
+                  queue={{ count: pending.length, node: proposalQueue }}
+                />
+                <ResearchCoverage
+                  brain={brain}
+                  research={data.research ?? null}
+                />
+              </div>
             ) : null}
 
             {tab === "one_pager" ? (
@@ -708,279 +950,7 @@ export function CaseBrainClient({
             ) : null}
           </div>
 
-          {tab === "working" ? (
-            <aside className="flex flex-[1_1_340px] flex-col gap-4">
-              <section
-                aria-labelledby="queue-heading"
-                className="flex flex-col gap-3.5 rounded-[20px] bg-white p-5"
-              >
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h2
-                    id="queue-heading"
-                    className="font-display m-0 text-[22px] font-extrabold"
-                  >
-                    Suggestions
-                  </h2>
-                  <span className="font-display text-[22px] font-extrabold text-cardinal">
-                    {pending.length}
-                  </span>
-                </div>
-                <p className="m-0 text-[13px] leading-snug text-muted">
-                  New evidence, Cruxy&apos;s questions, counter-arguments, and
-                  Inspired by another team. Nothing changes the Brief until you
-                  accept
-                  {briefMode === "own_doc"
-                    ? ". In Our own doc mode, accept adds a checklist item."
-                    : "."}
-                </p>
 
-                {pending.length === 0 ? (
-                  <p className="text-sm leading-snug text-muted">
-                    Nothing waiting. Ideas from practice, research, the reading
-                    room and Inspired-by edits will show up here.
-                  </p>
-                ) : (
-                  pending.map((p, i) => {
-                    const peers =
-                      brain.peer_decisions_by_idea[p.idea_key] ?? [];
-                    const researchLink =
-                      p.origin === "research" && p.origin_ref?.includes("|")
-                        ? p.origin_ref.split("|").slice(1).join("|")
-                        : null;
-                    const sources = (p.origin_ref ?? "")
-                      .split(/[,;]/)
-                      .map((s) => s.trim())
-                      .filter(Boolean)
-                      .filter((s) => !s.startsWith("http"))
-                      // Internal ids are never shown; only named sources.
-                      .filter(
-                        (s) =>
-                          !s.includes("|") &&
-                          !/^(research|transcript|truth|session):/i.test(s) &&
-                          !/[0-9a-f]{8}-[0-9a-f]{4}-/i.test(s),
-                      );
-                    return (
-                      <article
-                        key={p.id}
-                        className={cn(
-                          "flex flex-col gap-2.5",
-                          i < pending.length - 1
-                            ? "border-b border-[#ECEEF1] pb-3.5"
-                            : "",
-                        )}
-                      >
-                        <OriginTag
-                          label={originLabel(
-                            p,
-                            teams,
-                            Boolean(data.canSeeAllTeams),
-                          )}
-                        />
-                        <p className="m-0 text-[15px] font-medium leading-snug">
-                          {p.text}
-                        </p>
-                        {researchLink ? (
-                          <a
-                            href={researchLink}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-sm font-medium text-cardinal underline"
-                          >
-                            Full source
-                          </a>
-                        ) : null}
-                        {sources.length && p.origin !== "transcript" ? (
-                          <div className="flex flex-wrap gap-1.5">
-                            {sources.map((s) => (
-                              <span
-                                key={s}
-                                className="inline-flex rounded-md bg-paper px-2 py-0.5 font-mono text-[12px] font-medium text-[#3B404A]"
-                              >
-                                {s}
-                              </span>
-                            ))}
-                          </div>
-                        ) : null}
-                        {p.cruxy_note ? (
-                          <span className="text-[13px] font-semibold text-[#C62828]">
-                            {p.cruxy_note}
-                          </span>
-                        ) : null}
-
-                        {p.origin === "inspired_by_team" &&
-                        !p.socratic_answered ? (
-                          <div className="rounded-xl border border-gold/50 bg-gold/10 p-3">
-                            <p className="text-[12px] font-bold uppercase tracking-wide text-ink">
-                              Cruxy asks first
-                            </p>
-                            <p className="mt-1 text-sm leading-snug">
-                              {p.socratic_question}
-                            </p>
-                            {canEdit ? (
-                              <button
-                                type="button"
-                                disabled={busy}
-                                className="mt-2 rounded-xl bg-ink px-3 py-2 text-xs font-semibold text-white"
-                                onClick={() =>
-                                  void api("/api/case-brain/proposals", {
-                                    method: "PATCH",
-                                    body: JSON.stringify({
-                                      proposalId: p.id,
-                                      action: "socratic_answered",
-                                    }),
-                                  })
-                                }
-                              >
-                                I&apos;ve thought it through
-                              </button>
-                            ) : null}
-                          </div>
-                        ) : null}
-
-                        {canEdit &&
-                        (p.origin !== "inspired_by_team" ||
-                          p.socratic_answered) ? (
-                          <>
-                            <label
-                              htmlFor={`reason-${p.id}`}
-                              className="text-[13px] font-semibold"
-                            >
-                              Why? One line, then tick to keep or cross to drop
-                            </label>
-                            <input
-                              id={`reason-${p.id}`}
-                              placeholder="One line on why"
-                              className="h-[42px] rounded-[10px] border border-mist px-3 text-sm"
-                              value={reasonDrafts[`prop:${p.id}`] ?? ""}
-                              onChange={(e) =>
-                                setReasonDrafts((d) => ({
-                                  ...d,
-                                  [`prop:${p.id}`]: e.target.value,
-                                }))
-                              }
-                            />
-                            {editingId === p.id ? (
-                              <input
-                                placeholder="Revised text"
-                                className="h-[42px] rounded-[10px] border border-mist px-3 text-sm"
-                                value={editDrafts[p.id] ?? p.text}
-                                onChange={(e) =>
-                                  setEditDrafts((d) => ({
-                                    ...d,
-                                    [p.id]: e.target.value,
-                                  }))
-                                }
-                              />
-                            ) : null}
-                            <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
-                              <button
-                                type="button"
-                                disabled={busy}
-                                aria-label={
-                                  briefMode === "own_doc"
-                                    ? "Add to checklist"
-                                    : "Accept"
-                                }
-                                className="flex h-[42px] items-center justify-center gap-1.5 rounded-xl border border-mist bg-white text-sm font-semibold"
-                                onClick={() => void decide(p.id, "accept")}
-                              >
-                                <span
-                                  aria-hidden
-                                  className="text-lg text-[#1F7A4D]"
-                                >
-                                  ✓
-                                </span>
-                                {briefMode === "own_doc" ? "To-do" : null}
-                              </button>
-                              <button
-                                type="button"
-                                disabled={busy}
-                                aria-label="Reject"
-                                className="flex h-[42px] items-center justify-center gap-1.5 rounded-xl border border-mist bg-white text-sm font-semibold"
-                                onClick={() => void decide(p.id, "reject")}
-                              >
-                                <span
-                                  aria-hidden
-                                  className="text-lg text-cardinal"
-                                >
-                                  ✗
-                                </span>
-                              </button>
-                              <button
-                                type="button"
-                                disabled={busy}
-                                className="flex h-[42px] items-center justify-center rounded-xl border border-mist bg-white px-3.5 text-sm font-semibold"
-                                onClick={() => {
-                                  if (editingId !== p.id) {
-                                    setEditingId(p.id);
-                                    setEditDrafts((d) => ({
-                                      ...d,
-                                      [p.id]: d[p.id] ?? p.text,
-                                    }));
-                                    return;
-                                  }
-                                  void decide(p.id, "edit");
-                                }}
-                              >
-                                {editingId === p.id ? "Save edit" : "Edit"}
-                              </button>
-                            </div>
-                          </>
-                        ) : null}
-
-                        {peers.length > 0 ? (
-                          <span className="text-[13px] text-muted">
-                            {peers.map((d, di) => {
-                              const colour =
-                                TEAM_COLOUR[d.team_name] ?? "#5A606B";
-                              const mark =
-                                d.verdict === "accept"
-                                  ? "✅"
-                                  : d.verdict === "reject"
-                                    ? "❌"
-                                    : "✎";
-                              return (
-                                <span key={d.id}>
-                                  {di > 0 ? (
-                                    <span className="mx-1 text-muted">,</span>
-                                  ) : null}
-                                  <span
-                                    className="font-bold"
-                                    style={{ color: colour }}
-                                  >
-                                    {d.team_name} {mark}
-                                  </span>{" "}
-                                  {personName(data.people, d.person_id)}:{" "}
-                                  {d.reason}
-                                </span>
-                              );
-                            })}
-                            {!peers.some((d) => d.team_name === "Team 2") ? (
-                              <>
-                                <span className="mx-1 text-muted">,</span>
-                                <span
-                                  className="font-bold"
-                                  style={{ color: "var(--crux-team-2)" }}
-                                >
-                                  Team 2
-                                </span>{" "}
-                                hasn&apos;t decided
-                              </>
-                            ) : null}
-                          </span>
-                        ) : null}
-                      </article>
-                    );
-                  })
-                )}
-              </section>
-
-              <ResearchCoverage
-                brain={brain}
-                research={data.research ?? null}
-              />
-            </aside>
-          ) : null}
         </div>
       )}
 

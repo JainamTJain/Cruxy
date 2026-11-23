@@ -163,6 +163,7 @@ export async function evaluateAndMaybeTravel(opts: {
       unanswered_counter: "objection_reply",
       evidence_gap: "support",
       sharper_wording: "claims",
+      missing_link: "claims",
       question: "judges_questions",
     };
     const { addTruthAddition } = await import("@/lib/critique/truth-additions");

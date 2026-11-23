@@ -282,6 +282,12 @@ export async function getWorkingDocumentHub(opts: {
       source: s.source,
       created_by_name: personName(people, s.created_by),
       created_at_label: formatWhen(s.created_at),
+      weak_spot: s.weak_spot ?? null,
+      why_weak: s.why_weak ?? null,
+      stronger_version: s.stronger_version ?? null,
+      question_back: s.question_back ?? null,
+      fallacy_name: s.fallacy_name ?? null,
+      logic_chain: s.logic_chain ?? null,
     })),
     checklist: checklist.map((c) => ({
       id: c.id,
@@ -537,6 +543,38 @@ export async function tickSuggestion(opts: {
   });
   if (!decided) throw new Error("Could not find that suggestion.");
 
+  // Take: write it into the document when the team builds in Crux.
+  let took: { applied: boolean; sectionKey: WorkingSectionKey | null } = {
+    applied: false,
+    sectionKey: null,
+  };
+  if (brief.working_path !== "imported") {
+    const { applySuggestionToDocument } = await import(
+      "@/lib/working-doc/apply-suggestion"
+    );
+    took = await applySuggestionToDocument({
+      briefId: brief.id,
+      personId: opts.personId,
+      suggestion: decided,
+    }).catch(() => ({ applied: false, sectionKey: null }));
+  }
+  if (took.applied) {
+    await logActivity({
+      person_id: opts.personId,
+      action: "working_doc_suggestion_taken",
+      target: decided.id,
+      meta: { sectionKey: took.sectionKey },
+    });
+    const { syncOnePagerFromWorkingDoc } = await import(
+      "@/lib/working-doc/one-pager-from-working"
+    );
+    await syncOnePagerFromWorkingDoc({
+      caseId: opts.caseId,
+      teamId: opts.teamId,
+      personId: opts.personId,
+    }).catch(() => undefined);
+  }
+
   const kindMap: Record<
     WorkingSuggestionRow["kind"],
     "suggestion" | "evidence" | "question" | "counter" | "inspired"
@@ -554,9 +592,13 @@ export async function tickSuggestion(opts: {
     loose_end: "question",
     evidence_gap: "evidence",
     sharper_wording: "suggestion",
+    missing_link: "question",
   };
 
-  const item = await addChecklistItem({
+  // Imported documents can't be edited here, so the team gets a to-do instead.
+  const item = took.applied
+    ? null
+    : await addChecklistItem({
     brief_id: brief.id,
     // Keep the suggestion id so discussion threads survive a tick.
     proposal_id: opts.suggestionId,
@@ -581,7 +623,7 @@ export async function tickSuggestion(opts: {
     person_id: opts.personId,
     action: "working_doc_suggestion_ticked",
     target: decided.id,
-    meta: { checklistId: item.id },
+    meta: { checklistId: item?.id ?? null, applied: took.applied },
   });
 
   // Accepted suggestions may travel anonymously if Cruxy scores them strong.
@@ -598,7 +640,45 @@ export async function tickSuggestion(opts: {
     )
     .catch(() => undefined);
 
-  return { suggestion: decided, checklistItem: item };
+  return { suggestion: decided, checklistItem: item, took };
+}
+
+/** Undo a Take: restore the section as it was and put the suggestion back. */
+export async function undoTakeSuggestion(opts: {
+  caseId: string;
+  teamId: string;
+  personId: string;
+  suggestionId: string;
+}) {
+  const { getSuggestionById, reopenSuggestion } = await import(
+    "@/lib/db/supabase/working-doc-extra"
+  );
+  const s = await getSuggestionById(opts.suggestionId);
+  if (!s || s.team_id !== opts.teamId || !s.applied_at || !s.section_key) {
+    throw new Error("Nothing to undo for that suggestion.");
+  }
+  const brief = await ensureTeamBrief(opts);
+  await updateWorkingSection({
+    briefId: brief.id,
+    sectionKey: s.section_key,
+    body: s.prev_body ?? "",
+    personId: opts.personId,
+  });
+  await reopenSuggestion(s.id);
+  await logActivity({
+    person_id: opts.personId,
+    action: "working_doc_suggestion_take_undone",
+    target: s.id,
+    meta: { sectionKey: s.section_key },
+  });
+  const { syncOnePagerFromWorkingDoc } = await import(
+    "@/lib/working-doc/one-pager-from-working"
+  );
+  await syncOnePagerFromWorkingDoc({
+    caseId: opts.caseId,
+    teamId: opts.teamId,
+    personId: opts.personId,
+  }).catch(() => undefined);
 }
 
 export async function crossSuggestion(opts: {
@@ -737,6 +817,16 @@ export async function tellIdeaFromWorkingDoc(opts: {
     throw new Error("Write a bit more so the team can tick or cross it.");
   }
   const brief = await ensureTeamBrief(opts);
+  // Cruxy researches, places and drafts the idea before the team sees it.
+  const { draftIdea } = await import("@/lib/working-doc/idea-draft");
+  const draft = await draftIdea({
+    caseId: opts.caseId,
+    briefId: brief.id,
+    teamId: opts.teamId,
+    personId: opts.personId,
+    name,
+    idea: cleaned,
+  }).catch(() => null);
   const suggestionText = cleaned.endsWith(".")
     ? `${name}'s idea: ${cleaned}`
     : `${name}'s idea: ${cleaned}.`;
@@ -744,14 +834,18 @@ export async function tellIdeaFromWorkingDoc(opts: {
     case_id: opts.caseId,
     team_id: opts.teamId,
     brief_id: brief.id,
-    kind: "sharper",
-    text: suggestionText.slice(0, 500),
-    citation: null,
+    kind: draft?.kind ?? "sharper",
+    text: (draft?.text ?? suggestionText).replace(/[·—–]/g, ",").slice(0, 1800),
+    citation: draft?.citation ?? null,
     paragraph_anchor: null,
-    section_key: null,
+    section_key: draft?.sectionKey ?? null,
     source: "member",
     truth_item_id: null,
     created_by: opts.personId,
+    weak_spot: draft?.weakSpot ?? null,
+    why_weak: draft?.why ?? null,
+    stronger_version: draft?.stronger ?? null,
+    question_back: draft?.questionBack ?? null,
   });
   void import("@/lib/working-doc/idea-travel")
     .then(({ evaluateAndMaybeTravel }) =>

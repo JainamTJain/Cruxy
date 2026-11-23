@@ -10,6 +10,7 @@ function scrub(s: string): string {
 export function formatCritiqueText(f: CritiqueFinding): string {
   const parts = [
     `Where it is weak: ${scrub(f.weakSpot)}`,
+    f.chain ? `Chain: ${scrub(f.chain)}` : null,
     `Why: ${scrub(f.why)}`,
     f.fallacyName ? `Fallacy: ${scrub(f.fallacyName)}.` : null,
     `Stronger: ${scrub(f.stronger)}`,
@@ -29,4 +30,5 @@ export const KIND_LABELS: Record<CritiqueFinding["kind"], string> = {
   loose_end: "Loose end",
   evidence_gap: "Evidence gap",
   sharper_wording: "Sharper wording",
+  missing_link: "Missing link in the reasoning",
 };
