@@ -751,7 +751,14 @@ export function CaseBrainClient({
                       .split(/[,;]/)
                       .map((s) => s.trim())
                       .filter(Boolean)
-                      .filter((s) => !s.startsWith("http"));
+                      .filter((s) => !s.startsWith("http"))
+                      // Internal ids are never shown; only named sources.
+                      .filter(
+                        (s) =>
+                          !s.includes("|") &&
+                          !/^(research|transcript|truth|session):/i.test(s) &&
+                          !/[0-9a-f]{8}-[0-9a-f]{4}-/i.test(s),
+                      );
                     return (
                       <article
                         key={p.id}
