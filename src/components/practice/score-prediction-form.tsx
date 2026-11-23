@@ -209,8 +209,8 @@ export function ScorePredictionForm({
                         onClick={() => setConfidence(key, c)}
                         className={
                           row.confidence === c
-                            ? "h-9 rounded-lg bg-[#F2F3F5] text-xs font-semibold text-[#0C0D11]"
-                            : "h-9 rounded-lg border border-[#3B404A] text-xs font-semibold text-[#C9CCD3]"
+                            ? "min-h-11 rounded-lg bg-[#F2F3F5] text-xs font-semibold text-[#0C0D11]"
+                            : "min-h-11 rounded-lg border border-[#3B404A] text-xs font-semibold text-[#C9CCD3]"
                         }
                       >
                         {c}%

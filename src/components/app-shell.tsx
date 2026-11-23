@@ -190,13 +190,13 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <SkipLink />
       <AccessLiveRegions />
       <aside className="hidden w-[248px] shrink-0 flex-col gap-7 bg-ink px-4 pb-7 pt-[28px] text-white sm:flex">
-        <Link href="/home" className="mx-1 inline-block px-1 py-1">
+        <Link href="/home" className="mx-1 inline-flex min-h-11 items-center px-1 py-1">
           <CruxWordmark className="text-[38px]" />
         </Link>
         <div data-tour="search">
         <SearchOpenButton
           showShortcut
-          className="mx-1 inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-left text-sm text-white/80 hover:bg-white/10"
+          className="mx-1 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-left text-sm text-white/80 hover:bg-white/10"
         />
         </div>
         {onAdminScreen ? (
@@ -221,7 +221,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 data-tour={`nav-${item.label.toLowerCase().replace(/[^a-z]+/g, "-")}`}
                 className={cn(
-                  "rounded-xl px-3 py-2.5 text-[15px] font-medium",
+                  "flex min-h-11 items-center rounded-xl px-3 py-2.5 text-[15px] font-medium",
                   active
                     ? "bg-cardinal text-white"
                     : "text-[#C9CCD3] hover:bg-white/10",
@@ -355,18 +355,23 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="relative flex items-center justify-between gap-3 bg-ink px-4 pb-3 pt-4 sm:hidden">
-          <Link href="/home" className="inline-block py-0.5">
+          <Link
+            href="/home"
+            className="inline-flex min-h-11 items-center py-0.5"
+            aria-label="crux home"
+          >
             <CruxWordmark className="text-2xl" />
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span data-tour="search" className="inline-flex">
-              <SearchOpenButton className="rounded-lg px-2 py-1 text-sm font-semibold text-white/85 hover:bg-white/10" />
+              <SearchOpenButton className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-2.5 text-sm font-semibold text-white/85 hover:bg-white/10" />
             </span>
             <ReportProblemButton placement="header" />
             <button
               type="button"
-              className="text-xs text-white/70 underline"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-2.5 text-sm font-semibold text-white/85 underline hover:bg-white/10"
               aria-expanded={userMenuOpen}
+              aria-label={`Account menu for ${displayName || "you"}`}
               data-tour="profile"
               onClick={() => setUserMenuOpen((o) => !o)}
             >
@@ -444,7 +449,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-mist bg-paper/95 px-1 py-2 backdrop-blur sm:hidden">
+      <nav
+        aria-label="Phone"
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-mist bg-paper/95 px-1 py-1.5 backdrop-blur sm:hidden"
+      >
         <div className="mx-auto flex max-w-lg items-stretch justify-around text-[11px]">
           {PHONE_TABS.map((item) => (
             <Link
@@ -452,7 +460,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
               href={item.href}
               data-tour={`nav-${item.label.toLowerCase().replace(/[^a-z]+/g, "-")}`}
               className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 px-1 py-1",
+                "flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1",
                 navActive(pathname, item.href)
                   ? "font-semibold text-cardinal"
                   : "text-muted",
@@ -467,7 +475,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
               if (awake) sleep();
               else wake();
             }}
-            className="flex flex-1 flex-col items-center gap-0.5 px-1 py-1 text-muted"
+            className="flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-muted"
             data-tour="cruxy"
             aria-label={awake ? "Send Cruxy to rest" : "Call Cruxy"}
           >

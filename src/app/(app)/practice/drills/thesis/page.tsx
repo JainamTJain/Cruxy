@@ -87,16 +87,17 @@ export default function ThesisDrillPage() {
     session?.caseNumber != null ? `CASE ${session.caseNumber}` : "CASE";
 
   return (
-    <div className="fixed inset-0 z-40 overflow-hidden bg-[#0C0D11] text-[#F2F3F5]">
-      <div className="mx-auto flex h-full w-full max-w-[390px] flex-col gap-4 px-[18px] py-[18px]">
+    <div className="fixed inset-0 z-40 overflow-y-auto overscroll-contain bg-[#0C0D11] text-[#F2F3F5]">
+      <div className="mx-auto flex min-h-full w-full max-w-[390px] flex-col gap-4 px-[18px] py-[18px] pb-8">
         <div className="flex items-center justify-between">
           <Link
             href="/practice"
-            className="font-display text-[26px] font-extrabold tracking-[-0.03em]"
+            className="inline-flex min-h-11 items-center font-display text-[26px] font-extrabold tracking-[-0.03em]"
+            aria-label="Back to practice"
           >
             crux
           </Link>
-          <span className="flex items-center gap-1.5 text-xs font-bold text-[#C62828]">
+          <span className="flex min-h-11 items-center gap-1.5 text-xs font-bold text-[#C62828]">
             <span className="h-2 w-2 rounded-full bg-[#C62828]" />
             REC
           </span>
@@ -106,7 +107,7 @@ export default function ThesisDrillPage() {
           <span className="text-xs font-bold tracking-[0.1em] text-gold">
             THESIS IN 30 SECONDS, {caseLabel}
           </span>
-          <span className="text-[13px] text-[#8C929D]">
+          <span className="text-[13px] text-[#C9CCD3]">
             {session?.resumed
               ? "Picking up where you left off."
               : "A wording you have not seen. One sentence."}
@@ -170,12 +171,12 @@ export default function ThesisDrillPage() {
         <div className="flex flex-col gap-2.5 rounded-2xl bg-[#16181F] p-3.5">
           <div className="flex justify-between text-[13px]">
             <strong>Your time to a thesis</strong>
-            <span className="text-[#8C929D]">
+            <span className="text-[#C9CCD3]">
               best 0:{String(best).padStart(2, "0")}, last 0:
               {String(last).padStart(2, "0")}
             </span>
           </div>
-          <div className="flex h-14 items-end gap-1.5">
+          <div className="flex h-14 items-end gap-1.5" aria-hidden>
             {heights.map((h, i) => (
               <div
                 key={i}
@@ -187,7 +188,7 @@ export default function ThesisDrillPage() {
               />
             ))}
           </div>
-          <span className="text-xs text-[#8C929D]">
+          <span className="text-xs text-[#C9CCD3]">
             Measured against your own past answers only.
           </span>
         </div>

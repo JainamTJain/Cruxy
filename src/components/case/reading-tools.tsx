@@ -141,7 +141,7 @@ export function ReadingToolbar({
         aria-checked={highlighterOn}
         onClick={() => setHighlighterOn(!highlighterOn)}
         className={cn(
-          "inline-flex min-h-9 items-center gap-2 rounded-lg px-3 text-sm font-semibold transition",
+          "inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-semibold transition",
           highlighterOn
             ? "bg-[#FFE58A] text-ink ring-2 ring-[#E6C200]/60"
             : "border border-ink/15 bg-white text-ink hover:bg-mist/40",
@@ -240,7 +240,7 @@ export function renderMarkedText(
     const swatch = colorForPerson(h.mark.personKey || h.mark.personName);
     const who = h.mark.personName || "Someone";
     const when = h.mark.createdAt ? formatWhen(h.mark.createdAt) : "";
-    const tip = [who, when].filter(Boolean).join(" · ");
+    const tip = [who, when].filter(Boolean).join(", ");
     if (h.mark.kind === "highlight") {
       nodes.push(
         <mark

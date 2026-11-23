@@ -164,7 +164,7 @@ export function SaveShareMenu({
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((v) => !v)}
-        className="rounded-xl border border-[#E3E5E9] bg-white px-3 py-2 text-sm font-semibold"
+        className="inline-flex min-h-11 items-center rounded-xl border border-[#E3E5E9] bg-white px-3 py-2 text-sm font-semibold"
       >
         Save or share
       </button>

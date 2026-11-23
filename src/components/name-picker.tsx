@@ -47,7 +47,7 @@ export function NamePicker({
                       aria-pressed={active}
                       onClick={() => onSelect(m.id)}
                       className={cn(
-                        "w-full rounded-xl border px-3 py-2.5 text-left text-sm transition",
+                        "min-h-11 w-full rounded-xl border px-3 py-2.5 text-left text-sm transition",
                         active
                           ? "border-ink bg-ink font-semibold text-white"
                           : "border-mist bg-white text-ink hover:border-ink/20",
@@ -75,7 +75,7 @@ export function NamePicker({
                 aria-pressed={selectedId === m.id}
                 onClick={() => onSelect(m.id)}
                 className={cn(
-                  "rounded-xl border px-4 py-2.5 text-sm transition",
+                  "min-h-11 rounded-xl border px-4 py-2.5 text-sm transition",
                   selectedId === m.id
                     ? "border-ink bg-ink font-semibold text-white"
                     : "border-mist bg-white text-ink",

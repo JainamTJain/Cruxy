@@ -413,7 +413,7 @@ export function SessionClient() {
               <button
                 type="button"
                 onClick={() => setCodeHidden((h) => !h)}
-                className="h-9 rounded-[10px] border border-[#3B404A] px-3 text-[13px] font-semibold text-white"
+                className="min-h-11 rounded-[10px] border border-[#3B404A] px-3 text-[13px] font-semibold text-white"
               >
                 {codeHidden ? "Show" : "Hide"}
               </button>
@@ -573,7 +573,7 @@ export function SessionClient() {
                     </div>
                     <button
                       type="button"
-                      className="h-10 self-start rounded-[10px] border border-line bg-white px-3.5 text-sm font-semibold"
+                      className="min-h-11 self-start rounded-[10px] border border-line bg-white px-3.5 text-sm font-semibold"
                       onClick={() =>
                         setMsg("Add judges from the Judging portal with the code.")
                       }
@@ -659,7 +659,7 @@ export function SessionClient() {
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <select
-                    className="h-10 min-w-[160px] rounded-xl border border-line bg-white px-3 text-sm"
+                    className="min-h-11 min-w-[160px] rounded-xl border border-line bg-white px-3 text-sm"
                     value={inviteTeamId}
                     onChange={(e) => setInviteTeamId(e.target.value)}
                   >
@@ -672,7 +672,7 @@ export function SessionClient() {
                   </select>
                   <button
                     type="button"
-                    className="h-10 rounded-xl bg-ink px-4 text-sm font-semibold text-white"
+                    className="min-h-11 rounded-xl bg-ink px-4 text-sm font-semibold text-white"
                     onClick={() => {
                       if (!inviteTeamId || !session) return;
                       void fetch("/api/practice/invite", {
@@ -726,7 +726,7 @@ export function SessionClient() {
                 type="button"
                 disabled={hereBusy || selfPresent}
                 onClick={() => void imHere()}
-                className="mb-2 h-10 rounded-xl bg-cardinal px-3 text-sm font-semibold text-white disabled:opacity-50"
+                className="mb-2 min-h-11 rounded-xl bg-cardinal px-3 text-sm font-semibold text-white disabled:opacity-50"
               >
                 {selfPresent
                   ? "You're here"
@@ -776,8 +776,8 @@ export function SessionClient() {
                             onClick={() => void setAtt(p.id, s)}
                             className={
                               a.status === s
-                                ? "h-[30px] rounded-md bg-white px-2.5 text-xs font-semibold capitalize text-ink"
-                                : "h-[30px] rounded-md px-2.5 text-xs font-semibold capitalize text-muted"
+                                ? "min-h-11 rounded-md bg-white px-2.5 text-xs font-semibold capitalize text-ink"
+                                : "min-h-11 rounded-md px-2.5 text-xs font-semibold capitalize text-muted"
                             }
                           >
                             {s}

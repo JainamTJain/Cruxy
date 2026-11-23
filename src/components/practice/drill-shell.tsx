@@ -25,17 +25,21 @@ export function DrillShell({
         <div className="flex items-center justify-between">
           <Link
             href="/practice"
-            className="font-display text-[26px] font-extrabold tracking-[-0.03em]"
+            className="inline-flex min-h-11 items-center font-display text-[26px] font-extrabold tracking-[-0.03em]"
+            aria-label="Back to practice"
           >
             crux
           </Link>
           {recording ? (
-            <span className="flex items-center gap-1.5 text-xs font-bold text-[#C62828]">
+            <span className="flex min-h-11 items-center gap-1.5 text-xs font-bold text-[#C62828]">
               <span className="h-2 w-2 rounded-full bg-[#C62828]" />
               REC
             </span>
           ) : (
-            <Link href="/practice" className="text-xs text-[#8C929D]">
+            <Link
+              href="/practice"
+              className="inline-flex min-h-11 items-center text-sm text-[#C9CCD3]"
+            >
               Exit
             </Link>
           )}
@@ -45,7 +49,7 @@ export function DrillShell({
             {eyebrow}
           </span>
           {subtitle ? (
-            <span className="text-[13px] text-[#8C929D]">{subtitle}</span>
+            <span className="text-[13px] text-[#C9CCD3]">{subtitle}</span>
           ) : null}
         </div>
         <div className="flex flex-1 flex-col gap-4">{children}</div>

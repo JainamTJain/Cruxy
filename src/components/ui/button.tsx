@@ -15,10 +15,10 @@ const buttonVariants = cva(
         ghost: "text-ink hover:bg-ink/5",
       },
       size: {
-        default: "h-11 px-5",
-        sm: "h-9 px-3 text-xs",
-        lg: "h-12 px-6 text-base",
-        key: "h-14 w-full text-lg font-semibold",
+        default: "min-h-11 h-11 px-5",
+        sm: "min-h-11 h-11 px-3 text-xs",
+        lg: "min-h-12 h-12 px-6 text-base",
+        key: "min-h-14 h-14 w-full text-lg font-semibold",
       },
     },
     defaultVariants: {

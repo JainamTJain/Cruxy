@@ -224,7 +224,7 @@ export function ExtraReadingSection({
               {item.origin === "shared" ? (
                 <span className="text-[11px] text-muted">
                   From another team
-                  {item.team_name ? ` · ${item.team_name}` : ""}
+                  {item.team_name ? `, ${item.team_name}` : ""}
                 </span>
               ) : null}
               {item.origin === "own" && item.shared ? (
@@ -326,7 +326,7 @@ export function ExtraReadingSection({
           <button
             type="submit"
             disabled={busy || !title.trim()}
-            className="mt-3 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+            className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
           >
             Add to Extra reading
           </button>

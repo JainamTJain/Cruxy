@@ -134,7 +134,7 @@ export default function SocraticPage() {
           <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
             Team
             <select
-              className="w-full max-w-full rounded-xl border border-ink/15 bg-white/80 px-3 py-2 text-sm text-ink sm:w-auto sm:max-w-md"
+              className="min-h-11 w-full max-w-full rounded-xl border border-ink/15 bg-white/80 px-3 py-2 text-sm text-ink sm:w-auto sm:max-w-md"
               value={teamId}
               onChange={(e) => setTeamId(e.target.value)}
               disabled={busy}
@@ -149,7 +149,7 @@ export default function SocraticPage() {
           <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
             Case
             <select
-              className="w-full max-w-full rounded-xl border border-ink/15 bg-white/80 px-3 py-2 text-sm text-ink sm:w-auto sm:max-w-md"
+              className="min-h-11 w-full max-w-full rounded-xl border border-ink/15 bg-white/80 px-3 py-2 text-sm text-ink sm:w-auto sm:max-w-md"
               value={caseId}
               onChange={(e) => setCaseId(e.target.value)}
               disabled={busy}

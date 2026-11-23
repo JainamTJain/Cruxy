@@ -416,7 +416,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
         {!embedded ? (
           <Link
             href={`/case-brain/${caseId}?teamId=${teamId}`}
-            className="text-sm font-semibold"
+            className="inline-flex min-h-11 items-center text-sm font-semibold"
           >
             Back to the case
           </Link>
@@ -439,7 +439,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                 type="button"
                 disabled={busy}
                 onClick={() => void draft()}
-                className="h-10 rounded-[10px] border border-[#C9CCD3] bg-white px-3.5 text-[13px] font-semibold disabled:opacity-50"
+                className="min-h-11 rounded-[10px] border border-[#C9CCD3] bg-white px-3.5 text-[13px] font-semibold disabled:opacity-50"
               >
                 Ask Cruxy to re-draft
               </button>
@@ -447,7 +447,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                 type="button"
                 disabled={busy || emptyRows.length > 0}
                 onClick={() => void signOff()}
-                className="h-10 rounded-[10px] bg-ink px-3.5 text-[13px] font-semibold text-white disabled:opacity-50"
+                className="min-h-11 rounded-[10px] bg-ink px-3.5 text-[13px] font-semibold text-white disabled:opacity-50"
               >
                 Sign off v{page.version}
               </button>
@@ -455,7 +455,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
           ) : null}
           <button
             type="button"
-            className="h-10 rounded-[10px] border border-[#C9CCD3] bg-white px-3.5 text-[13px] font-semibold"
+            className="min-h-11 rounded-[10px] border border-[#C9CCD3] bg-white px-3.5 text-[13px] font-semibold"
             onClick={() => {
               setVersionsOpen((v) => !v);
               if (!versionsOpen) void loadVersions();
@@ -475,7 +475,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
         <label className="flex flex-col gap-1 text-xs text-muted print:hidden">
           Change note (optional)
           <input
-            className="h-9 rounded-xl border border-ink/15 bg-white px-3 text-sm text-ink"
+            className="min-h-11 rounded-xl border border-ink/15 bg-white px-3 text-sm text-ink"
             value={changeNote}
             onChange={(e) => setChangeNote(e.target.value)}
             placeholder={`Edited by ${viewerName}`}
@@ -512,7 +512,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                   <button
                     type="button"
                     disabled={busy}
-                    className="h-8 rounded-lg bg-ink px-3 text-xs font-semibold text-white disabled:opacity-50"
+                    className="min-h-11 rounded-lg bg-ink px-3 text-xs font-semibold text-white disabled:opacity-50"
                     onClick={() => void restore(v.id)}
                   >
                     Restore
@@ -608,7 +608,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                 {canEdit && page.body.claims.length > 1 ? (
                   <button
                     type="button"
-                    className="text-xs font-semibold text-cardinal underline"
+                    className="inline-flex min-h-11 items-center text-xs font-semibold text-cardinal underline"
                     onClick={() => {
                       const claims = page.body.claims.filter((_, j) => j !== i);
                       void saveBody({ ...page.body, claims });
@@ -670,7 +670,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                       {canEdit && c.supports.length > 1 ? (
                         <button
                           type="button"
-                          className="text-[11px] text-cardinal underline"
+                          className="inline-flex min-h-11 items-center text-[11px] text-cardinal underline"
                           onClick={() => {
                             const claims = page.body.claims.map((row, ci) => {
                               if (ci !== i) return row;

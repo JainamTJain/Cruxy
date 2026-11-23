@@ -188,7 +188,7 @@ export function ThreadInline({
     >
       <button
         type="button"
-        className="text-[12px] font-semibold text-cardinal underline"
+        className="inline-flex min-h-11 items-center text-[12px] font-semibold text-cardinal underline"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
@@ -237,7 +237,7 @@ export function ThreadInline({
             ) : null}
             <div className="flex gap-2">
               <input
-                className="h-9 min-w-0 flex-1 rounded-lg border border-mist bg-white px-2 text-sm"
+                className="min-h-11 min-w-0 flex-1 rounded-lg border border-mist bg-white px-2 text-sm"
                 value={draft}
                 disabled={busy}
                 placeholder="Reply… type @ to mention"

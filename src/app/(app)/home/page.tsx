@@ -358,7 +358,10 @@ export default function HomePage() {
               Readiness per team, leads, latest
             </span>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+            <p className="m-0 px-5 pb-2 text-[12px] text-muted sm:hidden">
+              Swipe sideways to see every team.
+            </p>
             <div className="min-w-[760px]">
               <div className="grid grid-cols-[220px_repeat(3,minmax(0,1fr))] border-t border-[#E3E5E9] bg-[#F7F8FA] text-[13px] font-bold">
                 <span className="px-5 py-2.5">Case</span>
@@ -444,7 +447,7 @@ export default function HomePage() {
                   {s.invitePending ? (
                     <button
                       type="button"
-                      className="h-10 rounded-xl bg-ink px-4 text-sm font-semibold text-white"
+                      className="min-h-11 rounded-xl bg-ink px-4 text-sm font-semibold text-white"
                       onClick={() => {
                         void fetch("/api/practice/invite", {
                           method: "POST",
@@ -464,7 +467,7 @@ export default function HomePage() {
                   ) : (
                     <Link
                       href={s.href}
-                      className="inline-flex h-10 items-center justify-center rounded-xl bg-cardinal px-4 text-sm font-semibold text-white"
+                      className="inline-flex min-h-11 items-center justify-center rounded-xl bg-cardinal px-4 text-sm font-semibold text-white"
                     >
                       Join as {s.screen}
                     </Link>

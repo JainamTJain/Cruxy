@@ -322,7 +322,7 @@ export function GuidedTour() {
         <div className="mt-3 flex items-center gap-2">
           <button
             type="button"
-            className="h-9 rounded-lg px-2 text-xs font-semibold text-muted underline"
+            className="min-h-11 rounded-lg px-2 text-xs font-semibold text-muted underline"
             onClick={() => close("skipped")}
           >
             Skip tour
@@ -331,7 +331,7 @@ export function GuidedTour() {
           {index > 0 ? (
             <button
               type="button"
-              className="h-9 rounded-lg border border-ink/15 px-3 text-xs font-semibold"
+              className="min-h-11 rounded-lg border border-ink/15 px-3 text-xs font-semibold"
               onClick={back}
             >
               Back
@@ -340,7 +340,7 @@ export function GuidedTour() {
           <button
             ref={nextRef}
             type="button"
-            className="h-9 rounded-lg bg-ink px-4 text-xs font-semibold text-white"
+            className="min-h-11 rounded-lg bg-ink px-4 text-xs font-semibold text-white"
             onClick={next}
           >
             {index === 0 ? "Show me around" : last ? "Go to Today" : "Next"}

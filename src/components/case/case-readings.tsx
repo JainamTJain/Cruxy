@@ -183,7 +183,7 @@ export function CaseReadings({
               <button
                 type="button"
                 onClick={() => setOpenFull(expanded ? null : f.id)}
-                className="rounded-xl border border-[#E3E5E9] bg-white px-3 py-2 text-sm font-semibold"
+                className="inline-flex min-h-11 items-center rounded-xl border border-[#E3E5E9] bg-white px-3 py-2 text-sm font-semibold"
               >
                 {expanded ? "Hide full text" : "Open in place"}
               </button>

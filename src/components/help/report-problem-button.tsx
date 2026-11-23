@@ -95,8 +95,8 @@ export function ReportProblemButton({
         }}
         className={cn(
           placement === "header"
-            ? "rounded-lg px-2 py-1 text-sm font-semibold text-white/85 hover:bg-white/10"
-            : "self-start rounded-lg px-1.5 py-1 text-xs font-medium text-[#9AA0AA] underline-offset-2 hover:bg-white/10 hover:text-white hover:underline",
+            ? "inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-2.5 text-sm font-semibold text-white/85 hover:bg-white/10"
+            : "self-start inline-flex min-h-11 items-center rounded-lg px-1.5 py-1 text-xs font-medium text-[#9AA0AA] underline-offset-2 hover:bg-white/10 hover:text-white hover:underline",
         )}
         aria-label="Report a problem or suggest something"
       >
@@ -118,7 +118,7 @@ export function ReportProblemButton({
                 </p>
                 <button
                   type="button"
-                  className="mt-4 h-10 rounded-xl bg-ink px-4 text-sm font-semibold text-white"
+                  className="mt-4 min-h-11 rounded-xl bg-ink px-4 text-sm font-semibold text-white"
                   onClick={() => setOpen(false)}
                 >
                   Close
@@ -137,7 +137,7 @@ export function ReportProblemButton({
                   <button
                     type="button"
                     className={cn(
-                      "h-9 flex-1 rounded-lg text-sm font-semibold",
+                      "min-h-11 flex-1 rounded-lg text-sm font-semibold",
                       kind === "problem"
                         ? "bg-cardinal text-white"
                         : "bg-[#F7F8FA] text-ink",
@@ -149,7 +149,7 @@ export function ReportProblemButton({
                   <button
                     type="button"
                     className={cn(
-                      "h-9 flex-1 rounded-lg text-sm font-semibold",
+                      "min-h-11 flex-1 rounded-lg text-sm font-semibold",
                       kind === "suggestion"
                         ? "bg-cardinal text-white"
                         : "bg-[#F7F8FA] text-ink",
@@ -197,14 +197,14 @@ export function ReportProblemButton({
                   <button
                     type="button"
                     disabled={busy || !whatDoing.trim()}
-                    className="h-10 rounded-xl bg-ink px-4 text-sm font-semibold text-white disabled:opacity-50"
+                    className="min-h-11 rounded-xl bg-ink px-4 text-sm font-semibold text-white disabled:opacity-50"
                     onClick={() => void submit()}
                   >
                     {busy ? "Sending…" : "Send to Jainam"}
                   </button>
                   <button
                     type="button"
-                    className="h-10 rounded-xl px-3 text-sm text-muted underline"
+                    className="min-h-11 rounded-xl px-3 text-sm text-muted underline"
                     onClick={() => setOpen(false)}
                   >
                     Cancel

@@ -39,28 +39,34 @@ function OnePagersInner() {
       </PageIntro>
 
       <div className="flex flex-wrap gap-3 print:hidden">
-        <select
-          className="rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm"
-          value={teamId}
-          onChange={(e) => setTeamId(e.target.value)}
-        >
-          {teams.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-        <select
-          className="rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm"
-          value={caseId}
-          onChange={(e) => setCaseId(e.target.value)}
-        >
-          {cases.map((c) => (
-            <option key={c.id} value={c.id}>
-              {String(c.number).padStart(2, "0")} {c.title}
-            </option>
-          ))}
-        </select>
+        <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs font-semibold text-muted">
+          Team
+          <select
+            className="min-h-11 rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm text-ink"
+            value={teamId}
+            onChange={(e) => setTeamId(e.target.value)}
+          >
+            {teams.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex min-w-[12rem] flex-[2] flex-col gap-1 text-xs font-semibold text-muted">
+          Case
+          <select
+            className="min-h-11 rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm text-ink"
+            value={caseId}
+            onChange={(e) => setCaseId(e.target.value)}
+          >
+            {cases.map((c) => (
+              <option key={c.id} value={c.id}>
+                {String(c.number).padStart(2, "0")} {c.title}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {teamId && caseId ? (

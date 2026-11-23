@@ -85,7 +85,7 @@ export function MinutesSessionPicker({
             key={b}
             type="button"
             onClick={() => pick(b)}
-            className={`h-10 rounded-xl px-4 text-sm font-semibold ${
+            className={`min-h-11 rounded-xl px-4 text-sm font-semibold ${
               budget === b
                 ? "bg-ink text-white"
                 : "border border-mist bg-white text-ink"
@@ -122,7 +122,7 @@ export function MinutesSessionPicker({
               </div>
               <Link
                 href={block.href}
-                className="inline-flex h-9 shrink-0 items-center justify-center rounded-xl bg-ink px-3 text-sm font-semibold text-white"
+                className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-ink px-3 text-sm font-semibold text-white"
               >
                 Start
               </Link>

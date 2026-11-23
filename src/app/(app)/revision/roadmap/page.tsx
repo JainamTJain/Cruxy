@@ -368,7 +368,7 @@ export default function RoadmapPage() {
                   ? `/case-brain/${activeCase.case.id}`
                   : STAGE_HREF[nextAction.stage]!
               }
-              className="mt-3 inline-flex h-10 items-center rounded-xl bg-cardinal px-4 text-sm font-semibold text-white"
+              className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-cardinal px-4 text-sm font-semibold text-white"
             >
               Go do it
             </Link>
@@ -385,7 +385,7 @@ export default function RoadmapPage() {
       <label className="text-xs font-semibold text-muted">
         Case
         <select
-          className="mt-1 block h-10 w-full max-w-md rounded-xl border border-mist bg-white px-3 text-sm text-ink"
+          className="mt-1 block min-h-11 w-full max-w-md rounded-xl border border-mist bg-white px-3 text-sm text-ink"
           value={activeCase?.case.id ?? ""}
           onChange={(e) => setCaseId(e.target.value)}
         >
@@ -498,7 +498,7 @@ export default function RoadmapPage() {
                   {STAGE_LABELS[id]}
                   <input
                     type="date"
-                    className="mt-1 block h-10 w-full rounded-xl border border-mist px-3 text-sm text-ink"
+                    className="mt-1 block min-h-11 w-full rounded-xl border border-mist px-3 text-sm text-ink"
                     value={draftDues[id] ?? ""}
                     onChange={(e) =>
                       setDraftDues((d) => ({ ...d, [id]: e.target.value }))
@@ -508,7 +508,7 @@ export default function RoadmapPage() {
               ))}
               <button
                 type="button"
-                className="mt-2 h-10 rounded-xl bg-ink px-4 text-sm font-semibold text-white sm:col-span-2 sm:w-fit"
+                className="mt-2 min-h-11 rounded-xl bg-ink px-4 text-sm font-semibold text-white sm:col-span-2 sm:w-fit"
                 onClick={() => void saveDeadlines()}
               >
                 Save for the team

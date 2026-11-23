@@ -185,7 +185,7 @@ export default function SoloReviewPage() {
                 <button
                   type="button"
                   onClick={() => void startLocalRecord()}
-                  className="h-10 rounded-xl bg-ink px-4 text-sm font-semibold text-white"
+                  className="min-h-11 rounded-xl bg-ink px-4 text-sm font-semibold text-white"
                 >
                   Record my part
                 </button>
@@ -193,7 +193,7 @@ export default function SoloReviewPage() {
                 <button
                   type="button"
                   onClick={stopLocalRecord}
-                  className="h-10 rounded-xl bg-[#C62828] px-4 text-sm font-semibold text-white"
+                  className="min-h-11 rounded-xl bg-[#C62828] px-4 text-sm font-semibold text-white"
                 >
                   Stop ({formatAt(elapsed * 1000)})
                 </button>
@@ -211,7 +211,7 @@ export default function SoloReviewPage() {
               <input
                 type="number"
                 min={0}
-                className="mt-1 h-10 w-full rounded-xl border border-mist px-3 text-sm"
+                className="mt-1 min-h-11 w-full rounded-xl border border-mist px-3 text-sm"
                 value={Math.floor(atMs / 1000)}
                 onChange={(e) =>
                   setAtMs(Math.max(0, Number(e.target.value) || 0) * 1000)
@@ -232,7 +232,7 @@ export default function SoloReviewPage() {
               type="button"
               disabled={busy || !body.trim()}
               onClick={() => void postComment()}
-              className="h-10 w-fit rounded-xl bg-ink px-4 text-sm font-semibold text-white disabled:opacity-50"
+              className="min-h-11 w-fit rounded-xl bg-ink px-4 text-sm font-semibold text-white disabled:opacity-50"
             >
               Leave comment at {formatAt(atMs)}
             </button>
