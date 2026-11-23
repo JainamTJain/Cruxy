@@ -138,6 +138,13 @@ export async function signIn(ctx, mode = "katie") {
     lastStatus = r.status();
     if (r.ok()) {
       await finishOnboarding(ctx);
+      // Journeys other than first sign in start with the tour already seen,
+      // so it can never cover a control they are about to click.
+      await ctx.addInitScript(() => {
+        try {
+          localStorage.setItem("crux-guided-tour-v2", "1");
+        } catch {}
+      });
       if (adminView) {
         await ctx.request.post(`${BASE}/api/auth/admin-view`, {
           data: { adminView: true },

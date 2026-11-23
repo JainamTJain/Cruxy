@@ -57,11 +57,17 @@ export async function run(browser) {
     await expectNoCrash(page, "seeded report");
   }
 
+  // The report may show a short "judging" state before the content lands.
   const reportSignal = await page
     .getByText(/report|feedback|score|headline|Cruxy|reflection/i)
     .first()
-    .isVisible()
+    .waitFor({ state: "visible", timeout: 30_000 })
+    .then(() => true)
     .catch(() => false);
+  if (!reportSignal) {
+    await page.screenshot({ path: "/tmp/e2e-report-empty.png", fullPage: true }).catch(() => undefined);
+    console.log("  · report text:", (await page.locator("body").innerText().catch(() => "")).slice(0, 400));
+  }
   assert(reportSignal, "Report page empty");
 
   await ctx.close();

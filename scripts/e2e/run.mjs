@@ -102,7 +102,17 @@ async function main() {
 
     const journeys = await loadJourneys();
     assertJourneys(journeys);
-    const browser = await chromium.launch({ headless: true });
+    // PW_CHROMIUM_PATH lets machines with a system Chrome run the journeys
+    // without downloading Playwright's browser.
+    const browser = await chromium.launch({
+      headless: true,
+      ...(process.env.PW_CHROMIUM_PATH
+        ? {
+            executablePath: process.env.PW_CHROMIUM_PATH,
+            args: ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+          }
+        : {}),
+    });
 
     for (const j of journeys) {
       console.log(`\n▶ ${j.name}`);
