@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { requireSession } from "@/lib/auth/require-session";
+import {
+  requireSession,
+  requireTechAdmin,
+} from "@/lib/auth/require-session";
 import {
   DRIVE_READER_EMAIL,
   getDriveConfigStatus,
@@ -9,8 +12,9 @@ import {
   driveWriteEnabled,
   driveWriteStatusMessage,
 } from "@/lib/library/drive-write";
-import { runDriveSync } from "@/lib/library/sync";
+import { runDriveSync, SyncBusyError } from "@/lib/library/sync";
 import { latestSyncRun } from "@/lib/db/library-repository";
+import { getPersonById } from "@/lib/db/repository";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -30,12 +34,15 @@ const CONNECT_STEPS = [
 export async function GET() {
   const auth = await requireSession();
   if ("error" in auth) return auth.error;
+  const person = await getPersonById(auth.session.personId);
+  const canSync =
+    person?.role === "tech_admin" && Boolean(auth.session.adminView);
   const status = getDriveConfigStatus();
   const latest = await latestSyncRun();
   return NextResponse.json({
     drive: status,
     latest,
-    canSync: auth.session.role === "tech_admin",
+    canSync,
     writeEnabled: driveWriteEnabled(),
     writeMessage: driveWriteStatusMessage(),
     connectSteps: CONNECT_STEPS,
@@ -48,7 +55,10 @@ export async function GET() {
 export async function POST() {
   const auth = await requireSession();
   if ("error" in auth) return auth.error;
-  if (auth.session.role !== "tech_admin") {
+  const denied = requireTechAdmin(auth.session);
+  if (denied) return denied;
+  const person = await getPersonById(auth.session.personId);
+  if (!person || person.role !== "tech_admin") {
     return NextResponse.json({ error: "Tech admin only" }, { status: 403 });
   }
 
@@ -76,6 +86,12 @@ export async function POST() {
       { status: failed ? 502 : 200 },
     );
   } catch (err) {
+    if (err instanceof SyncBusyError) {
+      return NextResponse.json(
+        { ok: false, error: err.message, code: "sync_busy" },
+        { status: 409 },
+      );
+    }
     if (err instanceof DriveAccessError) {
       return NextResponse.json(
         {

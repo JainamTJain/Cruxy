@@ -13,7 +13,9 @@ export type LibraryFileStatus =
   | "pending"
   | "digested"
   | "sorting_queue"
-  | "error";
+  | "error"
+  /** Gone from Drive; hidden from the library list. */
+  | "removed";
 
 export interface LibraryFile {
   id: string;
@@ -224,6 +226,8 @@ export interface DriveListedFile {
   mime: string;
   modified_at: string;
   checksum: string;
+  /** Bytes from Drive when known; used to skip very large binaries. */
+  size_bytes?: number | null;
   /** Pre-extracted text when listing from sample stubs. */
   text_content?: string;
 }
@@ -232,3 +236,5 @@ export const SORTING_CONFIDENCE_THRESHOLD = 0.7;
 export const PASSAGE_TARGET_WORDS = 600;
 /** Matches passages.embedding vector(1536) and openai/text-embedding-3-small. */
 export const EMBEDDING_DIM = 1536;
+/** Skip downloading / buffering Drive files above this size (40 MB). */
+export const MAX_DRIVE_FILE_BYTES = 40 * 1024 * 1024;

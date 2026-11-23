@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { authorizeCron } from "@/lib/library/cron-auth";
 import { DriveAccessError } from "@/lib/library/drive";
-import { runDriveSync } from "@/lib/library/sync";
+import { runDriveSync, SyncBusyError } from "@/lib/library/sync";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -34,6 +34,12 @@ export async function GET(req: Request) {
       searchIndexed,
     }, { status: failed ? 502 : 200 });
   } catch (err) {
+    if (err instanceof SyncBusyError) {
+      return NextResponse.json(
+        { ok: false, error: err.message, code: "sync_busy" },
+        { status: 409 },
+      );
+    }
     if (err instanceof DriveAccessError) {
       return NextResponse.json(
         { ok: false, error: err.message, code: err.code },
