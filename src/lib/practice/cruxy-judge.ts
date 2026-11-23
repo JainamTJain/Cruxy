@@ -19,6 +19,7 @@ import {
 } from "@/lib/practice/judge-grounding";
 import { ensureCruxyJudgeQa } from "@/lib/practice/judge-qa";
 import { countHumanCards } from "@/lib/db/supabase/judge-card-extra";
+import { findJudgeCard, getReport } from "@/lib/db/practice-repository";
 import { nowIso } from "@/lib/utils";
 
 export type CruxyJudgeOutput = {
@@ -131,11 +132,25 @@ export async function runCruxyJudge(opts: {
     personId: opts.personId,
   });
 
-  if (!judged.scores.length && !opts.lines.length) {
-    return emptyOutput(opts.round.id);
+  if (!opts.lines.length) {
+    return emptyOutput(
+      opts.round.id,
+      "No transcript yet. End the round again after recording finishes.",
+    );
   }
 
-  return buildFromAgent({
+  // Only treat a refused / timed-out call as failure. Fixture stubs may briefly
+  // have empty kept scores before remap; buildFromAgent still writes cards.
+  if (judged.failed) {
+    return failedOutput(
+      opts.round.id,
+      judged.headline ??
+        judged.failReason ??
+        "Cruxy could not finish judging. Human cards still count.",
+    );
+  }
+
+  return await buildFromAgent({
     round: opts.round,
     lines: opts.lines,
     scored,
@@ -143,7 +158,7 @@ export async function runCruxyJudge(opts: {
   });
 }
 
-function emptyOutput(roundId: string): CruxyJudgeOutput {
+function emptyOutput(roundId: string, headline: string): CruxyJudgeOutput {
   return {
     cards: [],
     scores: [],
@@ -152,7 +167,7 @@ function emptyOutput(roundId: string): CruxyJudgeOutput {
     report: {
       id: randomUUID(),
       round_id: roundId,
-      headline: "Judging paused. Monthly Cruxy spend cap reached.",
+      headline,
       socratic_followups: [],
       proposal_ids: [],
       created_at: nowIso(),
@@ -161,12 +176,33 @@ function emptyOutput(roundId: string): CruxyJudgeOutput {
   };
 }
 
-function buildFromAgent(opts: {
+function failedOutput(roundId: string, headline: string): CruxyJudgeOutput {
+  return {
+    cards: [],
+    scores: [],
+    feedback: [],
+    redos: [],
+    report: {
+      id: randomUUID(),
+      round_id: roundId,
+      headline,
+      socratic_followups: [
+        "What part of your presentation felt weakest to you?",
+        "Which judge question would you redo first?",
+      ],
+      proposal_ids: [],
+      created_at: nowIso(),
+    },
+    stub: true,
+  };
+}
+
+async function buildFromAgent(opts: {
   round: PracticeRound;
   lines: TranscriptLine[];
   scored: AppeItemKey[];
   judged: Awaited<ReturnType<typeof runJudgeAgent>>;
-}): CruxyJudgeOutput {
+}): Promise<CruxyJudgeOutput> {
   const at = nowIso();
   const cards: JudgeCard[] = [];
   const scores: CardScore[] = [];
@@ -175,6 +211,7 @@ function buildFromAgent(opts: {
 
   const realLineIds = opts.lines.map((l) => l.id);
   const firstLineId = realLineIds[0] ?? null;
+  const prior = await getReport(opts.round.id);
 
   /** Map agent / fixture citation ids onto real transcript line ids. */
   function resolveLineId(candidate: string | null | undefined): string | null {
@@ -183,8 +220,14 @@ function buildFromAgent(opts: {
   }
 
   for (const teamId of opts.round.team_ids) {
+    const existing =
+      (await findJudgeCard({
+        roundId: opts.round.id,
+        teamId,
+        cruxy: true,
+      })) ?? null;
     const card: JudgeCard = {
-      id: randomUUID(),
+      id: existing?.id ?? randomUUID(),
       round_id: opts.round.id,
       judge_id: null,
       cruxy: true,
@@ -196,7 +239,7 @@ function buildFromAgent(opts: {
       predictions: null,
       calibration_note: null,
       calibration_use: null,
-      created_at: at,
+      created_at: existing?.created_at ?? at,
       created_by: null,
     };
     cards.push(card);
@@ -226,6 +269,32 @@ function buildFromAgent(opts: {
   }
 
   const displayScores = filterDisplayableScores(scores, true);
+
+  // Re-finalize: keep existing personal feedback rather than duplicating rows.
+  if (prior.feedback.length > 0) {
+    const reportReuse: RoundReport = {
+      id: prior.report?.id ?? randomUUID(),
+      round_id: opts.round.id,
+      headline:
+        opts.judged.headline ??
+        prior.report?.headline ??
+        "Biggest fix: name the moral tension in the first 30 seconds, then support it.",
+      socratic_followups:
+        opts.judged.socratic_followups?.length
+          ? opts.judged.socratic_followups
+          : (prior.report?.socratic_followups ?? []),
+      proposal_ids: prior.report?.proposal_ids ?? [],
+      created_at: prior.report?.created_at ?? at,
+    };
+    return {
+      cards,
+      scores: displayScores,
+      feedback: prior.feedback,
+      redos: prior.redos,
+      report: reportReuse,
+      stub: opts.judged.stub,
+    };
+  }
 
   for (const sf of opts.judged.speaker_feedback) {
     const quoteId =
@@ -271,8 +340,9 @@ function buildFromAgent(opts: {
     });
   }
 
-  if (feedback.length === 0) {
-    // Fallback personal feedback when the agent gave none
+  // Only invent personal feedback when the agent produced real scores (fixtures /
+  // live success) but omitted speaker_feedback. Never invent after a failed call.
+  if (feedback.length === 0 && displayScores.length > 0 && !opts.judged.stub) {
     const speakers = [
       ...new Set(
         opts.lines
@@ -283,8 +353,7 @@ function buildFromAgent(opts: {
     const people =
       speakers.length > 0
         ? speakers
-        : // Still produce one fix citing the first line so the bank and redos work.
-          [opts.lines[0]?.speaker_person_id ?? "speaker-unknown"];
+        : [opts.lines[0]?.speaker_person_id ?? "speaker-unknown"];
     for (const personId of people) {
       const quote =
         opts.lines.find((l) => l.speaker_person_id === personId) ??
@@ -319,15 +388,60 @@ function buildFromAgent(opts: {
     }
   }
 
+  // Fixture path (stub with scores) still needs personal sections for demos.
+  if (feedback.length === 0 && displayScores.length > 0 && opts.judged.stub) {
+    const quote = opts.lines[0];
+    if (quote) {
+      const personId = quote.speaker_person_id ?? "speaker-unknown";
+      const fix: FeedbackItem = {
+        id: randomUUID(),
+        round_id: opts.round.id,
+        person_id: personId,
+        kind: "fix",
+        quote_line_id: quote.id,
+        scoring_item: "presentation_b",
+        reasoning:
+          "The moral tension was named late; judges heard a policy answer before the ethical stake.",
+        better_version:
+          "Lead with the values in tension, then one support that shows why the principle fits this case.",
+        audience_heard: "A practical fix without the ethical claim up front.",
+        created_at: at,
+      };
+      const worked: FeedbackItem = {
+        id: randomUUID(),
+        round_id: opts.round.id,
+        person_id: personId,
+        kind: "worked",
+        quote_line_id: quote.id,
+        scoring_item: "presentation_a",
+        reasoning: "Clear structure and respectful tone throughout.",
+        better_version: null,
+        audience_heard: null,
+        created_at: at,
+      };
+      feedback.push(worked, fix);
+      redos.push({
+        id: randomUUID(),
+        feedback_item_id: fix.id,
+        person_id: fix.person_id,
+        transcript_ref: quote.id,
+        score_before: 6,
+        score_after: null,
+        open: true,
+        created_at: at,
+      });
+    }
+  }
+
   const report: RoundReport = {
-    id: randomUUID(),
+    id: prior.report?.id ?? randomUUID(),
     round_id: opts.round.id,
     headline:
       opts.judged.headline ??
       "Biggest fix: name the moral tension in the first 30 seconds, then support it.",
     socratic_followups: opts.judged.socratic_followups,
-    proposal_ids: [],
-    created_at: at,
+    proposal_ids: prior.report?.proposal_ids ?? [],
+    created_at: prior.report?.created_at ?? at,
   };
 
   return {

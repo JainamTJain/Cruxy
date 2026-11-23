@@ -109,6 +109,14 @@ export default function RoundReportPage() {
   const [doThisMsg, setDoThisMsg] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [peerMsg, setPeerMsg] = useState<string | null>(null);
+  const [redoMsg, setRedoMsg] = useState<string | null>(null);
+  const [statusMeta, setStatusMeta] = useState<{
+    status: string;
+    title: string;
+    body: string;
+  } | null>(null);
+  const [personOnly, setPersonOnly] = useState(false);
 
   async function refresh() {
     setLoadError(null);
@@ -119,6 +127,13 @@ export default function RoundReportPage() {
         setLoadError(rep.error ?? "Could not load this report.");
         setData(null);
         return;
+      }
+      if (rep.statusCopy) {
+        setStatusMeta({
+          status: rep.status ?? "ready",
+          title: rep.statusCopy.title,
+          body: rep.statusCopy.body,
+        });
       }
       setData(rep);
       if (!who && rep.feedback?.[0]) setWho(rep.feedback[0].person_id);
@@ -160,7 +175,8 @@ export default function RoundReportPage() {
     [data],
   );
 
-  const humanCard = data?.cards.find((c) => !c.cruxy);
+  const humanCards = (data?.cards ?? []).filter((c) => !c.cruxy);
+  const humanCard = humanCards[0];
   const cruxyCard = data?.cards.find((c) => c.cruxy);
   const humanJudgeName = humanCard
     ? data?.judges.find((j) => j.id === humanCard.judge_id)?.name ??
@@ -169,10 +185,21 @@ export default function RoundReportPage() {
       ]?.name ??
       "Judge"
     : "Judge";
+  const extraHumanCount = Math.max(0, humanCards.length - 1);
 
-  const humanTotal = (data?.scores ?? [])
-    .filter((s) => s.card_id === humanCard?.id)
-    .reduce((a, s) => a + s.score, 0);
+  // Per-card totals, then average when more than one human judge submitted.
+  const humanTotalsPerCard = humanCards.map((card) =>
+    (data?.scores ?? [])
+      .filter((s) => s.card_id === card.id)
+      .reduce((a, s) => a + s.score, 0),
+  );
+  const humanTotalAvg =
+    humanTotalsPerCard.length === 0
+      ? 0
+      : Math.round(
+          humanTotalsPerCard.reduce((a, n) => a + n, 0) /
+            humanTotalsPerCard.length,
+        );
   const cruxyTotal = (data?.scores ?? [])
     .filter((s) => s.card_id === cruxyCard?.id)
     .reduce((a, s) => a + s.score, 0);
@@ -194,13 +221,19 @@ export default function RoundReportPage() {
   const bank = data?.bank[0];
 
   const scoreRows = APPE_SCORE_ITEMS.map((item) => {
-    const h = data?.scores.find(
-      (s) => s.card_id === humanCard?.id && s.item === item.key,
+    const humanScores = (data?.scores ?? []).filter(
+      (s) =>
+        humanCards.some((c) => c.id === s.card_id) && s.item === item.key,
     );
+    const hAvg =
+      humanScores.length > 0
+        ? humanScores.reduce((a, s) => a + s.score, 0) / humanScores.length
+        : null;
+    const h = humanScores[0];
     const c = data?.scores.find(
       (s) => s.card_id === cruxyCard?.id && s.item === item.key,
     );
-    if (!h && !c) return null;
+    if (hAvg == null && !c) return null;
     const evidence = lineById[h?.evidence_line_ids[0] ?? c?.evidence_line_ids[0] ?? ""];
     return {
       key: item.key,
@@ -213,10 +246,11 @@ export default function RoundReportPage() {
             : item.key === "presentation_c"
               ? "C. Opposing viewpoints"
               : item.label,
-      h: h?.score ?? null,
+      h: hAvg != null ? Math.round(hAvg * 10) / 10 : null,
       c: c?.score ?? null,
       ts: evidence ? fmtMs(evidence.start_ms) : "No time",
       why: h?.comment ?? c?.comment ?? "",
+      humanN: humanScores.length,
     };
   }).filter(Boolean) as {
     key: string;
@@ -225,17 +259,34 @@ export default function RoundReportPage() {
     c: number | null;
     ts: string;
     why: string;
+    humanN: number;
   }[];
 
   async function doRedo(id: string) {
     setRedoRecording(true);
-    await fetch(`/api/practice/redos/${id}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    setRedoRecording(false);
-    await refresh();
+    setRedoMsg(null);
+    try {
+      const res = await fetch(`/api/practice/redos/${id}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setRedoMsg(d.error ?? "Could not score the redo. Try again.");
+        return;
+      }
+      setRedoMsg(
+        d.improved
+          ? "Redo scored higher. It stays in your drills this week."
+          : "Redo saved. It stays open until it scores higher.",
+      );
+      await refresh();
+    } catch {
+      setRedoMsg("Network error. Try the redo again when you are back online.");
+    } finally {
+      setRedoRecording(false);
+    }
   }
 
   async function addBank() {
@@ -298,7 +349,8 @@ export default function RoundReportPage() {
     teamId: string;
     scores: { item: string; score: number; comment?: string }[];
   }) {
-    await fetch("/api/practice/judging/score", {
+    setPeerMsg(null);
+    const res = await fetch("/api/practice/judging/score", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -308,6 +360,16 @@ export default function RoundReportPage() {
         peer: true,
       }),
     });
+    let d: { error?: string } = {};
+    try {
+      d = (await res.json()) as typeof d;
+    } catch {
+      d = {};
+    }
+    if (!res.ok) {
+      throw new Error(d.error ?? "Peer submit failed");
+    }
+    setPeerMsg("Peer card submitted.");
     await refresh();
   }
 
@@ -315,10 +377,12 @@ export default function RoundReportPage() {
     return (
       <main className="space-y-4">
         <h1 className="font-display text-3xl font-extrabold">Round report</h1>
-        <p className="text-sm text-cardinal">{loadError}</p>
+        <p className="text-sm text-cardinal" role="alert">
+          {loadError}
+        </p>
         <button
           type="button"
-          className="text-sm text-cardinal underline"
+          className="min-h-11 text-sm text-cardinal underline"
           onClick={() => void refresh()}
         >
           Try again
@@ -332,16 +396,30 @@ export default function RoundReportPage() {
   }
 
   if (!data.report) {
+    const copy = statusMeta ?? {
+      title: "No report yet",
+      body: "End the round from the session screen first.",
+    };
     return (
       <main className="space-y-4">
         <h1 className="font-display text-3xl font-extrabold">Round report</h1>
-        <p className="text-muted">
-          No report yet.{" "}
-          <Link href={`/practice/rounds/${params.id}`} className="text-cardinal underline">
-            End the round
-          </Link>{" "}
-          first.
-        </p>
+        <p className="font-medium">{copy.title}</p>
+        <p className="text-muted">{copy.body}</p>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href={`/practice/rounds/${params.id}`}
+            className="min-h-11 text-sm text-cardinal underline"
+          >
+            Open the round
+          </Link>
+          <button
+            type="button"
+            className="min-h-11 text-sm text-cardinal underline"
+            onClick={() => void refresh()}
+          >
+            Refresh
+          </button>
+        </div>
       </main>
     );
   }
@@ -384,10 +462,13 @@ export default function RoundReportPage() {
           {humanCard ? (
             <div className="rounded-2xl border-t-[5px] border-[#4F46E5] bg-white px-[18px] py-3.5">
               <div className="font-display text-[42px] font-extrabold leading-none">
-                {humanTotal}
+                {humanTotalAvg}
               </div>
               <div className="text-[13px] text-muted">
                 of 50, {humanJudgeName}
+                {extraHumanCount > 0
+                  ? ` and ${extraHumanCount} other judge${extraHumanCount === 1 ? "" : "s"}`
+                  : ""}
               </div>
             </div>
           ) : null}
@@ -403,6 +484,15 @@ export default function RoundReportPage() {
       </div>
 
       <CalibratedJudgeSummary calibrated={data.calibrated} />
+
+      {statusMeta && statusMeta.status === "judging_failed" ? (
+        <p
+          className="rounded-[16px] border border-cardinal/30 bg-[#FDECEC] px-4 py-3 text-sm text-cardinal"
+          role="status"
+        >
+          {statusMeta.body}
+        </p>
+      ) : null}
 
       <section className="flex flex-col gap-1.5 rounded-[20px] bg-white p-[22px]">
         <div className="flex flex-wrap items-baseline justify-between gap-2 pb-1.5">
@@ -435,16 +525,24 @@ export default function RoundReportPage() {
                 <span
                   className="absolute top-1 h-4 w-4 rounded-full bg-[#4F46E5]"
                   style={{ left: scorePos(row.h) }}
+                  title={`${humanJudgeName}: ${row.h}`}
+                  aria-label={`${humanJudgeName} scored ${row.h}`}
                 />
               ) : null}
               {row.c != null ? (
                 <span
                   className="absolute top-1 h-4 w-4 rounded bg-gold opacity-95"
                   style={{ left: scorePos(row.c) }}
+                  title={`Cruxy: ${row.c}`}
+                  aria-label={`Cruxy scored ${row.c}`}
                 />
               ) : null}
               <span className="absolute right-0 -top-1 font-mono text-[11px] font-semibold text-[#9AA0AA]">
                 10
+              </span>
+              <span className="sr-only">
+                {row.h != null ? `${humanJudgeName} ${row.h}. ` : ""}
+                {row.c != null ? `Cruxy ${row.c}.` : ""}
               </span>
             </span>
             <span className="text-[13px] leading-snug text-[#3B404A]">
@@ -562,6 +660,11 @@ export default function RoundReportPage() {
                 >
                   {redoRecording ? "Scoring…" : "Record the redo"}
                 </button>
+                {redoMsg ? (
+                  <p className="w-full text-sm text-[#C9CCD3]" role="status">
+                    {redoMsg}
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
@@ -676,7 +779,20 @@ export default function RoundReportPage() {
             </button>
             <button
               type="button"
-              className="h-11 rounded-xl border border-line bg-white px-[18px] text-sm font-semibold"
+              aria-pressed={personOnly}
+              onClick={() => {
+                setPersonOnly((v) => !v);
+                setBankMsg(
+                  personOnly
+                    ? "Bank entry will be shared with the team."
+                    : "Marked only for this person. Add to the bank still saves a private note for them.",
+                );
+              }}
+              className={
+                personOnly
+                  ? "h-11 rounded-xl border border-ink bg-ink px-[18px] text-sm font-semibold text-white"
+                  : "h-11 rounded-xl border border-line bg-white px-[18px] text-sm font-semibold"
+              }
             >
               Only for this person
             </button>
@@ -762,6 +878,11 @@ export default function RoundReportPage() {
           onSubmit={submitPeer}
           predictFirst
         />
+        {peerMsg ? (
+          <p className="mt-2 text-sm text-muted" role="status">
+            {peerMsg}
+          </p>
+        ) : null}
       </section>
     </main>
   );

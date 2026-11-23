@@ -1,28 +1,68 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { APPE_SCORE_ITEMS, type AppeItemKey } from "@/lib/practice/types";
 import { applicableItems, presentationTotal } from "@/lib/practice/appe-card";
 
 type TeamCol = { id: string; name: string; role: "presenting" | "commenting" };
 
 type Props = {
+  draftKey?: string;
   judgeName: string;
   caseNumber: number | null;
   roundLabel: string;
   teams: TeamCol[];
   hasCommentingTeam: boolean;
   hasJudgesQa: boolean;
-  onMarkMoment?: () => void;
+  onMarkMoment?: (note: string) => void;
   onSubmit: (payload: {
     teamId: string;
     scores: { item: AppeItemKey; score: number; comment?: string }[];
     spirit?: number;
     overallComment?: string;
+    moments?: { line_id: string; note: string }[];
   }) => Promise<void>;
 };
 
+type Draft = {
+  values: Record<string, Partial<Record<AppeItemKey, number>>>;
+  comments: Record<string, Partial<Record<AppeItemKey, string>>>;
+  spirit: number;
+  overall: string;
+  moments: { line_id: string; note: string }[];
+};
+
+function loadDraft(key: string | undefined): Draft | null {
+  if (!key || typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as Draft;
+  } catch {
+    return null;
+  }
+}
+
+function saveDraft(key: string | undefined, draft: Draft) {
+  if (!key || typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(draft));
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+function clearDraft(key: string | undefined) {
+  if (!key || typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function JudgePhoneCard({
+  draftKey,
   judgeName,
   caseNumber,
   roundLabel,
@@ -36,17 +76,31 @@ export function JudgePhoneCard({
     () => applicableItems({ hasCommentingTeam, hasJudgesQa }),
     [hasCommentingTeam, hasJudgesQa],
   );
+  const restored = useMemo(() => loadDraft(draftKey), [draftKey]);
   const [activeTeam, setActiveTeam] = useState(teams[0]?.id ?? "");
   const [values, setValues] = useState<
     Record<string, Partial<Record<AppeItemKey, number>>>
-  >(() => Object.fromEntries(teams.map((t) => [t.id, {}])));
+  >(
+    () =>
+      restored?.values ??
+      Object.fromEntries(teams.map((t) => [t.id, {}])),
+  );
   const [comments, setComments] = useState<
     Record<string, Partial<Record<AppeItemKey, string>>>
-  >({});
-  const [spirit, setSpirit] = useState(4);
-  const [overall, setOverall] = useState("");
+  >(() => restored?.comments ?? {});
+  const [spirit, setSpirit] = useState(restored?.spirit ?? 4);
+  const [overall, setOverall] = useState(restored?.overall ?? "");
+  const [moments, setMoments] = useState<{ line_id: string; note: string }[]>(
+    () => restored?.moments ?? [],
+  );
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [momentFlash, setMomentFlash] = useState<string | null>(null);
+
+  useEffect(() => {
+    saveDraft(draftKey, { values, comments, spirit, overall, moments });
+  }, [draftKey, values, comments, spirit, overall, moments]);
 
   const teamValues = values[activeTeam] ?? {};
   const soFar = presentationTotal(teamValues);
@@ -58,8 +112,17 @@ export function JudgePhoneCard({
     }));
   }
 
+  function markMoment() {
+    const note = `Moment at ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
+    setMoments((m) => [...m, { line_id: "pending", note }]);
+    setMomentFlash("Moment marked. It is pinned when the transcript lands.");
+    onMarkMoment?.(note);
+    window.setTimeout(() => setMomentFlash(null), 2500);
+  }
+
   async function submit() {
     setBusy(true);
+    setError(null);
     try {
       for (const team of teams) {
         const scores = scored
@@ -75,9 +138,17 @@ export function JudgePhoneCard({
           scores,
           spirit,
           overallComment: overall || undefined,
+          moments,
         });
       }
+      clearDraft(draftKey);
       setDone(true);
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Could not send the card. Your scores are still saved on this phone. Try again.",
+      );
     } finally {
       setBusy(false);
     }
@@ -105,6 +176,11 @@ export function JudgePhoneCard({
         <span className="text-xs text-[#F3D0D6]">
           APPE scoring sheet, as in the team&apos;s Drive
         </span>
+        {restored ? (
+          <span className="text-xs text-[#F3D0D6]">
+            Draft restored from this phone
+          </span>
+        ) : null}
       </div>
 
       <div
@@ -144,18 +220,24 @@ export function JudgePhoneCard({
               <span className="text-[13px] leading-snug text-[#3B404A]">
                 {item.question}
               </span>
-              <div className="flex gap-0.5">
+              <div
+                className="flex flex-wrap gap-1"
+                role="group"
+                aria-label={`${item.label} score`}
+              >
                 {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
                   const on = teamValues[item.key] === n;
                   return (
                     <button
                       key={n}
                       type="button"
+                      aria-label={`${item.label}, score ${n}`}
+                      aria-pressed={on}
                       onClick={() => setScore(item.key, n)}
                       className={
                         on
-                          ? "h-11 w-8 rounded-lg border border-ink bg-ink text-[13px] font-semibold text-white"
-                          : "h-11 w-8 rounded-lg border border-line bg-white text-[13px] font-semibold"
+                          ? "h-11 min-w-9 rounded-lg border border-ink bg-ink px-1 text-[13px] font-semibold text-white"
+                          : "h-11 min-w-9 rounded-lg border border-line bg-white px-1 text-[13px] font-semibold"
                       }
                     >
                       {n}
@@ -197,11 +279,13 @@ export function JudgePhoneCard({
           <span className="text-[13px] text-[#3B404A]">
             Separate feedback sheet, 1 to 5
           </span>
-          <div className="flex gap-1">
+          <div className="flex gap-1" role="group" aria-label="Spirit points">
             {[1, 2, 3, 4, 5].map((n) => (
               <button
                 key={n}
                 type="button"
+                aria-label={`Spirit ${n}`}
+                aria-pressed={spirit === n}
                 onClick={() => setSpirit(n)}
                 className={
                   spirit === n
@@ -223,6 +307,11 @@ export function JudgePhoneCard({
             placeholder="What stood out?"
             className="h-10 rounded-[10px] border border-line px-2.5 text-sm"
           />
+          {moments.length > 0 ? (
+            <p className="text-xs text-muted">
+              {moments.length} moment{moments.length === 1 ? "" : "s"} marked
+            </p>
+          ) : null}
         </div>
 
         <span className="pb-2 pt-1.5 text-xs text-muted">
@@ -230,10 +319,25 @@ export function JudgePhoneCard({
         </span>
       </div>
 
+      {error ? (
+        <p className="px-[18px] text-sm text-cardinal" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {momentFlash ? (
+        <p
+          className="px-[18px] text-sm text-muted"
+          role="status"
+          aria-live="polite"
+        >
+          {momentFlash}
+        </p>
+      ) : null}
+
       <div className="flex items-center gap-2.5 border-t border-line px-[18px] py-3 pb-[18px]">
         <button
           type="button"
-          onClick={onMarkMoment}
+          onClick={markMoment}
           className="h-[50px] flex-1 rounded-xl bg-gold text-[15px] font-bold text-ink"
         >
           Mark this moment

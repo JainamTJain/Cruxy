@@ -584,12 +584,33 @@ export async function resolveGuestToken(
   return { judge, roundId: entry.round_id };
 }
 
+export async function findJudgeCard(opts: {
+  roundId: string;
+  teamId: string;
+  judgeId?: string | null;
+  cruxy?: boolean;
+}) {
+  if (!isSampleDataMode()) return sb.findJudgeCard(opts);
+  const store = await readStore();
+  const cruxy = Boolean(opts.cruxy);
+  return (
+    store.judge_cards.find((c) => {
+      if (c.round_id !== opts.roundId) return false;
+      if (c.team_id !== opts.teamId) return false;
+      if (Boolean(c.cruxy) !== cruxy) return false;
+      if (cruxy) return true;
+      return Boolean(opts.judgeId) && c.judge_id === opts.judgeId;
+    }) ?? null
+  );
+}
+
 export async function saveJudgeCard(
   card: JudgeCard,
   scores: CardScore[],
+  opts?: { replaceScores?: boolean },
 ) {
   if (!isSampleDataMode()) {
-    await sb.saveJudgeCard(card, scores);
+    await sb.saveJudgeCard(card, scores, opts);
     await afterJudgeCardSaved(card);
     return;
   }
@@ -597,6 +618,9 @@ export async function saveJudgeCard(
     const i = s.judge_cards.findIndex((c) => c.id === card.id);
     if (i >= 0) s.judge_cards[i] = card;
     else s.judge_cards.push(card);
+    if (opts?.replaceScores) {
+      s.card_scores = s.card_scores.filter((x) => x.card_id !== card.id);
+    }
     for (const score of scores) {
       const si = s.card_scores.findIndex((x) => x.id === score.id);
       if (si >= 0) s.card_scores[si] = score;
@@ -630,10 +654,14 @@ export async function saveJudgmentBundle(opts: {
     return;
   }
   await updateStore((s) => {
+    const cardIds = new Set(opts.cards.map((c) => c.id));
     for (const c of opts.cards) {
       const i = s.judge_cards.findIndex((x) => x.id === c.id);
       if (i >= 0) s.judge_cards[i] = c;
       else s.judge_cards.push(c);
+    }
+    if (cardIds.size > 0) {
+      s.card_scores = s.card_scores.filter((x) => !cardIds.has(x.card_id));
     }
     for (const sc of opts.scores) {
       const i = s.card_scores.findIndex((x) => x.id === sc.id);

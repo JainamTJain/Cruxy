@@ -6,6 +6,7 @@ import {
   joinWithSessionCode,
   upsertJudge,
 } from "@/lib/db/practice-repository";
+import { listTeams } from "@/lib/db/repository";
 import { sessionHasTextOnlyMembers } from "@/lib/attendance";
 import { assertSessionJoinable } from "@/lib/ops/consent-recording";
 
@@ -17,13 +18,18 @@ import { assertSessionJoinable } from "@/lib/ops/consent-recording";
  */
 export async function POST(req: Request) {
   const session = await getSession();
-  const body = (await req.json()) as {
+  let body: {
     code?: string;
     name?: string;
     background?: string;
     guest?: boolean;
     roundId?: string;
   };
+  try {
+    body = (await req.json()) as typeof body;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
   if (!body.code?.trim()) {
     return NextResponse.json(
@@ -64,6 +70,19 @@ export async function POST(req: Request) {
   }
 
   const textOnlyBanner = await sessionHasTextOnlyMembers(sessionId);
+  const allTeams = await listTeams();
+  const teams = round.team_ids.map((id) => {
+    const name = allTeams.find((t) => t.id === id)?.name ?? "Team";
+    const role: "presenting" | "commenting" =
+      round.sides.presenting === id
+        ? "presenting"
+        : round.sides.commenting === id
+          ? "commenting"
+          : round.sides.presenting
+            ? "commenting"
+            : "presenting";
+    return { id, name, role };
+  });
 
   if (body.guest || !session) {
     if (!body.name?.trim()) {
@@ -84,6 +103,7 @@ export async function POST(req: Request) {
       sessionId,
       guestToken: token,
       teamIds: round.team_ids,
+      teams,
       caseNumber: round.case_number,
       textOnlyBanner,
     });
@@ -101,6 +121,7 @@ export async function POST(req: Request) {
     roundId,
     sessionId,
     teamIds: round.team_ids,
+    teams,
     caseNumber: round.case_number,
     textOnlyBanner,
   });

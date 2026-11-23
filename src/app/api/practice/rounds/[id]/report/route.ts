@@ -11,6 +11,10 @@ import {
 import { filterCitedFeedback } from "@/lib/practice/feedback";
 import { filterDisplayableScores } from "@/lib/practice/appe-card";
 import { getCalibratedJudgeForReport } from "@/lib/practice/calibrated-judge";
+import {
+  classifyReportStatus,
+  reportStatusCopy,
+} from "@/lib/practice/report-status";
 
 export async function GET(
   _req: Request,
@@ -26,7 +30,30 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const me = await getPersonById(session.personId);
+  const tech = session.adminView && session.role === "tech_admin";
+  const admin = isAdminViewer(me, session);
+  const coachOrTech = Boolean(me && isAdminRole(me.role));
+
+  // Teams never see each other's work. Admins (coach/tech in admin view) see all.
+  const onRound =
+    session.teamId != null && round.team_ids.includes(session.teamId);
+  if (!admin && !coachOrTech && !onRound) {
+    return NextResponse.json(
+      { error: "This report belongs to another team." },
+      { status: 403 },
+    );
+  }
+
   const data = await getReport(id);
+  const status = classifyReportStatus({
+    round,
+    reportHeadline: data.report?.headline,
+    lines: data.lines,
+    cards: data.cards,
+  });
+  const statusCopy = reportStatusCopy(status);
+
   const extras = await getReportExtras(id);
   const feedback = filterCitedFeedback(data.feedback, data.lines);
   const scores = data.scores.filter((s) => {
@@ -34,11 +61,6 @@ export async function GET(
     if (!card?.cruxy) return true;
     return filterDisplayableScores([s], true).length > 0;
   });
-
-  const me = await getPersonById(session.personId);
-  const tech = session.adminView && session.role === "tech_admin";
-  const admin = isAdminViewer(me, session);
-  const coachOrTech = Boolean(me && isAdminRole(me.role));
 
   // Redos are personal: keep own (and unclaimed stubs); admins see all.
   const redos = admin
@@ -52,6 +74,8 @@ export async function GET(
   return NextResponse.json({
     round,
     report: data.report,
+    status,
+    statusCopy,
     feedback,
     redos,
     cards: data.cards.map((c) => {
