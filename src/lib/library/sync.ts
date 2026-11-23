@@ -11,6 +11,7 @@ import {
 } from "@/lib/cruxy/agents/librarian";
 import {
   getLibraryFileByDriveId,
+  listLibraryFiles,
   listCases,
   listTeams,
   replaceFilePassages,
@@ -35,7 +36,20 @@ export type SyncResult = {
   message: string;
   /** Drive file ids that were newly digested this run. */
   newFileIds: string[];
+  filesRemoved?: number;
 };
+
+export class SyncBusyError extends Error {
+  constructor(
+    message = "A Drive sync is already running. Wait for it to finish, then try again.",
+  ) {
+    super(message);
+    this.name = "SyncBusyError";
+  }
+}
+
+/** One sync at a time per process (manual + cron + upload-triggered). */
+let syncInFlight: Promise<SyncResult> | null = null;
 
 async function resolveActorId(personId?: string | null): Promise<string> {
   if (personId) return personId;
@@ -49,15 +63,26 @@ async function resolveActorId(personId?: string | null): Promise<string> {
 
 /**
  * Nightly / Sync now. Only new or changed files are digested
- * (compare Drive modifiedTime + checksum). Unchanged files → zero AI calls.
+ * (compare Drive modifiedTime + checksum). Unchanged files → zero Cruxy calls.
  * Never writes to the filesystem; only Supabase (or sample store).
  */
 export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
+  if (syncInFlight) {
+    throw new SyncBusyError();
+  }
+  syncInFlight = runDriveSyncInner(opts).finally(() => {
+    syncInFlight = null;
+  });
+  return syncInFlight;
+}
+
+async function runDriveSyncInner(opts: SyncOptions): Promise<SyncResult> {
   const started = nowIso();
   const runId = randomUUID();
   let filesSeen = 0;
   let filesProcessed = 0;
   let filesSkipped = 0;
+  let filesRemoved = 0;
   let aiCalls = 0;
   let stub = false;
   let notes: string | null = null;
@@ -91,6 +116,7 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
         run,
         message: err.message,
         newFileIds: [],
+        filesRemoved: 0,
       };
     }
     throw err;
@@ -111,6 +137,8 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
   const startedMs = Date.now();
   let stoppedEarly = false;
 
+  const seenDriveIds = new Set(listed.files.map((f) => f.drive_id));
+
   for (const file of listed.files) {
     if (Date.now() - startedMs > budgetMs) {
       stoppedEarly = true;
@@ -119,6 +147,7 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
     const existing = await getLibraryFileByDriveId(file.drive_id);
     const unchanged =
       existing &&
+      existing.status !== "removed" &&
       existing.checksum === file.checksum &&
       existing.modified_at === file.modified_at &&
       existing.status !== "pending";
@@ -128,7 +157,7 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
       continue;
     }
 
-    const wasNew = !existing;
+    const wasNew = !existing || existing.status === "removed";
     const extracted = await extractDriveText(file);
     if (extracted.stub) stub = true;
 
@@ -137,9 +166,9 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
       text: extracted.text,
       scannedPdf: extracted.scannedPdf,
       cases,
-      existing,
+      existing: existing?.status === "removed" ? null : existing,
       personId: opts.personId,
-      skipAi: opts.forceHeuristic === true,
+      skipAi: opts.forceHeuristic === true || extracted.tooLarge === true,
     });
     aiCalls += digested.aiCalls;
     await saveLibraryFile(digested.file);
@@ -164,7 +193,7 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
 
     // Librarian → per-team proposals (team notes, research, transcripts).
     // Teams 1 and 2 get content from their own Drive docs when the path names a team.
-    if (digested.ideas.length > 0) {
+    if (digested.ideas.length > 0 && !extracted.tooLarge) {
       await librarianIdeasToProposals({
         ideas: digested.ideas.map((idea) => ({
           text: idea.who ? `${idea.who}: ${idea.text}` : idea.text,
@@ -184,8 +213,33 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
     }
   }
 
+  // Files that left Drive: mark removed so the library list hides them.
+  if (!stoppedEarly) {
+    const known = await listLibraryFiles({ includeRemoved: true });
+    for (const f of known) {
+      if (!f.drive_id || f.status === "removed") continue;
+      if (seenDriveIds.has(f.drive_id)) continue;
+      await saveLibraryFile({ ...f, status: "removed" });
+      filesRemoved += 1;
+      await logActivity({
+        person_id: opts.personId ?? null,
+        action: "drive_file_removed",
+        target: f.id,
+        meta: { drive_id: f.drive_id, name: f.name, mode: opts.mode },
+      });
+    }
+  }
+
   if (stoppedEarly) {
-    notes = [notes, `Stopped early to stay inside the time limit after ${filesProcessed} files; the next run continues from here.`]
+    notes = [
+      notes,
+      `Stopped early to stay inside the time limit after ${filesProcessed} files; the next run continues from here.`,
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
+  if (filesRemoved > 0) {
+    notes = [notes, `Removed ${filesRemoved} file(s) no longer in Drive.`]
       .filter(Boolean)
       .join(" ");
   }
@@ -211,6 +265,7 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
       filesSeen,
       filesProcessed,
       filesSkipped,
+      filesRemoved,
       aiCalls,
       stub,
       mode: opts.mode,
@@ -224,7 +279,6 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
     const { fulfillMaterialRequestsFromFiles } = await import(
       "@/lib/db/supabase/material-requests-extra"
     );
-    const { listLibraryFiles } = await import("@/lib/db/library-repository");
     const allFiles = await listLibraryFiles();
     const candidates = allFiles.filter(
       (f) => newFileIds.includes(f.id) || filesProcessed > 0,
@@ -252,7 +306,10 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
     briefsSynced = briefSync.synced;
     briefsUnchanged = briefSync.unchanged;
     if (briefSync.errors.length) {
-      notes = [notes, `Brief sync notes: ${briefSync.errors.slice(0, 3).join("; ")}`]
+      notes = [
+        notes,
+        `Brief sync notes: ${briefSync.errors.slice(0, 3).join("; ")}`,
+      ]
         .filter(Boolean)
         .join(" ");
     }
@@ -261,8 +318,8 @@ export async function runDriveSync(opts: SyncOptions): Promise<SyncResult> {
   }
 
   const message = stub
-    ? `Sync complete (stub). Seen ${filesSeen}, processed ${filesProcessed}, skipped unchanged ${filesSkipped}, AI calls ${aiCalls}. ${notes ?? ""}`.trim()
-    : `Sync complete. Seen ${filesSeen}, processed ${filesProcessed}, skipped unchanged ${filesSkipped}, AI calls ${aiCalls}${materialsFulfilled ? `, material requests closed ${materialsFulfilled}` : ""}${briefsSynced || briefsUnchanged ? `, team briefs re-read ${briefsSynced} (unchanged ${briefsUnchanged})` : ""}.`;
+    ? `Sync complete (stub). Seen ${filesSeen}, processed ${filesProcessed}, skipped unchanged ${filesSkipped}, Cruxy calls ${aiCalls}${filesRemoved ? `, removed ${filesRemoved}` : ""}. ${notes ?? ""}`.trim()
+    : `Sync complete. Seen ${filesSeen}, processed ${filesProcessed}, skipped unchanged ${filesSkipped}, Cruxy calls ${aiCalls}${filesRemoved ? `, removed ${filesRemoved}` : ""}${materialsFulfilled ? `, material requests closed ${materialsFulfilled}` : ""}${briefsSynced || briefsUnchanged ? `, team briefs re-read ${briefsSynced} (unchanged ${briefsUnchanged})` : ""}.`;
 
-  return { run, message, newFileIds };
+  return { run, message, newFileIds, filesRemoved };
 }

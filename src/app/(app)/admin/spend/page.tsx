@@ -170,7 +170,7 @@ export default function SpendPage() {
           Spend this month
         </h1>
         <p className="mt-2 text-sm text-muted">
-          Ledger from ai_calls against the $30 hard cap. Never shows keys.
+          Cost ledger against the $30 hard cap. Never shows keys.
         </p>
       </div>
 
@@ -187,7 +187,7 @@ export default function SpendPage() {
         <p className="text-sm">
           Feature ledger sum: ${data.ledgerTotal.toFixed(2)}.{" "}
           {data.matchesLedger ? (
-            <span className="font-bold text-[#0B5E53]">matches ai_calls</span>
+            <span className="font-bold text-[#0B5E53]">matches the cost ledger</span>
           ) : (
             <span className="font-bold text-cardinal">mismatch</span>
           )}

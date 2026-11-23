@@ -208,16 +208,22 @@ export async function listTeams(): Promise<Team[]> {
   return (data ?? []).map(mapTeam);
 }
 
-export async function listLibraryFiles(): Promise<LibraryFile[]> {
+export async function listLibraryFiles(opts?: {
+  includeRemoved?: boolean;
+}): Promise<LibraryFile[]> {
   const out: LibraryFile[] = [];
   const page = 1000;
   for (let from = 0; ; from += page) {
-    const { data, error } = await getServiceSupabase()
+    let q = getServiceSupabase()
       .from("files")
       .select("*")
       .order("created_at", { ascending: true })
       .order("id", { ascending: true })
       .range(from, from + page - 1);
+    if (!opts?.includeRemoved) {
+      q = q.neq("status", "removed");
+    }
+    const { data, error } = await q;
     assertOk(error, "listLibraryFiles");
     const rows = data ?? [];
     out.push(...rows.map(mapFile));
@@ -400,8 +406,9 @@ export async function listSortingQueue(): Promise<LibraryFile[]> {
     .map(mapFile)
     .filter(
       (f) =>
-        f.status === "sorting_queue" ||
-        (f.confidence != null && f.confidence < 0.7),
+        f.status !== "removed" &&
+        (f.status === "sorting_queue" ||
+          (f.confidence != null && f.confidence < 0.7)),
     );
 }
 

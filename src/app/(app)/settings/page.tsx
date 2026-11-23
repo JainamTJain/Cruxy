@@ -48,6 +48,8 @@ export default function SettingsPage() {
     }[]
   >([]);
   const [deviceMsg, setDeviceMsg] = useState<string | null>(null);
+  const [deviceBusy, setDeviceBusy] = useState(false);
+  const [remindersBusy, setRemindersBusy] = useState(false);
 
   useEffect(() => {
     void fetch("/api/auth/me")
@@ -101,7 +103,10 @@ export default function SettingsPage() {
 
   async function loadDevices() {
     const res = await fetch("/api/settings/devices");
-    if (!res.ok) return;
+    if (!res.ok) {
+      setDeviceMsg("Could not load devices.");
+      return;
+    }
     const d = (await res.json()) as {
       devices?: {
         id: string;
@@ -114,40 +119,65 @@ export default function SettingsPage() {
   }
 
   async function revokeOthers() {
+    if (deviceBusy) return;
     setDeviceMsg(null);
-    const res = await fetch("/api/settings/devices", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "revoke_others" }),
-    });
-    const j = (await res.json()) as { error?: string; message?: string };
-    setDeviceMsg(j.message ?? j.error ?? null);
-    await loadDevices();
+    setDeviceBusy(true);
+    try {
+      const res = await fetch("/api/settings/devices", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "revoke_others" }),
+      });
+      const j = (await res.json()) as { error?: string; message?: string };
+      setDeviceMsg(j.message ?? j.error ?? null);
+      await loadDevices();
+    } finally {
+      setDeviceBusy(false);
+    }
   }
 
   async function revokeOne(deviceId: string) {
+    if (deviceBusy) return;
     setDeviceMsg(null);
-    const res = await fetch("/api/settings/devices", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "revoke_one", deviceId }),
-    });
-    const j = (await res.json()) as { error?: string; message?: string };
-    setDeviceMsg(j.message ?? j.error ?? null);
-    await loadDevices();
+    setDeviceBusy(true);
+    try {
+      const res = await fetch("/api/settings/devices", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "revoke_one", deviceId }),
+      });
+      const j = (await res.json()) as { error?: string; message?: string };
+      setDeviceMsg(j.message ?? j.error ?? null);
+      await loadDevices();
+    } finally {
+      setDeviceBusy(false);
+    }
   }
 
   async function saveReminders() {
-    const res = await fetch("/api/settings/reminders", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        email,
-        emailRemindersOptIn: optIn,
-        digestOptIn: isAdmin ? digestOptIn : undefined,
-      }),
-    });
-    setMsg(res.ok ? "Saved. Email only sends if you opted in." : "Could not save.");
+    if (remindersBusy) return;
+    setRemindersBusy(true);
+    try {
+      const res = await fetch("/api/settings/reminders", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email,
+          emailRemindersOptIn: optIn,
+          digestOptIn: isAdmin ? digestOptIn : undefined,
+        }),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setMsg(j?.error ?? "Could not save.");
+        return;
+      }
+      setMsg("Saved. Email only sends if you opted in.");
+    } finally {
+      setRemindersBusy(false);
+    }
   }
 
   async function saveCruxy() {
@@ -401,7 +431,12 @@ export default function SettingsPage() {
           Weekly summary email (admins)
         </label>
       ) : null}
-      <Button onClick={() => void saveReminders()}>Save email settings</Button>
+      <Button
+        onClick={() => void saveReminders()}
+        disabled={remindersBusy}
+      >
+        {remindersBusy ? "Saving…" : "Save email settings"}
+      </Button>
       </div>
 
       <div id="alerts" className="scroll-mt-20">
@@ -439,7 +474,8 @@ export default function SettingsPage() {
                 {!d.current ? (
                   <button
                     type="button"
-                    className="text-xs font-semibold text-cardinal underline"
+                    className="min-h-11 text-xs font-semibold text-cardinal underline disabled:opacity-60"
+                    disabled={deviceBusy}
                     onClick={() => void revokeOne(d.id)}
                   >
                     Sign out
@@ -452,9 +488,10 @@ export default function SettingsPage() {
         <Button
           className="mt-3"
           variant="outline"
+          disabled={deviceBusy}
           onClick={() => void revokeOthers()}
         >
-          Sign out of other devices
+          {deviceBusy ? "Working…" : "Sign out of other devices"}
         </Button>
         {deviceMsg ? (
           <p className="mt-2 text-sm text-muted">{deviceMsg}</p>

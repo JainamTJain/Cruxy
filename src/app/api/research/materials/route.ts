@@ -13,6 +13,9 @@ export async function GET() {
   if (!session) {
     return NextResponse.json({ error: "Sign in required" }, { status: 401 });
   }
+  if (!session.adminView) {
+    return NextResponse.json({ error: "Tech admin only" }, { status: 403 });
+  }
   const person = await getPersonById(session.personId);
   if (!person || !canWrite(person.role, "material_requests")) {
     return NextResponse.json({ error: "Tech admin only" }, { status: 403 });
@@ -35,6 +38,9 @@ export async function PATCH(req: Request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Sign in required" }, { status: 401 });
+  }
+  if (!session.adminView) {
+    return NextResponse.json({ error: "Tech admin only" }, { status: 403 });
   }
   const person = await getPersonById(session.personId);
   if (!person || !canWrite(person.role, "material_requests")) {

@@ -35,6 +35,7 @@ export default function CoachTeamPage() {
   const [snap, setSnap] = useState<Snap | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [nudgeBusy, setNudgeBusy] = useState<string | null>(null);
 
   const load = useCallback(() => {
     void fetch(`/api/coach/teams/${teamId}`)
@@ -54,14 +55,20 @@ export default function CoachTeamPage() {
   }, [load]);
 
   async function nudge(personId: string) {
+    if (nudgeBusy) return;
     setMsg(null);
-    const res = await fetch("/api/coach/nudge", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ personId, teamId }),
-    });
-    const j = (await res.json()) as { error?: string; message?: string };
-    setMsg(j.message ?? j.error ?? (res.ok ? "Nudge sent." : "Failed"));
+    setNudgeBusy(personId);
+    try {
+      const res = await fetch("/api/coach/nudge", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ personId, teamId }),
+      });
+      const j = (await res.json()) as { error?: string; message?: string };
+      setMsg(j.message ?? j.error ?? (res.ok ? "Nudge sent." : "Failed"));
+    } finally {
+      setNudgeBusy(null);
+    }
   }
 
   if (error) {
@@ -115,7 +122,8 @@ export default function CoachTeamPage() {
                 </p>
                 <button
                   type="button"
-                  className="text-sm font-semibold text-cardinal underline"
+                  className="min-h-11 text-sm font-semibold text-cardinal underline disabled:opacity-60"
+                  disabled={nudgeBusy === m.personId}
                   onClick={() => void nudge(m.personId)}
                 >
                   Gentle nudge
