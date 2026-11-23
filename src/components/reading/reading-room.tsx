@@ -53,6 +53,13 @@ function escapeRe(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function partLabel(passages: Passage[], ord: number | null): string | null {
+  if (ord == null) return null;
+  const p = passages.find((x) => x.ord === ord);
+  if (p?.anchor) return p.anchor;
+  return `Part ${ord + 1}`;
+}
+
 /** Wrap highlighted and commented quotes inside a paragraph. */
 function Marked({ text, marks }: { text: string; marks: Annotation[] }) {
   const usable = marks.filter((m) => m.quote && m.quote.length >= 3 && text.includes(m.quote));
@@ -81,6 +88,127 @@ function Marked({ text, marks }: { text: string; marks: Annotation[] }) {
   );
 }
 
+function NotesPanel({
+  notes,
+  marks,
+  passages,
+  noteDraft,
+  setNoteDraft,
+  busy,
+  save,
+  onClose,
+}: {
+  notes: Annotation[];
+  marks: Annotation[];
+  passages: Passage[];
+  noteDraft: string;
+  setNoteDraft: (v: string) => void;
+  busy: boolean;
+  save: (payload: Record<string, unknown>) => Promise<boolean>;
+  onClose?: () => void;
+}) {
+  return (
+    <>
+      <section className="rounded-[20px] bg-[#FFF8DC] p-4">
+        <div className="flex items-start justify-between gap-2">
+          <h2 className="font-display m-0 text-lg font-extrabold">Sticky notes</h2>
+          {onClose ? (
+            <button type="button" className="text-xs font-semibold text-muted underline" onClick={onClose}>
+              Close
+            </button>
+          ) : null}
+        </div>
+        <p className="m-0 mt-1 text-[13px] text-[#5B5240]">
+          Only your team sees these. Cruxy reads your notes and comments when it reviews your working document.
+        </p>
+        <textarea
+          rows={3}
+          value={noteDraft}
+          onChange={(e) => setNoteDraft(e.target.value)}
+          placeholder="A thought, a counterpoint, where this fits in our case..."
+          className="mt-2 w-full rounded-xl border border-[#E8DDB5] bg-white px-3 py-2 text-sm"
+          disabled={busy}
+        />
+        <button
+          type="button"
+          disabled={busy || !noteDraft.trim()}
+          className="mt-2 min-h-11 rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          onClick={() =>
+            void save({ action: "add", annotationKind: "note", body: noteDraft.trim() }).then((ok) => ok && setNoteDraft(""))
+          }
+        >
+          Add note
+        </button>
+        <ul className="m-0 mt-3 list-none space-y-2 p-0">
+          {notes.map((n) => (
+            <li key={n.id} className="rounded-xl bg-white px-3 py-2 text-sm shadow-[0_1px_0_rgba(0,0,0,0.04)]">
+              <p className="m-0 whitespace-pre-wrap">{n.body}</p>
+              <p className="m-0 mt-1 flex items-center justify-between text-[11px] text-muted">
+                <span>{n.person_name ?? "Teammate"}</span>
+                <button
+                  type="button"
+                  className="underline"
+                  disabled={busy}
+                  onClick={() => void save({ action: "delete", annotationId: n.id })}
+                >
+                  Remove
+                </button>
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="rounded-[20px] bg-white p-4">
+        <h2 className="font-display m-0 text-lg font-extrabold">Highlights and comments</h2>
+        <p className="m-0 mt-1 text-[13px] text-muted">
+          Select any text in the reading to highlight it, comment on it or ask Cruxy.
+        </p>
+        {marks.length === 0 ? (
+          <p className="m-0 mt-2 text-sm text-muted">None yet.</p>
+        ) : (
+          <ul className="m-0 mt-2 list-none space-y-2 p-0">
+            {marks.map((m) => {
+              const part = partLabel(passages, m.passage_ord);
+              return (
+                <li key={m.id} className="rounded-xl bg-[#F7F8FA] px-3 py-2 text-sm">
+                  {part && m.passage_ord != null ? (
+                    <a
+                      href={`#part-${m.passage_ord}`}
+                      className="mb-1 inline-block text-[11px] font-bold uppercase tracking-[0.08em] text-muted underline"
+                      onClick={onClose}
+                    >
+                      {part}
+                    </a>
+                  ) : null}
+                  <a href={m.passage_ord != null ? `#part-${m.passage_ord}` : undefined} className="block" onClick={onClose}>
+                    <span className={m.kind === "comment" ? "underline decoration-[#2F6FED] decoration-2" : "bg-[#FFE58A]"}>
+                      &ldquo;{(m.quote ?? "").slice(0, 180)}
+                      {(m.quote ?? "").length > 180 ? "..." : ""}&rdquo;
+                    </span>
+                  </a>
+                  {m.body ? <p className="m-0 mt-1">{m.body}</p> : null}
+                  <p className="m-0 mt-1 flex items-center justify-between text-[11px] text-muted">
+                    <span>{m.person_name ?? "Teammate"}</span>
+                    <button
+                      type="button"
+                      className="underline"
+                      disabled={busy}
+                      onClick={() => void save({ action: "delete", annotationId: m.id })}
+                    >
+                      Remove
+                    </button>
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </>
+  );
+}
+
 export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" | "import"; id: string }) {
   const [reading, setReading] = useState<Reading | null>(null);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
@@ -90,7 +218,9 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
   const [commentDraft, setCommentDraft] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
   const [showDigest, setShowDigest] = useState(true);
+  const [notesOpen, setNotesOpen] = useState(false);
   const articleRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
   const { wake, setBubble, setHighlight } = useCruxy();
 
   const load = useCallback(async () => {
@@ -139,17 +269,24 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
     [caseId, kind, id],
   );
 
-  // Selecting text opens a small toolbar: Highlight, Comment, Ask Cruxy.
+  // Selecting text opens a small toolbar. Desktop: mouseup. Phones: long-press
+  // selection fires selectionchange (mouseup/touchend often miss iOS).
   useEffect(() => {
-    const onUp = () => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const readSelection = () => {
       const s = window.getSelection();
       const text = s?.toString().replace(/\s+/g, " ").trim() ?? "";
       if (!s || text.length < 3 || !articleRef.current || !s.anchorNode || !articleRef.current.contains(s.anchorNode)) {
         return;
       }
-      const el = (s.anchorNode.nodeType === 1 ? (s.anchorNode as Element) : s.anchorNode.parentElement)?.closest("[data-ord]");
+      if (s.rangeCount < 1) return;
+      const el = (s.anchorNode.nodeType === 1 ? (s.anchorNode as Element) : s.anchorNode.parentElement)?.closest(
+        "[data-ord]",
+      );
       const ord = el ? Number(el.getAttribute("data-ord")) : null;
       const rect = s.getRangeAt(0).getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) return;
       setSel({
         text: text.slice(0, 1200),
         ord: Number.isFinite(ord) ? ord : null,
@@ -158,13 +295,46 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
       });
       setCommentDraft(null);
     };
+
+    const onUp = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(readSelection, 30);
+    };
+
+    const onSelectionChange = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(readSelection, 280);
+    };
+
+    const onPointerDown = (e: PointerEvent) => {
+      const t = e.target as Node | null;
+      if (toolbarRef.current && t && toolbarRef.current.contains(t)) return;
+      // Clear only when tapping outside the toolbar and not extending a selection.
+      if (!window.getSelection()?.toString().trim()) setSel(null);
+    };
+
     document.addEventListener("mouseup", onUp);
     document.addEventListener("touchend", onUp);
+    document.addEventListener("selectionchange", onSelectionChange);
+    document.addEventListener("pointerdown", onPointerDown);
     return () => {
+      if (timer) clearTimeout(timer);
       document.removeEventListener("mouseup", onUp);
       document.removeEventListener("touchend", onUp);
+      document.removeEventListener("selectionchange", onSelectionChange);
+      document.removeEventListener("pointerdown", onPointerDown);
     };
   }, []);
+
+  // Lock body scroll while the phone notes sheet is open.
+  useEffect(() => {
+    if (!notesOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [notesOpen]);
 
   const marksByOrd = useMemo(() => {
     const m = new Map<number, Annotation[]>();
@@ -192,9 +362,11 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
 
   const notes = annotations.filter((a) => a.kind === "note");
   const marks = annotations.filter((a) => a.kind !== "note");
+  const noteCount = notes.length + marks.length;
+  const showJump = reading.passages.length > 1;
 
   return (
-    <main className="mx-auto max-w-6xl">
+    <main className="mx-auto max-w-6xl pb-24 lg:pb-0">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <Link href={`/case-brain/${caseId}?tab=reading`} className="text-sm font-semibold text-muted hover:text-ink">
           ← Back to the case
@@ -278,6 +450,23 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
           ) : null}
 
           <article ref={articleRef} className="rounded-[20px] bg-white p-5 sm:p-7">
+            {showJump ? (
+              <nav aria-label="Jump to passage" className="mb-5 border-b border-[#E3E5E9] pb-4">
+                <p className="m-0 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">Jump to</p>
+                <ul className="m-0 mt-2 flex list-none flex-wrap gap-2 p-0">
+                  {reading.passages.map((p) => (
+                    <li key={p.ord}>
+                      <a
+                        href={`#part-${p.ord}`}
+                        className="inline-flex min-h-11 items-center rounded-lg border border-[#E3E5E9] bg-[#F7F8FA] px-3 py-1.5 text-sm font-semibold text-ink"
+                      >
+                        {p.anchor ?? `Part ${p.ord + 1}`}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ) : null}
             {reading.passages.length === 0 ? (
               <div className="text-sm text-muted">
                 <p className="m-0">
@@ -304,83 +493,17 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
           </article>
         </div>
 
-        <aside className="flex flex-col gap-3 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto">
-          <section className="rounded-[20px] bg-[#FFF8DC] p-4">
-            <h2 className="font-display m-0 text-lg font-extrabold">Sticky notes</h2>
-            <p className="m-0 mt-1 text-[13px] text-[#5B5240]">
-              Only your team sees these. Cruxy reads your notes and comments when it reviews your working document.
-            </p>
-            <textarea
-              rows={3}
-              value={noteDraft}
-              onChange={(e) => setNoteDraft(e.target.value)}
-              placeholder="A thought, a counterpoint, where this fits in our case..."
-              className="mt-2 w-full rounded-xl border border-[#E8DDB5] bg-white px-3 py-2 text-sm"
-              disabled={busy}
-            />
-            <button
-              type="button"
-              disabled={busy || !noteDraft.trim()}
-              className="mt-2 rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-              onClick={() =>
-                void save({ action: "add", annotationKind: "note", body: noteDraft.trim() }).then((ok) => ok && setNoteDraft(""))
-              }
-            >
-              Add note
-            </button>
-            <ul className="m-0 mt-3 list-none space-y-2 p-0">
-              {notes.map((n) => (
-                <li key={n.id} className="rounded-xl bg-white px-3 py-2 text-sm shadow-[0_1px_0_rgba(0,0,0,0.04)]">
-                  <p className="m-0 whitespace-pre-wrap">{n.body}</p>
-                  <p className="m-0 mt-1 flex items-center justify-between text-[11px] text-muted">
-                    <span>{n.person_name ?? "Teammate"}</span>
-                    <button
-                      type="button"
-                      className="underline"
-                      disabled={busy}
-                      onClick={() => void save({ action: "delete", annotationId: n.id })}
-                    >
-                      Remove
-                    </button>
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="rounded-[20px] bg-white p-4">
-            <h2 className="font-display m-0 text-lg font-extrabold">Highlights and comments</h2>
-            <p className="m-0 mt-1 text-[13px] text-muted">Select any text in the reading to highlight it, comment on it or ask Cruxy.</p>
-            {marks.length === 0 ? (
-              <p className="m-0 mt-2 text-sm text-muted">None yet.</p>
-            ) : (
-              <ul className="m-0 mt-2 list-none space-y-2 p-0">
-                {marks.map((m) => (
-                  <li key={m.id} className="rounded-xl bg-[#F7F8FA] px-3 py-2 text-sm">
-                    <a href={m.passage_ord != null ? `#part-${m.passage_ord}` : undefined} className="block">
-                      <span className={m.kind === "comment" ? "underline decoration-[#2F6FED] decoration-2" : "bg-[#FFE58A]"}>
-                        &ldquo;{(m.quote ?? "").slice(0, 180)}
-                        {(m.quote ?? "").length > 180 ? "..." : ""}&rdquo;
-                      </span>
-                    </a>
-                    {m.body ? <p className="m-0 mt-1">{m.body}</p> : null}
-                    <p className="m-0 mt-1 flex items-center justify-between text-[11px] text-muted">
-                      <span>{m.person_name ?? "Teammate"}</span>
-                      <button
-                        type="button"
-                        className="underline"
-                        disabled={busy}
-                        onClick={() => void save({ action: "delete", annotationId: m.id })}
-                      >
-                        Remove
-                      </button>
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
+        {/* Desktop: sticky aside unchanged. Phone: hidden here, bottom sheet below. */}
+        <aside className="hidden flex-col gap-3 lg:sticky lg:top-4 lg:flex lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto">
+          <NotesPanel
+            notes={notes}
+            marks={marks}
+            passages={reading.passages}
+            noteDraft={noteDraft}
+            setNoteDraft={setNoteDraft}
+            busy={busy}
+            save={save}
+          />
           <Link
             href={`/case-brain/${caseId}?tab=working`}
             className="rounded-xl border border-mist bg-white px-4 py-2.5 text-center text-sm font-semibold"
@@ -390,8 +513,54 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
         </aside>
       </div>
 
+      {/* Phone: floating Notes button + bottom sheet */}
+      <button
+        type="button"
+        className="fixed bottom-20 right-4 z-40 inline-flex min-h-11 items-center rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(17,19,24,0.28)] lg:hidden"
+        aria-expanded={notesOpen}
+        onClick={() => setNotesOpen(true)}
+      >
+        Notes ({noteCount})
+      </button>
+
+      {notesOpen ? (
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Notes and highlights">
+          <button
+            type="button"
+            className="absolute inset-0 bg-ink/40"
+            aria-label="Close notes"
+            onClick={() => setNotesOpen(false)}
+          />
+          <div className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col rounded-t-[20px] bg-[#F3F4F6] shadow-[0_-8px_28px_rgba(17,19,24,0.18)]">
+            <div className="flex shrink-0 items-center justify-center pt-2">
+              <span className="h-1 w-10 rounded-full bg-[#C8CCD4]" aria-hidden />
+            </div>
+            <div className="flex flex-col gap-3 overflow-y-auto px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
+              <NotesPanel
+                notes={notes}
+                marks={marks}
+                passages={reading.passages}
+                noteDraft={noteDraft}
+                setNoteDraft={setNoteDraft}
+                busy={busy}
+                save={save}
+                onClose={() => setNotesOpen(false)}
+              />
+              <Link
+                href={`/case-brain/${caseId}?tab=working`}
+                className="mb-2 rounded-xl border border-mist bg-white px-4 py-2.5 text-center text-sm font-semibold"
+                onClick={() => setNotesOpen(false)}
+              >
+                Go to the working document
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {sel ? (
         <div
+          ref={toolbarRef}
           role="dialog"
           aria-label="Selected text"
           className="fixed z-[60] max-w-[calc(100vw-24px)] rounded-xl border border-ink/10 bg-white p-2 shadow-[0_12px_28px_rgba(17,19,24,0.16)]"
@@ -403,7 +572,7 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
             <div className="flex flex-wrap items-center gap-1">
               <button
                 type="button"
-                className="rounded-lg bg-[#FFE58A] px-2.5 py-1.5 text-xs font-semibold"
+                className="min-h-11 rounded-lg bg-[#FFE58A] px-2.5 py-1.5 text-xs font-semibold"
                 disabled={busy}
                 onClick={() =>
                   void save({ action: "add", annotationKind: "highlight", quote: sel.text, passageOrd: sel.ord }).then(() => {
@@ -414,12 +583,16 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
               >
                 Highlight
               </button>
-              <button type="button" className="rounded-lg bg-[#E8F0FE] px-2.5 py-1.5 text-xs font-semibold" onClick={() => setCommentDraft("")}>
+              <button
+                type="button"
+                className="min-h-11 rounded-lg bg-[#E8F0FE] px-2.5 py-1.5 text-xs font-semibold"
+                onClick={() => setCommentDraft("")}
+              >
                 Comment
               </button>
               <button
                 type="button"
-                className="rounded-lg bg-ink px-2.5 py-1.5 text-xs font-semibold text-white"
+                className="min-h-11 rounded-lg bg-ink px-2.5 py-1.5 text-xs font-semibold text-white"
                 onClick={() => {
                   setHighlight(sel.text);
                   wake();
@@ -431,7 +604,7 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
               >
                 Ask Cruxy
               </button>
-              <button type="button" className="ml-auto px-2 text-xs text-muted" onClick={() => setSel(null)}>
+              <button type="button" className="ml-auto min-h-11 px-2 text-xs text-muted" onClick={() => setSel(null)}>
                 Close
               </button>
             </div>
@@ -449,7 +622,7 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
                 <button
                   type="button"
                   disabled={busy || !commentDraft.trim()}
-                  className="rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                  className="min-h-11 rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
                   onClick={() =>
                     void save({
                       action: "add",
@@ -468,7 +641,7 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
                 >
                   Save comment
                 </button>
-                <button type="button" className="text-xs text-muted" onClick={() => setCommentDraft(null)}>
+                <button type="button" className="min-h-11 text-xs text-muted" onClick={() => setCommentDraft(null)}>
                   Back
                 </button>
               </div>
