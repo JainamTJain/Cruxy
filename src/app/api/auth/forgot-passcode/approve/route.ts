@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { approveForgotPasscode } from "@/lib/auth/forgot-passcode";
-import { getSession } from "@/lib/auth/session";
+import { requireAdmin, requireSession } from "@/lib/auth/require-session";
 import { getPersonById } from "@/lib/db/repository";
 import { markNotificationRead } from "@/lib/db/supabase/auth-extra";
 
@@ -8,10 +8,11 @@ export const runtime = "nodejs";
 
 /** One-tap approve from reminders (coach or tech admin). */
 export async function POST(req: Request) {
-  const session = await getSession();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
+  const denied = requireAdmin(auth.session);
+  if (denied) return denied;
+  const session = auth.session;
   const actor = await getPersonById(session.personId);
   if (
     !actor ||
