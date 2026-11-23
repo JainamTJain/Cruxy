@@ -69,6 +69,7 @@ type Hub = {
     question_back?: string | null;
     fallacy_name?: string | null;
     logic_chain?: string | null;
+    research_sources?: Array<{ title: string; url: string | null; why: string }> | null;
   }>;
   checklist: Array<{
     id: string;
@@ -168,8 +169,9 @@ function IdeaAndCoherenceBar({
         Tell Cruxy an idea
       </h3>
       <p className="mt-1 text-sm text-muted">
-        Cruxy researches it against the case and your sources, works out where
-        it fits in your reasoning and drafts it as a suggestion with your name.
+        Cruxy researches it against the case, your library, published
+        philosophy and the wider web, works out where it fits in your reasoning
+        and drafts it as a suggestion with your name.
         Strong ideas may also reach other teams anonymously.
       </p>
       <textarea
@@ -187,7 +189,7 @@ function IdeaAndCoherenceBar({
           className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
           onClick={onTellIdea}
         >
-          {researching ? "Researching your idea..." : "Add as suggestion"}
+          {researching ? "Researching your idea, this takes a minute..." : "Add as suggestion"}
         </button>
         <button
           type="button"
@@ -919,7 +921,27 @@ function SuggestionCard({
           <LinkedText text={s.text} caseId={caseId} />
         </p>
       )}
-      {s.citation ? (
+      {s.research_sources?.length ? (
+        <div className="mt-1.5">
+          <p className="m-0 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
+            What Cruxy read
+          </p>
+          <ul className="m-0 mt-1 list-none space-y-1 p-0 text-[12px] leading-snug">
+            {s.research_sources.map((r) => (
+              <li key={r.title}>
+                {r.url ? (
+                  <a href={r.url} target="_blank" rel="noreferrer" className="font-semibold text-cardinal underline">
+                    {r.title}
+                  </a>
+                ) : (
+                  <span className="font-semibold">{r.title}</span>
+                )}
+                <span className="text-muted">: {r.why}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : s.citation ? (
         <p className="m-0 mt-1 text-[11px] text-muted">Source: {s.citation}</p>
       ) : null}
       <Attr

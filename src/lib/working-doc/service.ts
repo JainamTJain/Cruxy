@@ -288,6 +288,7 @@ export async function getWorkingDocumentHub(opts: {
       question_back: s.question_back ?? null,
       fallacy_name: s.fallacy_name ?? null,
       logic_chain: s.logic_chain ?? null,
+      research_sources: s.research_sources ?? null,
     })),
     checklist: checklist.map((c) => ({
       id: c.id,
@@ -846,6 +847,7 @@ export async function tellIdeaFromWorkingDoc(opts: {
     why_weak: draft?.why ?? null,
     stronger_version: draft?.stronger ?? null,
     question_back: draft?.questionBack ?? null,
+    research_sources: draft?.sources ?? null,
   });
   void import("@/lib/working-doc/idea-travel")
     .then(({ evaluateAndMaybeTravel }) =>
