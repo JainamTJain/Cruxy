@@ -14,7 +14,6 @@ import {
 } from "@/lib/db/supabase/working-doc-extra";
 import { upsertTeamBrief } from "@/lib/db/supabase/team-brief-extra";
 import { parseCaseMarkdown, type ParsedCase } from "@/lib/seed/parse-case";
-import { addWorkingDocSuggestion } from "@/lib/working-doc/suggestions";
 import { proposeOnePagerFromWorkingDoc } from "@/lib/working-doc/one-pager-from-working";
 
 let domainCache: ParsedCase[] | null = null;
@@ -145,12 +144,24 @@ type SectionKey =
 export async function fillWorkingDocFromTruth(opts: {
   briefId: string;
   caseNumber: number;
-  personId: string;
+  personId: string | null;
   existing?: Record<string, string>;
+  /** Case id, to include Cruxy's shared additions to the truth source. */
+  caseId?: string;
 }): Promise<number> {
   const parsed = truthSourceForCase(opts.caseNumber);
   if (!parsed) return 0;
   const fill = fillFromParsed(parsed);
+  // Cruxy's anonymous additions from the teams join the section they belong to.
+  if (opts.caseId) {
+    const { listTruthAdditions } = await import("@/lib/critique/truth-additions");
+    for (const a of await listTruthAdditions(opts.caseId)) {
+      const k = a.sectionKey as keyof typeof fill;
+      fill[k] = [fill[k] ?? "", `Added by Cruxy from the teams: ${a.text}`]
+        .filter((x) => x.trim())
+        .join("\n\n");
+    }
+  }
   let n = 0;
   for (const [key, body] of Object.entries(fill)) {
     if (!body.trim()) continue;
@@ -166,50 +177,57 @@ export async function fillWorkingDocFromTruth(opts: {
   return n;
 }
 
-async function seedStarterSuggestions(opts: {
+/**
+ * A team with no working document gets the truth source as its document, so
+ * there is always something real to edit, critique and draw the one pager from.
+ * Importing their own documents later replaces it. Returns true if started.
+ */
+export async function ensureStartedFromTruth(opts: {
   caseId: string;
   teamId: string;
-  personId: string;
-  parsed: ParsedCase | null;
-}) {
-  const stakes =
-    opts.parsed?.stakeholders
-      .filter((s) => /no|barely|indirect/i.test(s.voice))
-      .slice(0, 2)
-      .map((s) => s.who) ?? [];
-
-  const texts: Array<{ kind: "gap" | "counter" | "sharper" | "question"; text: string }> = [
-    {
-      kind: "gap",
-      text: stakes.length
-        ? `Missing perspective: speak for ${stakes[0]} in one sentence, then say how your answer still holds.`
-        : "Name one stakeholder your answer still leaves out, and what they would ask you.",
-    },
-    {
-      kind: "counter",
-      text: "Steelman the other side in one sentence, then answer it with one cited fact from the case.",
-    },
-    {
-      kind: "sharper",
-      text: "Analogy check: explain your crux with one everyday comparison a judge can repeat.",
-    },
-    {
-      kind: "question",
-      text: "Research gap: which claim still has no outside source, and what would count as enough?",
-    },
-  ];
-
-  for (const t of texts) {
-    await addWorkingDocSuggestion({
-      caseId: opts.caseId,
-      teamId: opts.teamId,
-      personId: opts.personId,
-      kind: t.kind,
-      text: t.text,
-      source: "cruxy",
-    });
-  }
+  personId: string | null;
+}): Promise<boolean> {
+  const brief = await ensureTeamBrief({
+    teamId: opts.teamId,
+    caseId: opts.caseId,
+    personId: opts.personId,
+  });
+  if (brief.working_path) return false;
+  const row = (await listCases()).find((c) => c.id === opts.caseId);
+  if (!row) return false;
+  const started = await upsertTeamBrief({
+    team_id: opts.teamId,
+    case_id: opts.caseId,
+    mode: "build_in_crux",
+    working_path: "crux",
+    created_by: opts.personId,
+  });
+  const sections = await ensureWorkingSections(started.id, opts.personId);
+  const filled = await fillWorkingDocFromTruth({
+    briefId: started.id,
+    caseNumber: row.number,
+    personId: opts.personId,
+    caseId: opts.caseId,
+    existing: Object.fromEntries(sections.map((x) => [x.section_key, x.body ?? ""])),
+  });
+  if (filled === 0) return false;
+  const { syncOnePagerFromWorkingDoc } = await import(
+    "@/lib/working-doc/one-pager-from-working"
+  );
+  await syncOnePagerFromWorkingDoc({
+    caseId: opts.caseId,
+    teamId: opts.teamId,
+    personId: opts.personId,
+  }).catch(() => undefined);
+  await logActivity({
+    person_id: opts.personId,
+    action: "working_doc_started_from_truth",
+    target: opts.caseId,
+    meta: { teamId: opts.teamId, sections: filled, automatic: true },
+  });
+  return true;
 }
+
 
 export async function startAllWorkingDocuments(opts: {
   teamId: string;
@@ -237,16 +255,12 @@ export async function startAllWorkingDocuments(opts: {
     await fillWorkingDocFromTruth({
       briefId: brief.id,
       caseNumber: c.number,
+      caseId: c.id,
       personId: opts.personId,
       existing,
     });
 
-    await seedStarterSuggestions({
-      caseId: c.id,
-      teamId: opts.teamId,
-      personId: opts.personId,
-      parsed,
-    });
+    // Cruxy critiques the new document right after this (see the route).
 
     void proposeOnePagerFromWorkingDoc({
       caseId: c.id,

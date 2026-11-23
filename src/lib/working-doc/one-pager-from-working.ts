@@ -7,7 +7,6 @@ import { ensureTeamBrief } from "@/lib/case-brain/team-brief";
 import {
   listAllSuggestions,
   listWorkingSections,
-  WORKING_SECTION_LABELS,
   type WorkingSectionKey,
 } from "@/lib/db/supabase/working-doc-extra";
 import {
@@ -55,6 +54,66 @@ function splitSupports(supportText: string): string[] {
   return out;
 }
 
+type ParsedClaim = { text: string; logic: string; supports: string[] };
+
+/** Blocks that start with a label line such as "Claim 1:" or "Objection 2:". */
+function blocks(text: string, label: RegExp): string[][] {
+  const out: string[][] = [];
+  let cur: string[] | null = null;
+  for (const raw of text.split(/\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (label.test(line)) {
+      cur = [line];
+      out.push(cur);
+    } else if (cur) {
+      cur.push(line);
+    }
+  }
+  return out;
+}
+
+/** Cut at a sentence or word boundary, never mid-word. */
+function clip(text: string, max: number): string {
+  const t = text.replace(/\s+/g, " ").trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  const stop = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("; "));
+  if (stop > max * 0.5) return cut.slice(0, stop + 1).trim();
+  return cut.slice(0, cut.lastIndexOf(" ")).replace(/[,;:(]+$/, "").trim() + "...";
+}
+
+const cap = (t: string) => t.replace(/^[a-z]/, (c) => c.toUpperCase());
+const FRAMEWORK_NAMES: Record<string, string> = {
+  utilitarian: "Utilitarianism",
+  consequentialis: "Consequentialism",
+  virtue: "Virtue ethics",
+  rights: "Rights",
+  "care ethics": "Care ethics",
+  "social contract": "Social contract",
+};
+
+/** "(3): that's why..." becomes "On their point that X: that's why...". */
+function expandRef(reply: string, theirs: string): string {
+  const m = reply.match(/^\((\d)\)\s*:?\s*/);
+  if (!m) return cap(reply);
+  const items = theirs.split(/\(\d\)\s*/).map((x) => x.replace(/[;.]\s*$/, "").trim()).filter(Boolean);
+  const point = items[Number(m[1]) - 1];
+  const rest = reply.slice(m[0].length);
+  return cap(point ? `On "${clip(point, 90)}": ${rest}` : rest);
+}
+
+function after(label: RegExp, lines: string[]): string {
+  const hit = lines.find((l) => label.test(l));
+  return hit ? hit.replace(label, "").trim() : "";
+}
+
+/**
+ * Read the working document's structure: "Claim N:" blocks with a logic line,
+ * "S1." supports with backing, "Objection N:" with concede, distinguish and
+ * rebut, "Crux: A versus B", stakeholders, and "Q:"/"A:" pairs. Free-form
+ * writing falls back to line-by-line reading.
+ */
 export function bodyFromWorkingSections(opts: {
   sections: { section_key: WorkingSectionKey; body: string }[];
   acceptedTexts: string[];
@@ -67,58 +126,139 @@ export function bodyFromWorkingSections(opts: {
   const values = sectionBody(opts.sections, "values_in_tension");
   const judges = sectionBody(opts.sections, "judges_questions");
 
-  const claimTexts = splitClaims(claimsRaw);
-  const supports = splitSupports(supportRaw);
-
-  const claims = [
-    {
-      text: claimTexts[0] || answer || "",
-      logic_line: claimTexts[0] ? "" : "",
-      supports: [supports[0] ?? "", supports[1] ?? "", supports[2] ?? ""],
-    },
-    {
-      text: claimTexts[1] || "",
-      logic_line: "",
-      supports: ["", "", ""],
-    },
-  ];
-
-  // Fold accepted suggestions into supports gaps.
-  let si = 0;
-  for (const t of opts.acceptedTexts) {
-    while (si < 3 && claims[0]!.supports[si]) si++;
-    if (si >= 3) break;
-    claims[0]!.supports[si] = t.slice(0, 280);
-    si++;
+  // Claims and logic lines.
+  const claimBlocks = blocks(claimsRaw, /^claim \d+\s*:/i);
+  let parsed: ParsedClaim[] = claimBlocks.map((b) => ({
+    text: b[0]!.replace(/^claim \d+\s*:\s*/i, "").trim(),
+    logic: after(/^logic line\s*:\s*/i, b),
+    supports: [],
+  }));
+  if (!parsed.length) {
+    parsed = splitClaims(claimsRaw)
+      .filter(Boolean)
+      .map((t) => ({ text: t, logic: "", supports: [] }));
   }
 
-  const [left, right] = values.includes(" versus ")
-    ? values.split(/\s+versus\s+/i)
-    : values.includes(" vs ")
-      ? values.split(/\s+vs\.?\s+/i)
-      : ["", values];
+  // Supports, grouped under their claim, with backing kept short.
+  const supportBlocks = blocks(supportRaw, /^claim \d+\s*:/i);
+  if (supportBlocks.length) {
+    supportBlocks.forEach((b, i) => {
+      const target = parsed[i] ?? (parsed[i] = { text: b[0]!.replace(/^claim \d+\s*:\s*/i, ""), logic: "", supports: [] });
+      for (let j = 1; j < b.length; j++) {
+        const line = b[j]!;
+        if (/^s\d+\.?\s*/i.test(line)) {
+          const backing = /^backing\s*:/i.test(b[j + 1] ?? "")
+            ? ` Backing: ${clip(b[j + 1]!.replace(/^backing\s*:\s*/i, ""), 150)}`
+            : "";
+          target.supports.push(clip(`${line.replace(/^s\d+\.?\s*/i, "")}${backing}`, 360));
+        }
+      }
+    });
+  } else if (parsed[0]) {
+    parsed[0].supports = splitSupports(supportRaw).filter(Boolean);
+  }
 
-  const questions = judges
-    .split(/\n+/)
-    .map((l) => l.replace(/^[-*•\d.)\s]+/, "").trim())
-    .filter(Boolean)
+  // Accepted suggestions fill support gaps with their stronger version.
+  for (const t of opts.acceptedTexts) {
+    const host = parsed.find((c) => c.supports.length < 3) ?? null;
+    if (!host || !t.trim()) break;
+    host.supports.push(clip(t, 280));
+  }
+
+  const claims = [0, 1].map((i) => {
+    const c = parsed[i] ?? { text: i === 0 ? answer : "", logic: "", supports: [] };
+    const sup = c.supports.slice(0, 3);
+    while (sup.length < 3) sup.push("");
+    return { text: c.text, logic_line: c.logic, supports: sup };
+  });
+
+  // First objection, with concede, distinguish and rebut.
+  const objBlocks = blocks(objection, /^objection \d+\s*:/i);
+  const ob = objBlocks[0];
+  const theirs = ob ? after(/^their supports?\s*:\s*/i, ob) : "";
+  const counterclaim = ob
+    ? {
+        text: ob[0]!.replace(/^objection \d+\s*:\s*/i, ""),
+        concede: expandRef(after(/^concede\s*:\s*/i, ob), theirs),
+        distinguish: expandRef(after(/^distinguish\s*:\s*/i, ob), theirs),
+        rebut: expandRef(after(/^rebut\s*:\s*/i, ob), theirs),
+      }
+    : {
+        text: objection.split(/\n/)[0]?.trim() ?? "",
+        concede: "",
+        distinguish: "",
+        rebut: objection.includes("\n") ? objection.split(/\n/).slice(1).join(" ").trim() : "",
+      };
+
+  // Values: "Crux: A versus B".
+  const cruxLine = (values.match(/^crux\s*:\s*(.+)$/im)?.[1] ?? values.split(/\n/)[0] ?? "").trim();
+  const [left, right] = /\s+versus\s+/i.test(cruxLine)
+    ? cruxLine.split(/\s+versus\s+/i)
+    : /\s+vs\.?\s+/i.test(cruxLine)
+      ? cruxLine.split(/\s+vs\.?\s+/i)
+      : ["", cruxLine];
+  const trap = cap((values.match(/^the trap\s*:\s*(.+)$/im)?.[1] ?? "").trim());
+
+  // Stakeholders: "who: stake" lines after "Stakeholders:".
+  const stakeStart = values.search(/^stakeholders\s*:/im);
+  const stakeholders =
+    stakeStart >= 0
+      ? values
+          .slice(stakeStart)
+          .split(/\n/)
+          .slice(1)
+          .map((l) => l.trim())
+          .filter((l) => l.includes(":"))
+          .map((l) => {
+            const i = l.indexOf(":");
+            const rest = l.slice(i + 1);
+            const voice = rest.match(/\(voice in the case:\s*([^)]+)\)/i)?.[1]?.trim() ?? "";
+            return {
+              who: l.slice(0, i).replace(/^[-*\d.)\s]+/, "").trim(),
+              stake: clip(rest.replace(/\(voice in the case:[^)]*\)/i, ""), 140),
+              voice: clip(voice, 60),
+            };
+          })
+          .filter((c) => c.who.length > 1 && c.who.length < 60)
+          .slice(0, 6)
+      : [];
+
+  // Questions: "Q:" with the following "A:" as the hint.
+  const qa: { q: string; a: string }[] = [];
+  const lines = judges.split(/\n/).map((l) => l.trim()).filter(Boolean);
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i]!;
+    if (/^q\s*:/i.test(l) || (l.endsWith("?") && !/^a\s*:/i.test(l))) {
+      const next = lines[i + 1] ?? "";
+      qa.push({
+        q: l.replace(/^q\s*:\s*/i, ""),
+        a: /^a\s*:/i.test(next) ? clip(next.replace(/^a\s*:\s*/i, ""), 220) : "",
+      });
+    }
+    if (qa.length >= 4) break;
+  }
+
+  // Frameworks named in the claims' ethical analysis.
+  const FRAMEWORKS = ["Kant", "utilitarian", "consequentialis", "virtue", "Rawls", "care ethics", "social contract", "rights", "Mill", "Aristotle"];
+  const claimSentences = claimsRaw
+    .split(/\n+|(?<=[.!?])\s+/)
+    .map((x) => x.replace(/^ethical analysis\s*:\s*/i, "").trim())
+    .filter(Boolean);
+  const frameworks = FRAMEWORKS.filter((f) => new RegExp(f, "i").test(claimsRaw))
     .slice(0, 4)
-    .map((q) => ({ q, hint: "" }));
+    .map((f) => {
+      const line = claimSentences.find((x) => new RegExp(f, "i").test(x)) ?? f;
+      const named = line.match(/([A-Z][a-z]+'s [a-z ]+?(?:formula|principle|theory|veil|test))/);
+      return { name: named?.[1] ?? FRAMEWORK_NAMES[f] ?? cap(f), one_line: cap(clip(line, 200)) };
+    });
 
   const body: OnePagerBody = {
     claims,
-    counterclaim: {
-      text: objection.split(/\n/)[0]?.trim() ?? "",
-      concede: "",
-      distinguish: "",
-      rebut: objection.includes("\n")
-        ? objection.split(/\n/).slice(1).join(" ").trim()
-        : "",
-    },
+    counterclaim,
     language: {
-      plain: (answer || claimTexts[0] || "").slice(0, 120),
+      plain: clip(answer || claims[0]!.text || "", 320),
       analogies: [],
-      vivid: "",
+      vivid: clip(trap, 240),
       avoid: [],
     },
     empty_rows: [],
@@ -132,7 +272,7 @@ export function bodyFromWorkingSections(opts: {
             label: c.text || `Claim ${i + 1}`,
             supports: c.supports.filter(Boolean),
           })),
-          counter: objection.slice(0, 200) || null,
+          counter: clip(counterclaim.text, 240) || null,
         },
       },
       {
@@ -141,19 +281,21 @@ export function bodyFromWorkingSections(opts: {
         payload: {
           left: (left || "Value A").slice(0, 80),
           right: (right || "Value B").slice(0, 80),
-          note: values.slice(0, 200),
+          note: clip(trap || cruxLine, 240),
         },
       },
       {
         kind: "question_table",
         title: "Likely questions",
-        payload: { rows: questions },
+        payload: { rows: qa },
       },
       {
         kind: "stakeholder_grid",
         title: "Stakeholders",
         payload: {
-          cells: ["Primary actors", "Affected", "Voiceless", "Institutions"],
+          cells: stakeholders.length
+            ? stakeholders
+            : ["Primary actors", "Affected", "Voiceless", "Institutions"],
         },
       },
       {
@@ -164,72 +306,116 @@ export function bodyFromWorkingSections(opts: {
       {
         kind: "framework_strip",
         title: "Frameworks",
-        payload: { items: [] },
+        payload: { items: frameworks },
       },
     ],
   };
 
   const thesis = answer || opts.thesisFallback || "";
   if (thesis && body.language) {
-    body.language.plain = thesis.slice(0, 120);
+    body.language.plain = clip(thesis, 320);
   }
 
   return withEmptyRows(body);
 }
 
+/** Change note on versions written by the sync, so we know nobody hand-edited them. */
+export const SYNC_NOTE = "Updated from the working document";
+
+function handEdited(note: string | null | undefined): boolean {
+  if (!note) return false;
+  return !/working document|seed|prep|import|truth source/i.test(note);
+}
+
+function same(a: OnePagerBody, b: OnePagerBody): boolean {
+  const pick = (x: OnePagerBody) =>
+    JSON.stringify({ c: x.claims, k: x.counterclaim, l: x.language?.plain });
+  return pick(a) === pick(b);
+}
+
+/**
+ * Keep the one pager in step with the working document. If nobody has hand
+ * edited the one pager, it is updated directly; otherwise the team gets an
+ * update to accept or dismiss. Needs a person to write versions.
+ */
+export async function syncOnePagerFromWorkingDoc(opts: {
+  caseId: string;
+  teamId: string;
+  personId: string | null;
+}): Promise<{ status: "updated" | "proposed" | "unchanged" | "skipped" }> {
+  if (!opts.personId) return { status: "skipped" };
+  const brief = await ensureTeamBrief({ ...opts, personId: opts.personId });
+  const sections = await listWorkingSections(brief.id);
+  if (!sections.some((s) => s.body.trim())) return { status: "skipped" };
+
+  const ticked = (
+    await listAllSuggestions({ teamId: opts.teamId, caseId: opts.caseId })
+  ).filter((s) => s.status === "ticked" && (s.section_key === "support" || s.section_key === "claims"));
+  const body = bodyFromWorkingSections({
+    sections,
+    acceptedTexts: ticked.map((s) => s.stronger_version || s.text).filter(Boolean) as string[],
+    thesisFallback: brief.thesis,
+  });
+
+  const current = await latestOnePager(opts.teamId, opts.caseId);
+  if (current && same(current.body, body)) return { status: "unchanged" };
+
+  if (!current || !handEdited(current.change_note)) {
+    const page =
+      current ??
+      (await draftOnePager({
+        teamId: opts.teamId,
+        caseId: opts.caseId,
+        personId: opts.personId,
+      }));
+    await saveOnePagerEdit({
+      onePagerId: page.id,
+      body,
+      changeNote: SYNC_NOTE,
+      personId: opts.personId,
+    });
+    return { status: "updated" };
+  }
+
+  const pending = await getPendingOnePagerSync({
+    teamId: opts.teamId,
+    caseId: opts.caseId,
+  });
+  if (pending && same(pending.proposed_body, body)) return { status: "unchanged" };
+  await insertOnePagerSyncProposal({
+    teamId: opts.teamId,
+    caseId: opts.caseId,
+    body,
+    changeSummary: "The working document changed since your last edit.",
+    personId: opts.personId,
+  });
+  return { status: "proposed" };
+}
+
+/** Kept for callers: brings the one pager in step with the working document. */
 export async function proposeOnePagerFromWorkingDoc(opts: {
   caseId: string;
   teamId: string;
   personId: string;
 }): Promise<{ proposed: boolean; summary: string }> {
-  const brief = await ensureTeamBrief(opts);
-  const sections = await listWorkingSections(brief.id);
-  const filled = sections.filter((s) => s.body.trim()).length;
-  if (filled === 0) {
-    return { proposed: false, summary: "Working document is empty." };
+  const r = await syncOnePagerFromWorkingDoc(opts);
+  const summary =
+    r.status === "updated"
+      ? "One pager updated from the working document."
+      : r.status === "proposed"
+        ? "One pager update ready to accept."
+        : r.status === "unchanged"
+          ? "One pager already matches the working document."
+          : "Working document is empty.";
+  if (r.status === "updated" || r.status === "proposed") {
+    await logActivity({
+      person_id: opts.personId,
+      action: r.status === "updated" ? "one_pager_synced" : "one_pager_sync_proposed",
+      target: opts.caseId,
+      meta: { teamId: opts.teamId },
+    });
   }
-
-  const all = await listAllSuggestions({
-    teamId: opts.teamId,
-    caseId: opts.caseId,
-  });
-  const accepted = all
-    .filter((s) => s.status === "ticked")
-    .map((s) => s.text);
-
-  const body = bodyFromWorkingSections({
-    sections,
-    acceptedTexts: accepted,
-    thesisFallback: brief.thesis,
-  });
-
-  const current = await latestOnePager(opts.teamId, opts.caseId);
-  const summaryParts = [
-    `${filled} working section${filled === 1 ? "" : "s"}`,
-    accepted.length
-      ? `${accepted.length} accepted suggestion${accepted.length === 1 ? "" : "s"}`
-      : null,
-  ].filter(Boolean);
-
-  await insertOnePagerSyncProposal({
-    teamId: opts.teamId,
-    caseId: opts.caseId,
-    body,
-    changeSummary: `Update from working document (${summaryParts.join(", ")}).`,
-    personId: opts.personId,
-  });
-
-  await logActivity({
-    person_id: opts.personId,
-    action: "one_pager_sync_proposed",
-    target: opts.caseId,
-    meta: { teamId: opts.teamId, sections: filled },
-  });
-
-  return {
-    proposed: true,
-    summary: `Proposed one pager update from ${WORKING_SECTION_LABELS.answer_one_sentence.toLowerCase()} and filled sections.`,
-  };
+  return { proposed: r.status === "updated" || r.status === "proposed", summary };
 }
 
 export async function acceptOnePagerSyncProposal(opts: {

@@ -325,6 +325,7 @@ export async function startCruxWorkingDoc(opts: {
         briefId: brief.id,
         caseNumber: row.number,
         personId: opts.personId,
+        caseId: opts.caseId,
         existing: Object.fromEntries(
           sections.map((x) => [x.section_key, x.body ?? ""]),
         ),

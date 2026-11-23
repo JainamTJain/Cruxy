@@ -57,13 +57,18 @@ async function loadCaseSet(caseId: string): Promise<TruthSourceItem[]> {
     const truths = store.truth_items
       .filter((t) => t.case_id === caseId && t.status === "accepted")
       .slice(0, 20);
-    const fromTruth = truths.map((t, i) => ({
-      id: `case_set:truth:${t.id}`,
-      kind: "case_set" as const,
-      label: `Case fact ${i + 1}`,
-      text: scrub(t.text).slice(0, 600),
-      ref: t.id,
-    }));
+    let shared = 0;
+    let fact = 0;
+    const fromTruth = truths.map((t) => {
+      const isShared = String((t as { origin?: string }).origin ?? "").startsWith("cruxy_from_teams");
+      return {
+        id: `case_set:truth:${t.id}`,
+        kind: (isShared ? "traveled_idea" : "case_set") as TruthSourceItem["kind"],
+        label: isShared ? `Shared idea ${++shared}` : `Case fact ${++fact}`,
+        text: scrub(t.text).slice(0, 600),
+        ref: t.id,
+      };
+    });
     return [
       {
         id: `case_set:title:${c.id}`,
@@ -84,10 +89,10 @@ async function loadCaseSet(caseId: string): Promise<TruthSourceItem[]> {
     .maybeSingle();
   const { data: truths } = await sb
     .from("truth_items")
-    .select("id,text,kind,status")
+    .select("id,text,kind,status,origin")
     .eq("case_id", caseId)
     .eq("status", "accepted")
-    .limit(20);
+    .limit(40);
   const items: TruthSourceItem[] = [];
   if (caseRow) {
     items.push({
@@ -98,11 +103,14 @@ async function loadCaseSet(caseId: string): Promise<TruthSourceItem[]> {
       ref: String(caseRow.id),
     });
   }
-  for (const [i, t] of (truths ?? []).entries()) {
+  let shared = 0;
+  let fact = 0;
+  for (const t of truths ?? []) {
+    const isShared = String(t.origin ?? "").startsWith("cruxy_from_teams");
     items.push({
       id: `case_set:truth:${t.id}`,
-      kind: "case_set",
-      label: `Case fact ${i + 1}`,
+      kind: isShared ? "traveled_idea" : "case_set",
+      label: isShared ? `Shared idea ${++shared}` : `Case fact ${++fact}`,
       text: scrub(String(t.text ?? "")).slice(0, 600),
       ref: String(t.id),
     });

@@ -15,6 +15,8 @@ import { ruleFindings, type SectionBodies } from "@/lib/critique/rules";
 import { CRITIQUE_KINDS, type CritiqueFinding, type TruthSourceItem } from "@/lib/critique/types";
 import { buildTruthSource } from "@/lib/critique/truth-source";
 import { postSuggestions } from "@/lib/working-doc/post-suggestions";
+import { retirePendingCritique } from "@/lib/db/supabase/working-doc-extra";
+import { sharedSystemPrefix } from "@/lib/cruxy/prompts/shared";
 
 const kindTuple = CRITIQUE_KINDS as unknown as [
   (typeof CRITIQUE_KINDS)[number],
@@ -31,6 +33,8 @@ const llmSchema = z.object({
       z.object({
         kind: z.enum(kindTuple),
         section_key: z.enum(sectionTuple),
+        /** The exact words from the document this finding is about. */
+        quote: z.string().max(300).nullable(),
         weak_spot: z.string().min(8).max(280),
         why: z.string().min(8).max(280),
         stronger: z.string().min(8).max(320),
@@ -39,7 +43,20 @@ const llmSchema = z.object({
         truth_source_id: z.string().nullable(),
       }),
     )
-    .max(16),
+    .max(14),
+  /**
+   * Ideas the team wrote that are stronger than, or missing from, the truth
+   * source, rewritten anonymously. Cruxy adds them to the shared truth source.
+   */
+  truth_additions: z
+    .array(
+      z.object({
+        section_key: z.enum(sectionTuple),
+        text: z.string().min(20).max(400),
+      }),
+    )
+    .max(3)
+    .default([]),
 });
 
 function bodiesFromRows(
@@ -51,32 +68,52 @@ function bodiesFromRows(
   return out;
 }
 
+function norm(t: string): string {
+  return t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+/**
+ * The model's findings lead. Each must quote words that are really in the
+ * document (or be about an empty section); invented quotes are dropped.
+ * Rules then fill only the kinds the model did not raise.
+ */
 function mergeFindings(
   rules: CritiqueFinding[],
   llm: z.infer<typeof llmSchema>["findings"] | null,
   truth: TruthSourceItem[],
+  bodies: SectionBodies,
 ): CritiqueFinding[] {
   if (!llm?.length) return rules;
-  const byKind = new Map(rules.map((r) => [r.kind, r]));
+  const doc = norm(Object.values(bodies).join(" "));
+  const out: CritiqueFinding[] = [];
+  const seen = new Set<string>();
   for (const f of llm) {
-    const base = byKind.get(f.kind);
+    const q = f.quote?.trim() ?? "";
+    const sectionEmpty = !(bodies[f.section_key] ?? "").trim();
+    if (q && !sectionEmpty && !doc.includes(norm(q).slice(0, 60))) continue;
+    const key = `${f.kind}:${norm(q || f.weak_spot).slice(0, 50)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     const cite = f.truth_source_id
       ? truth.find((t) => t.id === f.truth_source_id) ?? null
-      : (base ? truth.find((t) => t.id === base.truthSourceId) : null);
-    byKind.set(f.kind, {
+      : null;
+    out.push({
       kind: f.kind,
       sectionKey: f.section_key,
-      weakSpot: f.weak_spot,
+      weakSpot: q && !f.weak_spot.includes(q.slice(0, 20)) ? `"${q}": ${f.weak_spot}` : f.weak_spot,
       why: f.why,
       stronger: f.stronger,
       questionBack: f.question_back,
       fallacyName: f.kind === "logical_fallacy" ? f.fallacy_name : null,
       truthSourceId: cite?.id ?? null,
       cannotCite: !cite,
-      rank: base?.rank ?? 2,
+      rank: f.kind === "logical_fallacy" || f.kind === "unanswered_counter" ? 1 : 2,
     });
   }
-  return [...byKind.values()];
+  if (!out.length) return rules;
+  const covered = new Set(out.map((f) => f.kind));
+  for (const r of rules) if (!covered.has(r.kind)) out.push({ ...r, rank: r.rank + 1 });
+  return out;
 }
 
 /** Cap to top findings per section (by rank), overall readable rail. */
@@ -122,8 +159,8 @@ export async function critiqueWorkingDocument(opts: {
         `${WORKING_SECTION_LABELS[k]}:\n${bodies[k].trim() || "(empty)"}`,
     ).join("\n\n");
     const truthBrief = truthPack.items
-      .slice(0, 16)
-      .map((t) => `[${t.id}] (${t.kind}) ${t.label}: ${t.text.slice(0, 220)}`)
+      .slice(0, 24)
+      .map((t) => `[${t.id}] (${t.kind}) ${t.label}: ${t.text.slice(0, 600)}`)
       .join("\n");
 
     const result = await runAgent({
@@ -131,22 +168,41 @@ export async function critiqueWorkingDocument(opts: {
       feature: "working_doc_critique",
       tier: "strong",
       system: [
-        "You are Cruxy reviewing an Ethics Bowl working document.",
-        "For each finding: say where the point is weak, why, give a stronger version, then ask What do you think?",
+        sharedSystemPrefix(),
+        "",
+        "Task: you are Cruxy reviewing a team's Ethics Bowl working document like a tough, fair APPE judge and a philosophy coach.",
+        "Judges score: clarity and logic of the argument, whether it identifies and weighs the central moral dimensions, awareness of views that weigh heavily for people who disagree, and responsiveness. Aim every finding at a point a judge would actually take off.",
+        "Find the real weaknesses, strongest first. Check each of these and report only what is actually wrong:",
+        "1. Fallacies from the reasoning standard (false dilemma, slippery slope without a stopping point, post hoc, appeal to authority, equivocation on a key term, hasty generalization, circular support, straw man of the other side). Name the fallacy.",
+        "2. Supports that fail the acceptable, relevant, sufficient test, or a logic line where the supports could all be true and the claim still false.",
+        "3. A claim that does not connect to the one-sentence answer.",
+        "4. The strongest objection left unanswered, or answered with a straw man. Run the stress tests: counterexample, flip test, slope test, second order effects, change the facts.",
+        "5. Missing stakeholders, especially the voiceless, and values the other side holds that the document ignores.",
+        "6. Facts or frameworks asserted without backing, or a framework named but not explained with its limits.",
+        "Rules for each finding:",
+        "- quote: copy the exact words from the document the finding is about (null only if the section is empty).",
+        "- weak_spot: one sentence saying what is wrong with that quote, specific to this case. Never generic advice that would fit any document.",
+        "- why: why a judge would mark it down.",
+        "- stronger: a concrete rewrite or addition the team can paste in, using the case facts and the truth source where they help.",
+        "- question_back: one Socratic question that ends with What do you think?",
+        "- truth_source_id: the id of the truth-source item that backs the stronger version, or null.",
+        "Return between 4 and 12 findings when the document has that many real problems; fewer if it is strong. Do not pad.",
         "Kinds: missing_perspective, missing_stakeholder, unanswered_counter, logical_fallacy, disconnected_claim, loose_end, evidence_gap, sharper_wording.",
-        "Cite a truth_source_id from the list when you can; otherwise set it null.",
-        "Never name a USC team. Plain words. No em dashes. Ethics over law.",
+        "truth_additions: up to 3 ideas this team wrote that are clearly stronger than, or missing from, the truth source (a sharper argument, a better reply to an objection, a stakeholder or analogy the prep lacks). Rewrite each in your own neutral words with no team or person named. Leave it empty if the document only repeats the truth source.",
+        "Never name a USC team. Plain words. No em dashes. Ethics over law. Never write an id inside a sentence.",
         "Output JSON only.",
-      ].join(" "),
+      ].join("\n"),
       user: `Case ${truthPack.caseNumber ?? ""}: ${truthPack.caseTitle ?? ""}\n\nWorking document:\n${filled}\n\nTruth source (shared, anonymous):\n${truthBrief || "(empty)"}`,
       schema: llmSchema,
       personId: opts.personId,
       fixtureKey: "working_doc_critique",
-      estimatedCostUsd: 0.04,
+      estimatedCostUsd: 0.08,
       stubFallback: () => ({
+        truth_additions: [],
         findings: rules.map((r) => ({
           kind: r.kind,
           section_key: r.sectionKey,
+          quote: null,
           weak_spot: r.weakSpot,
           why: r.why,
           stronger: r.stronger,
@@ -156,12 +212,30 @@ export async function critiqueWorkingDocument(opts: {
         })),
       }),
     });
-    if (result.ok) llmFindings = result.data.findings;
+    if (result.ok) {
+      llmFindings = result.data.findings;
+      // Cruxy edits the shared truth source from the team's strongest ideas.
+      const { addTruthAddition } = await import("@/lib/critique/truth-additions");
+      for (const a of result.data.truth_additions ?? []) {
+        await addTruthAddition({
+          caseId: opts.caseId,
+          sectionKey: a.section_key,
+          text: a.text,
+          personId: opts.personId,
+          existingText: truthPack.items.map((t) => t.text),
+        }).catch(() => null);
+      }
+    }
   }
 
   const merged = selectForRail(
-    mergeFindings(rules, llmFindings, truthPack.items),
+    mergeFindings(rules, llmFindings, truthPack.items, bodies),
+    3,
   );
+
+  // A fresh rail: Cruxy's earlier critique nobody has acted on or discussed
+  // is replaced by this run, so suggestions track the current document.
+  await retirePendingCritique({ teamId: opts.teamId, caseId: opts.caseId });
 
   const { posted, skippedCap } = await postSuggestions(
     merged.map((f) => {

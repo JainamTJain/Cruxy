@@ -155,6 +155,23 @@ export async function evaluateAndMaybeTravel(opts: {
       });
       suggestionIds.push(sug.id);
     }
+
+    // A vetted idea also joins the shared truth source (anonymous).
+    const sectionFor: Record<string, "values_in_tension" | "objection_reply" | "support" | "claims" | "judges_questions"> = {
+      missing_perspective: "values_in_tension",
+      missing_stakeholder: "values_in_tension",
+      unanswered_counter: "objection_reply",
+      evidence_gap: "support",
+      sharper_wording: "claims",
+      question: "judges_questions",
+    };
+    const { addTruthAddition } = await import("@/lib/critique/truth-additions");
+    await addTruthAddition({
+      caseId: opts.caseId,
+      sectionKey: sectionFor[scored.kind] ?? "support",
+      text: anonText,
+      personId: opts.personId,
+    }).catch(() => null);
   }
 
   await insertIdeaTravelScore({

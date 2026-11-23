@@ -59,6 +59,26 @@ export async function GET(req: Request) {
     );
   }
 
+  // A team with no working document starts from the truth source, and Cruxy
+  // critiques it in the background.
+  if (canWriteTeamData(person, session, teamId)) {
+    const { ensureStartedFromTruth } = await import(
+      "@/lib/working-doc/start-all-from-truth"
+    );
+    const started = await ensureStartedFromTruth({
+      caseId,
+      teamId,
+      personId: session.personId,
+    }).catch(() => false);
+    if (started) {
+      const { after } = await import("next/server");
+      const { critiqueNow } = await import("@/lib/critique/run");
+      after(() =>
+        critiqueNow([{ caseId, teamId }], session.personId).then(() => undefined),
+      );
+    }
+  }
+
   const hub = await getWorkingDocumentHub({
     caseId,
     teamId,
