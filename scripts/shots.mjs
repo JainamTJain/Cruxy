@@ -151,6 +151,12 @@ for (const [w, h, tag] of [
   [390, 844, "phone"],
 ]) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h } });
+  // The first sign-in tour would cover every screenshot.
+  await ctx.addInitScript(() => {
+    try {
+      localStorage.setItem("crux-guided-tour-v2", "1");
+    } catch {}
+  });
   const page = await ctx.newPage();
   await page.route("**/cruxy/*.png", (route) => {
     const f = join("public", new URL(route.request().url()).pathname);

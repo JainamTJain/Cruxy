@@ -16,7 +16,7 @@ import { CruxyLamp } from "@/components/cruxy/cruxy-lamp";
 import { FloatingCruxy } from "@/components/cruxy/floating-cruxy";
 import { preloadCruxyPoses } from "@/components/cruxy/mood/poses";
 import { ConfettiHost } from "@/components/motion/confetti";
-import { FirstVisitTour } from "@/components/product/first-visit-tour";
+import { GuidedTour, startGuidedTour } from "@/components/product/guided-tour";
 import { ReportProblemButton } from "@/components/help/report-problem-button";
 import { NotificationBell } from "@/components/notification-bell";
 import {
@@ -193,10 +193,12 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         <Link href="/home" className="mx-1 inline-block px-1 py-1">
           <CruxWordmark className="text-[38px]" />
         </Link>
+        <div data-tour="search">
         <SearchOpenButton
           showShortcut
           className="mx-1 inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-left text-sm text-white/80 hover:bg-white/10"
         />
+        </div>
         {onAdminScreen ? (
           <span className="ml-3 self-start rounded-md bg-gold px-2 py-1 text-xs font-bold tracking-[0.1em] text-ink">
             ADMIN
@@ -217,6 +219,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
               <Link
                 key={`${item.label}-${item.href}`}
                 href={item.href}
+                data-tour={`nav-${item.label.toLowerCase().replace(/[^a-z]+/g, "-")}`}
                 className={cn(
                   "rounded-xl px-3 py-2.5 text-[15px] font-medium",
                   active
@@ -249,6 +252,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           <NotificationBell />
           <button
             type="button"
+            data-tour="profile"
             className="flex items-center gap-2.5 rounded-xl px-1.5 py-2 text-left hover:bg-white/10"
             aria-expanded={userMenuOpen}
             aria-haspopup="menu"
@@ -308,6 +312,17 @@ function ShellInner({ children }: { children: React.ReactNode }) {
               >
                 What&apos;s new
               </Link>
+              <button
+                type="button"
+                role="menuitem"
+                className="rounded-lg px-3 py-2 text-left text-sm text-white hover:bg-white/10"
+                onClick={() => {
+                  setUserMenuOpen(false);
+                  startGuidedTour();
+                }}
+              >
+                Take the tour
+              </button>
               {isAdminRole ? (
                 <button
                   type="button"
@@ -343,12 +358,15 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             <CruxWordmark className="text-2xl" />
           </Link>
           <div className="flex items-center gap-2">
-            <SearchOpenButton className="rounded-lg px-2 py-1 text-sm font-semibold text-white/85 hover:bg-white/10" />
+            <span data-tour="search" className="inline-flex">
+              <SearchOpenButton className="rounded-lg px-2 py-1 text-sm font-semibold text-white/85 hover:bg-white/10" />
+            </span>
             <ReportProblemButton placement="header" />
             <button
               type="button"
               className="text-xs text-white/70 underline"
               aria-expanded={userMenuOpen}
+              data-tour="profile"
               onClick={() => setUserMenuOpen((o) => !o)}
             >
               {displayName || "You"}
@@ -393,6 +411,17 @@ function ShellInner({ children }: { children: React.ReactNode }) {
                 <button
                   type="button"
                   role="menuitem"
+                  className="rounded-lg px-3 py-2 text-left text-sm text-white"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    startGuidedTour();
+                  }}
+                >
+                  Take the tour
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
                   className="rounded-lg px-3 py-2 text-left text-sm text-[#C9CCD3]"
                   onClick={() => {
                     setUserMenuOpen(false);
@@ -420,6 +449,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             <Link
               key={item.href}
               href={item.href}
+              data-tour={`nav-${item.label.toLowerCase().replace(/[^a-z]+/g, "-")}`}
               className={cn(
                 "flex flex-1 flex-col items-center gap-0.5 px-1 py-1",
                 navActive(pathname, item.href)
@@ -437,6 +467,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
               else wake();
             }}
             className="flex flex-1 flex-col items-center gap-0.5 px-1 py-1 text-muted"
+            data-tour="cruxy"
             aria-label={awake ? "Send Cruxy to rest" : "Call Cruxy"}
           >
             <Image
@@ -498,7 +529,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <CruxyLamp />
       <CruxyDrawer />
       <ConfettiHost />
-      <FirstVisitTour />
+      <GuidedTour />
       <SpokenTranscriptHost />
       <GlobalSearchHost />
       <ReportProblemButton />

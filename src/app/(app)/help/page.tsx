@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { PageIntro } from "@/components/page-intro";
 import { GlossaryTerm } from "@/components/help/glossary-term";
 import { HELP_FAQS, searchFaqs } from "@/lib/help/faq";
+import { startGuidedTour } from "@/components/product/guided-tour";
 
 export default function HelpPage() {
   const [q, setQ] = useState("");
@@ -17,6 +18,13 @@ export default function HelpPage() {
       </PageIntro>
 
       <div className="flex flex-wrap gap-3 text-sm">
+        <button
+          type="button"
+          onClick={() => startGuidedTour()}
+          className="font-semibold text-cardinal underline"
+        >
+          Take the tour
+        </button>
         <Link href="/help/ethics-bowl" className="underline text-muted">
           Ethics Bowl in 90 seconds
         </Link>
