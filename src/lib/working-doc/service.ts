@@ -933,8 +933,22 @@ export async function researchRawIdeas(opts: {
 }): Promise<void> {
   const { listPendingSuggestions } = await import("@/lib/db/supabase/working-doc-extra");
   const pending = await listPendingSuggestions({ teamId: opts.teamId, caseId: opts.caseId });
+  // Dr. B's comments stay as she wrote them; the team can still ask Cruxy to research one.
+  const { listPeopleFull } = await import("@/lib/db/repository");
+  // An admin writing on a team that is not their own is coaching, not adding an idea.
+  const coaches = new Set(
+    (await listPeopleFull().catch(() => []))
+      .filter((p) => (p.role === "coach_admin" || p.role === "tech_admin") && p.team_id !== opts.teamId)
+      .map((p) => p.id),
+  );
   const raw = pending
-    .filter((s) => s.source === "member" && !s.stronger_version && !researching.has(s.id))
+    .filter(
+      (s) =>
+        s.source === "member" &&
+        !s.stronger_version &&
+        !researching.has(s.id) &&
+        !(s.created_by && coaches.has(s.created_by)),
+    )
     .slice(0, 2);
   for (const s of raw) {
     researching.add(s.id);

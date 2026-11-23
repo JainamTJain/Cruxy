@@ -47,6 +47,13 @@ export default function CoachIndexPage() {
         One screen per team: who practised, who is behind, open Team Brief
         items, and a printable weekly report.
       </PageIntro>
+      <Link
+        href="/coach/cases"
+        className="flex min-h-11 items-center justify-between gap-3 rounded-2xl bg-ink px-4 py-3 text-white"
+      >
+        <span className="font-display text-lg font-semibold">Cases across teams</span>
+        <span className="text-sm text-white/80">Every team&apos;s stance, side by side</span>
+      </Link>
       {loading ? (
         <p className="text-sm text-muted">Loading teams…</p>
       ) : !teams.length ? (

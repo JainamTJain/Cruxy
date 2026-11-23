@@ -310,17 +310,13 @@ export async function digestText(opts: {
   return result.data as ReadingDigest;
 }
 
-/** Import one reading into a case for a team, then digest it. */
-export async function importReading(opts: {
-  caseId: string;
-  teamId: string;
-  personId: string;
+/** Pull the text out of a file, a link or pasted text. */
+export async function extractReadingText(opts: {
   title?: string | null;
-  note?: string | null;
   text?: string | null;
   url?: string | null;
   file?: { name: string; type: string; bytes: Uint8Array } | null;
-}): Promise<{ importId: string; status: ReadingDigestRow["status"]; chars: number }> {
+}): Promise<{ text: string; title: string }> {
   let text = (opts.text ?? "").trim();
   let guessedTitle: string | null = null;
   if (opts.file) {
@@ -344,22 +340,38 @@ export async function importReading(opts: {
     );
   }
   const title = (opts.title?.trim() || guessedTitle || text.split("\n")[0]!.slice(0, 90)).slice(0, 200);
+  return { text, title };
+}
+
+/** Store an extracted reading for one team, with a digest made once. */
+async function storeReadingForTeam(opts: {
+  caseId: string;
+  teamId: string;
+  personId: string;
+  title: string;
+  note: string;
+  text: string;
+  url: string | null;
+  fileName: string | null;
+  digest: ReadingDigest | null;
+  via: "file" | "link" | "paste";
+  action: string;
+}): Promise<{ importId: string; status: ReadingDigestRow["status"]; chars: number }> {
   const row = await addExtraReading({
     caseId: opts.caseId,
     teamId: opts.teamId,
     personId: opts.personId,
-    title,
-    body: (opts.note?.trim() || "").slice(0, 2000),
+    title: opts.title,
+    body: opts.note.slice(0, 2000),
     kind: "material",
   });
-
   const base: ReadingDigestRow = {
     import_id: row.id,
     team_id: opts.teamId,
     case_id: opts.caseId,
-    source_url: opts.url ?? null,
-    file_name: opts.file?.name ?? null,
-    chars: text.length,
+    source_url: opts.url,
+    file_name: opts.fileName,
+    chars: opts.text.length,
     status: "pending",
     digest: null,
     error: null,
@@ -367,7 +379,7 @@ export async function importReading(opts: {
   };
   await saveDigestRow(base);
   await savePassages(
-    splitPassages(text).map((p, i) => ({
+    splitPassages(opts.text).map((p, i) => ({
       import_id: row.id,
       team_id: opts.teamId,
       case_id: opts.caseId,
@@ -376,19 +388,78 @@ export async function importReading(opts: {
       text: p.text,
     })),
   );
-
-  const digest = await digestText({ caseId: opts.caseId, title, text, personId: opts.personId }).catch(() => null);
-  const done: ReadingDigestRow = digest
-    ? { ...base, status: "done", digest, digested_at: nowIso() }
+  const done: ReadingDigestRow = opts.digest
+    ? { ...base, status: "done", digest: opts.digest, digested_at: nowIso() }
     : { ...base, status: "failed", error: "Cruxy could not digest it just now. The text is saved and searchable." };
   await saveDigestRow(done);
   await logActivity({
     person_id: opts.personId,
-    action: "case_reading_imported",
+    action: opts.action,
     target: row.id,
-    meta: { caseId: opts.caseId, chars: text.length, via: opts.file ? "file" : opts.url ? "link" : "paste", digested: Boolean(digest) },
+    meta: { caseId: opts.caseId, teamId: opts.teamId, chars: opts.text.length, via: opts.via, digested: Boolean(opts.digest) },
   });
-  return { importId: row.id, status: done.status, chars: text.length };
+  return { importId: row.id, status: done.status, chars: opts.text.length };
+}
+
+/** Import one reading into a case for a team, then digest it. */
+export async function importReading(opts: {
+  caseId: string;
+  teamId: string;
+  personId: string;
+  title?: string | null;
+  note?: string | null;
+  text?: string | null;
+  url?: string | null;
+  file?: { name: string; type: string; bytes: Uint8Array } | null;
+}): Promise<{ importId: string; status: ReadingDigestRow["status"]; chars: number }> {
+  const { text, title } = await extractReadingText(opts);
+  const digest = await digestText({ caseId: opts.caseId, title, text, personId: opts.personId }).catch(() => null);
+  return storeReadingForTeam({
+    caseId: opts.caseId,
+    teamId: opts.teamId,
+    personId: opts.personId,
+    title,
+    note: opts.note?.trim() ?? "",
+    text,
+    url: opts.url ?? null,
+    fileName: opts.file?.name ?? null,
+    digest,
+    via: opts.file ? "file" : opts.url ? "link" : "paste",
+    action: "case_reading_imported",
+  });
+}
+
+/** Dr. B sends one reading to several teams: read and digest once, store per team. */
+export async function disseminateReading(opts: {
+  caseId: string;
+  teamIds: string[];
+  personId: string;
+  title?: string | null;
+  note?: string | null;
+  text?: string | null;
+  url?: string | null;
+  file?: { name: string; type: string; bytes: Uint8Array } | null;
+}): Promise<{ teamId: string; importId: string; status: ReadingDigestRow["status"] }[]> {
+  const { text, title } = await extractReadingText(opts);
+  const digest = await digestText({ caseId: opts.caseId, title, text, personId: opts.personId }).catch(() => null);
+  const out: { teamId: string; importId: string; status: ReadingDigestRow["status"] }[] = [];
+  for (const teamId of opts.teamIds) {
+    const r = await storeReadingForTeam({
+      caseId: opts.caseId,
+      teamId,
+      personId: opts.personId,
+      title,
+      note: (opts.note?.trim() || "Shared by Dr. B.").trim(),
+      text,
+      url: opts.url ?? null,
+      fileName: opts.file?.name ?? null,
+      digest,
+      via: opts.file ? "file" : opts.url ? "link" : "paste",
+      action: "case_reading_disseminated",
+    });
+    out.push({ teamId, importId: r.importId, status: r.status });
+  }
+  return out;
 }
 
 /** The full text of one import, in order, for the reading room. */
