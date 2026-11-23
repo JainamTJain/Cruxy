@@ -52,19 +52,30 @@ export type ReadingView = {
   textError: string | null;
 };
 
-/** Fetch, split and digest a web reading the first time someone opens it. */
-async function ensureWebText(row: {
+type OpenReadingTextRow = {
   id: string;
   case_id: string;
   url: string;
   title: string;
-}, personId: string): Promise<{ status: "done" | "failed"; error: string | null }> {
+  text_status?: "none" | "done" | "failed";
+};
+
+/** Fetch, split and digest a web reading the first time someone opens it. */
+export async function ensureWebText(
+  row: OpenReadingTextRow,
+  personId: string | null,
+): Promise<{ status: "done" | "failed"; error: string | null }> {
   try {
     const got = await urlToText(row.url);
     const text = got.text.replace(/[·—–]/g, ",").slice(0, 400_000);
     if (text.length < 200) throw new Error("This page has too little readable text here. Open the original.");
     const parts = splitPassages(text).map((p, i) => ({ ord: i, anchor: p.anchor, text: p.text }));
-    const digest = await digestText({ caseId: row.case_id, title: row.title, text, personId }).catch(() => null);
+    const digest = await digestText({
+      caseId: row.case_id,
+      title: row.title,
+      text,
+      personId,
+    }).catch(() => null);
     if (isSampleDataMode()) {
       await updateStore((store) => {
         const passages =
@@ -107,6 +118,85 @@ async function ensureWebText(row: {
     }
     return { status: "failed", error };
   }
+}
+
+/** Rows still waiting for fetch/split/digest (first open would do this on demand). */
+export async function listOpenReadingsNeedingText(opts?: {
+  caseId?: string;
+  limit?: number;
+}): Promise<OpenReadingTextRow[]> {
+  const limit = Math.min(Math.max(opts?.limit ?? 12, 1), 40);
+  if (isSampleDataMode()) {
+    if (!opts?.caseId) return [];
+    const [rows, store] = await Promise.all([listOpenReadings(opts.caseId), readStore()]);
+    const prepared = new Set((store.case_open_reading_passages ?? []).map((p) => p.open_reading_id));
+    return rows
+      .filter((r) => !prepared.has(r.id))
+      .slice(0, limit)
+      .map((r) => ({
+        id: r.id,
+        case_id: r.case_id,
+        url: r.url,
+        title: r.title,
+        text_status: "none" as const,
+      }));
+  }
+  let q = getServiceSupabase()
+    .from("case_open_readings")
+    .select("id, case_id, url, title, text_status")
+    .eq("status", "active")
+    .eq("text_status", "none")
+    .order("found_at", { ascending: true })
+    .limit(limit);
+  if (opts?.caseId) q = q.eq("case_id", opts.caseId);
+  const { data, error } = await q;
+  if (error) throw new Error(`listOpenReadingsNeedingText: ${error.message}`);
+  return (data ?? []) as OpenReadingTextRow[];
+}
+
+/**
+ * Prewarm web reading text so the first open is fast. Caps how many rows run
+ * and stops before maxDuration so the cron or admin call can finish cleanly.
+ * Failures are skipped; the next run retries them while text_status stays none
+ * only on hard crashes (ensureWebText marks failed when it can).
+ */
+export async function prewarmOpenReadingTexts(opts: {
+  caseId?: string;
+  personId: string | null;
+  /** Max readings to prepare in this call. */
+  limit?: number;
+  /** Stop starting new work after this many ms (default 240s). */
+  budgetMs?: number;
+}): Promise<{ attempted: number; done: number; failed: number; skipped: number }> {
+  const limit = opts.limit ?? 8;
+  const budgetMs = opts.budgetMs ?? 240_000;
+  const started = Date.now();
+  const rows = await listOpenReadingsNeedingText({ caseId: opts.caseId, limit });
+  let done = 0;
+  let failed = 0;
+  let skipped = 0;
+  for (const row of rows) {
+    if (Date.now() - started > budgetMs) {
+      skipped += rows.length - done - failed;
+      break;
+    }
+    try {
+      const r = await ensureWebText(row, opts.personId);
+      if (r.status === "done") done += 1;
+      else failed += 1;
+    } catch {
+      failed += 1;
+    }
+  }
+  if (done + failed > 0) {
+    await logActivity({
+      person_id: opts.personId,
+      action: "open_reading_text_prewarmed",
+      target: opts.caseId ?? "all",
+      meta: { attempted: done + failed, done, failed, skipped },
+    });
+  }
+  return { attempted: done + failed, done, failed, skipped };
 }
 
 export async function loadReading(opts: {

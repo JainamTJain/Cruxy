@@ -856,6 +856,10 @@ export function AdminConsole() {
               <Link href="/admin/books" className="underline">
                 book uploads
               </Link>
+              {", "}
+              <Link href="/admin/open-reading" className="underline">
+                open reading
+              </Link>
             </p>
             {(data.books ?? []).length === 0 ? (
               <p className="text-sm text-muted">No book requests yet.</p>
