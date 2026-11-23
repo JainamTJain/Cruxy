@@ -104,6 +104,8 @@ export type WorkingSuggestionRow = {
   applied_at?: string | null;
   /** Section text before Take, for undo (00078). */
   prev_body?: string | null;
+  /** Outside sources from idea research (00079). */
+  research_sources?: Array<{ title: string; url: string | null; why: string }> | null;
 };
 
 export type EvidenceTeamDecisionRow = {
@@ -407,6 +409,7 @@ export async function insertSuggestion(
     truth_source_ref: input.truth_source_ref ?? null,
     cannot_cite: input.cannot_cite ?? false,
     ...(input.logic_chain ? { logic_chain: input.logic_chain } : {}),
+    ...(input.research_sources?.length ? { research_sources: input.research_sources } : {}),
   };
   if (isSampleDataMode()) {
     const dup = sampleSuggestions.find(
