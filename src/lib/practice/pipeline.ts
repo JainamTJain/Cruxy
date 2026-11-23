@@ -337,6 +337,43 @@ export async function finalizeRound(opts: {
         improved,
       });
     }
+  } else {
+    // Human-only round: still write a report so the feedback page is not stuck.
+    const { listJudgeCards, getReport } = await import(
+      "@/lib/db/practice-repository"
+    );
+    const { randomUUID } = await import("crypto");
+    const existing = await getReport(opts.roundId);
+    const { cards } = await listJudgeCards(opts.roundId);
+    const humanCards = cards.filter((c) => !c.cruxy);
+    if (!existing.report) {
+      const headline =
+        humanCards.length > 0
+          ? "Human judge cards are in. Open the scorecard below."
+          : "Round ended. Waiting for judge cards, or ask Cruxy to judge.";
+      const humanReport = {
+        cards: [] as import("@/lib/practice/types").JudgeCard[],
+        scores: [] as import("@/lib/practice/types").CardScore[],
+        feedback: [] as import("@/lib/practice/types").FeedbackItem[],
+        redos: [] as import("@/lib/practice/types").RedoRow[],
+        report: {
+          id: randomUUID(),
+          round_id: opts.roundId,
+          headline,
+          socratic_followups: [] as string[],
+          proposal_ids: [] as string[],
+          created_at: nowIso(),
+        },
+      };
+      judgment = { ...humanReport, stub: false };
+      await saveJudgmentBundle(humanReport);
+      await logActivity({
+        person_id: opts.personId ?? null,
+        action: "human_only_report_saved",
+        target: opts.roundId,
+        meta: { humanCards: humanCards.length },
+      });
+    }
   }
 
   // F-276: ideas from the transcript → Evidence Library queue.
