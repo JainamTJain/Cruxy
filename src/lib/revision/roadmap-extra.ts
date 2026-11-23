@@ -748,6 +748,13 @@ export async function setTeamDeadlineOverrides(input: {
         if (ov) stage.due = ov.due;
       }
     });
+    const { logActivity } = await import("@/lib/db/repository");
+    await logActivity({
+      person_id: input.personId,
+      action: "roadmap_deadlines",
+      target: input.teamId,
+      meta: { stages: rows.map((r) => r.stage) },
+    });
     return listDeadlineOverrides(input.teamId);
   }
 
@@ -778,6 +785,13 @@ export async function setTeamDeadlineOverrides(input: {
         .in("person_id", ids);
     }
   }
+  const { logActivity } = await import("@/lib/db/repository");
+  await logActivity({
+    person_id: input.personId,
+    action: "roadmap_deadlines",
+    target: input.teamId,
+    meta: { stages: rows.map((r) => r.stage) },
+  });
   return listDeadlineOverrides(input.teamId);
 }
 
