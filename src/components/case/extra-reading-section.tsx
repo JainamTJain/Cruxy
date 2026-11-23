@@ -5,6 +5,7 @@ import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
 import type { TruthItem } from "@/lib/case-brain/types";
 import type { ExtraReadingItem } from "@/lib/case-home/extra-reading";
 import { cn } from "@/lib/utils";
+import { OpenReadingList } from "@/components/case/open-reading-list";
 
 type Props = {
   caseId: string;
@@ -331,6 +332,8 @@ export function ExtraReadingSection({
           </button>
         </form>
       ) : null}
+
+      <OpenReadingList caseId={caseId} />
     </section>
   );
 }
