@@ -278,7 +278,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           {userMenuOpen ? (
             <div
               role="menu"
-              className="absolute bottom-[4.5rem] left-0 right-0 z-30 flex flex-col gap-0.5 rounded-xl border border-white/10 bg-[#1A1C22] p-1.5 shadow-lg"
+              className="absolute bottom-[6.25rem] left-0 right-0 z-30 flex flex-col gap-0.5 rounded-xl border border-white/10 bg-[#1A1C22] p-1.5 shadow-lg"
             >
               <Link
                 role="menuitem"
@@ -349,6 +349,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
               </button>
             </div>
           ) : null}
+          <ReportProblemButton />
         </div>
       </aside>
 
@@ -532,7 +533,6 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <GuidedTour />
       <SpokenTranscriptHost />
       <GlobalSearchHost />
-      <ReportProblemButton />
     </div>
   );
 }
