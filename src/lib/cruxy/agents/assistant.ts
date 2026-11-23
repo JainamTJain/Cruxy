@@ -24,8 +24,9 @@ export type AssistantAgentReply = {
   wantsMoreAvailable?: boolean;
 };
 
+/** Questions that want information, not help thinking: answer directly. */
 function isLookup(question: string): boolean {
-  return /where|when|who|schedule|code|passcode|drive|link|url|what time/i.test(
+  return /\b(where|when|who|schedule|code|passcode|drive|link|url|what time|what is|what's|what are|what was|define|definition|meaning of|explain|summar|tell me about|who wrote|what does .* (say|argue|mean)|according to)\b/i.test(
     question,
   );
 }
@@ -76,12 +77,12 @@ export async function runAssistant(input: {
     packedSources = [...packedSources, ...packed.sources];
   }
 
+  // If the model's reply can't be read, show the best source plainly rather
+  // than a generic question.
   const fallback = (): AssistantOutput => ({
-    question_first: lookup
-      ? null
-      : "What would the other side say against that?",
-    answer: lookup
-      ? `From your team's Evidence Library: ${input.truthSources[0]?.text ?? ""}`
+    question_first: null,
+    answer: input.truthSources[0]
+      ? `Here is the closest source I have: ${input.truthSources[0].text.slice(0, 400)}`
       : null,
     quiet: false,
     claims: input.truthSources[0]

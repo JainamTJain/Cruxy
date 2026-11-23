@@ -1,4 +1,6 @@
 import { runAssistant } from "@/lib/cruxy/agents/assistant";
+import { searchOpenLiterature } from "@/lib/cruxy/literature/search";
+import { findFrameworkHits } from "@/lib/frameworks/catalog";
 import {
   getCurrentClaimMap,
   homeDiffsForPerson,
@@ -209,7 +211,36 @@ export async function askTeamAssistant(
     );
   });
 
-  const pool = matched.length ? matched : intent === "find" ? truths : matched;
+  const teamPool = matched.length ? matched : intent === "find" ? truths : matched;
+
+  // Beyond the team's own material: published work and the framework
+  // catalogue, so questions about thinkers, papers and ideas can be answered
+  // with a real source.
+  const outside: Array<{ id: string; text: string; kind: "other" }> = [];
+  if (intent !== "find" && intent !== "quiz") {
+    for (const h of findFrameworkHits(question).slice(0, 2)) {
+      outside.push({
+        id: `framework:${h.entry.id}`,
+        text: `${h.entry.term} (${h.entry.sourceLabel}, ${h.entry.sourceUrl}): ${h.entry.explanation}`,
+        kind: "other",
+      });
+    }
+    const keywords = question
+      .replace(/[^\w\s'-]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 3 && !/^(what|whats|tell|about|explain|does|this|that|with|from|have|which|would|should|could)$/i.test(w))
+      .slice(0, 10)
+      .join(" ");
+    const lit = keywords ? await searchOpenLiterature(keywords, { limit: 4 }).catch(() => []) : [];
+    lit.forEach((h, i) => {
+      outside.push({
+        id: `literature:${i + 1}`,
+        text: `${h.citation}${h.oa_url ?? h.url ? ` (${h.oa_url ?? h.url})` : ""}. ${h.abstract?.slice(0, 600) ?? ""}`.trim(),
+        kind: "other",
+      });
+    });
+  }
+  const pool = [...teamPool.slice(0, 4), ...outside];
   if (pool.length === 0) {
     return {
       text: "I couldn't find a source for this.",
@@ -229,10 +260,10 @@ export async function askTeamAssistant(
           ? "Point to the best matching source and quote a short line."
           : "";
 
-  const truthSources = pool.slice(0, 6).map((t) => ({
+  const truthSources = pool.slice(0, 8).map((t) => ({
     id: t.id,
     text: t.text,
-    kind: "truth_item" as const,
+    kind: ("kind" in t && t.kind === "other" ? "other" : "truth_item") as "other" | "truth_item",
   }));
 
   const wantsMore = /more detail|say more|tell me more|longer answer/i.test(
