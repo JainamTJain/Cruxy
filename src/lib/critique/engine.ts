@@ -27,37 +27,63 @@ const sectionTuple = WORKING_SECTION_KEYS as unknown as [
   ...WorkingSectionKey[],
 ];
 
-const llmSchema = z.object({
-  findings: z
-    .array(
-      z.object({
-        kind: z.enum(kindTuple),
-        section_key: z.enum(sectionTuple),
-        /** The exact words from the document this finding is about. */
-        quote: z.string().max(300).nullable(),
-        weak_spot: z.string().min(8).max(280),
-        why: z.string().min(8).max(280),
-        stronger: z.string().min(8).max(320),
-        question_back: z.string().min(8).max(200),
-        fallacy_name: z.string().max(80).nullable(),
-        truth_source_id: z.string().nullable(),
-      }),
-    )
-    .max(14),
-  /**
-   * Ideas the team wrote that are stronger than, or missing from, the truth
-   * source, rewritten anonymously. Cruxy adds them to the shared truth source.
-   */
-  truth_additions: z
-    .array(
-      z.object({
-        section_key: z.enum(sectionTuple),
-        text: z.string().min(20).max(400),
-      }),
-    )
-    .max(3)
-    .default([]),
+const clipStr = (max: number) =>
+  z.preprocess(
+    (v) => (typeof v === "string" ? v.trim().slice(0, max) : v),
+    z.string(),
+  );
+const optStr = (max: number) =>
+  z.preprocess(
+    (v) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null),
+    z.string().nullable(),
+  );
+
+/** One finding. Over-long text is trimmed, missing optional keys become null. */
+const findingSchema = z.object({
+  kind: z.enum(kindTuple),
+  section_key: z.enum(sectionTuple),
+  /** The exact words from the document this finding is about. */
+  quote: optStr(400),
+  weak_spot: clipStr(400).pipe(z.string().min(8)),
+  why: clipStr(400).pipe(z.string().min(8)),
+  stronger: clipStr(500).pipe(z.string().min(8)),
+  question_back: clipStr(260).pipe(z.string().min(8)),
+  fallacy_name: optStr(80),
+  truth_source_id: optStr(80),
 });
+type LlmFinding = z.infer<typeof findingSchema>;
+
+const additionSchema = z.object({
+  section_key: z.enum(sectionTuple),
+  text: clipStr(400).pipe(z.string().min(20)),
+});
+
+/**
+ * The model's reply is read leniently: one malformed finding is dropped,
+ * not the whole review.
+ */
+const llmSchema = z.object({
+  findings: z.array(z.unknown()).default([]),
+  truth_additions: z.array(z.unknown()).default([]),
+});
+
+function readFindings(raw: unknown[]): LlmFinding[] {
+  const out: LlmFinding[] = [];
+  for (const r of raw) {
+    const p = findingSchema.safeParse(r);
+    if (p.success) out.push(p.data);
+    if (out.length >= 14) break;
+  }
+  return out;
+}
+
+function readAdditions(raw: unknown[]): z.infer<typeof additionSchema>[] {
+  return raw
+    .map((r) => additionSchema.safeParse(r))
+    .filter((p) => p.success)
+    .map((p) => p.data!)
+    .slice(0, 3);
+}
 
 function bodiesFromRows(
   rows: { section_key: WorkingSectionKey; body: string }[],
@@ -79,18 +105,32 @@ function norm(t: string): string {
  */
 function mergeFindings(
   rules: CritiqueFinding[],
-  llm: z.infer<typeof llmSchema>["findings"] | null,
+  llm: LlmFinding[] | null,
   truth: TruthSourceItem[],
   bodies: SectionBodies,
+  stats: { dropped: number } = { dropped: 0 },
 ): CritiqueFinding[] {
   if (!llm?.length) return rules;
   const doc = norm(Object.values(bodies).join(" "));
+  const docWords = new Set(doc.split(" "));
+  // A quote counts as real when nearly all its words are in the document,
+  // so small changes in punctuation or an ellipsis do not drop it.
+  const inDoc = (q: string) => {
+    const n = norm(q);
+    if (doc.includes(n.slice(0, 50))) return true;
+    const words = n.split(" ").filter((w) => w.length > 3);
+    if (words.length < 3) return false;
+    return words.filter((w) => docWords.has(w)).length / words.length >= 0.85;
+  };
   const out: CritiqueFinding[] = [];
   const seen = new Set<string>();
   for (const f of llm) {
     const q = f.quote?.trim() ?? "";
     const sectionEmpty = !(bodies[f.section_key] ?? "").trim();
-    if (q && !sectionEmpty && !doc.includes(norm(q).slice(0, 60))) continue;
+    if (q && !sectionEmpty && !inDoc(q)) {
+      stats.dropped += 1;
+      continue;
+    }
     const key = `${f.kind}:${norm(q || f.weak_spot).slice(0, 50)}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -147,12 +187,14 @@ export async function critiqueWorkingDocument(opts: {
   posted: number;
   skippedCap: number;
   truthCount: number;
+  modelNote: string;
 }> {
   const truthPack = await buildTruthSource(opts.caseId);
   const bodies = bodiesFromRows(opts.sections);
   const rules = ruleFindings({ sections: bodies, truth: truthPack.items });
 
-  let llmFindings: z.infer<typeof llmSchema>["findings"] | null = null;
+  let llmFindings: LlmFinding[] | null = null;
+  let modelNote = "rules only";
   if (!opts.rulesOnly) {
     const filled = WORKING_SECTION_KEYS.map(
       (k) =>
@@ -212,11 +254,14 @@ export async function critiqueWorkingDocument(opts: {
         })),
       }),
     });
-    if (result.ok) {
-      llmFindings = result.data.findings;
+    if (!result.ok) modelNote = "model refused";
+    else if ((result as { stub?: boolean }).stub) modelNote = "model unreadable";
+    if (result.ok && !(result as { stub?: boolean }).stub) {
+      llmFindings = readFindings(result.data.findings);
+      modelNote = `model=${result.data.findings.length} valid=${llmFindings.length}`;
       // Cruxy edits the shared truth source from the team's strongest ideas.
       const { addTruthAddition } = await import("@/lib/critique/truth-additions");
-      for (const a of result.data.truth_additions ?? []) {
+      for (const a of readAdditions(result.data.truth_additions ?? [])) {
         await addTruthAddition({
           caseId: opts.caseId,
           sectionKey: a.section_key,
@@ -228,10 +273,12 @@ export async function critiqueWorkingDocument(opts: {
     }
   }
 
+  const mergeStats = { dropped: 0 };
   const merged = selectForRail(
-    mergeFindings(rules, llmFindings, truthPack.items, bodies),
+    mergeFindings(rules, llmFindings, truthPack.items, bodies, mergeStats),
     3,
   );
+  if (llmFindings) modelNote += ` quoteDropped=${mergeStats.dropped}`;
 
   // A fresh rail: Cruxy's earlier critique nobody has acted on or discussed
   // is replaced by this run, so suggestions track the current document.
@@ -267,5 +314,6 @@ export async function critiqueWorkingDocument(opts: {
     posted: posted.length,
     skippedCap,
     truthCount: truthPack.items.length,
+    modelNote,
   };
 }

@@ -174,7 +174,7 @@ export async function runCritiqueForTeamCase(opts: {
     trigger: opts.trigger,
     status: "done",
     suggestions_posted: posted,
-    notes: `truth=${critique.truthCount}; capSkip=${critique.skippedCap}; shared=${sharedPosted}`,
+    notes: `truth=${critique.truthCount}; capSkip=${critique.skippedCap}; shared=${sharedPosted}; ${critique.modelNote}`,
     started_at: started,
     finished_at: nowIso(),
     created_at: nowIso(),
