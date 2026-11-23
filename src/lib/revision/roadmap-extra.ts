@@ -529,6 +529,9 @@ export function evaluateStage(
       return stagePracticedDone(store, personId, caseId);
     case "judged":
       return stageJudgedDone(store, personId, caseId);
+    default:
+      // Role rows (role:lead_1 and so on) share the table; they are not roadmap stages.
+      return { stage, done: false, notStarted: true, detail: "" };
   }
 }
 
@@ -988,7 +991,8 @@ export async function getEnrichedRoadmapView(input: {
 
   for (const row of view.cases) {
     const statusByStage = {} as Record<RoadmapStageId, StageStatus>;
-    const stages = row.stages.map((s) => {
+    // Role assignments live in the same table; the roadmap shows only its stages.
+    const stages = row.stages.filter((s) => ROADMAP_STAGES.includes(s.stage)).map((s) => {
       const due = deadlines[s.stage] ?? s.due;
       const status = evaluateStage(
         personStore,
