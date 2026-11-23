@@ -47,28 +47,48 @@ export function ScorePredictionForm({
   const [saved, setSaved] = useState(false);
 
   async function refresh() {
-    const res = await fetch(`/api/practice/rounds/${roundId}/predictions`);
-    if (!res.ok) return;
-    const data = (await res.json()) as {
-      gate: Gate;
-      canPredict?: boolean;
-      mine: {
-        item_scores: Partial<Record<AppeItemKey, ItemPredictionInput>>;
-        expected_question: string;
-      } | null;
-    };
-    setGate(data.gate);
-    setCanPredict(Boolean(data.canPredict));
-    onGateChange?.(data.gate.ready);
-    if (data.mine) {
-      const next: Partial<Record<AppeItemKey, ItemPrediction>> = {};
-      for (const [k, v] of Object.entries(data.mine.item_scores ?? {})) {
-        const n = normalizeItemPrediction(v as ItemPredictionInput);
-        if (n) next[k as AppeItemKey] = n;
+    try {
+      const res = await fetch(`/api/practice/rounds/${roundId}/predictions`);
+      if (!res.ok) {
+        const d = (await res.json().catch(() => ({}))) as { error?: string };
+        setMsg(d.error ?? "Could not load predictions.");
+        setGate({
+          ready: false,
+          speakers: [],
+          missing: [],
+          requiredItems: APPE_SCORE_ITEMS.map((i) => i.key),
+        });
+        return;
       }
-      setScores(next);
-      setQuestion(data.mine.expected_question ?? "");
-      setSaved(true);
+      const data = (await res.json()) as {
+        gate: Gate;
+        canPredict?: boolean;
+        mine: {
+          item_scores: Partial<Record<AppeItemKey, ItemPredictionInput>>;
+          expected_question: string;
+        } | null;
+      };
+      setGate(data.gate);
+      setCanPredict(Boolean(data.canPredict));
+      onGateChange?.(data.gate.ready);
+      if (data.mine) {
+        const next: Partial<Record<AppeItemKey, ItemPrediction>> = {};
+        for (const [k, v] of Object.entries(data.mine.item_scores ?? {})) {
+          const n = normalizeItemPrediction(v as ItemPredictionInput);
+          if (n) next[k as AppeItemKey] = n;
+        }
+        setScores(next);
+        setQuestion(data.mine.expected_question ?? "");
+        setSaved(true);
+      }
+    } catch {
+      setMsg("Could not load predictions.");
+      setGate({
+        ready: false,
+        speakers: [],
+        missing: [],
+        requiredItems: APPE_SCORE_ITEMS.map((i) => i.key),
+      });
     }
   }
 
@@ -122,7 +142,14 @@ export function ScorePredictionForm({
 
   if (!gate) {
     return (
-      <p className="m-0 text-sm text-[#8C929D]">Loading predictions…</p>
+      <div className="space-y-2">
+        <p className="m-0 text-sm text-[#8C929D]">Loading predictions…</p>
+        {msg ? (
+          <p className="m-0 text-sm text-[#E8A0A8]" role="alert">
+            {msg}
+          </p>
+        ) : null}
+      </div>
     );
   }
 

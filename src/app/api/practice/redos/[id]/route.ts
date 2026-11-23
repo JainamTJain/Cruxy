@@ -7,6 +7,7 @@ import {
   saveRedo,
   saveSkillChart,
 } from "@/lib/db/practice-repository";
+import { logActivity } from "@/lib/db/repository";
 import { updateSkillsAfterRedo } from "@/lib/practice/feedback";
 
 export async function POST(
@@ -43,6 +44,17 @@ export async function POST(
       redo.person_id === "unknown" ? session.personId : redo.person_id,
   };
   await saveRedo(next);
+
+  await logActivity({
+    person_id: session.personId,
+    action: "redo_scored",
+    target: next.id,
+    meta: {
+      improved,
+      score_before: next.score_before,
+      score_after: next.score_after,
+    },
+  });
 
   const chart = await getSkillChart(session.personId);
   const updated = updateSkillsAfterRedo(chart, session.personId, improved);

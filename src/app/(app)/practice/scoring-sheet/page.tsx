@@ -36,40 +36,54 @@ export default function ScoringSheetPage() {
   const [version, setVersion] = useState<Version | null>(null);
   const [pending, setPending] = useState<Version | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [isTech, setIsTech] = useState(false);
   const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
 
   async function load() {
-    const [sheetRes, meRes, sessRes] = await Promise.all([
-      fetch("/api/practice/scoring-sheet"),
-      fetch("/api/auth/me"),
-      fetch("/api/practice/sessions"),
-    ]);
-    if (sheetRes.ok) {
-      const data = (await sheetRes.json()) as {
-        version: Version;
-        items: Item[];
-        guide: Guide[];
-        pending: Version | null;
-      };
-      setVersion(data.version);
-      setItems(data.items);
-      setGuide(data.guide);
-      setPending(data.pending);
-    }
-    if (meRes.ok) {
-      const me = (await meRes.json()) as {
-        session?: { role?: string; adminView?: boolean };
-      };
-      setIsTech(
-        me.session?.role === "tech_admin" && Boolean(me.session?.adminView),
-      );
-    }
-    if (sessRes.ok) {
-      const data = (await sessRes.json()) as {
-        teams?: { id: string; name: string }[];
-      };
-      setTeams((data.teams ?? []).slice(0, 2));
+    setLoadError(null);
+    try {
+      const [sheetRes, meRes, sessRes] = await Promise.all([
+        fetch("/api/practice/scoring-sheet"),
+        fetch("/api/auth/me"),
+        fetch("/api/practice/sessions"),
+      ]);
+      if (sheetRes.ok) {
+        const data = (await sheetRes.json()) as {
+          version: Version;
+          items: Item[];
+          guide: Guide[];
+          pending: Version | null;
+        };
+        setVersion(data.version);
+        setItems(data.items);
+        setGuide(data.guide);
+        setPending(data.pending);
+      } else {
+        const d = (await sheetRes.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        setLoadError(d.error ?? "Could not load the scoring sheet.");
+      }
+      if (meRes.ok) {
+        const me = (await meRes.json()) as {
+          session?: { role?: string; adminView?: boolean };
+        };
+        setIsTech(
+          me.session?.role === "tech_admin" && Boolean(me.session?.adminView),
+        );
+      }
+      if (sessRes.ok) {
+        const data = (await sessRes.json()) as {
+          teams?: { id: string; name: string }[];
+        };
+        setTeams((data.teams ?? []).slice(0, 2));
+      }
+    } catch {
+      setLoadError("Could not load the scoring sheet.");
+    } finally {
+      setLoaded(true);
     }
   }
 
@@ -117,8 +131,22 @@ export default function ScoringSheetPage() {
         <p className="mt-2 max-w-2xl text-sm text-muted">
           {version
             ? `${version.source_label}. Same items, wording, order and 1 to 10 scales as the APPE training sheet.`
-            : "Loading the active judge card sheet…"}
+            : loaded
+              ? "No active scoring sheet yet."
+              : "Loading the active judge card sheet…"}
         </p>
+        {loadError ? (
+          <p className="mt-2 text-sm text-cardinal" role="alert">
+            {loadError}{" "}
+            <button
+              type="button"
+              className="underline"
+              onClick={() => void load()}
+            >
+              Try again
+            </button>
+          </p>
+        ) : null}
       </div>
 
       {pending ? (

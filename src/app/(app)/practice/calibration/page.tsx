@@ -37,25 +37,40 @@ export default function CalibrationPage() {
   >(null);
   const [calibration, setCalibration] = useState<Calibration | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void fetch("/api/practice/predictions/mine")
-      .then((r) => r.json())
-      .then(
-        (d: {
+      .then(async (r) => {
+        if (!r.ok) {
+          const d = (await r.json().catch(() => ({}))) as { error?: string };
+          setError(
+            r.status === 401
+              ? "Sign in to see your prediction calibration."
+              : (d.error ?? "Could not load calibration."),
+          );
+          setLoaded(true);
+          return;
+        }
+        return r.json() as Promise<{
           points?: Point[];
           latest?: number | null;
           vsOwnPast?: "better" | "same" | "worse" | "first" | null;
           calibration?: Calibration;
-        }) => {
-          setPoints(d.points ?? []);
-          setLatest(d.latest ?? null);
-          setVsOwnPast(d.vsOwnPast ?? null);
-          setCalibration(d.calibration ?? null);
-          setLoaded(true);
-        },
-      )
-      .catch(() => setLoaded(true));
+        }>;
+      })
+      .then((d) => {
+        if (!d) return;
+        setPoints(d.points ?? []);
+        setLatest(d.latest ?? null);
+        setVsOwnPast(d.vsOwnPast ?? null);
+        setCalibration(d.calibration ?? null);
+        setLoaded(true);
+      })
+      .catch(() => {
+        setError("Could not load calibration.");
+        setLoaded(true);
+      });
   }, []);
 
   const maxBrier = Math.max(0.01, ...points.map((p) => p.brier), 1);
@@ -78,6 +93,10 @@ export default function CalibrationPage() {
 
       {!loaded ? (
         <p className="text-sm text-muted">Loading…</p>
+      ) : error ? (
+        <p className="text-sm text-cardinal" role="alert">
+          {error}
+        </p>
       ) : points.length === 0 && !(calibration?.sampleCount) ? (
         <section className="rounded-[20px] bg-white p-5">
           <p className="m-0 text-sm text-muted">
