@@ -889,6 +889,11 @@ function SuggestionCard({
               {s.logic_chain}
             </p>
           ) : null}
+          {fromMember && s.text ? (
+            <p className="m-0">
+              <LinkedText text={s.text} caseId={caseId} />
+            </p>
+          ) : null}
           {s.weak_spot && !fromMember ? (
             <p className="m-0">
               <LinkedText text={s.weak_spot} caseId={caseId} />
@@ -902,7 +907,7 @@ function SuggestionCard({
           ) : null}
           <p className="m-0 rounded-lg border-l-[3px] border-[#1F7A4D] bg-white px-2.5 py-1.5">
             <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-[#1F7A4D]">
-              {fromMember ? "Cruxy's draft" : "Stronger"}
+              {fromMember ? "Suggested wording" : "Stronger"}
             </span>
             {s.stronger_version}
           </p>

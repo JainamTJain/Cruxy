@@ -107,6 +107,11 @@ function questionLabel(text: string): { body: string; label: string } {
   return { body: text, label: "Question bank" };
 }
 
+function activeQuestionsDrBFirst<T extends { status: string; origin?: string | null }>(qs: T[]): T[] {
+  const active = qs.filter((q) => q.status === "active");
+  return [...active.filter((q) => q.origin === "dr_b"), ...active.filter((q) => q.origin !== "dr_b")].slice(0, 8);
+}
+
 function personNameMap(
   people: { id: string; name: string }[],
 ): Map<string, string> {
@@ -201,6 +206,7 @@ export async function getCaseHome(args: {
         id: string;
         name: string;
         team_id: string | null;
+        role?: string;
       }[] = [];
       let teams: { id: string; colour: string }[] = [];
       if (isSampleDataMode()) {
@@ -209,6 +215,7 @@ export async function getCaseHome(args: {
           id: p.id,
           name: p.name,
           team_id: p.team_id,
+          role: p.role,
         }));
         teams = store.teams.map((t) => ({ id: t.id, colour: t.colour }));
       } else {
@@ -219,6 +226,7 @@ export async function getCaseHome(args: {
           id: p.id,
           name: p.name,
           team_id: p.team_id,
+          role: p.role,
         }));
         teams = (await listTeams()).map((t) => ({
           id: t.id,
@@ -230,8 +238,11 @@ export async function getCaseHome(args: {
         people.map((p) => [p.id, p.team_id] as const),
       );
       const colourByTeam = new Map(teams.map((t) => [t.id, t.colour]));
+      // Dr. B coaches every team: her notes on the case text reach all of them.
+      const coachIds = new Set(people.filter((p) => p.role === "coach_admin").map((p) => p.id));
       const allowPerson = (personId: string | null | undefined) => {
         if (!personId) return seeAllTeams;
+        if (coachIds.has(personId)) return true;
         const pt = teamByPerson.get(personId);
         if (seeAllTeams) return true;
         return Boolean(pt && pt === viewerTeamId);
@@ -314,8 +325,9 @@ export async function getCaseHome(args: {
           ]
         : []),
     ];
-    for (const q of questions.filter((q) => q.status === "active").slice(0, 6)) {
-      const { body, label } = questionLabel(q.text || "Question");
+    for (const q of activeQuestionsDrBFirst(questions)) {
+      const { body, label: tagLabel } = questionLabel(q.text || "Question");
+      const label = q.origin === "dr_b" ? "Dr. B" : tagLabel;
       annotations.push({
         id: q.id,
         kind: "question",
@@ -328,8 +340,9 @@ export async function getCaseHome(args: {
       });
     }
   } else {
-    for (const q of questions.filter((q) => q.status === "active").slice(0, 6)) {
-      const { body, label } = questionLabel(q.text || "Question");
+    for (const q of activeQuestionsDrBFirst(questions)) {
+      const { body, label: tagLabel } = questionLabel(q.text || "Question");
+      const label = q.origin === "dr_b" ? "Dr. B" : tagLabel;
       annotations.push({
         id: q.id,
         kind: "question",

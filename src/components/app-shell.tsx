@@ -77,6 +77,7 @@ const SIDE_NAV: { href: string; label: string; match?: string }[] = [
 const ADMIN_SIDE_NAV: { href: string; label: string; match?: string }[] = [
   { href: "/practice/admin", label: "Sessions" },
   { href: "/coach", label: "Coach view" },
+  { href: "/coach/cases", label: "Cases across teams" },
   { href: "/admin", label: "People and teams" },
   { href: "/admin/flywheel", label: "Program analytics", match: "analytics" },
   { href: "/revision/questions", label: "Question bank" },
@@ -96,6 +97,7 @@ function navActive(pathname: string, href: string, match?: string) {
     return pathname === "/today" || pathname.startsWith("/today/");
   }
   if (href === "/home") return pathname === "/home" || pathname === "/";
+  if (href === "/coach") return pathname.startsWith("/coach") && !pathname.startsWith("/coach/cases");
   if (href === "/practice") {
     return (
       (pathname === "/practice" || pathname.startsWith("/practice/")) &&
