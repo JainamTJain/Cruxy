@@ -1267,9 +1267,36 @@ export async function resolveGuestToken(
 
 // ---------- judging ----------
 
+/** Find an existing human or Cruxy card for this round/team/judge (idempotent submit). */
+export async function findJudgeCard(opts: {
+  roundId: string;
+  teamId: string;
+  judgeId?: string | null;
+  cruxy?: boolean;
+}): Promise<JudgeCard | null> {
+  const sb = getServiceSupabase();
+  let q = sb
+    .from("judge_cards")
+    .select("*")
+    .eq("round_id", opts.roundId)
+    .eq("team_id", opts.teamId)
+    .eq("cruxy", Boolean(opts.cruxy))
+    .limit(1);
+  if (opts.cruxy) {
+    // Cruxy uniqueness is (round, team).
+  } else if (opts.judgeId) {
+    q = q.eq("judge_id", opts.judgeId);
+  } else {
+    return null;
+  }
+  const row = must(await q.maybeSingle(), "findJudgeCard");
+  return row ? mapCard(row) : null;
+}
+
 export async function saveJudgeCard(
   card: JudgeCard,
   scores: CardScore[],
+  opts?: { replaceScores?: boolean },
 ): Promise<void> {
   const sb = getServiceSupabase();
   assertOk(
@@ -1277,6 +1304,12 @@ export async function saveJudgeCard(
       .error,
     "saveJudgeCard",
   );
+  if (opts?.replaceScores) {
+    assertOk(
+      (await sb.from("card_scores").delete().eq("card_id", card.id)).error,
+      "saveJudgeCard.replaceScores",
+    );
+  }
   if (scores.length > 0) {
     assertOk(
       (
@@ -1335,6 +1368,12 @@ export async function saveJudgmentBundle(opts: {
           .upsert(opts.cards.map(cardToRow), { onConflict: "id" })
       ).error,
       "saveJudgmentBundle.cards",
+    );
+    // Replace scores for these cards so re-finalize does not stack duplicates.
+    const cardIds = opts.cards.map((c) => c.id);
+    assertOk(
+      (await sb.from("card_scores").delete().in("card_id", cardIds)).error,
+      "saveJudgmentBundle.replaceScores",
     );
   }
   if (opts.scores.length > 0) {

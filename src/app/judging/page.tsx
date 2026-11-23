@@ -7,6 +7,19 @@ import { TextOnlyBanner } from "@/components/practice/text-only-banner";
 import type { AppeItemKey } from "@/lib/practice/types";
 import { PRACTICE_FIXTURE_CODE } from "@/lib/practice/fixture-ids";
 
+type Access = {
+  path: string;
+  judge: { id: string; name: string };
+  roundId: string;
+  teamIds: string[];
+  caseNumber?: number | null;
+  teams?: { id: string; name: string; role: "presenting" | "commenting" }[];
+  guestToken?: string;
+  textOnlyNames?: string[];
+};
+
+const ACCESS_KEY = "crux_judging_access";
+
 /**
  * Judging portal: known members enter session code; guests enter name + background.
  * Phone-first APPE card (JudgePhone.html).
@@ -17,17 +30,9 @@ export default function JudgingPortalPage() {
   const [name, setName] = useState("");
   const [background, setBackground] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [entering, setEntering] = useState(false);
   const [demo, setDemo] = useState(false);
-  const [access, setAccess] = useState<{
-    path: string;
-    judge: { id: string; name: string };
-    roundId: string;
-    teamIds: string[];
-    caseNumber?: number | null;
-    teams?: { id: string; name: string; role: "presenting" | "commenting" }[];
-    guestToken?: string;
-    textOnlyNames?: string[];
-  } | null>(null);
+  const [access, setAccess] = useState<Access | null>(null);
   const [momentNote, setMomentNote] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,6 +44,16 @@ export default function JudgingPortalPage() {
       setName("Prof. Rivera");
       setBackground("Past APPE judge");
       setCode(PRACTICE_FIXTURE_CODE);
+      return;
+    }
+    try {
+      const raw = sessionStorage.getItem(ACCESS_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as Access;
+        if (saved?.roundId && saved?.judge?.id) setAccess(saved);
+      }
+    } catch {
+      /* ignore */
     }
   }, []);
 
@@ -48,55 +63,90 @@ export default function JudgingPortalPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demo, code, name]);
 
+  useEffect(() => {
+    if (!access || access.roundId === "demo") return;
+    try {
+      sessionStorage.setItem(ACCESS_KEY, JSON.stringify(access));
+    } catch {
+      /* ignore */
+    }
+  }, [access]);
+
   async function enter() {
+    if (entering) return;
+    setEntering(true);
     setError(null);
-    const res = await fetch("/api/practice/judging/enter", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        code,
-        guest,
-        name: guest ? name : undefined,
-        background: background || undefined,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      // Demo / shots fallback: show the card UI with fixture labels
-      if (demo || code.replace(/\s/g, "") === PRACTICE_FIXTURE_CODE) {
-        setAccess({
-          path: guest ? "guest" : "known",
-          judge: { id: "demo", name: name || "Prof. Rivera" },
-          roundId: "demo",
-          teamIds: ["t3", "t1"],
-          caseNumber: 9,
-          teams: [
-            { id: "t3", name: "Team 3", role: "presenting" },
-            { id: "t1", name: "Team 1", role: "commenting" },
-          ],
-        });
+    try {
+      const res = await fetch("/api/practice/judging/enter", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          code,
+          guest,
+          name: guest ? name : undefined,
+          background: background || undefined,
+        }),
+      });
+      let data: {
+        error?: string;
+        path?: string;
+        judge?: { id: string; name: string };
+        roundId?: string;
+        teamIds?: string[];
+        caseNumber?: number | null;
+        teams?: Access["teams"];
+        guestToken?: string;
+        textOnlyBanner?: { names?: string[] };
+      } = {};
+      try {
+        data = (await res.json()) as typeof data;
+      } catch {
+        data = {};
+      }
+      if (!res.ok) {
+        if (demo || code.replace(/\s/g, "") === PRACTICE_FIXTURE_CODE) {
+          setAccess({
+            path: guest ? "guest" : "known",
+            judge: { id: "demo", name: name || "Prof. Rivera" },
+            roundId: "demo",
+            teamIds: ["t3", "t1"],
+            caseNumber: 9,
+            teams: [
+              { id: "t3", name: "Team 3", role: "presenting" },
+              { id: "t1", name: "Team 1", role: "commenting" },
+            ],
+          });
+          return;
+        }
+        setError(
+          data.error ??
+            "Could not open judging. Check the session code and try again.",
+        );
         return;
       }
+      if (!data.judge || !data.roundId) {
+        setError("Could not open judging. Try again.");
+        return;
+      }
+      setAccess({
+        path: data.path ?? (guest ? "guest" : "known"),
+        judge: data.judge,
+        roundId: data.roundId,
+        teamIds: data.teamIds ?? [],
+        caseNumber: data.caseNumber ?? null,
+        teams: data.teams,
+        guestToken: data.guestToken,
+        textOnlyNames: Array.isArray(data.textOnlyBanner?.names)
+          ? data.textOnlyBanner.names
+          : [],
+      });
+    } catch {
       setError(
-        data.error ??
-          "Could not open judging. Check the session code and try again.",
+        "Network error. Check your connection and try again. Nothing was lost.",
       );
-      return;
+    } finally {
+      setEntering(false);
     }
-    setAccess({
-      ...data,
-      caseNumber: data.caseNumber ?? 9,
-      teams:
-        data.teams ??
-        (data.teamIds ?? []).map((id: string, i: number) => ({
-          id,
-          name: `Team ${i === 0 ? 3 : 1}`,
-          role: i === 0 ? "presenting" : "commenting",
-        })),
-      textOnlyNames: Array.isArray(data.textOnlyBanner?.names)
-        ? data.textOnlyBanner.names
-        : [],
-    });
   }
 
   async function submitScores(payload: {
@@ -104,6 +154,7 @@ export default function JudgingPortalPage() {
     scores: { item: AppeItemKey; score: number; comment?: string }[];
     spirit?: number;
     overallComment?: string;
+    moments?: { line_id: string; note: string }[];
   }) {
     if (!access) return;
     if (access.roundId === "demo") return;
@@ -118,9 +169,15 @@ export default function JudgingPortalPage() {
         scores: payload.scores,
         spirit: payload.spirit,
         overallComment: payload.overallComment,
+        moments: payload.moments,
       }),
     });
-    const data = await res.json();
+    let data: { error?: string } = {};
+    try {
+      data = (await res.json()) as typeof data;
+    } catch {
+      data = {};
+    }
     if (!res.ok) throw new Error(data.error ?? "Submit failed");
   }
 
@@ -133,6 +190,11 @@ export default function JudgingPortalPage() {
     [access],
   );
 
+  const draftKey =
+    access && access.roundId !== "demo"
+      ? `crux_judge_draft_${access.roundId}_${access.judge.id}`
+      : undefined;
+
   if (access) {
     return (
       <>
@@ -140,7 +202,12 @@ export default function JudgingPortalPage() {
           <TextOnlyBanner names={access.textOnlyNames ?? []} />
         </div>
         <JudgePhoneCard
-          judgeName={access.judge.name.startsWith("Prof") ? access.judge.name : `Prof. ${access.judge.name}`}
+          draftKey={draftKey}
+          judgeName={
+            access.judge.name.startsWith("Prof")
+              ? access.judge.name
+              : `Prof. ${access.judge.name}`
+          }
           caseNumber={access.caseNumber ?? 9}
           roundLabel="ROUND 1"
           teams={teams}
@@ -154,7 +221,11 @@ export default function JudgingPortalPage() {
           onSubmit={submitScores}
         />
         {momentNote ? (
-          <p className="fixed bottom-24 left-1/2 z-10 -translate-x-1/2 rounded-xl bg-ink px-3 py-2 text-xs text-white">
+          <p
+            className="fixed bottom-24 left-1/2 z-10 -translate-x-1/2 rounded-xl bg-ink px-3 py-2 text-xs text-white"
+            role="status"
+            aria-live="polite"
+          >
             {momentNote}
           </p>
         ) : null}
@@ -165,7 +236,10 @@ export default function JudgingPortalPage() {
   return (
     <div className="mx-auto min-h-dvh max-w-lg bg-white px-4 py-8">
       <header className="mb-8">
-        <Link href="/" className="font-display text-2xl font-extrabold text-cardinal">
+        <Link
+          href="/"
+          className="font-display text-2xl font-extrabold text-cardinal"
+        >
           crux
         </Link>
         <h1 className="mt-4 font-display text-3xl font-extrabold">
@@ -183,8 +257,8 @@ export default function JudgingPortalPage() {
             type="button"
             className={
               !guest
-                ? "rounded-xl bg-ink px-3 py-2 text-sm text-white"
-                : "rounded-xl bg-paper px-3 py-2 text-sm"
+                ? "min-h-11 rounded-xl bg-ink px-3 py-2 text-sm text-white"
+                : "min-h-11 rounded-xl bg-paper px-3 py-2 text-sm"
             }
             onClick={() => setGuest(false)}
           >
@@ -194,8 +268,8 @@ export default function JudgingPortalPage() {
             type="button"
             className={
               guest
-                ? "rounded-xl bg-ink px-3 py-2 text-sm text-white"
-                : "rounded-xl bg-paper px-3 py-2 text-sm"
+                ? "min-h-11 rounded-xl bg-ink px-3 py-2 text-sm text-white"
+                : "min-h-11 rounded-xl bg-paper px-3 py-2 text-sm"
             }
             onClick={() => setGuest(true)}
           >
@@ -211,6 +285,7 @@ export default function JudgingPortalPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Prof. Rivera"
+                autoComplete="name"
               />
             </label>
             <label className="block text-sm">
@@ -232,15 +307,22 @@ export default function JudgingPortalPage() {
             onChange={(e) => setCode(e.target.value)}
             placeholder="482913"
             maxLength={8}
+            inputMode="numeric"
+            autoComplete="one-time-code"
           />
         </label>
-        {error ? <p className="text-sm text-cardinal">{error}</p> : null}
+        {error ? (
+          <p className="text-sm text-cardinal" role="alert">
+            {error}
+          </p>
+        ) : null}
         <button
           type="button"
+          disabled={entering}
           onClick={() => void enter()}
-          className="h-12 w-full rounded-xl bg-cardinal text-base font-bold text-white"
+          className="h-12 w-full rounded-xl bg-cardinal text-base font-bold text-white disabled:opacity-60"
         >
-          Open scoring card
+          {entering ? "Opening…" : "Open scoring card"}
         </button>
       </div>
     </div>
