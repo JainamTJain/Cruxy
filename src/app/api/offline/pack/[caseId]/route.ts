@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { resolveVisibleTeamId } from "@/lib/auth/team-privacy";
 import { requireMemberSession } from "@/lib/case-brain/auth";
 import { getCaseHome } from "@/lib/case-home/service";
 import { isSampleDataMode } from "@/lib/db/config";
@@ -21,7 +22,18 @@ export async function GET(req: Request, { params }: Params) {
   }
   const { caseId } = await params;
   const url = new URL(req.url);
-  const teamId = url.searchParams.get("teamId") ?? auth.teamId;
+  const resolved = resolveVisibleTeamId({
+    person: auth.person,
+    session: auth.session,
+    requested: url.searchParams.get("teamId"),
+  });
+  if (resolved.denied || !resolved.teamId) {
+    return NextResponse.json(
+      { error: "You can only save your own team's case offline." },
+      { status: 403 },
+    );
+  }
+  const teamId = resolved.teamId;
 
   const cases = await listCases();
   const caseRow = cases.find((c) => c.id === caseId);

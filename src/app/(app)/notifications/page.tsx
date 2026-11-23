@@ -20,16 +20,30 @@ export default function NotificationsPage() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [unread, setUnread] = useState(0);
   const [msg, setMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
 
   async function load() {
-    const res = await fetch("/api/notifications?unread=0");
-    if (!res.ok) return;
-    const data = (await res.json()) as {
-      notifications: Note[];
-      unread: number;
-    };
-    setNotes(data.notifications);
-    setUnread(data.unread);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/notifications?unread=0");
+      if (!res.ok) {
+        setError("Could not load notifications.");
+        return;
+      }
+      const data = (await res.json()) as {
+        notifications: Note[];
+        unread: number;
+      };
+      setNotes(data.notifications);
+      setUnread(data.unread);
+      setError(null);
+    } catch {
+      setError("Could not reach notifications. Check signal and try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -37,22 +51,34 @@ export default function NotificationsPage() {
   }, []);
 
   async function markRead(id: string) {
-    await fetch("/api/notifications", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
-    void load();
+    try {
+      await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      void load();
+    } catch {
+      setMsg("Could not mark read.");
+    }
   }
 
   async function markAll() {
-    const res = await fetch("/api/notifications", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ markAll: true }),
-    });
-    setMsg(res.ok ? "All marked read." : "Could not mark all read.");
-    void load();
+    if (busy) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ markAll: true }),
+      });
+      setMsg(res.ok ? "All marked read." : "Could not mark all read.");
+      void load();
+    } catch {
+      setMsg("Could not mark all read.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -64,16 +90,18 @@ export default function NotificationsPage() {
 
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-sm text-muted">
-          {unread === 0
-            ? "Nothing unread."
-            : `${unread} unread`}
+          {loading
+            ? "Loading…"
+            : unread === 0
+              ? "Nothing unread."
+              : `${unread} unread`}
         </p>
         <Button
           type="button"
           variant="outline"
-          className="h-10"
+          className="h-10 min-h-11"
           onClick={() => void markAll()}
-          disabled={unread === 0}
+          disabled={unread === 0 || busy}
         >
           Mark all read
         </Button>
@@ -84,12 +112,26 @@ export default function NotificationsPage() {
           Alert settings
         </Link>
       </div>
+      {error ? (
+        <p className="text-sm text-cardinal">
+          {error}{" "}
+          <button type="button" className="underline" onClick={() => void load()}>
+            Try again
+          </button>
+        </p>
+      ) : null}
       {msg ? <p className="text-sm text-muted">{msg}</p> : null}
 
-      {notes.length === 0 ? (
+      {!loading && notes.length === 0 && !error ? (
         <p className="rounded-2xl bg-white px-5 py-8 text-sm text-muted">
           When something needs you, it shows up here.
         </p>
+      ) : notes.length === 0 ? (
+        loading ? (
+          <p className="rounded-2xl bg-white px-5 py-8 text-sm text-muted">
+            Loading notifications…
+          </p>
+        ) : null
       ) : (
         <ul className="flex flex-col gap-3">
           {notes.map((n) => {

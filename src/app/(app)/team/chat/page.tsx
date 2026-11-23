@@ -40,8 +40,12 @@ export default function TeamChatPage() {
   const [showSuggest, setShowSuggest] = useState(false);
   const [jumpId, setJumpId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const THREAD_WINDOW = 80;
 
   const names = useMemo(() => {
     const map: Record<string, string> = {};
@@ -52,45 +56,54 @@ export default function TeamChatPage() {
   const active = conversations.find((c) => c.id === chatId) ?? null;
 
   const load = useCallback(async (id?: string | null) => {
-    const q = id ? `?chatId=${encodeURIComponent(id)}` : "";
-    const res = await fetch(`/api/team/chat${q}`);
-    if (!res.ok) {
-      setStatus("Could not load chat.");
-      return;
-    }
-    const data = (await res.json()) as {
-      conversations?: Convo[];
-      chats?: Convo[];
-      messages?: Msg[];
-      people?: Person[];
-      cases?: CaseOpt[];
-    };
-    const convos = data.conversations ?? data.chats ?? [];
-    setConversations(convos);
-    if (data.people) setPeople(data.people);
-    if (data.cases) setCases(data.cases);
-    if (id) {
-      setMessages(data.messages ?? []);
-      setChatId(id);
-      setStatus(null);
-      return;
-    }
-    const first = convos[0]?.id ?? null;
-    if (first) {
-      const res2 = await fetch(
-        `/api/team/chat?chatId=${encodeURIComponent(first)}`,
-      );
-      if (res2.ok) {
-        const data2 = (await res2.json()) as {
-          conversations?: Convo[];
-          messages?: Msg[];
-        };
-        setConversations(data2.conversations ?? convos);
-        setMessages(data2.messages ?? []);
+    setLoading(true);
+    try {
+      const q = id ? `?chatId=${encodeURIComponent(id)}` : "";
+      const res = await fetch(`/api/team/chat${q}`);
+      if (!res.ok) {
+        setStatus("Could not load chat.");
+        return;
       }
-      setChatId(first);
+      const data = (await res.json()) as {
+        conversations?: Convo[];
+        chats?: Convo[];
+        messages?: Msg[];
+        people?: Person[];
+        cases?: CaseOpt[];
+      };
+      const convos = data.conversations ?? data.chats ?? [];
+      setConversations(convos);
+      if (data.people) setPeople(data.people);
+      if (data.cases) setCases(data.cases);
+      if (id) {
+        setMessages(data.messages ?? []);
+        setChatId(id);
+        setShowAll(false);
+        setStatus(null);
+        return;
+      }
+      const first = convos[0]?.id ?? null;
+      if (first) {
+        const res2 = await fetch(
+          `/api/team/chat?chatId=${encodeURIComponent(first)}`,
+        );
+        if (res2.ok) {
+          const data2 = (await res2.json()) as {
+            conversations?: Convo[];
+            messages?: Msg[];
+          };
+          setConversations(data2.conversations ?? convos);
+          setMessages(data2.messages ?? []);
+        }
+        setChatId(first);
+        setShowAll(false);
+      }
+      setStatus(null);
+    } catch {
+      setStatus("Could not reach chat. Check signal and try again.");
+    } finally {
+      setLoading(false);
     }
-    setStatus(null);
   }, []);
 
   useEffect(() => {
@@ -151,45 +164,61 @@ export default function TeamChatPage() {
   }
 
   async function send(asIdea = false) {
-    if (!chatId || !text.trim()) return;
+    if (!chatId || !text.trim() || sending) return;
+    setSending(true);
     const mentionIds = people
       .filter((p) => text.toLowerCase().includes(`@${p.name.toLowerCase()}`))
       .map((p) => p.id);
-    const res = await fetch("/api/team/chat", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        chatId,
-        message: text,
-        isIdea: asIdea,
-        mentionIds,
-        caseId: caseId || active?.case_id || null,
-      }),
-    });
-    if (!res.ok) {
-      const err = (await res.json().catch(() => ({}))) as { error?: string };
-      setStatus(err.error ?? "Could not send.");
-      return;
+    try {
+      const res = await fetch("/api/team/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          chatId,
+          message: text,
+          isIdea: asIdea,
+          mentionIds,
+          caseId: caseId || active?.case_id || null,
+        }),
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        setStatus(err.error ?? "Could not send.");
+        return;
+      }
+      const data = (await res.json()) as { notifiedNames?: string[] };
+      if (data.notifiedNames?.length) {
+        setStatus(`Notified ${data.notifiedNames.join(", ")}.`);
+      } else {
+        setStatus(null);
+      }
+      setText("");
+      setShowSuggest(false);
+      await load(chatId);
+    } catch {
+      setStatus("Could not send. Check signal and try again.");
+    } finally {
+      setSending(false);
     }
-    const data = (await res.json()) as { notifiedNames?: string[] };
-    if (data.notifiedNames?.length) {
-      setStatus(`Notified ${data.notifiedNames.join(", ")}.`);
-    } else {
-      setStatus(null);
-    }
-    setText("");
-    setShowSuggest(false);
-    await load(chatId);
   }
 
   async function markIdea(id: string) {
-    await fetch("/api/team/chat", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ markIdeaId: id }),
-    });
-    if (chatId) await load(chatId);
+    try {
+      await fetch("/api/team/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ markIdeaId: id }),
+      });
+      if (chatId) await load(chatId);
+    } catch {
+      setStatus("Could not mark as idea.");
+    }
   }
+
+  const visibleMessages = showAll
+    ? messages
+    : messages.slice(Math.max(0, messages.length - THREAD_WINDOW));
+  const hiddenCount = messages.length - visibleMessages.length;
 
   function notifiedLine(m: Msg): string | null {
     const refs = m.link_refs ?? {};
@@ -228,12 +257,18 @@ export default function TeamChatPage() {
           <p className="m-0 px-1 text-xs font-bold uppercase tracking-[0.12em] text-muted">
             Conversations
           </p>
+          {loading && !conversations.length ? (
+            <p className="px-1 text-sm text-muted">Loading conversations…</p>
+          ) : null}
           {conversations.map((c) => (
             <button
               key={c.id}
               type="button"
-              onClick={() => setChatId(c.id)}
-              className={`rounded-xl px-3 py-2.5 text-left ${
+              onClick={() => {
+                if (c.id === chatId) return;
+                void load(c.id);
+              }}
+              className={`min-h-11 rounded-xl px-3 py-2.5 text-left ${
                 c.id === chatId
                   ? "bg-ink text-white"
                   : "bg-[#F7F8FA] text-ink hover:bg-[#ECEEF1]"
@@ -305,7 +340,16 @@ export default function TeamChatPage() {
             ref={listRef}
             className="min-w-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto p-4"
           >
-            {messages.map((m) => {
+            {hiddenCount > 0 ? (
+              <button
+                type="button"
+                className="w-full rounded-xl border border-mist bg-[#F7F8FA] px-3 py-2 text-sm font-semibold text-ink"
+                onClick={() => setShowAll(true)}
+              >
+                Show {hiddenCount} earlier messages
+              </button>
+            ) : null}
+            {visibleMessages.map((m) => {
               const note = notifiedLine(m);
               return (
                 <div
@@ -382,10 +426,12 @@ export default function TeamChatPage() {
             ) : null}
             <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
               <input
-                className="min-w-0 flex-1 rounded-xl border border-mist bg-white px-3 py-2 text-sm"
+                className="min-h-11 min-w-0 flex-1 rounded-xl border border-mist bg-white px-3 py-2 text-sm"
                 value={text}
+                disabled={sending || !chatId}
                 onChange={(e) => onTextChange(e.target.value)}
                 placeholder="Message… type @ to mention"
+                aria-label="Message"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -394,8 +440,17 @@ export default function TeamChatPage() {
                 }}
               />
               <div className="flex shrink-0 gap-2">
-                <Button onClick={() => void send()}>Send</Button>
-                <Button variant="outline" onClick={() => void send(true)}>
+                <Button
+                  disabled={sending || !chatId || !text.trim()}
+                  onClick={() => void send()}
+                >
+                  {sending ? "Sending…" : "Send"}
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={sending || !chatId || !text.trim()}
+                  onClick={() => void send(true)}
+                >
                   Send as idea
                 </Button>
               </div>
