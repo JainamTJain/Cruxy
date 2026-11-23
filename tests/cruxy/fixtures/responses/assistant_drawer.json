@@ -1,6 +1,12 @@
 {
-  "question_first": "What would the other side say against that?",
-  "answer": null,
+  "question_first": null,
+  "answer": "From your team's Evidence Library: the duty falls on whoever still benefits from the title.",
   "quiet": false,
-  "claims": []
+  "claims": [
+    {
+      "text": "The duty falls on whoever still benefits from the title.",
+      "quote": "whoever still benefits",
+      "citation_ids": ["truth-fixture-1"]
+    }
+  ]
 }

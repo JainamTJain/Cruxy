@@ -10,6 +10,16 @@ import type { CitationSource } from "@/lib/cruxy/citations";
 import { EVEN_HANDED_PROMPT_LINE, detectLeanFlag } from "@/lib/cruxy/even-handed";
 import { COPYRIGHT_PROMPT_LINE } from "@/lib/cruxy/copyright";
 import { fitPhoneAnswer } from "@/lib/cruxy/shorten";
+import {
+  buildSpecificQuestion,
+  decideCharacterMode,
+  EMPTY_SOURCE_MESSAGE,
+  SPEND_CAP_MESSAGE,
+  TIMEOUT_MESSAGE,
+  isSpendCapError,
+  isTimeoutError,
+  wantsInformation,
+} from "@/lib/cruxy/character";
 
 export type AssistantAgentReply = {
   text: string;
@@ -22,12 +32,15 @@ export type AssistantAgentReply = {
   /** Even-handed lean warning (F-024). */
   leanFlag?: string | null;
   wantsMoreAvailable?: boolean;
+  /** Spend cap, timeout, or other hard refusal. */
+  refusedReason?: string | null;
 };
 
-/** Questions that want information, not help thinking: answer directly. */
-function isLookup(question: string): boolean {
-  return /\b(where|when|who|schedule|code|passcode|drive|link|url|what time|what is|what's|what are|what was|define|definition|meaning of|explain|summar|tell me about|who wrote|what does .* (say|argue|mean)|according to)\b/i.test(
-    question,
+function isGenericCannedQuestion(q: string): boolean {
+  return (
+    /^what would the other side say\b/i.test(q.trim()) ||
+    /^which fact matters most here\b/i.test(q.trim()) ||
+    /^does that fit your principle in case 12\b/i.test(q.trim())
   );
 }
 
@@ -41,10 +54,12 @@ export async function runAssistant(input: {
   personId?: string | null;
   reasonStrong?: boolean;
   adminMode?: boolean;
+  timedRound?: boolean;
+  alreadyAsked?: boolean;
 }): Promise<AssistantAgentReply> {
   if (input.truthSources.length === 0 && !input.adminMode) {
     return {
-      text: "I couldn't find a source for this.",
+      text: EMPTY_SOURCE_MESSAGE,
       questionFirst: null,
       quiet: true,
       citations: [],
@@ -52,7 +67,17 @@ export async function runAssistant(input: {
     };
   }
 
-  const lookup = isLookup(input.question) || Boolean(input.adminMode);
+  const decision = decideCharacterMode({
+    question: input.question,
+    adminMode: Boolean(input.adminMode),
+    timedRound: Boolean(input.timedRound),
+    alreadyAsked: Boolean(input.alreadyAsked),
+  });
+  const lookup =
+    decision.mode === "direct" ||
+    wantsInformation(input.question) ||
+    Boolean(input.adminMode);
+
   const sourceBlock = input.truthSources
     .slice(0, 8)
     .map((s, i) => `[${s.id}] (${s.kind ?? "source"} T${i + 1}) ${s.text}`)
@@ -77,10 +102,15 @@ export async function runAssistant(input: {
     packedSources = [...packedSources, ...packed.sources];
   }
 
+  const specificAsk =
+    decision.mode === "ask"
+      ? (decision.question ?? buildSpecificQuestion(input.question))
+      : null;
+
   // If the model's reply can't be read, show the best source plainly rather
   // than a generic question.
   const fallback = (): AssistantOutput => ({
-    question_first: null,
+    question_first: lookup ? null : specificAsk,
     answer: input.truthSources[0]
       ? `Here is the closest source I have: ${input.truthSources[0].text.slice(0, 400)}`
       : null,
@@ -96,6 +126,10 @@ export async function runAssistant(input: {
       : [],
   });
 
+  const routingHint = lookup
+    ? "Mode: answer directly. Set question_first to null."
+    : `Mode: ask one specific question first, then still answer. Prefer this question_first: ${specificAsk}`;
+
   const result = await runAgent({
     agent: "assistant",
     feature: input.adminMode
@@ -105,7 +139,7 @@ export async function runAssistant(input: {
         : "assistant_drawer",
     tier: input.reasonStrong ? "strong" : "small",
     system: `${assistantSystemPrompt()}\n\n${EVEN_HANDED_PROMPT_LINE}\n${COPYRIGHT_PROMPT_LINE}`,
-    user: `Page: ${input.page ?? "unknown"}\nHighlight: ${input.highlight ?? "none"}\nSources:\n${sourceBlock}\n\nQuestion: ${input.question}${input.reasonStrong ? "\n(User asked for more detail.)" : ""}`,
+    user: `${routingHint}\nPage: ${input.page ?? "unknown"}\nHighlight: ${input.highlight ?? "none"}\nSources:\n${sourceBlock}\n\nQuestion: ${input.question}${input.reasonStrong ? "\n(User asked for more detail.)" : ""}`,
     schema: assistantSchema,
     personId: input.personId,
     sources: packedSources,
@@ -115,18 +149,35 @@ export async function runAssistant(input: {
     stubFallback: fallback,
   });
 
-  const data = result.ok ? result.data : fallback();
+  if (!result.ok) {
+    const reason = result.reason;
+    const text = isSpendCapError(reason)
+      ? SPEND_CAP_MESSAGE
+      : isTimeoutError(reason)
+        ? TIMEOUT_MESSAGE
+        : reason || EMPTY_SOURCE_MESSAGE;
+    return {
+      text,
+      questionFirst: null,
+      quiet: true,
+      citations: [],
+      stub: false,
+      refusedReason: reason,
+    };
+  }
+
+  const data = result.data;
   const cited = packedSources.filter((s) =>
     data.claims.some((c) => c.citation_ids.includes(s.id)),
   );
 
   if (data.quiet || (!data.answer && !data.question_first)) {
     return {
-      text: "I couldn't find a source for this.",
+      text: EMPTY_SOURCE_MESSAGE,
       questionFirst: null,
       quiet: true,
       citations: [],
-      stub: result.ok ? result.stub : true,
+      stub: result.stub,
     };
   }
 
@@ -136,14 +187,19 @@ export async function runAssistant(input: {
     ? { text: rawAnswer, truncated: false }
     : fitPhoneAnswer(rawAnswer);
 
-  // Ask before answer: surface the question first when present.
-  if (data.question_first && !lookup) {
+  // Thinking help: one specific question, then still the answer.
+  if (!lookup && (data.question_first || specificAsk)) {
+    const qFirst = data.question_first || specificAsk;
+    const safeQuestion =
+      qFirst && !isGenericCannedQuestion(qFirst)
+        ? qFirst
+        : specificAsk ?? buildSpecificQuestion(input.question);
     return {
       text: fitted.text,
-      questionFirst: data.question_first,
+      questionFirst: safeQuestion,
       quiet: false,
       citations: cited,
-      stub: result.ok ? result.stub : true,
+      stub: result.stub,
       truncated: fitted.truncated,
       leanFlag,
       wantsMoreAvailable: fitted.truncated,
@@ -155,7 +211,7 @@ export async function runAssistant(input: {
     questionFirst: null,
     quiet: false,
     citations: cited,
-    stub: result.ok ? result.stub : true,
+    stub: result.stub,
     truncated: fitted.truncated,
     leanFlag,
     wantsMoreAvailable: fitted.truncated,

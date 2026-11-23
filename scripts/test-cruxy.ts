@@ -42,6 +42,24 @@ import { shortQuoteForDisplay } from "../src/lib/cruxy/copyright";
 import { dedupeFindings } from "../src/lib/cruxy/research-dedupe";
 import { detectLeanFlag } from "../src/lib/cruxy/even-handed";
 import {
+  buildSpecificQuestion,
+  decideCharacterMode,
+  EMPTY_SOURCE_MESSAGE,
+  SLEEP_GOODBYE,
+  SPEND_CAP_MESSAGE,
+  TIMEOUT_MESSAGE,
+  friendlyCruxyError,
+  isSpendCapError,
+  wantsInformation,
+  wantsThinkingHelp,
+} from "../src/lib/cruxy/character";
+import {
+  looksLikeActRequest,
+  looksLikeRolesRequest,
+  looksLikeTellIdea,
+} from "../src/lib/cruxy/actions/detect";
+import { runAssistant } from "../src/lib/cruxy/agents/assistant";
+import {
   loadBaseline,
   loadCaseFixtures,
   scoreCritique,
@@ -383,6 +401,143 @@ async function runDfQuadUnitTests(): Promise<number> {
   return passed;
 }
 
+async function runRoutingBehaviourTests(): Promise<number> {
+  let passed = 0;
+
+  // Information → direct
+  for (const q of [
+    "What is the responsibility gap?",
+    "Who is ready to lead Case 9?",
+    "Explain Waldron's supersession claim",
+    "Summarize Case 13 for me",
+    "When is the Dec 5 round?",
+    "Which team is weakest on Case 13?",
+    "Give me a readiness brief for Dec 5",
+  ]) {
+    const d = decideCharacterMode({ question: q });
+    assert(d.mode === "direct", `direct for: ${q}`);
+    assert(d.reason === "information" || d.reason === "default_direct", `info reason: ${q}`);
+    assert(wantsInformation(q), `wantsInformation: ${q}`);
+    passed += 1;
+  }
+
+  // Thinking → ask with a specific question (never canned)
+  for (const q of [
+    "Help me strengthen Claim 2 on Case 9",
+    "How should I respond to the access argument?",
+    "Walk me through our counterclaim answer",
+    "Is my claim weak on Case 12?",
+  ]) {
+    const d = decideCharacterMode({ question: q });
+    assert(d.mode === "ask", `ask for thinking: ${q}`);
+    assert(d.reason === "thinking", `thinking reason: ${q}`);
+    assert(wantsThinkingHelp(q), `wantsThinkingHelp: ${q}`);
+    assert(d.question && d.question.length > 10, `specific question present: ${q}`);
+    assert(
+      !/^what would the other side say\??$/i.test(d.question!),
+      `not canned other-side: ${q}`,
+    );
+    assert(
+      !/^which fact matters most here\??$/i.test(d.question!),
+      `not canned fact: ${q}`,
+    );
+    passed += 1;
+  }
+
+  // Admin / timed / already asked → direct
+  assert(
+    decideCharacterMode({ question: "Help me strengthen Claim 1", adminMode: true })
+      .mode === "direct",
+    "admin is direct",
+  );
+  assert(
+    decideCharacterMode({ question: "Help me strengthen Claim 1", timedRound: true })
+      .mode === "direct",
+    "timed is direct",
+  );
+  assert(
+    decideCharacterMode({
+      question: "Help me strengthen Claim 1",
+      alreadyAsked: true,
+    }).mode === "direct",
+    "already asked is direct",
+  );
+  passed += 1;
+
+  const specific = buildSpecificQuestion("Help me strengthen Claim 2 on Case 9");
+  assert(/Claim 2/i.test(specific), "specific question names Claim 2");
+  assert(/Case 9/i.test(specific), "specific question names Case 9");
+  passed += 1;
+
+  // Actions still detected for preview → Apply
+  assert(looksLikeRolesRequest("Shuffle the rest fairly"), "roles act");
+  assert(
+    looksLikeTellIdea("My idea is we should name the caregiver's duty first"),
+    "tell idea act",
+  );
+  assert(looksLikeActRequest("Shuffle the rest fairly"), "act request");
+  assert(!looksLikeActRequest("What is supersession?"), "info is not an act");
+  passed += 1;
+
+  // Edge copy
+  assert(isSpendCapError("Monthly Cruxy spend cap reached."), "detect spend cap");
+  assert(
+    friendlyCruxyError(429, "Monthly Cruxy spend cap reached.") === SPEND_CAP_MESSAGE,
+    "friendly spend cap",
+  );
+  assert(
+    friendlyCruxyError(408, "timed out") === TIMEOUT_MESSAGE,
+    "friendly timeout",
+  );
+  assert(EMPTY_SOURCE_MESSAGE.includes("couldn't find a source"), "empty source copy");
+  assert(SLEEP_GOODBYE.includes("Back to the lamp"), "sleep goodbye");
+  assert(fitPhoneAnswer("word ".repeat(200)).truncated, "phone truncates long answers");
+  passed += 1;
+
+  // Assistant agent: empty sources, and info ask with a source (fixture path)
+  const empty = await runAssistant({
+    question: "What is the responsibility gap?",
+    truthSources: [],
+  });
+  assert(empty.quiet && empty.text === EMPTY_SOURCE_MESSAGE, "empty sources quiet");
+  passed += 1;
+
+  const withSource = await runAssistant({
+    question: "What is the duty on the title?",
+    truthSources: [
+      {
+        id: "truth-fixture-1",
+        text: "The duty falls on whoever still benefits from the title.",
+        kind: "truth_item",
+      },
+    ],
+  });
+  assert(!withSource.quiet, "sourced info is not quiet");
+  assert(withSource.questionFirst === null, "info ask has no question_first");
+  assert(withSource.text.length > 0, "info ask has an answer");
+  passed += 1;
+
+  const thinking = await runAssistant({
+    question: "Help me strengthen Claim 1",
+    truthSources: [
+      {
+        id: "truth-fixture-1",
+        text: "The duty falls on whoever still benefits from the title.",
+        kind: "truth_item",
+      },
+    ],
+  });
+  assert(thinking.questionFirst, "thinking asks first");
+  assert(thinking.text.length > 0, "thinking still answers");
+  assert(
+    !/^what would the other side say\b/i.test(thinking.questionFirst!),
+    "thinking question is not canned",
+  );
+  passed += 1;
+
+  return passed;
+}
+
 async function runCitationUnitTests(): Promise<number> {
   let passed = 0;
 
@@ -704,6 +859,9 @@ async function main() {
 
   const dfQuad = await runDfQuadUnitTests();
   console.log(`DF-QuAD checks: ${dfQuad} passed`);
+
+  const routing = await runRoutingBehaviourTests();
+  console.log(`Routing / behaviour checks: ${routing} passed`);
 
   const units = await runCitationUnitTests();
   console.log(`Citation / prompt checks: ${units} passed`);

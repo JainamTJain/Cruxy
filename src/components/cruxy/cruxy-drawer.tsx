@@ -114,7 +114,8 @@ export function CruxyDrawer() {
           text?: string;
         };
         if (!res.ok) {
-          setAnswer(data.error ?? "Could not answer in admin mode.");
+          const { friendlyCruxyError } = await import("@/lib/cruxy/character");
+          setAnswer(friendlyCruxyError(res.status, data.error));
           emitCruxyEvent("judge.unexpected");
         } else {
           setAnswer(data.text ?? "");
@@ -127,9 +128,12 @@ export function CruxyDrawer() {
       }
 
       // Action requests go straight to /api/cruxy/act. Never ask first or deflect.
+      // Thinking help: show one specific question, then still fetch the answer.
       const isAct = looksLikeActRequest(question);
       if (!isAct) {
-        const { decideCharacterMode } = await import("@/lib/cruxy/character");
+        const { decideCharacterMode, HINT_FALLBACK } = await import(
+          "@/lib/cruxy/character"
+        );
         const decision = decideCharacterMode({
           question,
           adminMode: false,
@@ -139,32 +143,52 @@ export function CruxyDrawer() {
           wantsHint: Boolean(opts?.wantHint || hintOnly),
         });
 
-        if (decision.mode === "ask" && decision.question) {
-          setPrompt(decision.question);
-          setBubble(decision.question);
-          emitCruxyEvent("ask.question");
-          return;
-        }
-
         if (decision.mode === "hint") {
-          const { HINT_FALLBACK } = await import("@/lib/cruxy/character");
           setAnswer(HINT_FALLBACK);
           setCitations([]);
           emitCruxyEvent("hint.given");
           setHintOnly(false);
           return;
         }
+
+        if (
+          decision.mode === "ask" &&
+          decision.question &&
+          !opts?.forceAnswer
+        ) {
+          setPrompt(decision.question);
+          setBubble(decision.question);
+          emitCruxyEvent("ask.question");
+        }
       }
 
-      const res = await fetch("/api/cruxy/act", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          message: question,
-          page,
-          caseId,
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 55_000);
+      let res: Response;
+      try {
+        res = await fetch("/api/cruxy/act", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            message: question,
+            page,
+            caseId,
+          }),
+          signal: controller.signal,
+        });
+      } catch (err) {
+        const { TIMEOUT_MESSAGE, friendlyCruxyError } = await import(
+          "@/lib/cruxy/character"
+        );
+        const msg = err instanceof Error ? err.message : "";
+        setAnswer(
+          /abort/i.test(msg) ? TIMEOUT_MESSAGE : friendlyCruxyError(0, msg),
+        );
+        emitCruxyEvent("judge.unexpected");
+        return;
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
       const data = (await res.json()) as {
         kind?: "answer" | "plan";
         text?: string;
@@ -178,7 +202,8 @@ export function CruxyDrawer() {
         error?: string;
       };
       if (!res.ok) {
-        setAnswer(data.error ?? "Cruxy hit a problem. Try again.");
+        const { friendlyCruxyError } = await import("@/lib/cruxy/character");
+        setAnswer(friendlyCruxyError(res.status, data.error));
         emitCruxyEvent("judge.unexpected");
         return;
       }
@@ -202,7 +227,7 @@ export function CruxyDrawer() {
       if (data.refusedWithoutSources) emitCruxyEvent("source.new");
       else setMood("curious");
       setBubble(null);
-      setPrompt(null);
+      // Keep the specific thinking question visible above the answer.
     } finally {
       setBusy(false);
     }
@@ -241,11 +266,11 @@ export function CruxyDrawer() {
 
   const chips = adminMode
     ? [
-        "Which team needs help?",
         "Who is ready to lead Case 9?",
-        "What happened today?",
-        "Where do teams disagree?",
-        "Readiness brief for UCSB",
+        "Which team is weakest on Case 13?",
+        "Give me a readiness brief for Dec 5",
+        "What did the teams do this week?",
+        "Where do the teams disagree?",
       ]
     : suggestionChipsForPage(page);
 
@@ -324,15 +349,17 @@ export function CruxyDrawer() {
           <div className="rounded-2xl border border-gold/40 bg-[#FFF7DB] px-3 py-3">
             <p className="font-medium">Cruxy asks first</p>
             <p className="mt-1">{prompt}</p>
-            <Button
-              className="mt-3"
-              variant="secondary"
-              onClick={() => {
-                void ask({ forceAnswer: true });
-              }}
-            >
-              I tried. Give me the answer
-            </Button>
+            {!answer ? (
+              <Button
+                className="mt-3"
+                variant="secondary"
+                onClick={() => {
+                  void ask({ forceAnswer: true });
+                }}
+              >
+                I tried. Give me the answer
+              </Button>
+            ) : null}
           </div>
         ) : null}
 
