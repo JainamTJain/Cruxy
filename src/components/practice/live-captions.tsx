@@ -109,11 +109,16 @@ export function LiveCaptions({ cruxyLines = [], enabled = true }: Props) {
           </button>
         ) : (
           <span className="text-xs text-[#8C929D]">
-            Live captions need Chrome on this device
+            Live captions need Chrome. On Safari, read Cruxy&apos;s lines below;
+            the final transcript still saves after the round.
           </span>
         )}
       </div>
-      {error ? <p className="m-0 text-sm text-[#F87171]">{error}</p> : null}
+      {error ? (
+        <p className="m-0 text-sm text-[#F87171]" role="alert">
+          {error}
+        </p>
+      ) : null}
       {cruxyLines.length ? (
         <div className="flex flex-col gap-1">
           <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#8C929D]">
