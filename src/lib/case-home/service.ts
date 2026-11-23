@@ -14,7 +14,7 @@ import {
   replaceFileSegments,
 } from "@/lib/db/supabase/file-segments";
 import { isSampleDataMode } from "@/lib/db/config";
-import { distillFileSegments } from "@/lib/library/segments";
+import { BOILERPLATE_RE, distillFileSegments } from "@/lib/library/segments";
 import { extractCaseSection } from "@/lib/case-home/case-section";
 import type { LibraryFile } from "@/lib/library/types";
 import { listQuestions } from "@/lib/revision/repository";
@@ -34,23 +34,77 @@ function clip(text: string, n = 160): string {
   return `${t.slice(0, n - 1).trim()}…`;
 }
 
+/**
+ * A file's stored segments need redoing when they repeat (two requests built
+ * them at once) or carry site boilerplate (built before the filter existed).
+ */
+function staleSegments(segs: { kind: string; body: string }[]): boolean {
+  const keys = new Set<string>();
+  for (const s of segs) {
+    if (s.kind === "key_point" && BOILERPLATE_RE.test(s.body)) return true;
+    // Transcript stamps or a separate speaker list: built by the old distiller.
+    if (/\[\d{1,2}:\d{2}/.test(s.body) || s.kind === "speaker") return true;
+    const k = `${s.kind}:${s.body}`;
+    if (keys.has(k)) return true;
+    keys.add(k);
+  }
+  return false;
+}
+
 async function ensureSegmentsForFiles(
   files: LibraryFile[],
   caseId: string,
+  focus: string,
 ): Promise<void> {
   const existing = await listSegmentsForCase(caseId);
-  const have = new Set(existing.map((s) => s.file_id));
+  const byFile = new Map<string, typeof existing>();
+  for (const s of existing) {
+    const list = byFile.get(s.file_id) ?? [];
+    list.push(s);
+    byFile.set(s.file_id, list);
+  }
   for (const file of files) {
-    if (have.has(file.id)) continue;
+    const have = byFile.get(file.id);
+    if (have && !staleSegments(have)) continue;
     const passages = await listPassagesForFile(file.id);
     if (passages.length === 0 && !file.card) continue;
     const segments = distillFileSegments({
       file,
       passages,
       caseId,
+      focus,
     });
     await replaceFileSegments(file.id, segments, caseId);
   }
+}
+
+/** Drop repeats left by two requests building the same file at once. */
+function dedupeSegments<T extends { file_id: string; kind: string; body: string }>(
+  segs: T[],
+): T[] {
+  const seen = new Set<string>();
+  return segs.filter((s) => {
+    const k = `${s.file_id}:${s.kind}:${s.body}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+/**
+ * Bank questions carry their source as a tag in the text. Show the source as
+ * the label and keep the question itself clean.
+ */
+function questionLabel(text: string): { body: string; label: string } {
+  const tags: Array<[RegExp, string]> = [
+    [/\s*\((?:the )?case'?s own question\)\s*$/i, "From the case"],
+    [/\s*\(case text\)\s*$/i, "From the case"],
+    [/\s*\(team'?s version\)\s*$/i, "Our team's version"],
+  ];
+  for (const [re, label] of tags) {
+    if (re.test(text)) return { body: text.replace(re, "").trim(), label };
+  }
+  return { body: text, label: "Question bank" };
 }
 
 function personNameMap(
@@ -91,8 +145,12 @@ export async function getCaseHome(args: {
     (f) => f.type !== "case_set" && f.id !== caseSet?.id,
   );
 
-  await ensureSegmentsForFiles(readingFiles, caseId);
-  const segments = await listSegmentsForCase(caseId);
+  await ensureSegmentsForFiles(
+    readingFiles,
+    caseId,
+    [caseRow.title, caseRow.crux ?? "", caseRow.trap ?? ""].join(" "),
+  );
+  const segments = dedupeSegments(await listSegmentsForCase(caseId));
   const readingIds = new Set(readingFiles.map((f) => f.id));
   const segments_by_file: CaseHomePayload["segments_by_file"] = {};
   for (const s of segments) {
@@ -219,12 +277,13 @@ export async function getCaseHome(args: {
         : []),
     ];
     for (const q of questions.filter((q) => q.status === "active").slice(0, 6)) {
+      const { body, label } = questionLabel(q.text || "Question");
       annotations.push({
         id: q.id,
         kind: "question",
-        body: q.text || "Question",
+        body,
         range: null,
-        person_name: null,
+        person_name: label,
         team_colour: null,
         passage_anchor: null,
         created_at: q.created_at,
@@ -232,12 +291,13 @@ export async function getCaseHome(args: {
     }
   } else {
     for (const q of questions.filter((q) => q.status === "active").slice(0, 6)) {
+      const { body, label } = questionLabel(q.text || "Question");
       annotations.push({
         id: q.id,
         kind: "question",
-        body: q.text || "Question",
+        body,
         range: null,
-        person_name: null,
+        person_name: label,
         team_colour: null,
         passage_anchor: null,
         created_at: q.created_at,

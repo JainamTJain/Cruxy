@@ -12,6 +12,7 @@ import {
   findFrameworkHits,
   type FrameworkEntry,
 } from "@/lib/frameworks/catalog";
+import { cleanReaderText } from "@/lib/text/reader-text";
 import { cn } from "@/lib/utils";
 
 type ApplyPayload = {
@@ -36,7 +37,9 @@ type Props = {
  * Quiet in-place framework links: first hit of each term per paragraph only.
  * Hover or tap for plain meaning, case apply (cited), and encyclopedia link.
  */
-export function LinkedText({ text, caseId, className, preWrap }: Props) {
+export function LinkedText({ text: raw, caseId, className, preWrap }: Props) {
+  // Stored AI text may still carry ids or markdown from before the clean-up.
+  const text = cleanReaderText(raw ?? "");
   // Split on blank lines so each paragraph gets its own first-hit pass.
   const parts = text.split(/(\n+)/);
   const hasAny = parts.some(

@@ -28,6 +28,7 @@ import type {
   OnePagerBody,
 } from "@/lib/revision/types";
 import type { CaseRow } from "@/lib/types";
+import { opposingFromPrep } from "@/lib/seed/opposing";
 
 const TEAM3 = SEED_TEAM_IDS.team3;
 const TEAM1 = SEED_TEAM_IDS.team1;
@@ -648,27 +649,15 @@ export async function buildContentSeed(
       qi++;
     }
 
-    // Commentary kit → opposing positions
-    for (const [i, line] of p.commentaryKit.entries()) {
-      const ifMatch = line.match(/^If they\s+(.+?):\s*(.+)$/i);
-      const title = ifMatch ? `They ${ifMatch[1]!.trim()}` : line.trim();
-      const angle = (ifMatch?.[2] ?? line).trim();
-      const weak =
-        p.counterclaims[0]?.rebut ??
-        "Pressure this against our claim map and the case facts.";
-      const nextAngle =
-        p.commentaryKit[(i + 1) % Math.max(p.commentaryKit.length, 1)] ??
-        "Ask what their principle would require in a flipped case.";
+    // Commentary kit → opposing positions (each with its own counterclaim)
+    for (const [i, o] of opposingFromPrep(p).entries()) {
       opposing_positions.push({
         id: seedUuid(`opp:${p.number}:${i}`),
         case_id: cid,
-        title,
-        strongest_support:
-          p.counterclaims[0]?.theirSupports ||
-          p.counterclaims[0]?.text ||
-          "Their strongest reading of the case facts.",
-        weak_point: weak,
-        commentary_angles: [angle, nextAngle.trim()],
+        title: o.title,
+        strongest_support: o.strongest_support,
+        weak_point: o.weak_point,
+        commentary_angles: o.commentary_angles,
         origin: "team",
         added_by_team_id: TEAM3,
         created_at: NOW,
