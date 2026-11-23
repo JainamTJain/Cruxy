@@ -23,6 +23,11 @@ import {
 } from "../src/lib/regional/timer-engine";
 import { relativeSavedLabel } from "../src/lib/offline/pack-store";
 import { buildFocusActions, DEC5_HELPERS } from "../src/lib/product/today";
+import {
+  canWriteTeamData,
+  resolveVisibleTeamId,
+} from "../src/lib/auth/team-privacy";
+import type { Person, SessionPayload } from "../src/lib/types";
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`FAIL: ${msg}`);
@@ -134,10 +139,57 @@ async function checkProgramMapSample() {
   assert(store.competitions.length >= 1, "sample has a competition");
 }
 
+function checkTeamPrivacy() {
+  const member = {
+    team_id: "team-a",
+    role: "member",
+  } as Pick<Person, "team_id" | "role">;
+  const session = {
+    teamId: "team-a",
+    adminView: false,
+    role: "member",
+  } as Pick<SessionPayload, "teamId" | "adminView" | "role">;
+
+  const denied = resolveVisibleTeamId({
+    person: member,
+    session,
+    requested: "team-b",
+  });
+  assert(denied.denied && denied.teamId === "team-a", "member forced to own team");
+  assert(
+    !canWriteTeamData(member, session, "team-b"),
+    "member cannot write other team",
+  );
+  assert(
+    canWriteTeamData(member, session, "team-a"),
+    "member can write own team",
+  );
+
+  const adminPerson = {
+    team_id: null,
+    role: "tech_admin",
+  } as Pick<Person, "team_id" | "role">;
+  const adminSession = {
+    teamId: null,
+    adminView: true,
+    role: "tech_admin",
+  } as Pick<SessionPayload, "teamId" | "adminView" | "role">;
+  const adminPick = resolveVisibleTeamId({
+    person: adminPerson,
+    session: adminSession,
+    requested: "team-b",
+  });
+  assert(
+    !adminPick.denied && adminPick.teamId === "team-b",
+    "admin view may pick a team",
+  );
+}
+
 async function main() {
   checkTimerEngine();
   checkOfflineHelpers();
   checkTodayHelpers();
+  checkTeamPrivacy();
   await checkProgramMapSample();
   console.log("competition-day checks ok");
 }

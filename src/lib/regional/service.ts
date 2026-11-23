@@ -4,8 +4,10 @@
  */
 import "server-only";
 import { isAdminRole } from "@/lib/admin/permissions";
+import { canWriteTeamData } from "@/lib/auth/team-privacy";
 import { getTeamBrief } from "@/lib/db/supabase/team-brief-extra";
 import {
+  getDayLogById,
   getOrCreateLogistics,
   insertDayLog,
   listDayLogs,
@@ -24,7 +26,7 @@ import {
   listTeams,
   logActivity,
 } from "@/lib/db/repository";
-import type { Role } from "@/lib/types";
+import type { Person, Role, SessionPayload } from "@/lib/types";
 import { APPE_DAY_PHASES } from "@/lib/regional/timings";
 
 const EMPTY = "Dr. B will add this.";
@@ -216,9 +218,19 @@ export async function logRealRound(opts: {
 export async function saveDebrief(opts: {
   logId: string;
   personId: string;
+  person: Pick<Person, "team_id" | "role">;
+  session: Pick<SessionPayload, "teamId" | "adminView" | "role">;
   debriefWorked: string;
   debriefChange: string;
 }) {
+  const existing = await getDayLogById(opts.logId);
+  if (!existing) throw new Error("Could not find that round log.");
+  if (
+    !existing.team_id ||
+    !canWriteTeamData(opts.person, opts.session, existing.team_id)
+  ) {
+    throw new Error("That round log belongs to another team.");
+  }
   const row = await patchDayLogDebrief({
     id: opts.logId,
     personId: opts.personId,

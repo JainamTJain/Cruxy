@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  canWriteTeamData,
+  resolveVisibleTeamId,
+} from "@/lib/auth/team-privacy";
 import { getSession } from "@/lib/auth/session";
 import { getPersonById } from "@/lib/db/repository";
 import {
@@ -74,7 +78,18 @@ export async function POST(req: Request) {
   };
 
   const competitionId = body.competitionId;
-  const teamId = body.teamId ?? session.teamId ?? person.team_id;
+  const resolved = resolveVisibleTeamId({
+    person,
+    session,
+    requested: body.teamId,
+  });
+  if (resolved.denied) {
+    return NextResponse.json(
+      { error: "You can only change your own team's Competition Day." },
+      { status: 403 },
+    );
+  }
+  const teamId = resolved.teamId;
 
   try {
     switch (body.action) {
@@ -109,6 +124,12 @@ export async function POST(req: Request) {
             { status: 400 },
           );
         }
+        if (!canWriteTeamData(person, session, teamId)) {
+          return NextResponse.json(
+            { error: "You can only save your own team's round card." },
+            { status: 403 },
+          );
+        }
         const round = await saveDayRound({
           competitionId,
           teamId,
@@ -130,6 +151,12 @@ export async function POST(req: Request) {
           return NextResponse.json(
             { error: "Need a team and competition." },
             { status: 400 },
+          );
+        }
+        if (!canWriteTeamData(person, session, teamId)) {
+          return NextResponse.json(
+            { error: "You can only log rounds for your own team." },
+            { status: 403 },
           );
         }
         const entry = await logRealRound({
@@ -163,6 +190,8 @@ export async function POST(req: Request) {
         const entry = await saveDebrief({
           logId: body.logId,
           personId: session.personId,
+          person,
+          session,
           debriefWorked: body.debriefWorked ?? "",
           debriefChange: body.debriefChange ?? "",
         });
@@ -172,12 +201,12 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Unknown action." }, { status: 400 });
     }
   } catch (e) {
-    return NextResponse.json(
-      {
-        error:
-          e instanceof Error ? e.message : "Could not update Competition Day.",
-      },
-      { status: 400 },
-    );
+    const message =
+      e instanceof Error ? e.message : "Could not update Competition Day.";
+    const status =
+      message.includes("another team") || message.includes("own team")
+        ? 403
+        : 400;
+    return NextResponse.json({ error: message }, { status });
   }
 }
