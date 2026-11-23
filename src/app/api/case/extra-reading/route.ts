@@ -26,7 +26,7 @@ export async function GET(req: Request) {
       { status: 403 },
     );
   }
-  const data = await listExtraReading({ caseId, teamId });
+  const data = await listExtraReading({ caseId, teamId, viewerRole: auth.person.role });
   return NextResponse.json(data);
 }
 
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
         body: body.body ?? "",
         kind: body.kind,
       });
-      const data = await listExtraReading({ caseId: body.caseId, teamId });
+      const data = await listExtraReading({ caseId: body.caseId, teamId, viewerRole: auth.person.role });
       return NextResponse.json({ item, ...data });
     }
     if (body.action === "share") {
@@ -102,6 +102,7 @@ export async function POST(req: Request) {
       const data = await listExtraReading({
         caseId: body.caseId,
         teamId,
+        viewerRole: auth.person.role,
       });
       return NextResponse.json(data);
     }

@@ -102,6 +102,23 @@ function sampleBucket(store: Awaited<ReturnType<typeof readStore>>): {
 export async function listExtraReading(input: {
   caseId: string;
   teamId: string;
+  /** The viewer's role: the coach does not see the tech admin's uploads. */
+  viewerRole?: string | null;
+}): Promise<{
+  items: ExtraReadingItem[];
+  available_shared: ExtraReadingItem[];
+}> {
+  const all = await listExtraReadingAll(input);
+  const { isCoachViewer, techAdminIds } = await import("@/lib/auth/tech-uploads");
+  if (!isCoachViewer(input.viewerRole)) return all;
+  const tech = await techAdminIds();
+  const keep = (r: ExtraReadingItem) => !(r.created_by && tech.has(r.created_by));
+  return { items: all.items.filter(keep), available_shared: all.available_shared.filter(keep) };
+}
+
+async function listExtraReadingAll(input: {
+  caseId: string;
+  teamId: string;
 }): Promise<{
   items: ExtraReadingItem[];
   available_shared: ExtraReadingItem[];

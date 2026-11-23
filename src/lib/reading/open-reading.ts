@@ -68,17 +68,59 @@ const finderSchema = z.object({
     .default([]),
 });
 
-export async function listOpenReadings(caseId: string): Promise<OpenReading[]> {
-  if (isSampleDataMode()) return sampleRows.filter((r) => r.case_id === caseId);
+export async function listOpenReadings(
+  caseId: string,
+  opts?: { hideUploads?: boolean },
+): Promise<OpenReading[]> {
+  const keep = (r: OpenReading) => !(opts?.hideUploads && r.url.startsWith("upload:"));
+  if (isSampleDataMode()) return sampleRows.filter((r) => r.case_id === caseId).filter(keep);
   const { data, error } = await getServiceSupabase()
     .from("case_open_readings")
     .select("id, case_id, title, url, source_kind, why, authors, year, found_at")
     .eq("case_id", caseId)
     .eq("status", "active")
     .order("found_at", { ascending: false })
-    .limit(30);
+    .limit(40);
   if (error) throw new Error(`listOpenReadings: ${error.message}`);
-  return (data ?? []) as OpenReading[];
+  // Uploaded books first: they were asked for because the open web lacked them.
+  const rows = ((data ?? []) as OpenReading[]).filter(keep);
+  return [...rows.filter((r) => r.url.startsWith("upload:")), ...rows.filter((r) => !r.url.startsWith("upload:"))];
+}
+
+/**
+ * A book the tech admin uploaded joins the case's Deeper reading for every
+ * team, readable in the reading room. Returns the reading's id.
+ */
+export async function addBookReading(opts: {
+  caseId: string;
+  bookId: string;
+  title: string;
+  why: string | null;
+}): Promise<OpenReading> {
+  const row = {
+    case_id: opts.caseId,
+    title: opts.title.slice(0, 240),
+    url: `upload:${opts.bookId}`,
+    source_kind: "book" as const,
+    why: opts.why?.slice(0, 300) ?? null,
+    authors: null,
+    year: null,
+  };
+  if (isSampleDataMode()) {
+    const hit = sampleRows.find((x) => x.case_id === row.case_id && x.url === row.url);
+    if (hit) return hit;
+    const made = { ...row, id: randomUUID(), found_at: nowIso() };
+    sampleRows.push(made);
+    return made;
+  }
+  const sb = getServiceSupabase();
+  const { data, error } = await sb
+    .from("case_open_readings")
+    .upsert({ ...row, status: "active", text_status: "none" }, { onConflict: "case_id,url" })
+    .select("id, case_id, title, url, source_kind, why, authors, year, found_at")
+    .single();
+  if (error || !data) throw new Error(`addBookReading: ${error?.message ?? "no row"}`);
+  return data as OpenReading;
 }
 
 async function saveOpenReadings(rows: Omit<OpenReading, "id" | "found_at">[]): Promise<number> {

@@ -22,6 +22,9 @@ export default function BookRequestsPage() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatusMsg] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [itemMsg, setItemMsg] = useState<Record<string, { ok: boolean; text: string }>>({});
+  const [showDone, setShowDone] = useState(false);
+  const say = (id: string, ok: boolean, text: string) => setItemMsg((m) => ({ ...m, [id]: { ok, text } }));
 
   async function load() {
     const me = await fetch("/api/auth/me").then((r) => r.json());
@@ -47,8 +50,41 @@ export default function BookRequestsPage() {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ id, status }),
-    });
-    if (res.ok) await load();
+    }).catch(() => null);
+    if (!res?.ok) {
+      say(id, false, "That did not save. Try again.");
+      return;
+    }
+    say(id, true, status === "fulfilled" ? "Marked done." : status === "dismissed" ? "Dismissed." : "Reopened.");
+    await load();
+  }
+
+  /** Books uploaded before Crux read PDFs: read the stored file now. */
+  async function rereadBook(id: string, path: string) {
+    setBusyId(id);
+    say(id, true, "Cruxy is reading the stored book, this can take a minute or two...");
+    try {
+      const res = await fetch("/api/research/books", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "digest", id, path }),
+      }).catch(() => null);
+      const body = (await res?.json().catch(() => ({}))) as { error?: string; chars?: number; readable?: boolean };
+      if (!res?.ok) {
+        say(id, false, body?.error ?? "Could not read it. Try again.");
+        return;
+      }
+      say(
+        id,
+        body.readable !== false,
+        body.readable === false
+          ? "The text could not be read (it may be a scanned PDF). Paste the chapter text instead."
+          : `Done. Cruxy read ${Math.round((body.chars ?? 0) / 1000)}k characters; it is now in the case's Deeper reading with bookmarks.`,
+      );
+      await load();
+    } finally {
+      setBusyId(null);
+    }
   }
 
   async function runResearch() {
@@ -58,27 +94,76 @@ export default function BookRequestsPage() {
 
   async function uploadPdf(id: string, file: File | null, text: string) {
     if (!file && !text.trim()) {
-      setStatusMsg("Pick a PDF or paste the chapter text.");
+      say(id, false, "Pick a PDF or paste the chapter text.");
       return;
     }
     setBusyId(id);
-    setStatusMsg(null);
+    say(id, true, file ? `Uploading ${file.name}...` : "Saving the text...");
     try {
-      const form = new FormData();
-      form.set("id", id);
-      if (file) form.set("file", file);
-      if (text.trim()) form.set("text", text.trim());
-      const res = await fetch("/api/research/books", {
-        method: "POST",
-        body: form,
-      });
-      const body = (await res.json()) as { error?: string; uploadPath?: string };
-      if (!res.ok) {
-        setStatusMsg(body.error ?? "Upload failed.");
+      let res: Response | null = null;
+      if (file) {
+        // Send the file straight to storage (no size limit from the server),
+        // then ask Crux to read and index it.
+        const signRes = await fetch("/api/research/books", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "sign", id, filename: file.name }),
+        });
+        const sign = (await signRes.json().catch(() => ({}))) as {
+          direct?: boolean;
+          signedUrl?: string;
+          path?: string;
+          error?: string;
+        };
+        if (!signRes.ok) {
+          say(id, false, sign.error ?? "Could not start the upload.");
+          return;
+        }
+        if (sign.direct && sign.signedUrl && sign.path) {
+          const body = new FormData();
+          body.append("cacheControl", "3600");
+          body.append("", file);
+          const put = await fetch(sign.signedUrl, { method: "PUT", body, headers: { "x-upsert": "true" } }).catch(() => null);
+          if (!put?.ok) {
+            say(id, false, `The file did not upload${put ? ` (error ${put.status})` : ""}. Check the connection and try again.`);
+            return;
+          }
+          say(id, true, "Uploaded. Cruxy is reading the book now, this can take a minute or two...");
+          res = await fetch("/api/research/books", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ action: "digest", id, path: sign.path }),
+          }).catch(() => null);
+        }
+      }
+      if (!res) {
+        const form = new FormData();
+        form.set("id", id);
+        if (file) form.set("file", file);
+        if (text.trim()) form.set("text", text.trim());
+        res = await fetch("/api/research/books", { method: "POST", body: form }).catch(() => null);
+      }
+      if (!res) {
+        say(id, false, "Could not reach Crux. Try again.");
         return;
       }
-      setStatusMsg(
-        `Uploaded and digested under Crux uploads${body.uploadPath ? ` (${body.uploadPath})` : ""}.`,
+      const raw = await res.text();
+      let body: { error?: string; chars?: number; readable?: boolean } = {};
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        body = { error: res.status === 413 ? "That file is too large to send this way." : raw.slice(0, 160) };
+      }
+      if (!res.ok) {
+        say(id, false, body.error ?? "Upload failed.");
+        return;
+      }
+      say(
+        id,
+        body.readable !== false,
+        body.readable === false
+          ? "Stored, but the text could not be read (it may be a scanned PDF). Paste the chapter text so Cruxy can use it."
+          : `Done. Cruxy read ${Math.round((body.chars ?? 0) / 1000)}k characters and indexed it for the case.`,
       );
       await load();
     } finally {
@@ -95,10 +180,10 @@ export default function BookRequestsPage() {
           </Link>
           <h1 className="font-display text-3xl font-semibold">Book requests</h1>
           <p className="mt-1 text-sm text-muted">
-            Jainam only. Upload the PDF (or paste the chapter). It lands in
-            Crux uploads and is digested like any library file. Short quotes
-            only in the UI; the rest is paraphrased. Paywalled papers and
-            books from research also open{" "}
+            Jainam only. Upload the PDF (any size) or paste the chapter. Cruxy
+            reads it, indexes it for the case and adds it to the case&apos;s
+            Deeper reading for the teams. Dr. B does not see these uploads.
+            Paywalled papers and books from research also open{" "}
             <Link href="/admin/materials" className="underline">
               material requests
             </Link>
@@ -114,19 +199,48 @@ export default function BookRequestsPage() {
       {status ? <p className="text-sm text-ink">{status}</p> : null}
 
       <ul className="space-y-3">
+        {books.length > 0 ? (
+          <li className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
+            <span>
+              {books.filter((b) => b.status === "open" || (b.status === "fulfilled" && !b.library_file_id)).length} to
+              do, {books.filter((b) => b.status === "fulfilled" && b.library_file_id).length} done
+            </span>
+            <button type="button" className="underline" onClick={() => setShowDone((v) => !v)}>
+              {showDone ? "Hide done" : "Show done"}
+            </button>
+          </li>
+        ) : null}
         {books.length === 0 && !error ? (
           <li className="text-sm text-muted">
             No book requests. Run research after a sync to seed gaps.
           </li>
         ) : (
-          books.map((b) => (
+          books
+            .filter((b) => showDone || b.status === "open" || (b.status === "fulfilled" && !b.library_file_id))
+            .map((b) => (
             <li
               key={b.id}
               className="rounded-2xl border border-ink/10 bg-white/70 px-4 py-3"
             >
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="font-display text-lg font-semibold">{b.title}</h2>
-                <span className="font-mono text-[11px] text-muted">{b.status}</span>
+                <span
+                  className={
+                    b.status === "fulfilled" && b.library_file_id
+                      ? "rounded-full bg-[#E8F4EC] px-2 py-0.5 text-[11px] font-semibold text-[#1F5F3B]"
+                      : b.status === "fulfilled"
+                        ? "rounded-full bg-[#FFF4DE] px-2 py-0.5 text-[11px] font-semibold text-[#8A5200]"
+                        : "rounded-full bg-[#F1F2F4] px-2 py-0.5 text-[11px] font-semibold text-[#3B404A]"
+                  }
+                >
+                  {b.status === "fulfilled" && b.library_file_id
+                    ? "Uploaded and read"
+                    : b.status === "fulfilled"
+                      ? "Marked done, no file yet"
+                      : b.status === "dismissed"
+                        ? "Dismissed"
+                        : "Needs the book"}
+                </span>
               </div>
               {b.case_number != null ? (
                 <p className="text-xs text-muted">
@@ -146,7 +260,7 @@ export default function BookRequestsPage() {
                 </p>
               ) : null}
 
-              {b.status === "open" ? (
+              {b.status === "open" || (b.status === "fulfilled" && !b.library_file_id) ? (
                 <form
                   className="mt-3 space-y-2"
                   onSubmit={(e) => {
@@ -186,15 +300,37 @@ export default function BookRequestsPage() {
                 </form>
               ) : null}
 
+              {itemMsg[b.id] ? (
+                <p className={`mt-2 text-sm ${itemMsg[b.id]!.ok ? "text-[#1F5F3B]" : "text-cardinal"}`} aria-live="polite">
+                  {itemMsg[b.id]!.text}
+                </p>
+              ) : null}
               <div className="mt-3 flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void setStatus(b.id, "fulfilled")}
-                >
-                  Mark fulfilled
-                </Button>
+                {b.status === "open" ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void setStatus(b.id, "fulfilled")}
+                  >
+                    Mark done without a file
+                  </Button>
+                ) : (
+                  <Button type="button" size="sm" variant="outline" onClick={() => void setStatus(b.id, "open")}>
+                    Reopen
+                  </Button>
+                )}
+                {b.upload_path ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={busyId === b.id}
+                    onClick={() => void rereadBook(b.id, b.upload_path!)}
+                  >
+                    {busyId === b.id ? "Reading..." : "Read it again and add to Deeper reading"}
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
                   size="sm"

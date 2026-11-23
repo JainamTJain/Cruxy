@@ -29,6 +29,8 @@ export type ReadingDigest = {
   ideas: { use: string; text: string }[];
   questions: string[];
   relevance: string;
+  /** Parts of the reading Cruxy marked as most important for the case. */
+  bookmarks?: { ord: number; why: string }[];
 };
 
 export type ReadingDigestRow = {
@@ -464,6 +466,60 @@ export async function digestText(opts: {
   return result.data as ReadingDigest;
 }
 
+const bookmarkSchema = z.object({
+  bookmarks: z
+    .array(z.object({ ord: z.coerce.number().int(), why: s(220).catch("") }).passthrough())
+    .max(8)
+    .catch([])
+    .default([]),
+});
+
+/**
+ * Mark the parts of a reading that matter most for this case, with one line
+ * on why, so a long book or article can be read where it counts.
+ */
+export async function bookmarkPassages(opts: {
+  caseId: string;
+  title: string;
+  passages: { ord: number; anchor: string | null; text: string }[];
+  personId: string | null;
+}): Promise<{ ord: number; why: string }[]> {
+  if (opts.passages.length < 2) return [];
+  const cases = await listCases();
+  const c = cases.find((x) => x.id === opts.caseId);
+  // A preview of every part, within a budget: long books get shorter previews.
+  const per = Math.max(160, Math.min(500, Math.floor(60_000 / opts.passages.length)));
+  const listing = opts.passages
+    .slice(0, 400)
+    .map((p) => `[${p.ord}] ${p.anchor ? `${p.anchor}: ` : ""}${p.text.replace(/\s+/g, " ").slice(0, per)}`)
+    .join("\n");
+  const result = await runAgent({
+    agent: "librarian",
+    feature: "reading_bookmarks",
+    tier: "small",
+    system: [
+      sharedSystemPrefix(),
+      "",
+      "Task: bookmark the parts of this reading an Ethics Bowl team should read first for this case.",
+      "Pick 3 to 8 parts by their [number]. Prefer parts that state an argument, a principle, a key fact or a strong objection bearing on the case question, over introductions, summaries of other work, or acknowledgements.",
+      "why: one plain sentence on what that part gives the team for this case.",
+      "Plain words. No em dashes.",
+      'Return JSON only: {"bookmarks":[{"ord":3,"why":"..."}]}',
+    ].join("\n"),
+    user: `Case ${c?.number ?? ""}: ${c?.title ?? ""}\nCase crux: ${c?.crux ?? ""}\n\nReading: ${opts.title}\n\nParts:\n${listing}`,
+    schema: bookmarkSchema,
+    personId: opts.personId,
+    estimatedCostUsd: 0.01,
+  }).catch(() => null);
+  if (!result || !result.ok || result.stub) return [];
+  const valid = new Set(opts.passages.map((p) => p.ord));
+  const seen = new Set<number>();
+  return result.data.bookmarks
+    .filter((b) => valid.has(b.ord) && !seen.has(b.ord) && seen.add(b.ord))
+    .map((b) => ({ ord: b.ord, why: b.why }))
+    .sort((a, b) => a.ord - b.ord);
+}
+
 /** Pull the text out of a file, a link or pasted text. */
 export async function extractReadingText(opts: {
   title?: string | null;
@@ -532,8 +588,9 @@ async function storeReadingForTeam(opts: {
     digested_at: null,
   };
   await saveDigestRow(base);
+  const parts = splitPassages(opts.text);
   await savePassages(
-    splitPassages(opts.text).map((p, i) => ({
+    parts.map((p, i) => ({
       import_id: row.id,
       team_id: opts.teamId,
       case_id: opts.caseId,
@@ -542,8 +599,16 @@ async function storeReadingForTeam(opts: {
       text: p.text,
     })),
   );
+  const bookmarks = opts.digest
+    ? await bookmarkPassages({
+        caseId: opts.caseId,
+        title: opts.title,
+        passages: parts.map((p, i) => ({ ord: i, anchor: p.anchor, text: p.text })),
+        personId: opts.personId,
+      }).catch(() => [])
+    : [];
   const done: ReadingDigestRow = opts.digest
-    ? { ...base, status: "done", digest: opts.digest, digested_at: nowIso() }
+    ? { ...base, status: "done", digest: { ...opts.digest, bookmarks }, digested_at: nowIso() }
     : { ...base, status: "failed", error: "Cruxy could not digest it just now. The text is saved and searchable." };
   await saveDigestRow(done);
   await logActivity({

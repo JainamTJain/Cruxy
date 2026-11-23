@@ -43,6 +43,21 @@ export async function GET(req: Request) {
   const id = u.searchParams.get("id");
   const kind = parseKind(u.searchParams.get("kind"));
   if (!caseId || !id || !kind) return NextResponse.json({ error: "caseId, kind and id required" }, { status: 400 });
+  if (kind === "web" && auth.person.role === "coach_admin") {
+    const { listOpenReadings } = await import("@/lib/reading/open-reading");
+    const visible = await listOpenReadings(caseId, { hideUploads: true }).catch(() => []);
+    if (!visible.some((r) => r.id === id)) {
+      return NextResponse.json({ error: "That reading is not available to you." }, { status: 404 });
+    }
+  }
+  if (kind === "import" && auth.person.role === "coach_admin") {
+    // The coach does not open readings the tech admin uploaded.
+    const { listExtraReading } = await import("@/lib/case-home/extra-reading");
+    const visible = await listExtraReading({ caseId, teamId: auth.teamId, viewerRole: auth.person.role });
+    if (!visible.items.some((i) => i.id === id)) {
+      return NextResponse.json({ error: "That reading is not available to you." }, { status: 404 });
+    }
+  }
   const reading = await loadReading({ kind, id, caseId, teamId: auth.teamId, personId: auth.session.personId });
   if (!reading) return NextResponse.json({ error: "That reading is not available to your team." }, { status: 404 });
   const annotations = await withNames(auth.teamId, caseId, kind, id);

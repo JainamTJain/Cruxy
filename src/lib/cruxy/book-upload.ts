@@ -16,47 +16,79 @@ import {
   saveLibraryFile,
 } from "@/lib/db/library-repository";
 import { listCases, logActivity } from "@/lib/db/repository";
-import { uploadBytes } from "@/lib/ops/storage";
+import { downloadBytes, uploadBytes } from "@/lib/ops/storage";
 import type { DriveListedFile } from "@/lib/library/types";
 import { nowIso } from "@/lib/utils";
+
+/** Where a book's PDF is stored: named after the book, not the download. */
+export function bookUploadPath(book: { id: string; title: string }, filename: string): string {
+  const ext = (filename.match(/\.(pdf|txt|docx|epub)$/i)?.[1] ?? "pdf").toLowerCase();
+  const safe = book.title.replace(/[^\w.\- ]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 100) || "book";
+  return `Crux uploads/${book.id}/${safe}.${ext}`;
+}
+
+/** Most of a book, kept within what the digest can index in one run. */
+const MAX_BOOK_CHARS = 250_000;
 
 export async function fulfillBookRequestWithPdf(input: {
   bookRequestId: string;
   personId: string;
   filename: string;
-  bytes: Uint8Array;
+  /** The file itself, or storedPath when the browser already sent it to storage. */
+  bytes?: Uint8Array | null;
+  storedPath?: string | null;
   textContent?: string | null;
 }): Promise<{
   bookId: string;
   libraryFileId: string;
   uploadPath: string;
+  chars: number;
+  readable: boolean;
 }> {
   const books = await listBookRequests();
   const book = books.find((b) => b.id === input.bookRequestId);
   if (!book) throw new Error("Book request not found.");
 
-  const safeName = input.filename.replace(/[^\w.\- ]+/g, "_").slice(0, 120);
-  const uploadPath = `Crux uploads/${book.id}/${safeName}`;
-  await uploadBytes({
-    bucket: "crux-uploads",
-    path: uploadPath,
-    bytes: input.bytes,
-    contentType: "application/pdf",
-    upsert: true,
-  });
+  let bytes = input.bytes ?? null;
+  let uploadPath: string;
+  if (input.storedPath) {
+    if (!input.storedPath.startsWith(`Crux uploads/${book.id}/`)) throw new Error("That upload does not belong to this book.");
+    uploadPath = input.storedPath;
+    const got = await downloadBytes("crux-uploads", uploadPath);
+    if (!got) throw new Error("The upload did not reach storage. Try again.");
+    bytes = new Uint8Array(got);
+  } else {
+    if (!bytes) throw new Error("Upload a PDF or paste the chapter text.");
+    uploadPath = bookUploadPath(book, input.filename);
+    await uploadBytes({
+      bucket: "crux-uploads",
+      path: uploadPath,
+      bytes,
+      contentType: /\.txt$/i.test(uploadPath) ? "text/plain" : "application/pdf",
+      upsert: true,
+    });
+  }
+  const safeName = uploadPath.split("/").pop() ?? "book.pdf";
 
+  // Read the book itself so Cruxy can use it, not just a note that it exists.
+  let extracted = (input.textContent ?? "").trim();
+  if (!extracted && bytes && !/\.txt$/i.test(uploadPath)) {
+    const { fileToText } = await import("@/lib/reading/import-reading");
+    extracted = await fileToText({ name: safeName, type: "", bytes }).catch(() => "");
+  }
+  const readable = extracted.length >= 1000;
   const cases = await listCases();
   const existing = await listLibraryFiles();
-  const text =
-    (input.textContent ?? "").trim() ||
-    [
-      `Uploaded PDF for book request: ${book.title}.`,
-      book.chapter ? `Chapter: ${book.chapter}` : "",
-      book.reason ?? "",
-      "Full PDF is stored in Crux uploads. Digested as a research source; short quotes only in the UI.",
-    ]
-      .filter(Boolean)
-      .join("\n");
+  const header = [
+    `${book.title}.`,
+    book.chapter ? `Requested for: ${book.chapter}` : "",
+    book.reason ?? "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const text = readable
+    ? `${header}\n\n${extracted.slice(0, MAX_BOOK_CHARS)}`
+    : [header, "The PDF is stored in Crux uploads but its text could not be read (it may be a scan). Paste the chapter text to make it searchable."].join("\n");
 
   const listed: DriveListedFile = {
     drive_id: `upload:${book.id}`,
@@ -64,16 +96,14 @@ export async function fulfillBookRequestWithPdf(input: {
     path: `/Crux uploads/${safeName}`,
     mime: "application/pdf",
     modified_at: nowIso(),
-    checksum: checksumOf(
-      `${book.id}|${input.bytes.byteLength}|${checksumOf(text)}`,
-    ),
+    checksum: checksumOf(`${book.id}|${bytes?.byteLength ?? 0}|${checksumOf(text)}`),
     text_content: text,
   };
 
   const digested = await digestListedFile({
     listed,
     text,
-    scannedPdf: !input.textContent,
+    scannedPdf: !readable,
     cases,
     existing: null,
     personId: input.personId,
@@ -103,6 +133,26 @@ export async function fulfillBookRequestWithPdf(input: {
   };
   await saveBookRequest(updated);
 
+  // The book joins the case's Deeper reading, readable in the reading room
+  // with Cruxy's digest and case bookmarks.
+  let openReadingId: string | null = null;
+  if (readable && book.case_id) {
+    const { addBookReading } = await import("@/lib/reading/open-reading");
+    const { ensureWebText } = await import("@/lib/reading/reading-room");
+    const reading = await addBookReading({
+      caseId: book.case_id,
+      bookId: book.id,
+      title: book.chapter ? `${book.title}: ${book.chapter}` : book.title,
+      why: book.reason ?? null,
+    });
+    openReadingId = reading.id;
+    await ensureWebText(
+      { id: reading.id, case_id: reading.case_id, url: reading.url, title: reading.title },
+      input.personId,
+      extracted,
+    );
+  }
+
   await logActivity({
     person_id: input.personId,
     action: "book_request_uploaded",
@@ -110,6 +160,9 @@ export async function fulfillBookRequestWithPdf(input: {
     meta: {
       library_file_id: digested.file.id,
       upload_path: uploadPath,
+      chars: extracted.length,
+      readable,
+      open_reading_id: openReadingId,
     },
   });
 
@@ -117,5 +170,7 @@ export async function fulfillBookRequestWithPdf(input: {
     bookId: book.id,
     libraryFileId: digested.file.id,
     uploadPath,
+    chars: extracted.length,
+    readable,
   };
 }

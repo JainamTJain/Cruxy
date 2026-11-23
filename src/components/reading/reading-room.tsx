@@ -12,6 +12,7 @@ type Digest = {
   ideas: { use: string; text: string }[];
   questions: string[];
   relevance: string;
+  bookmarks?: { ord: number; why: string }[];
 };
 type Reading = {
   kind: "web" | "import" | "case";
@@ -527,6 +528,25 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
           ) : null}
 
           <article ref={articleRef} className="rounded-[20px] bg-white p-5 sm:p-7">
+            {reading.digest?.bookmarks?.length ? (
+              <nav aria-label="Bookmarked for this case" className="mb-5 rounded-xl bg-[#FFF8DC] p-3">
+                <p className="m-0 text-[11px] font-bold uppercase tracking-[0.08em] text-[#8A5200]">
+                  Bookmarked for this case
+                </p>
+                <ol className="m-0 mt-2 list-none space-y-1.5 p-0">
+                  {reading.digest.bookmarks.map((b) => (
+                    <li key={b.ord}>
+                      <a href={`#part-${b.ord}`} className="block rounded-lg px-2 py-1 hover:bg-white/70">
+                        <span className="text-sm font-semibold text-ink">
+                          {partLabel(reading.passages, b.ord) ?? `Part ${b.ord + 1}`}
+                        </span>
+                        {b.why ? <span className="block text-[13px] leading-snug text-[#5B5240]">{b.why}</span> : null}
+                      </a>
+                    </li>
+                  ))}
+                </ol>
+              </nav>
+            ) : null}
             {showJump ? (
               <nav aria-label="Jump to passage" className="mb-5 border-b border-[#E3E5E9] pb-4">
                 <p className="m-0 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">Jump to</p>
@@ -560,7 +580,21 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
               </div>
             ) : (
               reading.passages.map((p) => (
-                <section key={p.ord} id={`part-${p.ord}`} data-ord={p.ord} className="scroll-mt-20">
+                <section
+                  key={p.ord}
+                  id={`part-${p.ord}`}
+                  data-ord={p.ord}
+                  className={
+                    reading.digest?.bookmarks?.some((b) => b.ord === p.ord)
+                      ? "scroll-mt-20 -ml-3 border-l-[3px] border-[#E0B84C] pl-3"
+                      : "scroll-mt-20"
+                  }
+                >
+                  {reading.digest?.bookmarks?.some((b) => b.ord === p.ord) ? (
+                    <p className="m-0 mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#8A5200]">
+                      Bookmarked: {reading.digest.bookmarks.find((b) => b.ord === p.ord)?.why}
+                    </p>
+                  ) : null}
                   {p.text.split(/\n{2,}/).map((para, i) =>
                     para.startsWith("## ") ? (
                       <h2 key={i} className="font-display m-0 mb-3 mt-6 text-xl font-extrabold leading-snug text-ink first:mt-0">
