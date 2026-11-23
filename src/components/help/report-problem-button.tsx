@@ -5,8 +5,8 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Report button on every signed-in page. `sidebar` (default) sits in the dark
- * sidebar from sm up; `header` sits in the phone top bar. Neither covers content.
+ * Report button on every signed-in page. `sidebar` (default) sits under the
+ * profile at the bottom of the dark sidebar; `header` sits in the phone top bar.
  * Sends page, what they were doing, optional screenshot to Jainam's queue.
  */
 export function ReportProblemButton({
@@ -96,11 +96,11 @@ export function ReportProblemButton({
         className={cn(
           placement === "header"
             ? "rounded-lg px-2 py-1 text-sm font-semibold text-white/85 hover:bg-white/10"
-            : "fixed bottom-[136px] left-6 z-40 hidden rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/20 sm:inline-flex",
+            : "self-start rounded-lg px-1.5 py-1 text-xs font-medium text-[#9AA0AA] underline-offset-2 hover:bg-white/10 hover:text-white hover:underline",
         )}
         aria-label="Report a problem or suggest something"
       >
-        Report
+        {placement === "header" ? "Report" : "Report a problem"}
       </button>
 
       {open ? (
