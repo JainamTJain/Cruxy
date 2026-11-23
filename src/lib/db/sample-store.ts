@@ -9,6 +9,7 @@ import {
   PER_RESEARCH_NIGHT_CAP_USD,
   PER_ROUND_CAP_USD,
   ROSTER,
+  SAMPLE_ADMIN_STARTER,
   SAMPLE_COACH_STARTER,
   SAMPLE_MEMBER_STARTER,
   TOKENS,
@@ -664,21 +665,21 @@ export async function buildSeedStore(): Promise<SampleStore> {
     },
   ];
 
-  const adminHash = process.env.INITIAL_ADMIN_CODE_HASH?.trim();
-  if (adminHash) {
-    const jainam = people.find((p) => p.name === "Jainam");
-    auth_codes.push({
-      id: "auth0000-0000-4000-8000-000000000002",
-      kind: "admin",
-      person_id: jainam?.id ?? null,
-      hash: adminHash,
-      encrypted_copy: null,
-      must_choose: true,
-      set_at: now,
-      last_revealed_at: null,
-      created_at: now,
-    });
-  }
+  const jainam = people.find((p) => p.name === "Jainam");
+  const adminHash =
+    process.env.INITIAL_ADMIN_CODE_HASH?.trim() ||
+    (await hashPasscode(SAMPLE_ADMIN_STARTER));
+  auth_codes.push({
+    id: "auth0000-0000-4000-8000-000000000002",
+    kind: "admin",
+    person_id: jainam?.id ?? null,
+    hash: adminHash,
+    encrypted_copy: null,
+    must_choose: true,
+    set_at: now,
+    last_revealed_at: null,
+    created_at: now,
+  });
 
   const competition: Competition = {
     id: "b0000000-0000-4000-8000-000000000001",

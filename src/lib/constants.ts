@@ -28,6 +28,9 @@ export const SAMPLE_MEMBER_STARTER = "482913";
 /** Local/dev sample coach starter (Dr. B) only — not for production. */
 export const SAMPLE_COACH_STARTER = "719304";
 
+/** Local/dev sample tech-admin starter (Jainam) only — not for production. */
+export const SAMPLE_ADMIN_STARTER = "135790";
+
 /** Stable seed id for Dr. B (matches supabase/seed.sql). */
 export const COACH_PERSON_ID = "a0000000-0000-0000-0000-0000000000b0";
 

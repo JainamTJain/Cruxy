@@ -35,10 +35,14 @@ export async function readSessionToken(
 export async function setSessionCookie(payload: SessionPayload) {
   const token = await createSessionToken(payload);
   const jar = await cookies();
+  // Secure only on real HTTPS hosts (Vercel). Sample-mode `next start` on
+  // http://localhost must keep the cookie or every signed-in journey fails.
+  const secure =
+    Boolean(process.env.VERCEL) || process.env.COOKIE_SECURE === "1";
   jar.set(COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure,
     path: "/",
     maxAge: SESSION_DAYS * 24 * 60 * 60,
   });
