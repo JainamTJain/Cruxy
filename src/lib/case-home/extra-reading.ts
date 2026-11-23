@@ -78,39 +78,25 @@ async function withDigests(
   }
 }
 
-type SampleImport = {
-  id: string;
-  team_id: string;
-  case_id: string;
-  title: string;
-  body: string;
-  kind: ExtraReadingKind;
-  drive_file_id: string | null;
-  shared: boolean;
-  created_by: string | null;
-  created_at: string;
-};
+type SampleImport = NonNullable<
+  Awaited<ReturnType<typeof readStore>>["case_reading_imports"]
+>[number] & { kind: ExtraReadingKind };
 
-type SampleOptIn = {
-  id: string;
-  team_id: string;
-  import_id: string;
-  opted_in_by: string | null;
-  created_at: string;
-};
+type SampleOptIn = NonNullable<
+  Awaited<ReturnType<typeof readStore>>["case_reading_opt_ins"]
+>[number];
 
-type SampleStoreExtra = Awaited<ReturnType<typeof readStore>> & {
+/** Ensure reading bags exist on the live store object before mutating. */
+function sampleBucket(store: Awaited<ReturnType<typeof readStore>>): {
   case_reading_imports: SampleImport[];
   case_reading_opt_ins: SampleOptIn[];
-};
-
-function sampleBucket(
-  store: Awaited<ReturnType<typeof readStore>>,
-): SampleStoreExtra {
-  const s = store as SampleStoreExtra;
-  if (!s.case_reading_imports) s.case_reading_imports = [];
-  if (!s.case_reading_opt_ins) s.case_reading_opt_ins = [];
-  return s;
+} {
+  if (!store.case_reading_imports) store.case_reading_imports = [];
+  if (!store.case_reading_opt_ins) store.case_reading_opt_ins = [];
+  return {
+    case_reading_imports: store.case_reading_imports as SampleImport[],
+    case_reading_opt_ins: store.case_reading_opt_ins as SampleOptIn[],
+  };
 }
 
 export async function listExtraReading(input: {
