@@ -253,6 +253,15 @@ export async function critiqueWorkingDocument(opts: {
   modelNote: string;
 }> {
   const truthPack = await buildTruthSource(opts.caseId);
+  // The team's own reading room: notes, comments, highlights and imported
+  // readings Cruxy digested. Private to this team; cited, never shared.
+  const teamReading: TruthSourceItem[] = await import("@/lib/reading/reading-room")
+    .then((m) => m.readingNotesForCruxy({ teamId: opts.teamId, caseId: opts.caseId }))
+    .then((rows) =>
+      rows.slice(0, 30).map((r) => ({ id: r.id, kind: "team_reading" as const, label: r.label, text: r.text, ref: r.id })),
+    )
+    .catch(() => []);
+  const citeable = [...truthPack.items, ...teamReading];
   const bodies = bodiesFromRows(opts.sections);
   const rules = ruleFindings({ sections: bodies, truth: truthPack.items });
 
@@ -266,6 +275,9 @@ export async function critiqueWorkingDocument(opts: {
     const truthBrief = truthPack.items
       .slice(0, 24)
       .map((t) => `[${t.id}] (${t.kind}) ${t.label}: ${t.text.slice(0, 600)}`)
+      .join("\n");
+    const teamBrief = teamReading
+      .map((t) => `[${t.id}] ${t.label}: ${t.text.slice(0, 500)}`)
       .join("\n");
 
     const result = await runAgent({
@@ -298,6 +310,7 @@ export async function critiqueWorkingDocument(opts: {
         "- chain: for missing_link findings, the reconstructed chain with the gap marked; otherwise null.",
         "- question_back: one Socratic question that ends with What do you think?",
         "- truth_source_id: the id of the truth-source item that backs the stronger version, or null.",
+        "The team's own reading notes (their sticky notes, comments, highlights and the readings they imported) come with the document. Treat them as the team's thinking in progress: when a note or reading answers a weakness, makes a missing link, or holds an idea the document has not used yet, build the stronger version from it and set truth_source_id to that note's id. Prefer the team's own material over generic points. Never put the team's notes or readings into truth_additions.",
         "Return between 4 and 12 findings when the document has that many real problems; fewer if it is strong. Do not pad.",
         `section_key must be exactly one of: ${WORKING_SECTION_KEYS.map((k) => `${k} (${WORKING_SECTION_LABELS[k]})`).join(", ")}.`,
         "Each finding is an object with exactly these keys: kind, section_key, quote, weak_spot, why, stronger, question_back, fallacy_name, truth_source_id, chain.",
@@ -306,7 +319,7 @@ export async function critiqueWorkingDocument(opts: {
         "Never name a USC team. Plain words. No em dashes. Ethics over law. Never write an id inside a sentence.",
         "Output JSON only.",
       ].join("\n"),
-      user: `Case ${truthPack.caseNumber ?? ""}: ${truthPack.caseTitle ?? ""}\n\nWorking document:\n${filled}\n\nTruth source (shared, anonymous):\n${truthBrief || "(empty)"}`,
+      user: `Case ${truthPack.caseNumber ?? ""}: ${truthPack.caseTitle ?? ""}\n\nWorking document:\n${filled}\n\nTruth source (shared, anonymous):\n${truthBrief || "(empty)"}${teamBrief ? `\n\nThis team's reading notes and imported readings (private to them):\n${teamBrief}` : ""}`,
       schema: llmSchema,
       personId: opts.personId,
       fixtureKey: "working_doc_critique",
@@ -349,7 +362,7 @@ export async function critiqueWorkingDocument(opts: {
 
   const mergeStats = { dropped: 0 };
   const merged = selectForRail(
-    mergeFindings(rules, llmFindings, truthPack.items, bodies, mergeStats),
+    mergeFindings(rules, llmFindings, citeable, bodies, mergeStats),
     3,
   );
   if (llmFindings) modelNote += ` quoteDropped=${mergeStats.dropped}`;
@@ -361,7 +374,7 @@ export async function critiqueWorkingDocument(opts: {
   const { posted, skippedCap } = await postSuggestions(
     merged.map((f) => {
       const cite = f.truthSourceId
-        ? truthPack.items.find((t) => t.id === f.truthSourceId)
+        ? citeable.find((t) => t.id === f.truthSourceId)
         : null;
       return {
         caseId: opts.caseId,

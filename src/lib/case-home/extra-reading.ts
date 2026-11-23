@@ -29,7 +29,54 @@ export type ExtraReadingItem = {
   /** Own team import, opted-in shared, or Evidence Library truth item. */
   origin: "own" | "shared" | "truth";
   team_name?: string | null;
+  /** Cruxy's digest of an imported file, link or pasted text (00090). */
+  digest?: {
+    status: "pending" | "done" | "failed";
+    source_url: string | null;
+    file_name: string | null;
+    chars: number;
+    summary: string | null;
+    key_points: { point: string; quote: string | null }[];
+    ideas: { use: string; text: string }[];
+    questions: string[];
+    relevance: string | null;
+    error: string | null;
+  } | null;
 };
+
+/** Attach Cruxy's digests to a team's own imports. */
+async function withDigests(
+  items: ExtraReadingItem[],
+  teamId: string,
+  caseId: string,
+): Promise<ExtraReadingItem[]> {
+  try {
+    const { listReadingDigests } = await import("@/lib/reading/import-reading");
+    const digests = await listReadingDigests({ teamId, caseId });
+    const byId = new Map(digests.map((d) => [d.import_id, d]));
+    return items.map((it) => {
+      const d = byId.get(it.id);
+      if (!d) return it;
+      return {
+        ...it,
+        digest: {
+          status: d.status,
+          source_url: d.source_url,
+          file_name: d.file_name,
+          chars: d.chars,
+          summary: d.digest?.summary ?? null,
+          key_points: d.digest?.key_points ?? [],
+          ideas: d.digest?.ideas ?? [],
+          questions: d.digest?.questions ?? [],
+          relevance: d.digest?.relevance ?? null,
+          error: d.error,
+        },
+      };
+    });
+  } catch {
+    return items;
+  }
+}
 
 type SampleImport = {
   id: string;
@@ -115,7 +162,10 @@ export async function listExtraReading(input: {
         origin: "shared" as const,
         team_name: teams.get(r.team_id) ?? null,
       }));
-    return { items: [...own, ...sharedShown], available_shared: available };
+    return {
+      items: await withDigests([...own, ...sharedShown], input.teamId, input.caseId),
+      available_shared: available,
+    };
   }
 
   const sb = getServiceSupabase();
@@ -175,7 +225,10 @@ export async function listExtraReading(input: {
     if (opted.has(r.id)) items.push(row);
     else available_shared.push(row);
   }
-  return { items, available_shared };
+  return {
+    items: await withDigests(items, input.teamId, input.caseId),
+    available_shared,
+  };
 }
 
 export async function addExtraReading(input: {

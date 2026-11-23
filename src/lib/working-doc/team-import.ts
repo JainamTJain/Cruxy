@@ -37,6 +37,7 @@ import {
 } from "@/lib/working-doc/split-by-case";
 import { proposeOnePagerFromWorkingDoc } from "@/lib/working-doc/one-pager-from-working";
 import { addWorkingDocSuggestion } from "@/lib/working-doc/suggestions";
+import { mapSectionsWithCruxy, sortByCaseWithCruxy } from "@/lib/working-doc/cruxy-sort";
 
 function checksum(text: string): string {
   return createHash("sha256").update(text).digest("hex").slice(0, 32);
@@ -196,7 +197,31 @@ export async function createImportReview(opts: {
       body_text: loaded.body,
       checksum: checksum(loaded.body),
     });
-    const pieces = splitDocumentByCase(loaded.body, cases);
+    let pieces = splitDocumentByCase(loaded.body, cases);
+    // No case headings: Cruxy reads it and sorts the parts case by case.
+    const expanded: typeof pieces = [];
+    for (const p of pieces) {
+      if (p.kind !== "unmatched" || loaded.stub) {
+        expanded.push(p);
+        continue;
+      }
+      const sorted = await sortByCaseWithCruxy({ body: p.body, cases, personId: opts.personId }).catch(() => null);
+      if (!sorted) {
+        expanded.push(p);
+        continue;
+      }
+      for (const x of sorted) {
+        expanded.push({
+          kind: "found",
+          caseNumber: x.caseNumber,
+          caseId: x.caseId,
+          titleGuess: x.title,
+          sectionCount: p.sectionCount,
+          body: x.body,
+        });
+      }
+    }
+    pieces = expanded;
     for (const p of pieces) {
       const row = await insertBatchSplit({
         batch_id: batch.id,
@@ -299,8 +324,22 @@ async function fillWorkingDocFromChunk(opts: {
   personId: string;
   body: string;
   changeSummary: string | null;
+  /** Replace: sections the team's document does not cover are cleared. */
+  replace?: boolean;
+  caseTitle?: string;
 }): Promise<{ changed: string[] }> {
-  const mapped = mapChunkToSections(opts.body);
+  const byCruxy = await mapSectionsWithCruxy({
+    body: opts.body,
+    caseTitle: opts.caseTitle ?? "",
+    personId: opts.personId,
+  }).catch(() => null);
+  const heuristic = mapChunkToSections(opts.body);
+  const heuristicFound = ["claims", "support", "objection_reply", "values_in_tension", "judges_questions"].some(
+    (k) => (heuristic[k] ?? "").trim(),
+  );
+  // Never lose the team's words: with no structure found, it all goes in Claims.
+  const mapped: Record<string, string> =
+    byCruxy ?? (heuristicFound ? heuristic : { ...heuristic, claims: opts.body.trim() });
   const brief = await upsertTeamBrief({
     team_id: opts.teamId,
     case_id: opts.caseId,
@@ -322,7 +361,7 @@ async function fillWorkingDocFromChunk(opts: {
     "judges_questions",
   ] as const) {
     const next = (mapped[key] ?? "").trim();
-    if (!next) continue;
+    if (!next && !opts.replace) continue;
     const prev = before.find((s) => s.section_key === key)?.body.trim() ?? "";
     if (prev === next) continue;
     await updateWorkingSection({
@@ -352,6 +391,8 @@ export async function confirmImportReview(opts: {
   batchId: string;
   teamId: string;
   personId: string;
+  /** Default true: the team's document replaces Cruxy's starting text. */
+  replace?: boolean;
 }) {
   const batch = await getTeamDocBatch(opts.batchId);
   if (!batch || batch.team_id !== opts.teamId) {
@@ -363,8 +404,18 @@ export async function confirmImportReview(opts: {
 
   const splits = await listBatchSplits(batch.id);
   const filled: Array<{ caseId: string; changed: string[] }> = [];
-
+  const allCases = await listCases();
+  // Several pieces for one case (two files, say) become one document.
+  const merged = new Map<string, (typeof splits)[number]>();
   for (const split of splits) {
+    const caseId = split.assigned_case_id ?? split.case_id;
+    if (!caseId) continue;
+    if (split.kind === "not_in_regional" && !split.assigned_case_id) continue;
+    const prev = merged.get(caseId);
+    merged.set(caseId, prev ? { ...prev, body_text: `${prev.body_text}\n\n${split.body_text}` } : split);
+  }
+
+  for (const split of merged.values()) {
     const caseId = split.assigned_case_id ?? split.case_id;
     if (!caseId) continue;
     if (split.kind === "not_in_regional" && !split.assigned_case_id) continue;
@@ -389,6 +440,8 @@ export async function confirmImportReview(opts: {
       personId: opts.personId,
       body: split.body_text,
       changeSummary,
+      replace: opts.replace !== false,
+      caseTitle: allCases.find((c) => c.id === caseId)?.title ?? "",
     });
     filled.push({ caseId, changed: result.changed });
 

@@ -3,8 +3,14 @@ import { getSession } from "@/lib/auth/session";
 import { listCasesForBrain } from "@/lib/case-brain/service";
 import { listTeams } from "@/lib/db/repository";
 import { redirect } from "next/navigation";
+import { TeamDocImport } from "@/components/case/team-doc-import";
 
-export default async function CaseBrainIndexPage() {
+export default async function CaseBrainIndexPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ import?: string }>;
+}) {
+  const { import: importParam } = await searchParams;
   const session = await getSession();
   if (!session) redirect("/sign-in");
 
@@ -37,6 +43,12 @@ export default async function CaseBrainIndexPage() {
         </p>
       </div>
 
+      {session.teamId ? (
+        <div id="import">
+          <TeamDocImport startOpen={importParam === "1"} />
+        </div>
+      ) : null}
+
       <ul className="grid gap-3 sm:grid-cols-2">
         {cases.map((c) => (
           <li key={c.id}>
@@ -54,6 +66,7 @@ export default async function CaseBrainIndexPage() {
           </li>
         ))}
       </ul>
+
     </main>
   );
 }
