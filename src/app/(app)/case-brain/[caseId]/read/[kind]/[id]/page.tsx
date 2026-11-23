@@ -11,6 +11,6 @@ export default async function ReadingRoomPage({ params }: Props) {
   const session = await getSession();
   if (!session) redirect("/sign-in");
   const { caseId, kind, id } = await params;
-  if (kind !== "web" && kind !== "import") redirect(`/case-brain/${caseId}?tab=reading`);
+  if (kind !== "web" && kind !== "import" && kind !== "case") redirect(`/case-brain/${caseId}?tab=reading`);
   return <ReadingRoom caseId={caseId} kind={kind} id={id} />;
 }

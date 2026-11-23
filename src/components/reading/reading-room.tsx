@@ -14,7 +14,7 @@ type Digest = {
   relevance: string;
 };
 type Reading = {
-  kind: "web" | "import";
+  kind: "web" | "import" | "case";
   id: string;
   caseId: string;
   title: string;
@@ -35,6 +35,7 @@ type Annotation = {
   person_id: string | null;
   person_name: string | null;
   created_at: string;
+  cruxy?: { status: "thinking" | "drafted" | "kept" | "failed"; reason: string | null; suggestion_id: string | null } | null;
 };
 
 type Sel = { text: string; ord: number | null; x: number; y: number };
@@ -88,7 +89,62 @@ function Marked({ text, marks }: { text: string; marks: Annotation[] }) {
   );
 }
 
+/** What Cruxy made of a note or comment: drafted, kept as a note (with why), or still weighing it. */
+function CruxyNoteStatus({
+  a,
+  caseId,
+  busy,
+  save,
+}: {
+  a: Annotation;
+  caseId: string;
+  busy: boolean;
+  save: (payload: Record<string, unknown>) => Promise<boolean>;
+}) {
+  if (a.kind === "highlight") return null;
+  const stale = Date.now() - new Date(a.created_at).getTime() > 10 * 60_000;
+  const st =
+    (!a.cruxy || a.cruxy.status === "thinking") && stale
+      ? { status: "failed" as const, reason: "Cruxy did not get to this one.", suggestion_id: null }
+      : a.cruxy;
+  if (!st || st.status === "thinking") {
+    return (
+      <p className="m-0 mt-1.5 flex items-center gap-1.5 text-[12px] text-[#5B5240]" aria-live="polite">
+        <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#C9A227]" />
+        Cruxy is weighing this for your case
+      </p>
+    );
+  }
+  if (st.status === "drafted") {
+    return (
+      <p className="m-0 mt-1.5 rounded-lg bg-[#EAF6EF] px-2 py-1 text-[12px] text-[#1F5F3B]">
+        Cruxy developed this into a suggestion. {st.reason ?? ""}{" "}
+        <Link href={`/case-brain/${caseId}?tab=working`} className="font-semibold underline">
+          See it
+        </Link>
+      </p>
+    );
+  }
+  return (
+    <div className="mt-1.5 rounded-lg bg-[#F4F5F7] px-2 py-1 text-[12px] text-[#5B6170]">
+      <span>
+        {st.status === "kept" ? "Kept as a note. " : ""}
+        {st.reason ?? (st.status === "failed" ? "Cruxy could not finish this one." : "")}
+      </span>{" "}
+      <button
+        type="button"
+        disabled={busy}
+        className="font-semibold text-cardinal underline disabled:opacity-60"
+        onClick={() => void save({ action: "consider", annotationId: a.id })}
+      >
+        {st.status === "failed" ? "Try again" : "Draft it anyway"}
+      </button>
+    </div>
+  );
+}
+
 function NotesPanel({
+  caseId,
   notes,
   marks,
   passages,
@@ -98,6 +154,7 @@ function NotesPanel({
   save,
   onClose,
 }: {
+  caseId: string;
   notes: Annotation[];
   marks: Annotation[];
   passages: Passage[];
@@ -119,7 +176,8 @@ function NotesPanel({
           ) : null}
         </div>
         <p className="m-0 mt-1 text-[13px] text-[#5B5240]">
-          Only your team sees these. Cruxy reads your notes and comments when it reviews your working document.
+          Only your team sees these. Rough thoughts are welcome: when a note or comment carries ethical weight for the
+          case, Cruxy researches it and drafts a suggestion for your working document.
         </p>
         <textarea
           rows={3}
@@ -143,6 +201,7 @@ function NotesPanel({
           {notes.map((n) => (
             <li key={n.id} className="rounded-xl bg-white px-3 py-2 text-sm shadow-[0_1px_0_rgba(0,0,0,0.04)]">
               <p className="m-0 whitespace-pre-wrap">{n.body}</p>
+              <CruxyNoteStatus a={n} caseId={caseId} busy={busy} save={save} />
               <p className="m-0 mt-1 flex items-center justify-between text-[11px] text-muted">
                 <span>{n.person_name ?? "Teammate"}</span>
                 <button
@@ -188,6 +247,7 @@ function NotesPanel({
                     </span>
                   </a>
                   {m.body ? <p className="m-0 mt-1">{m.body}</p> : null}
+                  <CruxyNoteStatus a={m} caseId={caseId} busy={busy} save={save} />
                   <p className="m-0 mt-1 flex items-center justify-between text-[11px] text-muted">
                     <span>{m.person_name ?? "Teammate"}</span>
                     <button
@@ -209,7 +269,7 @@ function NotesPanel({
   );
 }
 
-export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" | "import"; id: string }) {
+export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" | "import" | "case"; id: string }) {
   const [reading, setReading] = useState<Reading | null>(null);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -244,6 +304,20 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
   useEffect(() => {
     void load();
   }, [load]);
+
+  // While Cruxy is weighing a note, check back every few seconds.
+  const weighing = annotations.some(
+    (a) =>
+      a.kind !== "highlight" &&
+      (a.cruxy?.status === "thinking" ||
+        !a.cruxy) &&
+      Date.now() - new Date(a.created_at).getTime() < 10 * 60_000,
+  );
+  useEffect(() => {
+    if (!weighing) return;
+    const t = setInterval(() => void load(), 6000);
+    return () => clearInterval(t);
+  }, [weighing, load]);
 
   const save = useCallback(
     async (payload: Record<string, unknown>) => {
@@ -363,7 +437,10 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
   const notes = annotations.filter((a) => a.kind === "note");
   const marks = annotations.filter((a) => a.kind !== "note");
   const noteCount = notes.length + marks.length;
-  const showJump = reading.passages.length > 1;
+  // A jump list only helps when the reading has real section names.
+  const showJump =
+    reading.passages.length > 2 &&
+    reading.passages.filter((p) => p.anchor && !/^(Part \d+|Opening)$/.test(p.anchor) && !p.anchor.endsWith("(cont.)")).length >= 2;
 
   return (
     <main className="mx-auto max-w-6xl pb-24 lg:pb-0">
@@ -380,11 +457,11 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
 
       <header className="rounded-[20px] bg-white p-5">
         <p className="m-0 text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
-          {reading.kind === "web" ? "Deeper reading" : "Your team's reading"}
+          {reading.kind === "case" ? "The case" : reading.kind === "web" ? "Deeper reading" : "Your team's reading"}
         </p>
         <h1 className="font-display m-0 mt-1 text-2xl font-extrabold leading-tight sm:text-3xl">{reading.title}</h1>
         {reading.byline ? <p className="m-0 mt-1 text-sm text-muted">{reading.byline}</p> : null}
-        {reading.why ? <p className="m-0 mt-2 text-sm text-[#3B404A]">{reading.why}</p> : null}
+        {reading.why ? <p className="m-0 mt-2 text-sm text-[#3B404A]">{reading.why.replace(/\*+/g, "")}</p> : null}
       </header>
 
       {error ? <p className="mt-3 rounded-xl bg-cardinal/5 px-3 py-2 text-sm text-cardinal">{error}</p> : null}
@@ -453,18 +530,20 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
             {showJump ? (
               <nav aria-label="Jump to passage" className="mb-5 border-b border-[#E3E5E9] pb-4">
                 <p className="m-0 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">Jump to</p>
-                <ul className="m-0 mt-2 flex list-none flex-wrap gap-2 p-0">
-                  {reading.passages.map((p) => (
-                    <li key={p.ord}>
-                      <a
-                        href={`#part-${p.ord}`}
-                        className="inline-flex min-h-11 items-center rounded-lg border border-[#E3E5E9] bg-[#F7F8FA] px-3 py-1.5 text-sm font-semibold text-ink"
-                      >
-                        {p.anchor ?? `Part ${p.ord + 1}`}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+                <ol className="m-0 mt-2 list-none space-y-0.5 p-0">
+                  {reading.passages
+                    .filter((p) => !(p.anchor ?? "").endsWith("(cont.)"))
+                    .map((p) => (
+                      <li key={p.ord}>
+                        <a
+                          href={`#part-${p.ord}`}
+                          className="flex min-h-9 items-center rounded-lg px-2 text-sm font-medium text-ink hover:bg-[#F4F5F7]"
+                        >
+                          <span className="truncate">{p.anchor ?? `Part ${p.ord + 1}`}</span>
+                        </a>
+                      </li>
+                    ))}
+                </ol>
               </nav>
             ) : null}
             {reading.passages.length === 0 ? (
@@ -482,11 +561,24 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
             ) : (
               reading.passages.map((p) => (
                 <section key={p.ord} id={`part-${p.ord}`} data-ord={p.ord} className="scroll-mt-20">
-                  {p.text.split(/\n{2,}/).map((para, i) => (
-                    <p key={i} className="m-0 mb-4 text-[16px] leading-[1.75] text-ink">
-                      <Marked text={para} marks={marksByOrd.get(p.ord) ?? []} />
-                    </p>
-                  ))}
+                  {p.text.split(/\n{2,}/).map((para, i) =>
+                    para.startsWith("## ") ? (
+                      <h2 key={i} className="font-display m-0 mb-3 mt-6 text-xl font-extrabold leading-snug text-ink first:mt-0">
+                        {para.slice(3)}
+                      </h2>
+                    ) : para.startsWith("- ") ? (
+                      <p key={i} className="relative m-0 mb-2 pl-5 text-[16px] leading-[1.7] text-ink">
+                        <span aria-hidden className="absolute left-1 top-0 text-muted">
+                          •
+                        </span>
+                        <Marked text={para.slice(2)} marks={marksByOrd.get(p.ord) ?? []} />
+                      </p>
+                    ) : (
+                      <p key={i} className="m-0 mb-4 text-[16px] leading-[1.75] text-ink">
+                        <Marked text={para} marks={marksByOrd.get(p.ord) ?? []} />
+                      </p>
+                    ),
+                  )}
                 </section>
               ))
             )}
@@ -496,6 +588,7 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
         {/* Desktop: sticky aside unchanged. Phone: hidden here, bottom sheet below. */}
         <aside className="hidden flex-col gap-3 lg:sticky lg:top-4 lg:flex lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto">
           <NotesPanel
+            caseId={caseId}
             notes={notes}
             marks={marks}
             passages={reading.passages}
@@ -537,6 +630,7 @@ export function ReadingRoom({ caseId, kind, id }: { caseId: string; kind: "web" 
             </div>
             <div className="flex flex-col gap-3 overflow-y-auto px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
               <NotesPanel
+                caseId={caseId}
                 notes={notes}
                 marks={marks}
                 passages={reading.passages}

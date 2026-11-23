@@ -127,17 +127,26 @@ export function TheCaseTab({
               Case {data.case.number}: {data.case.title}
             </h2>
           </div>
-          <span className="text-xs text-muted">
-            {data.source === "case_set"
-              ? "From the case set"
-              : "From team prep notes"}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted">
+              {data.source === "case_set"
+                ? "From the case set"
+                : "From team prep notes"}
+            </span>
+            <a
+              href={`/case-brain/${caseId}/read/case/${caseId}`}
+              className="inline-flex min-h-9 items-center rounded-lg bg-[#FFF8DC] px-3 text-xs font-semibold text-ink"
+            >
+              Open in the reading room
+            </a>
+          </div>
         </div>
 
         <ReadingToolbar legend={legend} />
         <p className="m-0 text-[12px] text-muted">
-          Highlights and notes here are your team&apos;s. Coaches can open other
-          teams from the switcher.
+          Highlights and notes here are your team&apos;s. When a comment carries
+          ethical weight for the case, Cruxy develops it into a suggestion for
+          your working document. Sticky notes live in the reading room.
         </p>
 
         <article className="relative rounded-[20px] bg-white p-5 sm:p-7">

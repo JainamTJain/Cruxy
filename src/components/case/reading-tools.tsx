@@ -547,8 +547,7 @@ export function AnnotateSurface({
       return;
     }
 
-    // Library comments until E's discussion API merges (PR #105).
-    void caseId;
+    // caseId lets Cruxy weigh the comment for this case's working document.
     void teamId;
     const res = await fetch("/api/library/comments", {
       method: "POST",
@@ -557,6 +556,7 @@ export function AnnotateSurface({
         passageId,
         range,
         body,
+        caseId: caseId ?? null,
       }),
     });
     if (!res.ok) {

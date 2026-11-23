@@ -55,30 +55,91 @@ export type ReadingPassageRow = {
 
 // ---------- Text extraction ----------
 
+const ENTITIES: Record<string, string> = {
+  nbsp: " ", amp: "&", quot: '"', apos: "'", lt: "<", gt: ">",
+  rsquo: "'", lsquo: "'", ldquo: '"', rdquo: '"', hellip: "...",
+  ndash: "-", mdash: ",", shy: "", zwj: "", zwnj: "",
+};
+
+function decodeEntities(t: string): string {
+  return t
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => safeChar(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => safeChar(parseInt(d, 10)))
+    .replace(/&([a-z]+);/gi, (m, n) => ENTITIES[n.toLowerCase()] ?? " ");
+}
+function safeChar(code: number): string {
+  if (!Number.isFinite(code) || code < 9 || code > 0x10ffff) return " ";
+  if (code === 0x2018 || code === 0x2019) return "'";
+  if (code === 0x201c || code === 0x201d) return '"';
+  if (code === 0x2013 || code === 0x2014) return ",";
+  return String.fromCodePoint(code);
+}
+
+/** Lines that are site furniture, not the article. */
+const BOILERPLATE =
+  /^(subscribe( to [\w ]+)?|sign ?up|sign in|log ?in|share( this)?( article| story)?|meet the authors?|about the authors?|related( articles| posts| content)?|read more|more from [\w ]+|follow us|newsletter|advertisement|skip to (main )?content|menu|search|print|email|tweet|facebook|twitter|linkedin|copy link|cookies?|accept( all)?( cookies)?|topics?|tags?|comments?|back to top|©.*|copyright.*|all rights reserved\.?)$/i;
+
+/** Readable article text from a web page: headings kept as "## ", one blank line between paragraphs. */
 function htmlToText(html: string): { text: string; title: string | null } {
-  const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/\s+/g, " ").trim() ?? null;
-  const body = html
-    .replace(/<(script|style|noscript|svg|nav|header|footer|aside|form)[\s\S]*?<\/\1>/gi, " ")
+  const rawTitle = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? null;
+  const title = rawTitle ? decodeEntities(rawTitle).replace(/\s+/g, " ").trim() : null;
+  let src = html.replace(/<!--[\s\S]*?-->/g, " ");
+  // Prefer the article itself over the whole page.
+  const articles = [...src.matchAll(/<article\b[^>]*>([\s\S]*?)<\/article>/gi)].map((m) => m[1]!);
+  const main = src.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i)?.[1];
+  if (articles.length) src = articles.sort((x, y) => y.length - x.length)[0]!;
+  else if (main) src = main;
+  src = src
+    .replace(/<(script|style|noscript|svg|nav|header|footer|aside|form|button|iframe|figure|template|select)\b[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1>/gi, (_, _lvl, inner: string) => {
+      const t = inner.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+      return t ? `\n\n## ${t}\n\n` : "\n\n";
+    })
+    .replace(/<li\b[^>]*>/gi, "\n\n- ")
     .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(p|div|h[1-6]|li|section|article|tr)>/gi, "\n")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&rsquo;|&lsquo;/g, "'")
-    .replace(/&ldquo;|&rdquo;/g, '"')
-    .replace(/&[a-z]+;/gi, " ")
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n\s*\n+/g, "\n\n")
+    .replace(/<\/?(p|div|section|article|blockquote|ul|ol|li|tr|table|dl|dt|dd|pre|main)\b[^>]*>/gi, "\n\n")
+    // Inline tags (links, emphasis) vanish without leaving a space.
+    .replace(/<[^>]+>/g, "");
+  let text = decodeEntities(src)
+    .replace(/[ \t\u00a0]+/g, " ")
+    .replace(/ *\n */g, "\n")
+    .replace(/ +([,.;:!?)\]])/g, "$1")
+    .replace(/([(\[]) +/g, "$1")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
-  return { text: body, title };
+  const titleCore = title?.split(/\s+[|:-]\s+/)[0]?.trim().toLowerCase() ?? "";
+  let paras = text
+    .split(/\n{2,}/)
+    .map((p) => p.replace(/\n/g, " ").trim())
+    .filter((p) => p && p !== "-" && !BOILERPLATE.test(p.replace(/^## /, "")));
+  // Drop the page title, byline and kicker lines that sit above the first real paragraph.
+  const firstBody = paras.findIndex((p) => !p.startsWith("## ") && p.length >= 200);
+  if (firstBody > 0) {
+    paras = paras.filter(
+      (p, i) =>
+        i >= firstBody ||
+        (p.startsWith("## ") && !(titleCore && p.slice(3).toLowerCase().startsWith(titleCore))) ||
+        p.length >= 120,
+    );
+  }
+  text = paras.join("\n\n");
+  return { text, title };
 }
 
 async function pdfToText(bytes: Uint8Array): Promise<string> {
   const { extractText, getDocumentProxy } = await import("unpdf");
   const pdf = await getDocumentProxy(bytes);
   const { text } = await extractText(pdf, { mergePages: true });
-  return (Array.isArray(text) ? text.join("\n\n") : text).trim();
+  const raw = (Array.isArray(text) ? text.join("\n\n") : text).replace(/\r/g, "");
+  // PDFs break lines mid-sentence. Join lines back into paragraphs; keep a break
+  // where a line ends a sentence and the next starts a new one, or a blank line.
+  return raw
+    .replace(/-\n(?=[a-z])/g, "")
+    .replace(/([.?!:"\u201d)])\n(?=[A-Z0-9"\u201c(])/g, "$1\n\n")
+    .replace(/(?<!\n)\n(?!\n)/g, " ")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 export async function fileToText(file: { name: string; type: string; bytes: Uint8Array }): Promise<string> {
@@ -132,22 +193,46 @@ export function splitPassages(text: string): { anchor: string; text: string }[] 
   const out: { anchor: string; text: string }[] = [];
   let cur: string[] = [];
   let words = 0;
+  let heading: string | null = null;
+  let continued = false;
   const flush = () => {
     if (!cur.length) return;
-    out.push({ anchor: `Part ${out.length + 1}`, text: cur.join("\n\n") });
+    const label = heading ? (continued ? `${heading} (cont.)` : heading) : out.length === 0 ? "Opening" : `Part ${out.length + 1}`;
+    out.push({ anchor: label.slice(0, 80), text: cur.join("\n\n") });
     cur = [];
     words = 0;
+    continued = true;
   };
   for (const p of paras) {
+    if (p.startsWith("## ")) {
+      // A new section starts a new part, named after it.
+      flush();
+      heading = p.slice(3).trim();
+      continued = false;
+      cur.push(p);
+      continue;
+    }
     const w = p.split(" ").length;
     if (w > 900) {
       // A huge block with no paragraph breaks: cut by sentences.
       flush();
       const sentences = p.split(/(?<=[.!?])\s+/);
-      for (const s of sentences) {
-        cur.push(s);
-        words += s.split(" ").length;
-        if (words >= 600) flush();
+      let chunk: string[] = [];
+      let cw = 0;
+      for (const sn of sentences) {
+        chunk.push(sn);
+        cw += sn.split(" ").length;
+        if (cw >= 140) {
+          cur.push(chunk.join(" "));
+          words += cw;
+          chunk = [];
+          cw = 0;
+          if (words >= 600) flush();
+        }
+      }
+      if (chunk.length) {
+        cur.push(chunk.join(" "));
+        words += cw;
       }
       flush();
       continue;
@@ -268,11 +353,21 @@ export async function searchReadingPassages(opts: {
 
 // ---------- Digest ----------
 
+/** Trim to max without cutting a word: back to the last sentence end, else the last space. */
+function clipText(v: string, max: number): string {
+  const t = v.trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  const end = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("? "), cut.lastIndexOf("! "));
+  if (end > max * 0.6) return cut.slice(0, end + 1);
+  return `${cut.slice(0, cut.lastIndexOf(" ")).replace(/[,;:]$/, "")}...`;
+}
+
 const s = (max: number) =>
-  z.preprocess((v) => (typeof v === "string" ? v.trim().slice(0, max) : v), z.string());
+  z.preprocess((v) => (typeof v === "string" ? clipText(v, max) : v), z.string());
 
 const digestSchema = z.object({
-  summary: s(700).catch(""),
+  summary: s(1000).catch(""),
   key_points: z
     .array(z.object({ point: s(300), quote: s(220).nullable().catch(null).default(null) }).passthrough())
     .max(10)
@@ -284,7 +379,7 @@ const digestSchema = z.object({
     .catch([])
     .default([]),
   questions: z.array(s(240)).max(5).catch([]).default([]),
-  relevance: s(400).catch(""),
+  relevance: s(800).catch(""),
 });
 
 export async function digestText(opts: {
