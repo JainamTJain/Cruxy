@@ -779,6 +779,15 @@ function SuggestionsRail({
   onCross: (id: string) => void;
 }) {
   const total = suggestions.length + (queue?.count ?? 0);
+  // Teammates' ideas first, then breaks in the reasoning, then the rest.
+  const ORDER = ["missing_link", "logical_fallacy", "disconnected_claim", "unanswered_counter", "evidence_gap"];
+  const rank = (x: Hub["suggestions"][number]) =>
+    x.source === "member" ? -1 : ORDER.includes(x.kind) ? ORDER.indexOf(x.kind) : ORDER.length;
+  const ordered = [...suggestions].sort((a, b) => rank(a) - rank(b));
+  const [taking, setTaking] = useState<string | null>(null);
+  useEffect(() => {
+    if (!busy) setTaking(null);
+  }, [busy]);
   return (
     <aside className="rounded-[20px] bg-white p-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto">
       <div className="flex items-baseline justify-between gap-2">
@@ -790,7 +799,12 @@ function SuggestionsRail({
       <p className="mt-1 text-[13px] text-muted">
         Take writes it into your document. Cross hides it.
       </p>
-      {took ? (
+      {taking ? (
+        <p className="mt-3 rounded-xl bg-[#F7F8FA] px-3 py-2 text-[13px] text-[#3B404A]">
+          Cruxy is writing it into your document...
+        </p>
+      ) : null}
+      {took && !taking ? (
         <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-[#E8F4EC] px-3 py-2 text-[13px] text-[#1F5F3B]">
           <span>
             {took.sectionKey
@@ -814,7 +828,7 @@ function SuggestionsRail({
       ) : null}
       {suggestions.length ? (
         <ul className="mt-3 m-0 list-none space-y-2 p-0">
-          {suggestions.map((s) => (
+          {ordered.map((s) => (
             <SuggestionCard
               key={s.id}
               s={s}
@@ -823,7 +837,10 @@ function SuggestionsRail({
               busy={busy}
               reason={crossReasons[s.id] ?? ""}
               onReason={(v) => setCrossReasons((m) => ({ ...m, [s.id]: v }))}
-              onTick={() => onTick(s.id)}
+              onTick={() => {
+                setTaking(s.id);
+                onTick(s.id);
+              }}
               onCross={() => onCross(s.id)}
             />
           ))}
