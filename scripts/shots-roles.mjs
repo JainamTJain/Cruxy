@@ -77,6 +77,12 @@ for (const [w, h, tag] of [
   [390, 844, "390"],
 ]) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h } });
+  // The first sign-in tour would cover every screenshot.
+  await ctx.addInitScript(() => {
+    try {
+      localStorage.setItem("crux-guided-tour-v2", "1");
+    } catch {}
+  });
   const page = await ctx.newPage();
   await signInKatie(ctx);
   await page.goto(`${BASE}/team/roles`, {
@@ -85,7 +91,7 @@ for (const [w, h, tag] of [
   });
   await page.waitForTimeout(1000);
   // dismiss tour overlays if present
-  const skip = page.getByText("Skip", { exact: true });
+  const skip = page.getByText("Skip tour", { exact: true });
   if (await skip.count()) {
     await skip.first().click().catch(() => {});
     await page.waitForTimeout(300);
