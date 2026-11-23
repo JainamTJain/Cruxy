@@ -1006,7 +1006,14 @@ function SuggestionCard({
   // The one line a reader needs first: what is wrong, or the idea itself.
   // Older researched ideas packed everything into text; keep only their lead.
   const packed = fromMember && structured && /idea, researched/i.test(s.text) && !/:\s*"/.test(s.text);
-  const headline = packed ? s.text.split(":")[0] : fromMember ? s.text : (s.weak_spot || s.text);
+  let headline = packed ? s.text.split(":")[0] : fromMember ? s.text : (s.weak_spot || s.text);
+  // Cruxy writes "quoted words": what is wrong. Show the problem first, the quote small.
+  let quoted: string | null = null;
+  const qm = !fromMember ? headline.match(/^\s*["\u201c]([\s\S]{3,}?)["\u201d]\s*:\s*([\s\S]+)$/) : null;
+  if (qm) {
+    quoted = qm[1]!.trim();
+    headline = qm[2]!.trim();
+  }
   const why = splitWhy(s.why_weak);
   if (packed && !why.watch) {
     const m = s.text.match(/Watch for:\s*([\s\S]*?)(?:\s+[^.?!]*\?\s*What do you think\?\s*)?$/);
@@ -1025,9 +1032,14 @@ function SuggestionCard({
         {s.source !== "cruxy" ? <span className="text-[11px] text-muted">from {who}</span> : null}
       </div>
 
-      <p className={cn("m-0 mt-2 text-[14px] leading-snug text-ink", !open && "line-clamp-3")}>
+      <p className={cn("m-0 mt-2 text-[14px] font-medium leading-snug text-ink", !open && "line-clamp-3")}>
         <LinkedText text={headline} caseId={caseId} />
       </p>
+      {quoted ? (
+        <p className={cn("m-0 mt-1 border-l-2 border-[#D5D8DE] pl-2 text-[12px] italic text-muted", !open && "line-clamp-1")}>
+          {quoted}
+        </p>
+      ) : null}
 
       {structured ? (
         <div className="mt-2 rounded-lg border-l-[3px] border-[#1F7A4D] bg-[#F6FAF7] px-2.5 py-1.5">
