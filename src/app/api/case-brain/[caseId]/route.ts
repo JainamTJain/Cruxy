@@ -34,6 +34,9 @@ import {
   listClaimMapVersions,
   listConfirmations,
 } from "@/lib/team/repository";
+import { cleanResearchForReaders } from "@/lib/library/research-display";
+import { opposingFromPrep } from "@/lib/seed/opposing";
+import { truthSourceForCase } from "@/lib/working-doc/start-all-from-truth";
 
 type Params = { params: Promise<{ caseId: string }> };
 
@@ -135,6 +138,35 @@ export async function GET(_req: Request, { params }: Params) {
   const researchForCase = researchRuns.filter((r) => r.case_id === caseId);
   const latestResearch = researchForCase[0] ?? null;
   const caseRow = cases.find((c) => c.id === caseId) ?? null;
+
+  // Positions seeded before each got its own counterclaim all repeat the
+  // same support; rebuild their text from the case prep.
+  if (caseRow && refreshed.opposing_positions.length > 1) {
+    const supports = new Set(
+      refreshed.opposing_positions.map((o) => o.strongest_support),
+    );
+    if (supports.size === 1) {
+      const prep = truthSourceForCase(caseRow.number);
+      if (prep) {
+        const derived = opposingFromPrep(prep);
+        const byTitle = new Map(derived.map((d) => [d.title.toLowerCase(), d]));
+        refreshed = {
+          ...refreshed,
+          opposing_positions: refreshed.opposing_positions.map((o, i) => {
+            const d = byTitle.get(o.title.toLowerCase()) ?? derived[i];
+            return d && o.origin === "team"
+              ? {
+                  ...o,
+                  strongest_support: d.strongest_support,
+                  weak_point: d.weak_point,
+                  commentary_angles: d.commentary_angles,
+                }
+              : o;
+          }),
+        };
+      }
+    }
+  }
   const people = peopleFull.map((p) => ({
     id: p.id,
     name: p.name,
@@ -203,15 +235,18 @@ export async function GET(_req: Request, { params }: Params) {
     people: visiblePeople,
     brain: refreshed,
     research: latestResearch
-      ? {
-          id: latestResearch.id,
-          stub: latestResearch.stub,
-          created_at: latestResearch.created_at,
-          gaps: latestResearch.gaps,
-          findings: latestResearch.findings,
-          claim_dossiers: latestResearch.claim_dossiers ?? null,
-          brief: latestResearch.brief ?? null,
-        }
+      ? (() => {
+          const readable = cleanResearchForReaders(latestResearch);
+          return {
+            id: latestResearch.id,
+            stub: latestResearch.stub,
+            created_at: latestResearch.created_at,
+            gaps: latestResearch.gaps,
+            findings: readable.findings,
+            claim_dossiers: readable.claim_dossiers ?? null,
+            brief: readable.brief ?? null,
+          };
+        })()
       : null,
     canEdit,
     canSeeAllTeams: seeAll,

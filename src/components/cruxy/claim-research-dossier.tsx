@@ -113,10 +113,7 @@ export function ClaimResearchDossierView({
           {moreOpen ? (
             <div className="mt-3 space-y-4">
               {dossier.more.map((s) => (
-                <SourceBlock
-                  key={s.finding_id ?? s.citation}
-                  source={s}
-                />
+                <SourceBlock key={s.finding_id ?? s.citation} source={s} />
               ))}
             </div>
           ) : null}
@@ -137,26 +134,32 @@ export function ResearchBriefCard({
 }) {
   return (
     <section className="space-y-3 rounded-[20px] bg-white p-5">
-      <h3 className="font-display m-0 text-xl font-extrabold">Tonight&apos;s brief</h3>
-      <p className="m-0 text-sm leading-snug text-[var(--crux-ink)]">{summary}</p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-2xl bg-[var(--crux-paper)] p-4">
-          <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-[var(--crux-muted)]">
-            What this changes
-          </p>
-          <p className="m-0 mt-2 text-sm text-[var(--crux-ink)]">
-            {judgmentChanges}
-          </p>
+      <h3 className="font-display m-0 text-xl font-extrabold">
+        Tonight&apos;s brief
+      </h3>
+      <p className="m-0 text-sm leading-snug text-[var(--crux-ink)]">
+        {summary}
+      </p>
+      {judgmentChanges.trim() || judgmentDoesNot.trim() ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl bg-[var(--crux-paper)] p-4">
+            <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-[var(--crux-muted)]">
+              What this changes
+            </p>
+            <p className="m-0 mt-2 text-sm text-[var(--crux-ink)]">
+              {judgmentChanges}
+            </p>
+          </div>
+          <div className="rounded-2xl bg-[var(--crux-paper)] p-4">
+            <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-[var(--crux-muted)]">
+              What this does not
+            </p>
+            <p className="m-0 mt-2 text-sm text-[var(--crux-ink)]">
+              {judgmentDoesNot}
+            </p>
+          </div>
         </div>
-        <div className="rounded-2xl bg-[var(--crux-paper)] p-4">
-          <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-[var(--crux-muted)]">
-            What this does not
-          </p>
-          <p className="m-0 mt-2 text-sm text-[var(--crux-ink)]">
-            {judgmentDoesNot}
-          </p>
-        </div>
-      </div>
+      ) : null}
     </section>
   );
 }

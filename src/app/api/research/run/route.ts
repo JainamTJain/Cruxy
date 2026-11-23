@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireSession, requireAdmin } from "@/lib/auth/require-session";
 import { runNightlyResearch } from "@/lib/library/researcher";
 import { listResearchRuns } from "@/lib/db/library-repository";
+import { cleanResearchForReaders } from "@/lib/library/research-display";
 
 export async function GET() {
   const auth = await requireSession();
@@ -9,7 +10,9 @@ export async function GET() {
   const denied = requireAdmin(auth.session);
   if (denied) return denied;
 
-  const runs = await listResearchRuns(30);
+  const runs = (await listResearchRuns(30)).map((r) =>
+    cleanResearchForReaders(r),
+  );
   return NextResponse.json({ runs });
 }
 

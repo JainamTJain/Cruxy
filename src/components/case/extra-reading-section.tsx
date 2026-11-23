@@ -14,6 +14,12 @@ type Props = {
   className?: string;
 };
 
+/** Items cut from notes can start mid-sentence; start them with a capital. */
+function sentenceStart(text: string): string {
+  const t = (text ?? "").trim();
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
+}
+
 const KIND_LABEL: Record<string, string> = {
   fact: "Fact",
   quote: "Quote",
@@ -200,7 +206,7 @@ export function ExtraReadingSection({
             </span>
             <span className="text-[11px] text-muted">Evidence Library</span>
           </div>
-          <p className="mt-2 m-0 text-sm leading-relaxed text-ink">{t.text}</p>
+          <p className="mt-2 m-0 text-sm leading-relaxed text-ink">{sentenceStart(t.text)}</p>
         </article>
       ))}
 

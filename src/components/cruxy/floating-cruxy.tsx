@@ -12,6 +12,7 @@ import { useCruxyMood } from "@/components/cruxy/mood/use-cruxy-mood";
 import { usePrefersReducedMotion } from "@/components/motion/reduced-motion";
 import { CALL_QUESTION } from "@/lib/cruxy/character";
 import { cn } from "@/lib/utils";
+import { cleanReaderText } from "@/lib/text/reader-text";
 
 const POS_KEY = "cruxy-float-pos";
 const ASPECT = POSE_ASPECT;
@@ -404,7 +405,7 @@ export function FloatingCruxy() {
             className="max-h-[40vh] overflow-y-auto whitespace-pre-wrap text-[13px] leading-snug text-ink"
             aria-live="polite"
           >
-            {bubble}
+            {cleanReaderText(bubble)}
           </p>
           {sources > 0 ? (
             <p className="mt-1 text-[11px] text-muted">

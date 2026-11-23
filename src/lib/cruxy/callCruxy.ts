@@ -25,6 +25,7 @@ import {
   tryParseClaimsPayload,
   type CitationSource,
 } from "@/lib/cruxy/citations";
+import { scrubAiText } from "@/lib/text/reader-text";
 
 export type CruxyMessage = {
   role: "system" | "user" | "assistant";
@@ -347,7 +348,8 @@ export async function callCruxy(
 
     return {
       ok: true,
-      text: guarded,
+      // Ids belong in citation fields, never in sentences people read.
+      text: scrubAiText(guarded),
       model: `${modelLabel}:stub`,
       tokensIn,
       tokensOut,
@@ -461,7 +463,8 @@ export async function callCruxy(
 
     return {
       ok: true,
-      text: guarded,
+      // Ids belong in citation fields, never in sentences people read.
+      text: scrubAiText(guarded),
       model: modelUsed,
       tokensIn,
       tokensOut,

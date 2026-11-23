@@ -65,6 +65,14 @@ function parseCardLines(card: string | null): {
   };
 }
 
+function tidyTranscript(text: string): string {
+  return text
+    .replace(/\[\d{1,2}:\d{2}(?::\d{2})?\]\s*/g, "\n")
+    .replace(/\s+(?=[A-Z][A-Za-z.'-]{1,24}\s*:\s)/g, "\n")
+    .replace(/\n{2,}/g, "\n")
+    .trim();
+}
+
 function speakerLines(text: string): { name: string; line: string }[] {
   const out: { name: string; line: string }[] = [];
   const re = /^([A-Z][A-Za-z.'-]{1,24})\s*:\s*(.+)$/gm;
@@ -79,15 +87,76 @@ function questionSentences(text: string): string[] {
   const parts = text.split(/(?<=[?])/).map((s) => s.trim()).filter(Boolean);
   return parts
     .filter((s) => s.includes("?") && s.length > 12 && s.length < 220)
+    .filter((s) => !BOILERPLATE_RE.test(s))
     .slice(0, MAX_QUESTIONS);
 }
 
-function keySentences(text: string): string[] {
-  const parts = text
-    .split(/(?<=[.!])\s+/)
+/**
+ * Split on sentence ends, but not after initials (O.C.), common titles or
+ * abbreviations, and only where the next sentence starts with a capital.
+ */
+function splitSentences(text: string): string[] {
+  return text
+    .split(
+      /(?<=[.!])(?<!\b[A-Z]\.)(?<!\b(?:Mr|Ms|Mrs|Dr|Prof|St|vs|etc|e\.g|i\.e|cf|al|No|Vol|pp)\.)\s+(?=["“(]?[A-Z0-9])/,
+    )
     .map((s) => s.trim())
-    .filter((s) => s.length > 40 && s.length < 260 && !s.includes("?"));
-  return parts.slice(0, MAX_POINTS);
+    .filter(Boolean);
+}
+
+/** Site chrome and publisher notes that are never a key point. */
+export const BOILERPLATE_RE =
+  /\b(fund|funds|donat\w*|donor\w*|contribution|sponsor\w*|copyright|all rights reserved|cookie\w*|privacy policy|terms of (use|service)|subscri\w*|newsletter|sign (in|up)|log ?in|member benefits|membership|advertis\w*|skip to|share this|follow us|click here|table of contents|academic tools|first published|substantive revision|how to cite|citation information|nicely formatted|pdf version|metaphysics research lab|isbn|issn)\b|©/i;
+
+const STOP = new Set(
+  "the a an and or of to in on for with by is are was were be been this that these those it its as at from but not no can could should would will may might do does did has have had their they them we our you your he she his her who whom which what when where why how than then so if into about over under more most less such any each all some one two".split(
+    " ",
+  ),
+);
+
+function terms(text: string): Set<string> {
+  return new Set(
+    text
+      .toLowerCase()
+      .match(/[a-z][a-z'-]{3,}/g)
+      ?.filter((w) => !STOP.has(w)) ?? [],
+  );
+}
+
+/**
+ * Up to five substantive sentences: no site boilerplate, no repeats, and,
+ * when the case's own terms are given, the ones that use them most (kept in
+ * reading order).
+ */
+function keySentences(text: string, focus?: string): string[] {
+  const seen = new Set<string>();
+  const parts = splitSentences(text)
+    .filter((s) => s.length > 40 && s.length < 260 && !s.includes("?"))
+    .filter((s) => !BOILERPLATE_RE.test(s))
+    .filter((s) => {
+      const key = s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  if (!focus?.trim()) return parts.slice(0, MAX_POINTS);
+  const want = terms(focus);
+  const scored = parts.map((s, i) => {
+    let score = 0;
+    for (const w of terms(s)) if (want.has(w)) score += 1;
+    return { s, i, score };
+  });
+  const top = scored
+    .slice()
+    .sort((a, b) => b.score - a.score || a.i - b.i)
+    .slice(0, MAX_POINTS)
+    .sort((a, b) => a.i - b.i);
+  return top.map((x) => x.s);
+}
+
+function typeLabel(type: string | null | undefined): string {
+  const t = (type ?? "file").replace(/_/g, " ").trim();
+  return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
 /** Build short segments for one file. Pure; caller persists. */
@@ -96,17 +165,30 @@ export function distillFileSegments(args: {
   passages: Passage[];
   caseId?: string | null;
   personId?: string | null;
+  /** The case's title and crux, to pick the sentences that matter for it. */
+  focus?: string;
 }): FileSegment[] {
   const now = nowIso();
   const caseId =
     args.caseId ??
     (args.file.case_ids[0] ?? null);
-  const joined = args.passages
+  const isTranscript =
+    args.file.type === "practice_transcript" || /transcript/i.test(args.file.name);
+  const rawJoined = args.passages
     .slice()
     .sort((a, b) => a.ord - b.ord)
     .map((p) => p.text)
     .join("\n");
-  const card = parseCardLines(args.file.card);
+  // Transcripts: drop [m:ss] stamps and put each speaker on its own line.
+  const joined = isTranscript ? tidyTranscript(rawJoined) : rawJoined;
+  const rawCard = parseCardLines(args.file.card);
+  const card = isTranscript
+    ? {
+        what: rawCard.what && tidyTranscript(rawCard.what),
+        neu: rawCard.neu && tidyTranscript(rawCard.neu),
+        open: rawCard.open && tidyTranscript(rawCard.open),
+      }
+    : rawCard;
   const segments: FileSegment[] = [];
   let ord = 0;
 
@@ -137,7 +219,7 @@ export function distillFileSegments(args: {
     "what",
     "What this is",
     card.what ??
-      `${args.file.type ?? "File"}: ${args.file.name}${
+      `${typeLabel(args.file.type)}: ${args.file.name}${
         args.file.case_numbers.length
           ? ` for case${args.file.case_numbers.length === 1 ? "" : "s"} ${args.file.case_numbers.join(", ")}`
           : ""
@@ -148,7 +230,11 @@ export function distillFileSegments(args: {
     push("note", "What's new", card.neu);
   }
 
-  const points = keySentences(joined);
+  const points = isTranscript
+    ? speakerLines(joined)
+        .slice(0, MAX_POINTS)
+        .map((l) => `${l.name}: ${l.line}`)
+    : keySentences(joined, args.focus);
   for (const [i, p] of points.entries()) {
     push("key_point", `Key point ${i + 1}`, p, {
       citation_anchor: args.passages[Math.min(i, args.passages.length - 1)]?.anchor ?? null,
@@ -163,11 +249,7 @@ export function distillFileSegments(args: {
     push("question", `Question ${i + 1}`, q);
   }
 
-  if (args.file.type === "practice_transcript" || /transcript/i.test(args.file.name)) {
-    for (const s of speakerLines(joined)) {
-      push("speaker", s.name, s.line, { speaker_name: s.name });
-    }
-  }
+
 
   if (segments.length <= 1 && joined.trim()) {
     push(
