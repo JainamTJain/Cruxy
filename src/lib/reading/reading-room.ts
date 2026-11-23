@@ -77,7 +77,7 @@ export async function ensureWebText(
       caseId: row.case_id,
       title: row.title,
       text,
-      personId: personId ?? "",
+      personId,
     }).catch(() => null);
     if (isSampleDataMode()) {
       sampleWebPassages.set(row.id, parts);
