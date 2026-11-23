@@ -15,6 +15,7 @@ type Row = {
 
 export default function AgentsPage() {
   const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -27,7 +28,8 @@ export default function AgentsPage() {
         return r.json() as Promise<{ rows: Row[] }>;
       })
       .then((d) => setRows(d.rows))
-      .catch((e: Error) => setError(e.message));
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false));
   }, []);
 
   if (error) {
@@ -53,8 +55,10 @@ export default function AgentsPage() {
         </p>
       </div>
 
-      {!rows.length ? (
+      {loading ? (
         <p className="text-sm text-muted">Loading…</p>
+      ) : !rows.length ? (
+        <p className="text-sm text-muted">No agent runs yet.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] border-collapse text-left text-sm">

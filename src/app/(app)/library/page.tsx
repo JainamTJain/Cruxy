@@ -59,15 +59,19 @@ export default function LibraryPage() {
   const [latest, setLatest] = useState<SyncLatest | null>(null);
   const [unreadables, setUnreadables] = useState<UnreadableRow[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
+    setLoadError(null);
     const [filesRes, syncRes] = await Promise.all([
       fetch("/api/library/files"),
       fetch("/api/library/sync"),
     ]);
+    let filesOk = false;
+    let syncOk = false;
     if (filesRes.ok) {
       const data = (await filesRes.json()) as {
         files: FileCard[];
@@ -75,6 +79,7 @@ export default function LibraryPage() {
       };
       setFiles(data.files);
       setUnreadables(data.unreadables ?? []);
+      filesOk = true;
     }
     if (syncRes.ok) {
       const data = (await syncRes.json()) as {
@@ -91,6 +96,10 @@ export default function LibraryPage() {
       setConnectSteps(data.connectSteps ?? []);
       setWriteEnabled(Boolean(data.writeEnabled));
       setWriteMessage(data.writeMessage ?? null);
+      syncOk = true;
+    }
+    if (!filesOk && !syncOk) {
+      setLoadError("Could not load the library. Refresh and try again.");
     }
     setLoading(false);
   }, []);
@@ -211,6 +220,7 @@ export default function LibraryPage() {
                 ref={fileInput}
                 type="file"
                 className="hidden"
+                aria-label="Choose a file to upload to Drive"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   if (f) void uploadFile(f);
@@ -219,9 +229,9 @@ export default function LibraryPage() {
               />
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || !writeEnabled}
                 onClick={() => fileInput.current?.click()}
-                className="rounded-xl border border-[#E3E5E9] bg-white px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
+                className="min-h-11 rounded-xl border border-[#E3E5E9] bg-white px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
                 title={writeMessage ?? undefined}
               >
                 Upload to Drive
@@ -278,10 +288,18 @@ export default function LibraryPage() {
         <p className="text-xs text-muted">{writeMessage}</p>
       ) : null}
 
+      {loadError ? (
+        <p className="rounded-2xl border border-cardinal/30 bg-cardinal/10 px-4 py-3 text-sm text-cardinal">
+          {loadError}
+        </p>
+      ) : null}
+
       {message ? (
         <p
           className={`rounded-2xl px-4 py-3 text-sm ${
-            /failed|not visible|missing|could not|refused/i.test(message)
+            /failed|not visible|missing|could not|refused|already running|too large/i.test(
+              message,
+            )
               ? "border border-cardinal/30 bg-cardinal/10 text-cardinal"
               : "bg-white text-ink/80"
           }`}

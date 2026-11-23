@@ -13,6 +13,7 @@ type TeamRow = {
 
 export default function CoachIndexPage() {
   const [teams, setTeams] = useState<TeamRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -25,7 +26,8 @@ export default function CoachIndexPage() {
         return r.json() as Promise<{ teams: TeamRow[] }>;
       })
       .then((d) => setTeams(d.teams))
-      .catch((e: Error) => setError(e.message));
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false));
   }, []);
 
   if (error) {
@@ -45,15 +47,17 @@ export default function CoachIndexPage() {
         One screen per team: who practised, who is behind, open Team Brief
         items, and a printable weekly report.
       </PageIntro>
-      {!teams.length ? (
+      {loading ? (
         <p className="text-sm text-muted">Loading teams…</p>
+      ) : !teams.length ? (
+        <p className="text-sm text-muted">No teams yet.</p>
       ) : (
         <ul className="space-y-3">
           {teams.map((t) => (
             <li key={t.teamId}>
               <Link
                 href={`/coach/${t.teamId}`}
-                className="flex items-baseline justify-between gap-3 rounded-2xl border border-ink/10 bg-white px-4 py-3 hover:border-cardinal/40"
+                className="flex min-h-11 items-baseline justify-between gap-3 rounded-2xl border border-ink/10 bg-white px-4 py-3 hover:border-cardinal/40"
               >
                 <span className="font-display text-xl font-semibold">
                   {t.teamName}
@@ -61,7 +65,7 @@ export default function CoachIndexPage() {
                 <span className="text-sm text-muted">
                   {t.staleCount
                     ? `${t.staleCount} behind (5+ days)`
-                    : "All practised recently"}{" "}
+                    : "All practised recently"}
                   , {t.memberCount} people
                 </span>
               </Link>
