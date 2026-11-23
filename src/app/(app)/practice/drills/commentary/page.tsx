@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ChunkedRecorder } from "@/components/practice/chunked-recorder";
+import { DrillFinalizeBar } from "@/components/practice/drill-finalize-bar";
 import { DrillShell } from "@/components/practice/drill-shell";
 import { speakText, stopSpeaking } from "@/lib/practice/speech";
 import { useDrillSession } from "../use-drill-session";
@@ -14,6 +15,7 @@ export default function CommentaryDrillPage() {
   const [phase, setPhase] = useState<"listen" | "comment">("listen");
   const [recording, setRecording] = useState(false);
   const [loadMsg, setLoadMsg] = useState<string | null>(null);
+  const [timeUp, setTimeUp] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -37,7 +39,7 @@ export default function CommentaryDrillPage() {
       setPresentation(data.presentation ?? null);
       setHintMin(data.durationHintMin ?? 8);
       setLoadMsg(null);
-      if (data.presentation) speakText(data.presentation.slice(0, 600));
+      if (data.presentation) speakText(data.presentation);
     })();
     return () => stopSpeaking();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -46,8 +48,24 @@ export default function CommentaryDrillPage() {
   useEffect(() => {
     if (phase !== "comment") return;
     setSeconds(hintMin * 60);
+    setTimeUp(false);
+    let announced = false;
     const id = setInterval(() => {
-      setSeconds((s) => (s <= 1 ? 0 : s - 1));
+      setSeconds((s) => {
+        if (s <= 1) {
+          setTimeUp(true);
+          if (!announced) {
+            announced = true;
+            if (typeof window !== "undefined" && "speechSynthesis" in window) {
+              window.speechSynthesis.speak(
+                new SpeechSynthesisUtterance("That's time."),
+              );
+            }
+          }
+          return 0;
+        }
+        return s - 1;
+      });
     }, 1000);
     return () => clearInterval(id);
   }, [phase, hintMin]);
@@ -80,7 +98,7 @@ export default function CommentaryDrillPage() {
             <button
               type="button"
               className="mt-3 h-[42px] rounded-xl border border-[#3B404A] px-4 text-sm font-semibold"
-              onClick={() => speakText(presentation.slice(0, 800))}
+              onClick={() => speakText(presentation)}
             >
               Read aloud again
             </button>
@@ -101,14 +119,22 @@ export default function CommentaryDrillPage() {
               <span className="font-mono text-[64px] font-semibold text-gold">
                 {clock}
               </span>
+              {timeUp ? (
+                <p className="text-sm font-semibold text-[#F87171]" role="status">
+                  That&apos;s time. Finish below to save the transcript.
+                </p>
+              ) : null}
               {session?.roundId ? (
-                <ChunkedRecorder
-                  roundId={session.roundId}
-                  embedded
-                  consentOk={session.recordingOk}
-                  autoStart={session.recordingOk}
-                  onRecordingChange={setRecording}
-                />
+                <>
+                  <ChunkedRecorder
+                    roundId={session.roundId}
+                    embedded
+                    consentOk={session.recordingOk}
+                    autoStart={session.recordingOk}
+                    onRecordingChange={setRecording}
+                  />
+                  <DrillFinalizeBar roundId={session.roundId} />
+                </>
               ) : null}
             </>
           )}

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChunkedRecorder } from "@/components/practice/chunked-recorder";
+import { DrillFinalizeBar } from "@/components/practice/drill-finalize-bar";
 import { DrillShell } from "@/components/practice/drill-shell";
 import { speakText, stopSpeaking } from "@/lib/practice/speech";
 import { useDrillSession } from "../use-drill-session";
@@ -65,6 +66,7 @@ export default function ConferralDrillPage() {
 
   async function finishConferral() {
     stopSpeaking();
+    // Silence check needs a saved transcript. Until Finish runs, remind the room.
     if (session?.roundId && windowRef.current) {
       const res = await fetch("/api/practice/drills/conferral", {
         method: "POST",
@@ -87,7 +89,9 @@ export default function ConferralDrillPage() {
           }. Rules allow scratch paper only.`,
         );
       } else {
-        setSilenceNote("Conferral looked quiet. Good. Answer now.");
+        setSilenceNote(
+          "No transcript lines in the conferral window yet (normal before Finish). Keep quiet, answer now, then Finish to check.",
+        );
       }
     }
     setSeconds(90);
@@ -144,13 +148,16 @@ export default function ConferralDrillPage() {
             Read question aloud again
           </button>
           {session?.roundId ? (
-            <ChunkedRecorder
-              roundId={session.roundId}
-              embedded
-              consentOk={session.recordingOk}
-              autoStart={session.recordingOk}
-              onRecordingChange={setRecording}
-            />
+            <>
+              <ChunkedRecorder
+                roundId={session.roundId}
+                embedded
+                consentOk={session.recordingOk}
+                autoStart={session.recordingOk}
+                onRecordingChange={setRecording}
+              />
+              <DrillFinalizeBar roundId={session.roundId} />
+            </>
           ) : null}
         </>
       ) : null}

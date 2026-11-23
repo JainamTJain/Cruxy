@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ChunkedRecorder } from "@/components/practice/chunked-recorder";
+import { DrillFinalizeBar } from "@/components/practice/drill-finalize-bar";
 import { DrillShell } from "@/components/practice/drill-shell";
 import { speakText, stopSpeaking } from "@/lib/practice/speech";
 import { useDrillSession } from "../use-drill-session";
@@ -65,6 +66,11 @@ export default function ModeratorDrillPage() {
         if (s <= 1) {
           setRunning(false);
           stopSpeaking();
+          if (typeof window !== "undefined" && "speechSynthesis" in window) {
+            window.speechSynthesis.speak(
+              new SpeechSynthesisUtterance("That's time."),
+            );
+          }
           saveCheckpoint({
             phase: "answer",
             prompt: question,
@@ -118,13 +124,21 @@ export default function ModeratorDrillPage() {
               Read aloud again
             </button>
           </div>
+          {seconds === 0 ? (
+            <p className="text-sm font-semibold text-[#F87171]" role="status">
+              That&apos;s time. Finish below to save the transcript.
+            </p>
+          ) : null}
           {session?.roundId ? (
-            <ChunkedRecorder
-              roundId={session.roundId}
-              embedded
-              consentOk={session.recordingOk}
-              onRecordingChange={setRecording}
-            />
+            <>
+              <ChunkedRecorder
+                roundId={session.roundId}
+                embedded
+                consentOk={session.recordingOk}
+                onRecordingChange={setRecording}
+              />
+              <DrillFinalizeBar roundId={session.roundId} />
+            </>
           ) : null}
         </>
       ) : null}
