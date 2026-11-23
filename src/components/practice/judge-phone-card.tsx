@@ -266,7 +266,7 @@ export function JudgePhoneCard({
                         },
                       }))
                     }
-                    className="h-10 rounded-[10px] border border-line px-2.5 text-sm"
+                    className="min-h-11 rounded-[10px] border border-line px-2.5 text-sm"
                   />
                 </>
               ) : null}
@@ -305,7 +305,7 @@ export function JudgePhoneCard({
             value={overall}
             onChange={(e) => setOverall(e.target.value)}
             placeholder="What stood out?"
-            className="h-10 rounded-[10px] border border-line px-2.5 text-sm"
+            className="min-h-11 rounded-[10px] border border-line px-2.5 text-sm"
           />
           {moments.length > 0 ? (
             <p className="text-xs text-muted">

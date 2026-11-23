@@ -288,7 +288,7 @@ export function DiscussionPanel({
               <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                 {kindLabel(t.kind)}
                 {t.reply_count
-                  ? ` · ${t.reply_count} ${t.reply_count === 1 ? "reply" : "replies"}`
+                  ? `, ${t.reply_count} ${t.reply_count === 1 ? "reply" : "replies"}`
                   : ""}
               </span>
               <span className="mt-0.5 block text-sm font-semibold">
@@ -332,7 +332,7 @@ export function DiscussionPanel({
         </p>
         <div className="mt-2 flex gap-2">
           <input
-            className="h-9 min-w-0 flex-1 rounded-lg border border-mist px-2 text-sm"
+            className="min-h-11 min-w-0 flex-1 rounded-lg border border-mist px-2 text-sm"
             value={generalDraft}
             disabled={busy}
             placeholder="Say something to the team…"

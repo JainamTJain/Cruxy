@@ -148,6 +148,7 @@ async function readingRoomRoute(ctx) {
 
 for (const [w, h, tag] of [
   [1440, 1000, "desktop"],
+  [768, 1024, "tablet"],
   [390, 844, "phone"],
 ]) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h } });

@@ -170,13 +170,13 @@ export default function TeamCalendarPage() {
         <div className="flex flex-wrap gap-2">
           <Link
             href="/team"
-            className="inline-flex h-10 items-center rounded-xl border border-mist bg-white px-3 text-sm font-semibold"
+            className="inline-flex min-h-11 items-center rounded-xl border border-mist bg-white px-3 text-sm font-semibold"
           >
             Team board
           </Link>
           <Link
             href="/team/roles"
-            className="inline-flex h-10 items-center rounded-xl border border-mist bg-white px-3 text-sm font-semibold"
+            className="inline-flex min-h-11 items-center rounded-xl border border-mist bg-white px-3 text-sm font-semibold"
           >
             Roles
           </Link>
@@ -197,13 +197,13 @@ export default function TeamCalendarPage() {
         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
           <input
             readOnly
-            className="h-10 min-w-0 flex-1 rounded-xl border border-mist bg-[#F7F8FA] px-3 text-xs text-ink"
+            className="min-h-11 min-w-0 flex-1 rounded-xl border border-mist bg-[#F7F8FA] px-3 text-xs text-ink"
             value={data.subscribeUrl}
             onFocus={(e) => e.target.select()}
           />
           <button
             type="button"
-            className="h-10 shrink-0 rounded-xl bg-ink px-4 text-sm font-semibold text-white"
+            className="min-h-11 shrink-0 rounded-xl bg-ink px-4 text-sm font-semibold text-white"
             onClick={() => {
               void navigator.clipboard.writeText(data.subscribeUrl);
               setStatus("Subscribe link copied.");
@@ -214,7 +214,7 @@ export default function TeamCalendarPage() {
           <button
             type="button"
             disabled={busy}
-            className="h-10 shrink-0 rounded-xl border border-mist px-4 text-sm font-semibold"
+            className="min-h-11 shrink-0 rounded-xl border border-mist px-4 text-sm font-semibold"
             onClick={() => void post({ action: "rotate_token" })}
           >
             New private link
@@ -409,7 +409,7 @@ export default function TeamCalendarPage() {
                         <button
                           type="button"
                           disabled={busy}
-                          className="h-8 rounded-lg bg-cardinal px-3 text-xs font-semibold text-white"
+                          className="min-h-11 rounded-lg bg-cardinal px-3 text-xs font-semibold text-white"
                           onClick={() =>
                             void post({
                               action: "lock_poll",
@@ -439,7 +439,7 @@ export default function TeamCalendarPage() {
             <label className="text-xs font-semibold text-muted sm:col-span-2">
               Poll title
               <input
-                className="mt-1 block h-10 w-full rounded-xl border border-mist px-3 text-sm text-ink"
+                className="mt-1 block min-h-11 w-full rounded-xl border border-mist px-3 text-sm text-ink"
                 value={pollTitle}
                 onChange={(e) => setPollTitle(e.target.value)}
               />
@@ -448,7 +448,7 @@ export default function TeamCalendarPage() {
               Time A
               <input
                 type="datetime-local"
-                className="mt-1 block h-10 w-full rounded-xl border border-mist px-3 text-sm text-ink"
+                className="mt-1 block min-h-11 w-full rounded-xl border border-mist px-3 text-sm text-ink"
                 value={slotA}
                 onChange={(e) => setSlotA(e.target.value)}
               />
@@ -457,7 +457,7 @@ export default function TeamCalendarPage() {
               Time B
               <input
                 type="datetime-local"
-                className="mt-1 block h-10 w-full rounded-xl border border-mist px-3 text-sm text-ink"
+                className="mt-1 block min-h-11 w-full rounded-xl border border-mist px-3 text-sm text-ink"
                 value={slotB}
                 onChange={(e) => setSlotB(e.target.value)}
               />
@@ -466,7 +466,7 @@ export default function TeamCalendarPage() {
               Time C (optional)
               <input
                 type="datetime-local"
-                className="mt-1 block h-10 w-full rounded-xl border border-mist px-3 text-sm text-ink"
+                className="mt-1 block min-h-11 w-full rounded-xl border border-mist px-3 text-sm text-ink"
                 value={slotC}
                 onChange={(e) => setSlotC(e.target.value)}
               />
@@ -474,7 +474,7 @@ export default function TeamCalendarPage() {
             <button
               type="button"
               disabled={busy || !slotA || !slotB}
-              className="h-10 w-fit rounded-xl bg-ink px-4 text-sm font-semibold text-white disabled:opacity-50 sm:col-span-2"
+              className="min-h-11 w-fit rounded-xl bg-ink px-4 text-sm font-semibold text-white disabled:opacity-50 sm:col-span-2"
               onClick={() => {
                 const slots = [
                   { startsAt: new Date(slotA).toISOString() },
@@ -511,7 +511,7 @@ export default function TeamCalendarPage() {
             <label className="text-xs font-semibold text-muted sm:col-span-2">
               Title
               <input
-                className="mt-1 block h-10 w-full rounded-xl border border-mist px-3 text-sm text-ink"
+                className="mt-1 block min-h-11 w-full rounded-xl border border-mist px-3 text-sm text-ink"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Team 3 practice"
@@ -521,7 +521,7 @@ export default function TeamCalendarPage() {
               When
               <input
                 type="datetime-local"
-                className="mt-1 block h-10 w-full rounded-xl border border-mist px-3 text-sm text-ink"
+                className="mt-1 block min-h-11 w-full rounded-xl border border-mist px-3 text-sm text-ink"
                 value={startsAt}
                 onChange={(e) => setStartsAt(e.target.value)}
               />
@@ -529,7 +529,7 @@ export default function TeamCalendarPage() {
             <label className="text-xs font-semibold text-muted">
               Kind
               <select
-                className="mt-1 block h-10 w-full rounded-xl border border-mist px-3 text-sm text-ink"
+                className="mt-1 block min-h-11 w-full rounded-xl border border-mist px-3 text-sm text-ink"
                 value={kind}
                 onChange={(e) =>
                   setKind(e.target.value as typeof kind)
@@ -544,7 +544,7 @@ export default function TeamCalendarPage() {
             <label className="text-xs font-semibold text-muted sm:col-span-2">
               Place (optional)
               <input
-                className="mt-1 block h-10 w-full rounded-xl border border-mist px-3 text-sm text-ink"
+                className="mt-1 block min-h-11 w-full rounded-xl border border-mist px-3 text-sm text-ink"
                 value={place}
                 onChange={(e) => setPlace(e.target.value)}
               />
@@ -552,7 +552,7 @@ export default function TeamCalendarPage() {
             <button
               type="button"
               disabled={busy || !title.trim() || !startsAt}
-              className="h-10 w-fit rounded-xl bg-cardinal px-4 text-sm font-semibold text-white disabled:opacity-50"
+              className="min-h-11 w-fit rounded-xl bg-cardinal px-4 text-sm font-semibold text-white disabled:opacity-50"
               onClick={() =>
                 void post({
                   action: "create_event",

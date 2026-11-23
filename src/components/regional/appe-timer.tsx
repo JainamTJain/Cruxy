@@ -208,7 +208,7 @@ export function AppeTimer() {
             type="button"
             onClick={() => selectPhase(i)}
             className={cn(
-              "min-h-10 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold",
+              "min-h-11 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold",
               i === state.phaseIndex
                 ? "bg-white text-ink"
                 : "bg-white/10 text-white/85",

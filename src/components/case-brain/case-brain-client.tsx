@@ -788,14 +788,14 @@ export function CaseBrainClient({
           <button
             type="button"
             onClick={() => setRolesOpen((v) => !v)}
-            className="font-semibold text-cardinal underline"
+            className="inline-flex min-h-11 items-center font-semibold text-cardinal underline"
           >
             Change
           </button>
         ) : (
           <Link
             href="/team/roles"
-            className="font-semibold text-cardinal underline"
+            className="inline-flex min-h-11 items-center font-semibold text-cardinal underline"
           >
             Roles board
           </Link>
@@ -816,7 +816,7 @@ export function CaseBrainClient({
                 </span>
                 <select
                   disabled={!canEdit || busy}
-                  className="h-9 rounded-[10px] border border-mist bg-[#F7F8FA] px-2 text-sm font-semibold text-ink disabled:opacity-60"
+                  className="min-h-11 rounded-[10px] border border-mist bg-[#F7F8FA] px-2 text-sm font-semibold text-ink disabled:opacity-60"
                   value={current?.person_id ?? ""}
                   onChange={(e) => {
                     const personId = e.target.value;
@@ -860,7 +860,7 @@ export function CaseBrainClient({
             aria-selected={tab === id}
             onClick={() => setTab(id)}
             className={cn(
-              "inline-flex items-center gap-1.5 border-b-[3px] px-3.5 py-2.5 text-sm font-semibold",
+              "inline-flex min-h-11 items-center gap-1.5 border-b-[3px] px-3.5 py-2.5 text-sm font-semibold",
               tab === id
                 ? "border-cardinal text-ink"
                 : "border-transparent text-muted",
@@ -942,7 +942,7 @@ export function CaseBrainClient({
                   Flashcards and questions are in{" "}
                   <Link
                     href="/practice"
-                    className="font-semibold text-cardinal underline"
+                    className="inline-flex min-h-11 items-center font-semibold text-cardinal underline"
                   >
                     Practice
                   </Link>
@@ -967,7 +967,7 @@ export function CaseBrainClient({
                     live in{" "}
                     <Link
                       href="/practice"
-                      className="font-semibold text-cardinal underline"
+                      className="inline-flex min-h-11 items-center font-semibold text-cardinal underline"
                     >
                       Practice
                     </Link>

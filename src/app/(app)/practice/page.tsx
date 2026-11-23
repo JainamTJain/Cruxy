@@ -268,7 +268,7 @@ export default function PracticePage() {
         <OneTapJudgeDrill caseId={caseId || null} compact />
         <Link
           href={caseId ? `/prepare/mock?caseId=${caseId}` : "/prepare/mock"}
-          className="inline-flex h-10 items-center rounded-xl border border-ink/15 px-3 text-sm font-semibold"
+          className="inline-flex min-h-11 items-center rounded-xl border border-ink/15 px-3 text-sm font-semibold"
         >
           Solo mock
         </Link>

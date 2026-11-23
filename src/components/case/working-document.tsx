@@ -983,7 +983,7 @@ function SuggestionCard({
           Take
         </button>
         <input
-          className="h-8 w-24 rounded-lg border border-mist bg-white px-2 text-xs"
+          className="min-h-11 w-24 rounded-lg border border-mist bg-white px-2 text-xs"
           placeholder="Why not?"
           maxLength={40}
           value={reason}

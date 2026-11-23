@@ -212,13 +212,13 @@ export default function PreparePage() {
       <div className="flex flex-wrap gap-2">
         <Link
           href={`/prepare/mock${caseFilter ? `?caseId=${caseFilter}` : ""}`}
-          className="inline-flex h-10 items-center rounded-xl bg-ink px-4 text-sm font-semibold text-white"
+          className="inline-flex min-h-11 items-center rounded-xl bg-ink px-4 text-sm font-semibold text-white"
         >
           Solo mock round
         </Link>
         <Link
           href="/team"
-          className="inline-flex h-10 items-center rounded-xl border border-mist bg-white px-3 text-sm font-semibold text-ink"
+          className="inline-flex min-h-11 items-center rounded-xl border border-mist bg-white px-3 text-sm font-semibold text-ink"
         >
           Team board
         </Link>
@@ -243,7 +243,7 @@ export default function PreparePage() {
           <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
             Case
             <select
-              className="h-10 rounded-xl border border-mist bg-white px-3 text-sm font-semibold text-ink"
+              className="min-h-11 rounded-xl border border-mist bg-white px-3 text-sm font-semibold text-ink"
               value={caseFilter}
               onChange={(e) => void selectCase(e.target.value)}
             >
@@ -299,7 +299,7 @@ export default function PreparePage() {
                   </button>
                   <Link
                     href={`/prepare/mock?caseId=${row.caseId}`}
-                    className="inline-flex h-9 items-center rounded-xl border border-mist px-3 text-sm font-semibold"
+                    className="inline-flex min-h-11 items-center rounded-xl border border-mist px-3 text-sm font-semibold"
                   >
                     Mock
                   </Link>
@@ -322,7 +322,7 @@ export default function PreparePage() {
           <label className="flex flex-1 flex-col gap-1 text-xs font-semibold text-muted">
             Part
             <select
-              className="h-10 rounded-xl border border-mist bg-white px-3 text-sm font-semibold text-ink"
+              className="min-h-11 rounded-xl border border-mist bg-white px-3 text-sm font-semibold text-ink"
               value={recordPart}
               onChange={(e) => setRecordPart(e.target.value as SoloPartId)}
             >
@@ -336,7 +336,7 @@ export default function PreparePage() {
           <label className="flex flex-[2] flex-col gap-1 text-xs font-semibold text-muted">
             Title (optional)
             <input
-              className="h-10 rounded-xl border border-mist bg-white px-3 text-sm text-ink"
+              className="min-h-11 rounded-xl border border-mist bg-white px-3 text-sm text-ink"
               value={recordTitle}
               onChange={(e) => setRecordTitle(e.target.value)}
               placeholder="e.g. Case 9 presentation, take 2"
@@ -346,7 +346,7 @@ export default function PreparePage() {
             type="button"
             disabled={busy || !caseFilter}
             onClick={() => void createRecording()}
-            className="h-10 rounded-xl bg-ink px-4 text-sm font-semibold text-white disabled:opacity-50"
+            className="min-h-11 rounded-xl bg-ink px-4 text-sm font-semibold text-white disabled:opacity-50"
           >
             Open recorder
           </button>
@@ -405,7 +405,7 @@ export default function PreparePage() {
               type="button"
               disabled={busy || !handoffBody.trim()}
               onClick={() => void saveHandoff()}
-              className="h-10 w-fit rounded-xl bg-ink px-4 text-sm font-semibold text-white disabled:opacity-50"
+              className="min-h-11 w-fit rounded-xl bg-ink px-4 text-sm font-semibold text-white disabled:opacity-50"
             >
               Save handoff
             </button>

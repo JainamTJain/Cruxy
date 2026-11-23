@@ -359,7 +359,7 @@ export function VoiceEnrollment({
     <div className="flex flex-col gap-4">
       <div>
         <p className="text-xs font-bold uppercase tracking-wide text-muted">
-          Voice enrollment · {stepLabel}
+          Voice enrollment, {stepLabel}
         </p>
         <h2 className="font-display m-0 mt-1 text-[22px] font-extrabold">
           {prompt.title}

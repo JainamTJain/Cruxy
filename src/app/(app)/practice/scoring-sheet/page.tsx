@@ -161,14 +161,14 @@ export default function ScoringSheetPage() {
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
-                className="h-[38px] rounded-[10px] bg-ink px-3 text-sm font-semibold text-white"
+                className="min-h-11 rounded-[10px] bg-ink px-3 text-sm font-semibold text-white"
                 onClick={() => void decide(true)}
               >
                 Switch after review
               </button>
               <button
                 type="button"
-                className="h-[38px] rounded-[10px] border border-mist bg-white px-3 text-sm font-semibold"
+                className="min-h-11 rounded-[10px] border border-mist bg-white px-3 text-sm font-semibold"
                 onClick={() => void decide(false)}
               >
                 Keep current
@@ -248,7 +248,7 @@ export default function ScoringSheetPage() {
           {isTech ? (
             <button
               type="button"
-              className="h-[38px] rounded-[10px] border border-mist bg-white px-3 text-sm font-semibold"
+              className="min-h-11 rounded-[10px] border border-mist bg-white px-3 text-sm font-semibold"
               onClick={() => void propose()}
             >
               Simulate newer Drive sheet
@@ -258,7 +258,10 @@ export default function ScoringSheetPage() {
       </div>
 
       {msg ? <p className="text-sm text-muted">{msg}</p> : null}
-      <Link href="/practice" className="text-sm underline">
+      <Link
+        href="/practice"
+        className="inline-flex min-h-11 items-center text-sm font-semibold underline"
+      >
         Back to practice
       </Link>
     </main>

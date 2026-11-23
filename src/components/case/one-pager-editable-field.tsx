@@ -62,7 +62,7 @@ export function OnePagerEditableField({
         {canEdit ? (
           <button
             type="button"
-            className="mt-1 text-[11px] font-semibold text-muted underline-offset-2 hover:underline"
+            className="mt-1 inline-flex min-h-11 items-center text-[11px] font-semibold text-muted underline-offset-2 hover:underline"
             onClick={() => {
               setDraft(value);
               setEditing(true);
@@ -96,7 +96,7 @@ export function OnePagerEditableField({
           <button
             type="button"
             disabled={busy}
-            className="h-8 rounded-lg bg-ink px-3 text-xs font-semibold text-white disabled:opacity-50"
+            className="min-h-11 rounded-lg bg-ink px-3 text-xs font-semibold text-white disabled:opacity-50"
             onClick={() => {
               void (async () => {
                 setBusy(true);
@@ -114,7 +114,7 @@ export function OnePagerEditableField({
           <button
             type="button"
             disabled={busy}
-            className="h-8 rounded-lg px-3 text-xs font-semibold text-muted underline"
+            className="min-h-11 rounded-lg px-3 text-xs font-semibold text-muted underline"
             onClick={() => {
               setDraft(value);
               setEditing(false);

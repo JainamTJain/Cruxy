@@ -194,13 +194,13 @@ export default function LibraryPage() {
         <div className="flex flex-wrap gap-2">
           <Link
             href="/library/search"
-            className="rounded-xl border border-[#E3E5E9] bg-white px-4 py-2.5 text-sm font-semibold"
+            className="inline-flex min-h-11 items-center rounded-xl border border-[#E3E5E9] bg-white px-4 py-2.5 text-sm font-semibold"
           >
             Search
           </Link>
           <Link
             href="/library/sorting"
-            className="rounded-xl border border-[#E3E5E9] bg-white px-4 py-2.5 text-sm font-semibold"
+            className="inline-flex min-h-11 items-center rounded-xl border border-[#E3E5E9] bg-white px-4 py-2.5 text-sm font-semibold"
           >
             Sorting queue
           </Link>
@@ -209,7 +209,7 @@ export default function LibraryPage() {
               type="button"
               onClick={() => void syncNow()}
               disabled={busy}
-              className="rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              className="inline-flex min-h-11 items-center rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
             >
               {busy ? "Working…" : "Sync now"}
             </button>

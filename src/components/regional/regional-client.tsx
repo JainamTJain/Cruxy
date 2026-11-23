@@ -328,7 +328,7 @@ function LogisticsPanel({
               <label key={key} className="flex flex-col gap-1 text-sm">
                 <span className="font-semibold">{label}</span>
                 <input
-                  className="h-10 rounded-[10px] border border-mist px-3"
+                  className="min-h-11 rounded-[10px] border border-mist px-3"
                   value={draft[key]}
                   disabled={busy}
                   onChange={(e) =>
@@ -653,7 +653,7 @@ function RoundDayPanel({
             >
               <span className="w-32 font-semibold">{s.role}</span>
               <select
-                className="h-10 flex-1 rounded-[10px] border border-mist bg-white px-3"
+                className="min-h-11 flex-1 rounded-[10px] border border-mist bg-white px-3"
                 value={s.person_id ?? ""}
                 disabled={busy}
                 onChange={(e) => {
@@ -739,7 +739,7 @@ function LogPanel({
           <label className="flex flex-col gap-1 text-sm sm:col-span-2">
             <span className="font-semibold">Opponent school</span>
             <input
-              className="h-10 rounded-[10px] border border-mist px-3"
+              className="min-h-11 rounded-[10px] border border-mist px-3"
               value={form.opponent}
               disabled={busy}
               onChange={(e) =>
@@ -750,7 +750,7 @@ function LogPanel({
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-semibold">Round number</span>
             <input
-              className="h-10 rounded-[10px] border border-mist px-3"
+              className="min-h-11 rounded-[10px] border border-mist px-3"
               value={form.roundNumber}
               disabled={busy}
               onChange={(e) =>
@@ -761,7 +761,7 @@ function LogPanel({
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-semibold">Side</span>
             <select
-              className="h-10 rounded-[10px] border border-mist px-3"
+              className="min-h-11 rounded-[10px] border border-mist px-3"
               value={form.side}
               disabled={busy}
               onChange={(e) =>
@@ -779,7 +779,7 @@ function LogPanel({
           <label className="flex flex-col gap-1 text-sm sm:col-span-2">
             <span className="font-semibold">Case</span>
             <select
-              className="h-10 rounded-[10px] border border-mist px-3"
+              className="min-h-11 rounded-[10px] border border-mist px-3"
               value={form.caseId}
               disabled={busy}
               onChange={(e) =>
@@ -833,7 +833,7 @@ function LogPanel({
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-semibold">Our score</span>
             <input
-              className="h-10 rounded-[10px] border border-mist px-3"
+              className="min-h-11 rounded-[10px] border border-mist px-3"
               value={form.scoreUs}
               disabled={busy}
               onChange={(e) =>
@@ -844,7 +844,7 @@ function LogPanel({
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-semibold">Their score</span>
             <input
-              className="h-10 rounded-[10px] border border-mist px-3"
+              className="min-h-11 rounded-[10px] border border-mist px-3"
               value={form.scoreThem}
               disabled={busy}
               onChange={(e) =>
@@ -855,7 +855,7 @@ function LogPanel({
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-semibold">Result</span>
             <select
-              className="h-10 rounded-[10px] border border-mist px-3"
+              className="min-h-11 rounded-[10px] border border-mist px-3"
               value={form.result}
               disabled={busy}
               onChange={(e) =>
@@ -943,7 +943,7 @@ function LogPanel({
                   </p>
                 ) : null}
                 <p className="m-0 mt-1 text-[13px] text-muted">
-                  Score {log.score_us ?? "—"} to {log.score_them ?? "—"}
+                  Score {log.score_us ?? "n/a"} to {log.score_them ?? "n/a"}
                   {log.result ? `, ${log.result}` : ""}
                 </p>
               </li>
@@ -1030,14 +1030,14 @@ function DebriefInline({
         Two-minute debrief
       </p>
       <input
-        className="h-9 rounded-[10px] border border-mist px-3 text-sm"
+        className="min-h-11 rounded-[10px] border border-mist px-3 text-sm"
         placeholder="One thing that worked"
         value={worked}
         disabled={busy}
         onChange={(e) => setWorked(e.target.value)}
       />
       <input
-        className="h-9 rounded-[10px] border border-mist px-3 text-sm"
+        className="min-h-11 rounded-[10px] border border-mist px-3 text-sm"
         placeholder="One thing to change"
         value={change}
         disabled={busy}

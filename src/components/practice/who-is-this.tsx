@@ -98,7 +98,7 @@ export function WhoIsThisPanel({ roundId, people, isAdmin }: Props) {
                   onClick={() => void confirm(p.id, c.person_id)}
                 >
                   {c.name}
-                  {c.score > 0 ? ` · ${Math.round(c.score * 100)}%` : ""}
+                  {c.score > 0 ? `, ${Math.round(c.score * 100)}%` : ""}
                 </Button>
               ))}
             </div>

@@ -285,19 +285,19 @@ export default function TeamBoardPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/team/roles"
-            className="inline-flex h-10 items-center rounded-xl border border-mist bg-white px-3 text-sm font-semibold text-ink"
+            className="inline-flex min-h-11 items-center rounded-xl border border-mist bg-white px-3 text-sm font-semibold text-ink"
           >
             Roles board
           </Link>
           <Link
             href="/prepare"
-            className="inline-flex h-10 items-center rounded-xl border border-mist bg-white px-3 text-sm font-semibold text-ink"
+            className="inline-flex min-h-11 items-center rounded-xl border border-mist bg-white px-3 text-sm font-semibold text-ink"
           >
             My part
           </Link>
           <Link
             href="/team/calendar"
-            className="inline-flex h-10 items-center px-2 text-sm text-muted underline-offset-2 hover:underline"
+            className="inline-flex min-h-11 items-center px-2 text-sm text-muted underline-offset-2 hover:underline"
           >
             More team tools
           </Link>
@@ -395,7 +395,7 @@ export default function TeamBoardPage() {
             <button
               key={prompt}
               type="button"
-              className="rounded-xl border border-mist px-3 py-2 text-left text-[13px] font-semibold hover:bg-[#F7F8FA]"
+              className="inline-flex min-h-11 items-center rounded-xl border border-mist px-3 py-2 text-left text-[13px] font-semibold hover:bg-[#F7F8FA]"
               onClick={() => void askCruxy(prompt)}
             >
               {prompt}
@@ -441,7 +441,7 @@ export default function TeamBoardPage() {
           </div>
           <button
             type="button"
-            className="mt-3 h-10 rounded-[10px] bg-ink px-4 text-[13px] font-semibold text-white"
+            className="mt-3 min-h-11 rounded-[10px] bg-ink px-4 text-[13px] font-semibold text-white"
             onClick={() => void submitAlignment(pendingAlign)}
           >
             Send answers
@@ -516,7 +516,7 @@ export default function TeamBoardPage() {
                               onClick={() =>
                                 setEdit({ caseId: c.id, role: slot, step: 1 })
                               }
-                              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] font-semibold"
+                              className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] font-semibold"
                               style={
                                 gap
                                   ? {
@@ -639,7 +639,7 @@ export default function TeamBoardPage() {
           <label className="text-[12px] font-semibold text-muted">
             Link a case
             <select
-              className="mt-1 h-10 w-full rounded-xl border border-mist px-2 text-sm"
+              className="mt-1 min-h-11 w-full rounded-xl border border-mist px-2 text-sm"
               value={msgCaseId}
               onChange={(e) => setMsgCaseId(e.target.value)}
             >
@@ -655,7 +655,7 @@ export default function TeamBoardPage() {
             <label className="text-[12px] font-semibold text-muted">
               Passage
               <input
-                className="mt-1 h-9 w-full rounded-xl border border-mist px-2 text-sm"
+                className="mt-1 min-h-11 w-full rounded-xl border border-mist px-2 text-sm"
                 value={msgPassage}
                 onChange={(e) => setMsgPassage(e.target.value)}
                 placeholder="optional"
@@ -664,7 +664,7 @@ export default function TeamBoardPage() {
             <label className="text-[12px] font-semibold text-muted">
               Timestamp
               <input
-                className="mt-1 h-9 w-full rounded-xl border border-mist px-2 text-sm"
+                className="mt-1 min-h-11 w-full rounded-xl border border-mist px-2 text-sm"
                 value={msgTimestamp}
                 onChange={(e) => setMsgTimestamp(e.target.value)}
                 placeholder="e.g. 12:40"
@@ -675,7 +675,7 @@ export default function TeamBoardPage() {
             type="button"
             onClick={() => void sendMessage()}
             disabled={!msgText.trim()}
-            className="h-10 rounded-[10px] bg-ink px-4 text-[13px] font-semibold text-white disabled:opacity-40"
+            className="min-h-11 rounded-[10px] bg-ink px-4 text-[13px] font-semibold text-white disabled:opacity-40"
           >
             Send
           </button>
