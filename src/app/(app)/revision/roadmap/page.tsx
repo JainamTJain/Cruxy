@@ -140,33 +140,40 @@ export default function RoadmapPage() {
     {} as Record<RoadmapStageId, string>,
   );
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const prevDone = useRef<Set<string> | null>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/roadmap");
-    if (!res.ok) {
-      setSaveMsg("Could not load roadmap.");
-      return;
-    }
-    const data = (await res.json()) as View;
-    const nowDone = new Set(doneStageKeys(data));
-    if (prevDone.current) {
-      for (const key of nowDone) {
-        if (!prevDone.current.has(key)) {
-          const stage = key.split(":")[1] ?? "Stage";
-          emitMood({
-            type: "roadmap.stage_done",
-            stage: STAGE_LABELS[stage as RoadmapStageId] ?? stage,
-          });
-          break;
+    setLoadError(null);
+    try {
+      const res = await fetch("/api/roadmap");
+      if (!res.ok) {
+        setLoadError("Could not load roadmap. Try again.");
+        setSaveMsg(null);
+        return;
+      }
+      const data = (await res.json()) as View;
+      const nowDone = new Set(doneStageKeys(data));
+      if (prevDone.current) {
+        for (const key of nowDone) {
+          if (!prevDone.current.has(key)) {
+            const stage = key.split(":")[1] ?? "Stage";
+            emitMood({
+              type: "roadmap.stage_done",
+              stage: STAGE_LABELS[stage as RoadmapStageId] ?? stage,
+            });
+            break;
+          }
         }
       }
+      prevDone.current = nowDone;
+      setView(data);
+      setDraftDues(data.deadlines);
+      setCaseId((prev) => prev || data.cases[0]?.case.id || "");
+      if ((data.overdueCount ?? 0) > 0) setMood("curious");
+    } catch {
+      setLoadError("Could not load roadmap. Try again.");
     }
-    prevDone.current = nowDone;
-    setView(data);
-    setDraftDues(data.deadlines);
-    setCaseId((prev) => prev || data.cases[0]?.case.id || "");
-    if ((data.overdueCount ?? 0) > 0) setMood("curious");
   }, [setMood]);
 
   useEffect(() => {
@@ -191,6 +198,23 @@ export default function RoadmapPage() {
     }
     return null;
   }, [activeCase]);
+
+  if (loadError && !view) {
+    return (
+      <div className="flex flex-col gap-3 animate-fade-up">
+        <p className="text-sm text-cardinal" role="alert">
+          {loadError}
+        </p>
+        <button
+          type="button"
+          onClick={() => void load()}
+          className="h-11 w-fit rounded-xl bg-ink px-4 text-sm font-semibold text-white"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   if (!view) {
     return (
@@ -318,7 +342,12 @@ export default function RoadmapPage() {
       {saveMsg ? <p className="m-0 text-sm text-muted">{saveMsg}</p> : null}
 
       {/* Next action */}
-      {nextAction ? (
+      {!view.cases.length ? (
+        <section className="rounded-[20px] bg-white p-4 text-sm text-muted">
+          No cases on your roadmap yet. Ask Dr. B to assign you a role, or opt
+          into a flashcard deck from Practice.
+        </section>
+      ) : nextAction ? (
         <section className="rounded-[20px] bg-white p-4">
           <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-muted">
             One next action

@@ -31,6 +31,9 @@
     "test:voiceprint": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/voiceprint-accuracy.ts",
     "download:voiceprint-model": "node scripts/download-voiceprint-model.mjs",
     "check:critique": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/critique-engine-checks.ts",
+    "check:revision": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/check-revision-robustness.ts",
+    "check:roadmap-extra": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/roadmap-extra-checks.ts",
+    "check:mastery-map": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/mastery-map-checks.ts",
     "check:competition-day": "USE_SAMPLE_DATA=1 NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/check-competition-day.ts"
   },
   "dependencies": {

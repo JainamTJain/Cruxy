@@ -302,6 +302,13 @@ export async function reviewFlashcard(args: {
 
   await recomputeRoadmapStages(args.personId);
 
+  await logActivity({
+    person_id: args.personId,
+    action: "flashcard_review",
+    target: args.cardId,
+    meta: { grade: args.grade, mode: args.mode ?? "typed" },
+  });
+
   const storeAfter = await readStore();
   const card = storeAfter.flashcards.find((c) => c.id === args.cardId);
   if (card?.case_id) {
@@ -617,6 +624,15 @@ export async function confirmModeratorQuestions(args: {
       if (q) q.status = "rejected";
     }
   });
+  await logActivity({
+    person_id: args.personId,
+    action: "moderator_confirm",
+    target: args.questionIds[0] ?? args.rejectIds?.[0] ?? null,
+    meta: {
+      confirmed: args.questionIds.length,
+      rejected: (args.rejectIds ?? []).length,
+    },
+  });
 }
 
 export async function listQuestions(filter?: {
@@ -716,6 +732,13 @@ export async function answerQuestion(args: {
 
   await recomputeRoadmapStages(args.personId);
 
+  await logActivity({
+    person_id: args.personId,
+    action: "moderator_answer",
+    target: args.questionId,
+    meta: { mode: args.mode ?? "typed", score },
+  });
+
   const q = store.questions.find((x) => x.id === args.questionId);
   if (q?.case_id && row.score != null) {
     const { observeClaimAttempt } = await import(
@@ -778,6 +801,12 @@ export async function startSocraticDrill(args: {
     };
     s.socratic_sessions.push(session);
   });
+  await logActivity({
+    person_id: args.personId,
+    action: "socratic_start",
+    target: args.caseId,
+    meta: { teamId: args.teamId, sessionId: session.id },
+  });
   return session;
 }
 
@@ -831,6 +860,12 @@ export async function continueSocratic(args: {
     );
     await openSocraticOutcomes(session).catch(() => undefined);
   }
+  await logActivity({
+    person_id: args.personId,
+    action: "socratic_turn",
+    target: args.sessionId,
+    meta: { status: session.status },
+  });
   return session;
 }
 
@@ -842,11 +877,13 @@ export async function languageSuggestions(args: {
 }) {
   if (!isSampleDataMode()) return sb.languageSuggestions(args);
   const store = await readStore();
+  const teamClaims = store.claims.filter(
+    (c) => c.team_id === args.teamId && c.case_id === args.caseId,
+  );
   const claim =
-    store.claims.find((c) => c.id === args.claimId) ??
-    store.claims.find(
-      (c) => c.team_id === args.teamId && c.case_id === args.caseId,
-    );
+    (args.claimId
+      ? teamClaims.find((c) => c.id === args.claimId)
+      : undefined) ?? teamClaims[0];
   const truth = store.truth_items.filter(
     (t) => t.team_id === args.teamId && t.case_id === args.caseId,
   );
@@ -878,6 +915,12 @@ export async function savePhrase(args: {
     };
     s.phrasebook_entries.push(row);
   });
+  await logActivity({
+    person_id: args.personId,
+    action: "phrasebook_save",
+    target: args.caseId,
+    meta: { kind: args.kind },
+  });
   return row;
 }
 
@@ -887,20 +930,37 @@ export async function listPhrasebook(personId: string) {
   return store.phrasebook_entries.filter((p) => p.person_id === personId);
 }
 
-export async function buildWarmUp(personId: string) {
-  if (!isSampleDataMode()) return sb.buildWarmUp(personId);
+export async function buildWarmUp(
+  personId: string,
+  opts?: { caseId?: string },
+) {
+  if (!isSampleDataMode()) return sb.buildWarmUp(personId, opts);
   await autoAssignLeadDecks(personId);
   const due = await dueFlashcardsForPerson(personId);
-  const cards = due.slice(0, 5).map((d) => d.card);
+  const scoped = opts?.caseId
+    ? due.filter((d) => d.card.case_id === opts.caseId)
+    : due;
+  const pool = scoped.length ? scoped : due;
+  const cards = pool.slice(0, 5).map((d) => d.card);
   const sessionKey = `warmup-${personId}-${Date.now()}`;
-  const q1 = await serveQuestion({ personId, sessionKey });
-  const q2 = await serveQuestion({ personId, sessionKey });
+  const preferred = opts?.caseId ? [opts.caseId] : undefined;
+  const q1 = await serveQuestion({
+    personId,
+    sessionKey,
+    preferredCaseIds: preferred,
+  });
+  const q2 = await serveQuestion({
+    personId,
+    sessionKey,
+    preferredCaseIds: preferred,
+  });
   return {
     flashcards: cards,
-    moderator_questions: [q1, q2].filter(Boolean),
+    moderator_questions: [q1, q2].filter(Boolean) as ModeratorQuestion[],
     counterclaim_prompt:
       "Out loud: concede, distinguish, then rebut your case's main counterclaim in under 90 seconds.",
     minutes: 10,
+    caseId: opts?.caseId ?? null,
   };
 }
 
