@@ -186,7 +186,7 @@ export async function updateWorkingSection(input: {
   briefId: string;
   sectionKey: WorkingSectionKey;
   body: string;
-  personId: string;
+  personId: string | null;
 }): Promise<WorkingSectionRow> {
   const body = input.body.replace(/[·—–]/g, ",");
   if (isSampleDataMode()) {
@@ -583,4 +583,58 @@ export async function insertSharedEvidenceFact(input: {
     .single();
   if (error) throw new Error(`insertSharedEvidenceFact: ${error.message}`);
   return { id: String(data.id), text, citation };
+}
+
+/**
+ * Remove Cruxy's earlier critique for a team and case that nobody has ticked,
+ * crossed or started discussing, so a new critique run replaces it instead of
+ * piling up. Suggestions from members, other teams or the Evidence Library
+ * are never touched (critique rows are the ones with a weak spot).
+ */
+export async function retirePendingCritique(input: {
+  teamId: string;
+  caseId: string;
+}): Promise<number> {
+  if (isSampleDataMode()) {
+    let n = 0;
+    for (let i = sampleSuggestions.length - 1; i >= 0; i--) {
+      const s = sampleSuggestions[i]!;
+      if (
+        s.team_id === input.teamId &&
+        s.case_id === input.caseId &&
+        s.status === "pending" &&
+        s.source === "cruxy" &&
+        s.weak_spot
+      ) {
+        sampleSuggestions.splice(i, 1);
+        n += 1;
+      }
+    }
+    return n;
+  }
+  const sb = getServiceSupabase();
+  const { data, error } = await sb
+    .from("working_doc_suggestions")
+    .select("id")
+    .eq("team_id", input.teamId)
+    .eq("case_id", input.caseId)
+    .eq("status", "pending")
+    .eq("source", "cruxy")
+    .not("weak_spot", "is", null);
+  if (error || !data?.length) return 0;
+  const ids = data.map((r) => r.id as string);
+  const { data: threads } = await sb
+    .from("discussion_threads")
+    .select("target_id")
+    .eq("kind", "suggestion")
+    .in("target_id", ids);
+  const discussed = new Set((threads ?? []).map((t) => t.target_id as string));
+  const drop = ids.filter((id) => !discussed.has(id));
+  if (!drop.length) return 0;
+  const { error: delErr } = await sb
+    .from("working_doc_suggestions")
+    .delete()
+    .in("id", drop);
+  if (delErr) return 0;
+  return drop.length;
 }

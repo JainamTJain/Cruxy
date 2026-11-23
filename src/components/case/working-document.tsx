@@ -534,7 +534,7 @@ export function WorkingDocument({
 
         {path ? (
           <p className="m-0 text-sm text-muted">
-            Need to re-import for the whole team?{" "}
+            Have your own documents?{" "}
             <button
               type="button"
               className="font-semibold text-cardinal underline"
@@ -551,7 +551,7 @@ export function WorkingDocument({
                 setReview(null);
               }}
             >
-              Import our documents again
+              Import them to replace it
             </button>
             . Or open{" "}
             <Link

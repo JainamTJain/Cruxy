@@ -100,9 +100,29 @@ export async function GET(req: Request) {
     return NextResponse.json({ versions: list });
   }
 
+  const canEdit = canEditOnePager(person, auth.session, teamId);
+  // The one pager follows the team's working document: updated directly if
+  // nobody hand-edited it, otherwise offered as an update to accept.
+  if (canEdit) {
+    const { ensureStartedFromTruth } = await import(
+      "@/lib/working-doc/start-all-from-truth"
+    );
+    await ensureStartedFromTruth({
+      caseId,
+      teamId,
+      personId: auth.session.personId,
+    }).catch(() => false);
+    const { syncOnePagerFromWorkingDoc } = await import(
+      "@/lib/working-doc/one-pager-from-working"
+    );
+    await syncOnePagerFromWorkingDoc({
+      caseId,
+      teamId,
+      personId: auth.session.personId,
+    }).catch(() => undefined);
+  }
   const page = await latestOnePager(teamId, caseId);
   const diff = page ? await onePagerDiff(page.id) : [];
-  const canEdit = canEditOnePager(person, auth.session, teamId);
   const syncProposal = await getPendingOnePagerSync({ teamId, caseId });
   return NextResponse.json({
     onePager: page,

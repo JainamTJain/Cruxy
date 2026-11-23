@@ -105,6 +105,15 @@ export async function runCritiqueForTeamCase(opts: {
   }
 
   const started = nowIso();
+  // No working document yet: the team works from the truth source.
+  const { ensureStartedFromTruth } = await import(
+    "@/lib/working-doc/start-all-from-truth"
+  );
+  await ensureStartedFromTruth({
+    caseId: opts.caseId,
+    teamId: opts.teamId,
+    personId: opts.personId,
+  }).catch(() => false);
   const brief = await ensureTeamBrief({
     teamId: opts.teamId,
     caseId: opts.caseId,
@@ -112,6 +121,30 @@ export async function runCritiqueForTeamCase(opts: {
   });
   await ensureWorkingSections(brief.id, opts.personId);
   const sections = await listWorkingSections(brief.id);
+  // Never critique an empty document: it only produces generic advice.
+  if (!sections.some((x) => x.body.trim().length > 20)) {
+    await recordRun({
+      id: randomUUID(),
+      case_id: opts.caseId,
+      team_id: opts.teamId,
+      trigger: opts.trigger,
+      status: "skipped",
+      suggestions_posted: 0,
+      notes: "empty document",
+      started_at: started,
+      finished_at: nowIso(),
+      created_at: nowIso(),
+      created_by: opts.personId,
+    });
+    return {
+      caseId: opts.caseId,
+      teamId: opts.teamId,
+      posted: 0,
+      skippedCap: 0,
+      findings: [],
+      notes: "empty document",
+    };
+  }
 
   const critique = await critiqueWorkingDocument({
     caseId: opts.caseId,

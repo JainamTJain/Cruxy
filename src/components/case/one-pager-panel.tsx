@@ -917,6 +917,8 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
             />
           </div>
         </section>
+
+        <OnePagerExtras visuals={page.body.visuals} />
       </article>
 
       {diff.length ? (
@@ -941,5 +943,67 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
         </section>
       ) : null}
     </div>
+  );
+}
+
+type ExtraVisual = { kind: string; payload: unknown };
+
+/** Stakeholders, frameworks and likely questions, read from the working document. */
+function OnePagerExtras({ visuals }: { visuals: ExtraVisual[] }) {
+  const get = <T,>(kind: string): T | null =>
+    (visuals.find((v) => v.kind === kind)?.payload as T) ?? null;
+  const stake = (get<{ cells?: ({ who: string; stake?: string } | string)[] }>("stakeholder_grid")?.cells ?? [])
+    .map((c) => (typeof c === "string" ? { who: c, stake: "" } : { who: c.who, stake: c.stake ?? "" }))
+    .filter((c) => c.stake);
+  const frameworks = (get<{ items?: ({ name: string; one_line?: string } | string)[] }>("framework_strip")?.items ?? [])
+    .map((f) => (typeof f === "string" ? { name: f, one_line: "" } : { name: f.name, one_line: f.one_line ?? "" }));
+  const questions = (get<{ rows?: { q: string; a?: string }[] }>("question_table")?.rows ?? []).filter((r) => r.q);
+  if (!stake.length && !frameworks.length && !questions.length) return null;
+  const label = "text-[11px] font-bold uppercase tracking-[0.12em] text-muted";
+  return (
+    <section className="grid gap-4 md:grid-cols-2">
+      {stake.length ? (
+        <div className="flex flex-col gap-2 rounded-xl bg-[#F7F8FA] p-3.5">
+          <span className={label}>Stakeholders</span>
+          <ul className="space-y-1.5 text-sm">
+            {stake.map((s) => (
+              <li key={s.who}>
+                <span className="font-semibold">{s.who}</span>
+                <span className="text-muted">: {s.stake}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {frameworks.length ? (
+        <div className="flex flex-col gap-2 rounded-xl bg-[#F7F8FA] p-3.5">
+          <span className={label}>Frameworks</span>
+          <ul className="space-y-1.5 text-sm">
+            {frameworks.map((f) => (
+              <li key={f.name}>
+                <span className="font-semibold">{f.name}</span>
+                {f.one_line ? <span className="text-muted">: {f.one_line}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {questions.length ? (
+        <div className="flex flex-col gap-2 rounded-xl border border-[#E4E6EB] p-3.5 md:col-span-2">
+          <span className={label}>Likely questions</span>
+          <ul className="space-y-2 text-sm">
+            {questions.map((r) => (
+              <li key={r.q}>
+                <p className="font-semibold">{r.q}</p>
+                {r.a ? <p className="text-muted">{r.a}</p> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      <p className="text-xs text-muted md:col-span-2">
+        These follow your working document. Edit them there.
+      </p>
+    </section>
   );
 }
