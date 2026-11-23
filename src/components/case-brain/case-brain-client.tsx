@@ -140,9 +140,9 @@ function originLabel(
   if (proposal.origin === "research") return "Cruxy research";
   if (proposal.origin === "transcript") {
     const ref = proposal.origin_ref ?? "";
-    if (ref.startsWith("From practice")) return ref;
-    // A bare round id means nothing to a person; show when it came from.
-    const looksLikeId = /^[0-9a-f-]{20,}$/i.test(ref.trim());
+    // An id means nothing to a person; show when it came from instead.
+    const looksLikeId = /[0-9a-f]{8}-[0-9a-f]{4}-/i.test(ref);
+    if (ref.startsWith("From practice") && !looksLikeId) return ref;
     const when = new Date(proposal.created_at);
     const date = Number.isNaN(when.getTime())
       ? ""
@@ -199,6 +199,7 @@ export function CaseBrainClient({
   const [reasonDrafts, setReasonDrafts] = useState<Record<string, string>>({});
   const [editDrafts, setEditDrafts] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showAllQueue, setShowAllQueue] = useState(false);
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab");
   const focusFileId = searchParams.get("file");
@@ -464,10 +465,8 @@ export function CaseBrainClient({
                       <article
                         key={p.id}
                         className={cn(
-                          "flex flex-col gap-2.5",
-                          i < pending.length - 1
-                            ? "border-b border-[#ECEEF1] pb-3.5"
-                            : "",
+                          "flex flex-col gap-2 rounded-[14px] border border-[#E6E8EC] bg-white px-3.5 py-3",
+                          i >= 3 && !showAllQueue ? "hidden" : "",
                         )}
                       >
                         <OriginTag
@@ -477,7 +476,7 @@ export function CaseBrainClient({
                             Boolean(data.canSeeAllTeams),
                           )}
                         />
-                        <p className="m-0 text-[15px] font-medium leading-snug">
+                        <p className="m-0 text-[14px] leading-snug text-ink">
                           {p.text}
                         </p>
                         {researchLink ? (
@@ -542,16 +541,11 @@ export function CaseBrainClient({
                         (p.origin !== "inspired_by_team" ||
                           p.socratic_answered) ? (
                           <>
-                            <label
-                              htmlFor={`reason-${p.id}`}
-                              className="text-[13px] font-semibold"
-                            >
-                              Why? One line, then tick to keep or cross to drop
-                            </label>
                             <input
                               id={`reason-${p.id}`}
-                              placeholder="One line on why"
-                              className="h-[42px] rounded-[10px] border border-mist px-3 text-sm"
+                              aria-label="Why keep or drop it? One line"
+                              placeholder="Why? One line (optional)"
+                              className="h-9 rounded-lg border border-mist bg-[#F7F8FA] px-2.5 text-[13px]"
                               value={reasonDrafts[`prop:${p.id}`] ?? ""}
                               onChange={(e) =>
                                 setReasonDrafts((d) => ({
@@ -563,7 +557,7 @@ export function CaseBrainClient({
                             {editingId === p.id ? (
                               <input
                                 placeholder="Revised text"
-                                className="h-[42px] rounded-[10px] border border-mist px-3 text-sm"
+                                className="h-9 rounded-lg border border-mist px-2.5 text-[13px]"
                                 value={editDrafts[p.id] ?? p.text}
                                 onChange={(e) =>
                                   setEditDrafts((d) => ({
@@ -573,7 +567,7 @@ export function CaseBrainClient({
                                 }
                               />
                             ) : null}
-                            <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                            <div className="flex items-center gap-2">
                               <button
                                 type="button"
                                 disabled={busy}
@@ -582,35 +576,24 @@ export function CaseBrainClient({
                                     ? "Add to checklist"
                                     : "Accept"
                                 }
-                                className="flex h-[42px] items-center justify-center gap-1.5 rounded-xl border border-mist bg-white text-sm font-semibold"
+                                className="min-h-9 rounded-lg bg-ink px-3.5 text-xs font-semibold text-white disabled:opacity-60"
                                 onClick={() => void decide(p.id, "accept")}
                               >
-                                <span
-                                  aria-hidden
-                                  className="text-lg text-[#1F7A4D]"
-                                >
-                                  ✓
-                                </span>
-                                {briefMode === "own_doc" ? "To-do" : null}
+                                {briefMode === "own_doc" ? "Add to to-do" : "Keep"}
                               </button>
                               <button
                                 type="button"
                                 disabled={busy}
                                 aria-label="Reject"
-                                className="flex h-[42px] items-center justify-center gap-1.5 rounded-xl border border-mist bg-white text-sm font-semibold"
+                                className="min-h-9 rounded-lg border border-mist bg-white px-3 text-xs font-semibold disabled:opacity-60"
                                 onClick={() => void decide(p.id, "reject")}
                               >
-                                <span
-                                  aria-hidden
-                                  className="text-lg text-cardinal"
-                                >
-                                  ✗
-                                </span>
+                                Drop
                               </button>
                               <button
                                 type="button"
                                 disabled={busy}
-                                className="flex h-[42px] items-center justify-center rounded-xl border border-mist bg-white px-3.5 text-sm font-semibold"
+                                className="ml-auto text-xs font-semibold text-cardinal"
                                 onClick={() => {
                                   if (editingId !== p.id) {
                                     setEditingId(p.id);
@@ -926,7 +909,23 @@ export function CaseBrainClient({
                 <WorkingDocument
                   caseId={caseId}
                   teamId={teamId || brain.team_id}
-                  queue={{ count: pending.length, node: proposalQueue }}
+                  queue={{
+                    count: pending.length,
+                    node: (
+                      <>
+                        {proposalQueue}
+                        {pending.length > 3 ? (
+                          <button
+                            type="button"
+                            className="self-start text-xs font-semibold text-cardinal"
+                            onClick={() => setShowAllQueue((v) => !v)}
+                          >
+                            {showAllQueue ? "Show fewer" : `Show all ${pending.length}`}
+                          </button>
+                        ) : null}
+                      </>
+                    ),
+                  }}
                 />
                 <ResearchCoverage
                   brain={brain}

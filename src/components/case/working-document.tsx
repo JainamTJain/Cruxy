@@ -493,7 +493,7 @@ export function WorkingDocument({
             onStartAll={() => void teamImport("start_all")}
           />
         ) : (
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,360px)] xl:grid-cols-[minmax(0,1fr)_400px]">
             <div className="flex min-w-0 flex-col gap-4">
               {path === "imported" ? (
                 <ImportedBody
@@ -777,6 +777,13 @@ function SuggestionsRail({
   const rank = (x: Hub["suggestions"][number]) =>
     x.source === "member" ? -1 : ORDER.includes(x.kind) ? ORDER.indexOf(x.kind) : ORDER.length;
   const ordered = [...suggestions].sort((a, b) => rank(a) - rank(b));
+  const [filter, setFilter] = useState<SuggestionGroup | "all">("all");
+  const counts = ordered.reduce<Record<string, number>>((m, x) => {
+    const g = groupOf(x);
+    m[g] = (m[g] ?? 0) + 1;
+    return m;
+  }, {});
+  const shown = filter === "all" ? ordered : ordered.filter((x) => groupOf(x) === filter);
   const [taking, setTaking] = useState<string | null>(null);
   useEffect(() => {
     if (!busy) setTaking(null);
@@ -790,8 +797,27 @@ function SuggestionsRail({
         </span>
       </div>
       <p className="mt-1 text-[13px] text-muted">
-        Take writes it into your document. Cross hides it.
+        Take writes it into your document. Details shows the reasoning and sources.
       </p>
+      {ordered.length > 3 ? (
+        <div className="mt-2 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter suggestions">
+          {(["all", ...GROUP_ORDER.filter((g) => counts[g])] as const).map((g) => (
+            <button
+              key={g}
+              type="button"
+              role="tab"
+              aria-selected={filter === g}
+              onClick={() => setFilter(g)}
+              className={cn(
+                "rounded-full px-2.5 py-1 text-[12px] font-semibold",
+                filter === g ? "bg-ink text-white" : "bg-[#F1F2F4] text-[#3B404A]",
+              )}
+            >
+              {g === "all" ? "All" : GROUP_LABEL[g]} {g === "all" ? ordered.length : counts[g]}
+            </button>
+          ))}
+        </div>
+      ) : null}
       {taking ? (
         <p className="mt-3 rounded-xl bg-[#F7F8FA] px-3 py-2 text-[13px] text-[#3B404A]">
           Cruxy is writing it into your document...
@@ -821,10 +847,11 @@ function SuggestionsRail({
       ) : null}
       {suggestions.length ? (
         <ul className="mt-3 m-0 list-none space-y-2 p-0">
-          {ordered.map((s) => (
+          {shown.map((s) => (
             <SuggestionCard
               key={s.id}
               s={s}
+              sectionLabel={s.section_key ? sectionLabel(s.section_key) : null}
               caseId={caseId}
               teamId={teamId}
               busy={busy}
@@ -845,17 +872,91 @@ function SuggestionsRail({
           <p className="m-0 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
             From practice, research and other teams
           </p>
-          <div className="mt-2 flex flex-col gap-3">{queue.node}</div>
+          <div className="mt-2 flex flex-col gap-2">{queue.node}</div>
         </div>
       ) : null}
     </aside>
   );
 }
 
+type SuggestionGroup = "people" | "logic" | "objections" | "evidence" | "wording" | "other";
+const GROUP_ORDER: SuggestionGroup[] = ["people", "logic", "objections", "evidence", "wording", "other"];
+const GROUP_LABEL: Record<SuggestionGroup, string> = {
+  people: "Teammates and coach",
+  logic: "Logic",
+  objections: "Objections",
+  evidence: "Evidence",
+  wording: "Wording",
+  other: "Other",
+};
+const GROUP_TONE: Record<SuggestionGroup, string> = {
+  people: "bg-[#EFEAFB] text-[#4B2E9A]",
+  logic: "bg-[#FDECEA] text-[#9B1C1C]",
+  objections: "bg-[#FFF4DE] text-[#8A5200]",
+  evidence: "bg-[#E7F0FE] text-[#1D4ED8]",
+  wording: "bg-[#E8F4EC] text-[#1F5F3B]",
+  other: "bg-[#F1F2F4] text-[#3B404A]",
+};
+
+function groupOf(x: { kind: string; source: string }): SuggestionGroup {
+  if (x.source === "member") return "people";
+  if (["missing_link", "logical_fallacy", "disconnected_claim", "loose_end"].includes(x.kind)) return "logic";
+  if (["unanswered_counter", "counter", "missing_perspective", "missing_stakeholder"].includes(x.kind)) return "objections";
+  if (["evidence", "evidence_gap", "gap"].includes(x.kind)) return "evidence";
+  if (["sharper", "sharper_wording"].includes(x.kind)) return "wording";
+  return "other";
+}
+
+/** A reconstructed chain as numbered steps, with the gap called out. */
+function ChainSteps({ chain }: { chain: string }) {
+  const parts = chain.split(/(\[\s*Gap:[^\]]*\])/i).filter((p) => p.trim());
+  const steps: { gap: boolean; text: string }[] = [];
+  for (const p of parts) {
+    const gap = /^\[\s*Gap:/i.test(p.trim());
+    if (gap) {
+      steps.push({ gap: true, text: p.trim().replace(/^\[\s*Gap:\s*/i, "").replace(/\]$/, "").trim() });
+    } else {
+      for (const sent of p.split(/(?<=[.?!])\s+/)) {
+        const t = sent.trim();
+        if (t) steps.push({ gap: false, text: t });
+      }
+    }
+  }
+  return (
+    <ol className="m-0 list-none space-y-1 p-0">
+      {steps.map((st, i) =>
+        st.gap ? (
+          <li key={i} className="rounded-md border border-dashed border-[#D92D20] bg-[#FEF3F2] px-2 py-1 text-[13px] text-[#9B1C1C]">
+            <span className="font-semibold">Missing step: </span>
+            {st.text}
+          </li>
+        ) : (
+          <li key={i} className="flex gap-2 text-[13px] text-[#3B404A]">
+            <span className="mt-[1px] text-[11px] font-bold text-muted">{i === 0 ? "1" : "so"}</span>
+            <span>{st.text}</span>
+          </li>
+        ),
+      )}
+    </ol>
+  );
+}
+
+function DetailBlock({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="m-0 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{label}</p>
+      <div className="mt-1 text-[13px] leading-relaxed">{children}</div>
+    </div>
+  );
+}
+
+const CROSS_REASONS = ["Already covered", "We disagree", "Not for this case"];
+
 function SuggestionCard({
   s,
   caseId,
   teamId,
+  sectionLabel,
   busy,
   reason,
   onReason,
@@ -866,6 +967,7 @@ function SuggestionCard({
   s: Hub["suggestions"][number];
   caseId: string;
   teamId: string;
+  sectionLabel: string | null;
   busy: boolean;
   reason: string;
   onReason: (v: string) => void;
@@ -873,134 +975,169 @@ function SuggestionCard({
   onCross: () => void;
   onResearch?: () => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const [crossing, setCrossing] = useState(false);
   const structured = Boolean(s.stronger_version);
   const fromMember = s.source === "member" && s.created_by_name;
+  const group = groupOf(s);
+  const kindLabel = s.fallacy_name ? `Fallacy: ${s.fallacy_name}` : (KIND_LABEL[s.kind] ?? "Suggestion");
+  const who = fromMember ? s.created_by_name : s.source === "cruxy" ? "Cruxy" : s.source === "member" ? "Teammate" : "Evidence Library";
+  // The one line a reader needs first: what is wrong, or the idea itself.
+  const headline = fromMember ? s.text : (s.weak_spot || s.text);
+  const hasDetails = Boolean(
+    s.logic_chain || s.why_weak || s.question_back || s.research_sources?.length || s.citation || (structured && (s.stronger_version?.length ?? 0) > 220),
+  );
   return (
-    <li className="rounded-[12px] border border-mist bg-[#F7F8FA] px-3 py-2.5">
-      <p className="m-0 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
-        {s.fallacy_name ? `Fallacy: ${s.fallacy_name}` : (KIND_LABEL[s.kind] ?? "Suggestion")}
-        {fromMember ? ` from ${s.created_by_name}` : s.source === "cruxy" ? " from Cruxy" : ""}
+    <li className="rounded-[14px] border border-[#E6E8EC] bg-white px-3.5 py-3 shadow-[0_1px_0_rgba(17,19,24,0.03)]">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-bold", GROUP_TONE[group])}>{kindLabel}</span>
+        {sectionLabel ? (
+          <span className="rounded-full bg-[#F1F2F4] px-2 py-0.5 text-[11px] font-semibold text-[#3B404A]">{sectionLabel}</span>
+        ) : null}
+        {s.source !== "cruxy" ? <span className="text-[11px] text-muted">from {who}</span> : null}
+      </div>
+
+      <p className={cn("m-0 mt-2 text-[14px] leading-snug text-ink", !open && "line-clamp-3")}>
+        <LinkedText text={headline} caseId={caseId} />
       </p>
+
       {structured ? (
-        <div className="mt-1 flex flex-col gap-1.5 text-sm leading-snug">
+        <div className="mt-2 rounded-lg border-l-[3px] border-[#1F7A4D] bg-[#F6FAF7] px-2.5 py-1.5">
+          <p className="m-0 text-[11px] font-bold uppercase tracking-[0.08em] text-[#1F7A4D]">
+            {fromMember ? "Suggested wording" : "Suggested fix"}
+          </p>
+          <p className={cn("m-0 mt-0.5 text-[13px] leading-relaxed text-ink", !open && "line-clamp-4")}>{s.stronger_version}</p>
+        </div>
+      ) : fromMember && onResearch ? (
+        <button
+          type="button"
+          disabled={busy}
+          className="mt-2 rounded-lg border border-mist bg-white px-2.5 py-1 text-xs font-semibold text-cardinal disabled:opacity-60"
+          onClick={onResearch}
+        >
+          {busy ? "Researching..." : "Research and draft it"}
+        </button>
+      ) : null}
+
+      {open ? (
+        <div className="mt-3 flex flex-col gap-3 border-t border-[#ECEEF1] pt-3">
           {s.logic_chain ? (
-            <p className="m-0 rounded-lg bg-white px-2 py-1.5 text-[13px] text-[#3B404A]">
-              <span className="font-semibold">Chain: </span>
-              {s.logic_chain}
-            </p>
-          ) : null}
-          {fromMember && s.text ? (
-            <p className="m-0">
-              <LinkedText text={s.text} caseId={caseId} />
-            </p>
-          ) : null}
-          {s.weak_spot && !fromMember ? (
-            <p className="m-0">
-              <LinkedText text={s.weak_spot} caseId={caseId} />
-            </p>
+            <DetailBlock label="The chain, step by step">
+              <ChainSteps chain={s.logic_chain} />
+            </DetailBlock>
           ) : null}
           {s.why_weak ? (
-            <p className="m-0 text-[13px] text-muted">
-              {fromMember ? "Where it fits: " : "Why it matters: "}
-              {s.why_weak}
-            </p>
+            <DetailBlock label={fromMember ? "Where it fits" : "Why a judge would push here"}>{s.why_weak}</DetailBlock>
           ) : null}
-          <p className="m-0 rounded-lg border-l-[3px] border-[#1F7A4D] bg-white px-2.5 py-1.5">
-            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-[#1F7A4D]">
-              {fromMember ? "Suggested wording" : "Stronger"}
-            </span>
-            {s.stronger_version}
-          </p>
           {s.question_back ? (
-            <p className="m-0 text-[13px] italic text-[#3B404A]">{s.question_back}</p>
+            <DetailBlock label="Ask yourself">
+              <span className="italic text-[#3B404A]">{s.question_back}</span>
+            </DetailBlock>
           ) : null}
+          {s.research_sources?.length ? (
+            <DetailBlock label="What Cruxy read">
+              <ul className="m-0 list-none space-y-1.5 p-0">
+                {s.research_sources.map((r) => (
+                  <li key={r.title}>
+                    {r.url ? (
+                      <a href={r.url} target="_blank" rel="noreferrer" className="font-semibold text-cardinal underline">
+                        {r.title}
+                      </a>
+                    ) : (
+                      <span className="font-semibold">{r.title}</span>
+                    )}
+                    {r.why ? <span className="block text-muted">{r.why}</span> : null}
+                  </li>
+                ))}
+              </ul>
+            </DetailBlock>
+          ) : s.citation ? (
+            <DetailBlock label="Source">{s.citation}</DetailBlock>
+          ) : null}
+          <Attr name={who} when={s.created_at_label} />
+          <ThreadInline
+            caseId={caseId}
+            teamId={teamId}
+            kind="suggestion"
+            targetId={s.id}
+            title={(s.stronger_version ?? s.text).slice(0, 80)}
+          />
         </div>
-      ) : (
-        <>
-          <p className="m-0 mt-1 text-sm leading-snug">
-            <LinkedText text={s.text} caseId={caseId} />
-          </p>
-          {fromMember && onResearch ? (
+      ) : null}
+
+      {crossing ? (
+        <div className="mt-3 rounded-lg bg-[#F7F8FA] p-2">
+          <p className="m-0 text-[12px] font-semibold text-[#3B404A]">Why set it aside? (optional)</p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {CROSS_REASONS.map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => onReason(reason === r ? "" : r)}
+                className={cn(
+                  "rounded-full px-2.5 py-1 text-[12px]",
+                  reason === r ? "bg-ink text-white" : "border border-mist bg-white text-[#3B404A]",
+                )}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+          <input
+            className="mt-1.5 h-9 w-full rounded-lg border border-mist bg-white px-2 text-xs"
+            placeholder="Or your own reason"
+            maxLength={40}
+            value={CROSS_REASONS.includes(reason) ? "" : reason}
+            disabled={busy}
+            onChange={(e) => onReason(e.target.value)}
+            aria-label="Reason to cross"
+          />
+          <div className="mt-2 flex gap-2">
             <button
               type="button"
               disabled={busy}
-              className="mt-1.5 rounded-lg border border-mist bg-white px-2.5 py-1 text-xs font-semibold text-cardinal disabled:opacity-60"
-              onClick={onResearch}
+              aria-label="Cross suggestion"
+              className="rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              onClick={onCross}
             >
-              {busy ? "Researching..." : "Research and draft it"}
+              Set aside
+            </button>
+            <button type="button" className="text-xs text-muted underline" onClick={() => setCrossing(false)}>
+              Keep it
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            aria-label="Take suggestion"
+            className="min-h-9 rounded-lg bg-ink px-3.5 text-xs font-semibold text-white disabled:opacity-60"
+            onClick={onTick}
+          >
+            Take
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            className="min-h-9 rounded-lg border border-mist bg-white px-3 text-xs font-semibold disabled:opacity-60"
+            onClick={() => setCrossing(true)}
+          >
+            Cross
+          </button>
+          {hasDetails || !open ? (
+            <button
+              type="button"
+              aria-expanded={open}
+              className="ml-auto text-xs font-semibold text-cardinal"
+              onClick={() => setOpen((v) => !v)}
+            >
+              {open ? "Less" : "Details"}
             </button>
           ) : null}
-        </>
-      )}
-      {s.research_sources?.length ? (
-        <div className="mt-1.5">
-          <p className="m-0 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
-            What Cruxy read
-          </p>
-          <ul className="m-0 mt-1 list-none space-y-1 p-0 text-[12px] leading-snug">
-            {s.research_sources.map((r) => (
-              <li key={r.title}>
-                {r.url ? (
-                  <a href={r.url} target="_blank" rel="noreferrer" className="font-semibold text-cardinal underline">
-                    {r.title}
-                  </a>
-                ) : (
-                  <span className="font-semibold">{r.title}</span>
-                )}
-                <span className="text-muted">: {r.why}</span>
-              </li>
-            ))}
-          </ul>
         </div>
-      ) : s.citation ? (
-        <p className="m-0 mt-1 text-[11px] text-muted">Source: {s.citation}</p>
-      ) : null}
-      <Attr
-        name={
-          s.source === "cruxy"
-            ? "Cruxy"
-            : s.source === "member"
-              ? s.created_by_name
-              : "Evidence Library"
-        }
-        when={s.created_at_label}
-      />
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          disabled={busy}
-          aria-label="Take suggestion"
-          className="rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
-          onClick={onTick}
-        >
-          Take
-        </button>
-        <input
-          className="min-h-11 w-24 rounded-lg border border-mist bg-white px-2 text-xs"
-          placeholder="Why not?"
-          maxLength={40}
-          value={reason}
-          disabled={busy}
-          onChange={(e) => onReason(e.target.value)}
-          aria-label="Reason to cross"
-        />
-        <button
-          type="button"
-          disabled={busy}
-          aria-label="Cross suggestion"
-          className="rounded-lg border border-mist bg-white px-2.5 py-1.5 text-xs font-semibold disabled:opacity-60"
-          onClick={onCross}
-        >
-          Cross
-        </button>
-      </div>
-      <ThreadInline
-        caseId={caseId}
-        teamId={teamId}
-        kind="suggestion"
-        targetId={s.id}
-        title={(s.stronger_version ?? s.text).slice(0, 80)}
-      />
+      )}
     </li>
   );
 }
