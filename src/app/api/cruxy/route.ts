@@ -3,6 +3,7 @@ import { callCruxy } from "@/lib/cruxy/callCruxy";
 import { getSession } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
+export const maxDuration = 120;
 
 export async function POST(req: Request) {
   const session = await getSession();

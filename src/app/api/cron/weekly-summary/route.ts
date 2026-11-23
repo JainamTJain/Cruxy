@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sendWeeklySummaryEmail } from "@/lib/email/weekly-summary";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 /**
  * Vercel cron: Sunday 18:00 America/Los_Angeles.

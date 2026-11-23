@@ -5,6 +5,7 @@ import { callCruxy } from "@/lib/cruxy/callCruxy";
 import { isSampleDataMode } from "@/lib/db/config";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 /**
  * Explain a selected term: G-style glossary first, then Cruxy one-liner.

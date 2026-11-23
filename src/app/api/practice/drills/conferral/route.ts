@@ -3,6 +3,9 @@ import { getSession } from "@/lib/auth/session";
 import { pickModeratorQuestion, checkConferralSilence } from "@/lib/practice/drills-extra";
 import { logActivity } from "@/lib/db/repository";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
   const session = await getSession();
   if (!session) {

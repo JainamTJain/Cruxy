@@ -26,6 +26,12 @@ export default function NotFound() {
           >
             Open cases
           </Link>
+          <Link
+            href="/help"
+            className="inline-flex h-11 items-center rounded-xl border border-mist bg-white px-4 text-sm font-semibold"
+          >
+            Report a problem
+          </Link>
         </div>
       </div>
     </main>

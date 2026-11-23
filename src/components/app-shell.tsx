@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AccessProvider } from "@/components/access/access-provider";
@@ -11,21 +12,41 @@ import { SpokenTranscriptHost } from "@/components/access/spoken-transcript";
 import { useFocusTrap } from "@/components/access/focus-trap";
 import { CruxWordmark } from "@/components/crux-wordmark";
 import { CruxyProvider, useCruxy } from "@/components/cruxy/cruxy-context";
-import { CruxyDrawer } from "@/components/cruxy/cruxy-drawer";
 import { CruxyLamp } from "@/components/cruxy/cruxy-lamp";
-import { FloatingCruxy } from "@/components/cruxy/floating-cruxy";
 import { preloadCruxyPoses } from "@/components/cruxy/mood/poses";
-import { ConfettiHost } from "@/components/motion/confetti";
-import { GuidedTour, startGuidedTour } from "@/components/product/guided-tour";
+import { startGuidedTour } from "@/components/product/guided-tour";
 import { ReportProblemButton } from "@/components/help/report-problem-button";
 import { NotificationBell } from "@/components/notification-bell";
-import {
-  GlobalSearchHost,
-  SearchOpenButton,
-} from "@/components/search/command-palette";
+import { SearchOpenButton } from "@/components/search/command-palette";
 import { registerCruxServiceWorker } from "@/lib/offline/register-sw";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/types";
+
+/** Heavy chrome: load after first paint so Today/Practice open faster on phones. */
+const FloatingCruxy = dynamic(
+  () =>
+    import("@/components/cruxy/floating-cruxy").then((m) => m.FloatingCruxy),
+  { ssr: false },
+);
+const CruxyDrawer = dynamic(
+  () => import("@/components/cruxy/cruxy-drawer").then((m) => m.CruxyDrawer),
+  { ssr: false },
+);
+const ConfettiHost = dynamic(
+  () => import("@/components/motion/confetti").then((m) => m.ConfettiHost),
+  { ssr: false },
+);
+const GuidedTour = dynamic(
+  () => import("@/components/product/guided-tour").then((m) => m.GuidedTour),
+  { ssr: false },
+);
+const GlobalSearchHost = dynamic(
+  () =>
+    import("@/components/search/command-palette").then(
+      (m) => m.GlobalSearchHost,
+    ),
+  { ssr: false },
+);
 
 type Me = {
   authenticated: boolean;

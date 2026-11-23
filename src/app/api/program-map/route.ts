@@ -23,6 +23,8 @@ import { latestSyncRun } from "@/lib/db/library-repository";
 import { APP_TIME_ZONE, appToday } from "@/lib/time/app-day";
 
 export const runtime = "nodejs";
+/** Catalog fan-out for Program map and Today. */
+export const maxDuration = 60;
 
 export async function GET() {
   const session = await getSession();
@@ -32,8 +34,15 @@ export async function GET() {
 
   await ensureSampleLibraryBootstrapped(session.personId).catch(() => null);
 
-  const person = await getPersonById(session.personId);
-  const lastVisit = await getLastVisit(session.personId);
+  const [person, lastVisit] = await Promise.all([
+    getPersonById(session.personId),
+    getLastVisit(session.personId),
+  ]);
+
+  const isAdminViewer =
+    session.adminView &&
+    (session.role === "tech_admin" || session.role === "coach_admin");
+
   const [
     teams,
     cases,
@@ -47,6 +56,9 @@ export async function GET() {
     assignments,
     libraryCounts,
     latestDriveSync,
+    roles,
+    wave5,
+    activityFeedMod,
   ] = await Promise.all([
     listTeams(),
     listCases(),
@@ -63,6 +75,9 @@ export async function GET() {
       passages: 0,
     })),
     latestSyncRun().catch(() => null),
+    listCaseRoles().catch(() => []),
+    import("@/lib/practice/wave5"),
+    import("@/lib/home/activity-feed"),
   ]);
 
   const totals = {
@@ -74,7 +89,8 @@ export async function GET() {
     ),
   };
 
-  await recordLastVisit(session.personId);
+  // Do not block the response on writing the visit stamp.
+  void recordLastVisit(session.personId);
 
   const names = new Map(people.map((p) => [p.id, p.name]));
   const nextCompetition = competitions[0] ?? null;
@@ -113,7 +129,6 @@ export async function GET() {
   }
 
   // Leads on each cell come from the real role assignments.
-  const roles = await listCaseRoles().catch(() => []);
   const leadsByCell = new Map<string, string[]>();
   for (const r of roles) {
     if (r.role !== "lead_1" && r.role !== "lead_2") continue;
@@ -183,18 +198,25 @@ export async function GET() {
     day: "numeric",
   });
 
-  const { listTodaySessionsForPerson, listRecentMemberPractices } = await import(
-    "@/lib/practice/wave5"
-  );
-  const todaySessions = await listTodaySessionsForPerson({
-    personId: session.personId,
-    teamId: session.teamId,
-  });
-  const memberPractices =
-    session.adminView &&
-    (session.role === "tech_admin" || session.role === "coach_admin")
-      ? await listRecentMemberPractices(8)
-      : [];
+  const [todaySessions, memberPractices, changesFeed] = await Promise.all([
+    wave5.listTodaySessionsForPerson({
+      personId: session.personId,
+      teamId: session.teamId,
+    }),
+    isAdminViewer ? wave5.listRecentMemberPractices(8) : Promise.resolve([]),
+    Promise.resolve(
+      activityFeedMod.buildActivityFeed({
+        entries: changes,
+        personNames: names,
+        cases: cases.map((c) => ({
+          id: c.id,
+          number: c.number,
+          title: c.title,
+        })),
+        limit: 12,
+      }),
+    ),
+  ]);
 
   // Prefer joining today's practice over filler next-actions.
   for (const s of todaySessions.slice(0, 2)) {
@@ -241,20 +263,7 @@ export async function GET() {
     teamAverages: avgs,
     competition: nextCompetition,
     daysToCompetition: days == null ? null : Math.max(0, days),
-    changes: (
-      await import("@/lib/home/activity-feed").then(({ buildActivityFeed }) =>
-        buildActivityFeed({
-          entries: changes,
-          personNames: names,
-          cases: cases.map((c) => ({
-            id: c.id,
-            number: c.number,
-            title: c.title,
-          })),
-          limit: 12,
-        }),
-      )
-    ),
+    changes: changesFeed,
     nextActions: nextActions.slice(0, 3),
     lastVisit,
     todayLabel,

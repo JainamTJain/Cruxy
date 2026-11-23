@@ -9,6 +9,7 @@ import {
 } from "@/lib/team/solo-mock";
 
 export const runtime = "nodejs";
+export const maxDuration = 180;
 
 export async function POST(req: Request) {
   const session = await getSession();

@@ -7,6 +7,9 @@ import {
   refreshRetroThemes,
 } from "@/lib/season/service";
 
+export const runtime = "nodejs";
+export const maxDuration = 180;
+
 export async function GET(req: Request) {
   const session = await getSession();
   if (!session) {

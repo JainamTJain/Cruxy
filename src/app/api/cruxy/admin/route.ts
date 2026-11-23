@@ -5,6 +5,7 @@ import { getPersonById } from "@/lib/db/repository";
 import { answerAdminProgramQuestion } from "@/lib/cruxy/admin-mode";
 
 export const runtime = "nodejs";
+export const maxDuration = 180;
 
 export async function POST(req: Request) {
   const session = await getSession();

@@ -5,6 +5,7 @@ import { readPlan } from "@/lib/cruxy/actions/plan-token";
 import { getPersonById } from "@/lib/db/repository";
 
 export const runtime = "nodejs";
+export const maxDuration = 120;
 
 /** Apply a plan Cruxy proposed, after the person tapped Apply. */
 export async function POST(req: Request) {

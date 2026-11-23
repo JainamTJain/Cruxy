@@ -11,6 +11,9 @@ import { listCorrections } from "@/lib/db/supabase/judge-card-extra";
 import { getJudgeGroundingPack } from "@/lib/practice/judge-grounding";
 import { countHumanCards } from "@/lib/db/supabase/judge-card-extra";
 
+export const runtime = "nodejs";
+export const maxDuration = 180;
+
 /**
  * F-265: technical admin sees card analysis, item uses, overrides, corrections.
  * Members never hit this route.

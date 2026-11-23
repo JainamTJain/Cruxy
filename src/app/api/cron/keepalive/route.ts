@@ -3,6 +3,7 @@ import { authorizeCron } from "@/lib/ops/cron-auth";
 import { runSupabaseKeepalive } from "@/lib/ops/keepalive";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 /**
  * Daily ping so the free Supabase project never pauses.

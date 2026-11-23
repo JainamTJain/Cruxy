@@ -17,6 +17,9 @@ import type { AppeItemKey, CardScore, JudgeCard } from "@/lib/practice/types";
 import { nowIso } from "@/lib/utils";
 import { logActivity } from "@/lib/db/repository";
 
+export const runtime = "nodejs";
+export const maxDuration = 180;
+
 export async function POST(req: Request) {
   const session = await getSession();
   let body: {
