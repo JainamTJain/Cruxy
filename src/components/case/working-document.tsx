@@ -560,6 +560,7 @@ export function WorkingDocument({
                 data.sectionDefs.find((d) => d.key === k)?.label ?? "the document"
               }
               onUndo={(id) => void post({ action: "undo_take", suggestionId: id })}
+              onResearch={(id) => void post({ action: "research_idea", suggestionId: id })}
               busy={editBusy}
               crossReasons={crossReasons}
               setCrossReasons={setCrossReasons}
@@ -761,6 +762,7 @@ function SuggestionsRail({
   took,
   sectionLabel,
   onUndo,
+  onResearch,
   busy,
   crossReasons,
   setCrossReasons,
@@ -779,6 +781,7 @@ function SuggestionsRail({
   setCrossReasons: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   onTick: (id: string) => void;
   onCross: (id: string) => void;
+  onResearch?: (id: string) => void;
 }) {
   const total = suggestions.length + (queue?.count ?? 0);
   // Teammates' ideas first, then breaks in the reasoning, then the rest.
@@ -844,6 +847,7 @@ function SuggestionsRail({
                 onTick(s.id);
               }}
               onCross={() => onCross(s.id)}
+              onResearch={onResearch ? () => onResearch(s.id) : undefined}
             />
           ))}
         </ul>
@@ -869,6 +873,7 @@ function SuggestionCard({
   onReason,
   onTick,
   onCross,
+  onResearch,
 }: {
   s: Hub["suggestions"][number];
   caseId: string;
@@ -878,6 +883,7 @@ function SuggestionCard({
   onReason: (v: string) => void;
   onTick: () => void;
   onCross: () => void;
+  onResearch?: () => void;
 }) {
   const structured = Boolean(s.stronger_version);
   const fromMember = s.source === "member" && s.created_by_name;
@@ -917,9 +923,21 @@ function SuggestionCard({
           ) : null}
         </div>
       ) : (
-        <p className="m-0 mt-1 text-sm leading-snug">
-          <LinkedText text={s.text} caseId={caseId} />
-        </p>
+        <>
+          <p className="m-0 mt-1 text-sm leading-snug">
+            <LinkedText text={s.text} caseId={caseId} />
+          </p>
+          {fromMember && onResearch ? (
+            <button
+              type="button"
+              disabled={busy}
+              className="mt-1.5 rounded-lg border border-mist bg-white px-2.5 py-1 text-xs font-semibold text-cardinal disabled:opacity-60"
+              onClick={onResearch}
+            >
+              {busy ? "Researching..." : "Research and draft it"}
+            </button>
+          ) : null}
+        </>
       )}
       {s.research_sources?.length ? (
         <div className="mt-1.5">

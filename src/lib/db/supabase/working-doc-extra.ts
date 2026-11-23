@@ -708,3 +708,33 @@ export async function reopenSuggestion(id: string): Promise<void> {
     .eq("id", id);
   if (error) throw new Error(`reopenSuggestion: ${error.message}`);
 }
+
+/** Replace a raw idea with Cruxy's researched draft (same row, same author). */
+export async function updateSuggestionDraft(
+  id: string,
+  patch: Partial<
+    Pick<
+      WorkingSuggestionRow,
+      | "kind"
+      | "text"
+      | "section_key"
+      | "citation"
+      | "weak_spot"
+      | "why_weak"
+      | "stronger_version"
+      | "question_back"
+      | "research_sources"
+    >
+  >,
+): Promise<void> {
+  if (isSampleDataMode()) {
+    const i = sampleSuggestions.findIndex((s) => s.id === id);
+    if (i >= 0) sampleSuggestions[i] = { ...sampleSuggestions[i]!, ...patch };
+    return;
+  }
+  const { error } = await getServiceSupabase()
+    .from("working_doc_suggestions")
+    .update(patch)
+    .eq("id", id);
+  if (error) throw new Error(`updateSuggestionDraft: ${error.message}`);
+}

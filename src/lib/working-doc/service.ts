@@ -812,7 +812,7 @@ export async function tellIdeaFromWorkingDoc(opts: {
     "A teammate";
   const cleaned = opts.text
     .trim()
-    .replace(/^(i think|maybe|what if|idea:|my idea is)\s*/i, "")
+    .replace(/^(i think|maybe|what if|idea:|my idea is|search on|search for|look into|look up|research)\s*:?\s*/i, "")
     .replace(/[·—–]/g, ",");
   if (cleaned.length < 8) {
     throw new Error("Write a bit more so the team can tick or cross it.");
@@ -826,7 +826,7 @@ export async function tellIdeaFromWorkingDoc(opts: {
     teamId: opts.teamId,
     personId: opts.personId,
     name,
-    idea: cleaned,
+    idea: opts.text.trim().replace(/[·—–]/g, ","),
   }).catch(() => null);
   const suggestionText = cleaned.endsWith(".")
     ? `${name}'s idea: ${cleaned}`
@@ -868,4 +868,80 @@ export async function tellIdeaFromWorkingDoc(opts: {
     meta: { caseId: opts.caseId, via: "working_document" },
   });
   return sug;
+}
+
+/**
+ * Research and draft a teammate's idea that is still in its raw form (told
+ * before research existed, or when research failed). Keeps their name on it.
+ */
+export async function researchPendingIdea(opts: {
+  caseId: string;
+  teamId: string;
+  personId: string;
+  suggestionId: string;
+}): Promise<boolean> {
+  const { getSuggestionById, updateSuggestionDraft } = await import(
+    "@/lib/db/supabase/working-doc-extra"
+  );
+  const s = await getSuggestionById(opts.suggestionId);
+  if (!s || s.team_id !== opts.teamId || s.status !== "pending" || s.source !== "member") {
+    return false;
+  }
+  const people = await listPeopleFull();
+  const name =
+    people.find((p) => p.id === s.created_by)?.name?.split(" ")[0] ?? "A teammate";
+  const idea = s.text.replace(/^[A-Z][\w'-]*'s idea[^:]*:\s*/, "").trim();
+  if (idea.length < 8) return false;
+  const brief = await ensureTeamBrief(opts);
+  const { draftIdea } = await import("@/lib/working-doc/idea-draft");
+  const draft = await draftIdea({
+    caseId: opts.caseId,
+    briefId: brief.id,
+    teamId: opts.teamId,
+    personId: s.created_by ?? opts.personId,
+    name,
+    idea,
+  }).catch(() => null);
+  if (!draft) return false;
+  await updateSuggestionDraft(s.id, {
+    kind: draft.kind,
+    text: draft.text.replace(/[·—–]/g, ",").slice(0, 1800),
+    section_key: draft.sectionKey,
+    citation: draft.citation,
+    weak_spot: draft.weakSpot,
+    why_weak: draft.why,
+    stronger_version: draft.stronger,
+    question_back: draft.questionBack,
+    research_sources: draft.sources,
+  });
+  await logActivity({
+    person_id: opts.personId,
+    action: "working_doc_idea_researched",
+    target: s.id,
+    meta: { caseId: opts.caseId },
+  });
+  return true;
+}
+
+const researching = new Set<string>();
+
+/** After a teammate opens the document: research up to two raw ideas still waiting. */
+export async function researchRawIdeas(opts: {
+  caseId: string;
+  teamId: string;
+  personId: string;
+}): Promise<void> {
+  const { listPendingSuggestions } = await import("@/lib/db/supabase/working-doc-extra");
+  const pending = await listPendingSuggestions({ teamId: opts.teamId, caseId: opts.caseId });
+  const raw = pending
+    .filter((s) => s.source === "member" && !s.stronger_version && !researching.has(s.id))
+    .slice(0, 2);
+  for (const s of raw) {
+    researching.add(s.id);
+    try {
+      await researchPendingIdea({ ...opts, suggestionId: s.id });
+    } finally {
+      researching.delete(s.id);
+    }
+  }
 }

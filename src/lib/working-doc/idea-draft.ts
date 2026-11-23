@@ -45,14 +45,17 @@ const draftSchema = z.object({
     z.enum(sectionTuple).catch("claims"),
   ),
   /** How it connects to the team's chain: which step it supports, adds or repairs. */
-  fit: clip(400).pipe(z.string().min(10)),
+  fit: clip(400).catch(""),
   /** Text ready to Take into that section, in the team's voice. */
-  draft: clip(900).pipe(z.string().min(10)),
+  draft: z.preprocess(
+    (v) => (typeof v === "string" ? v : typeof v === "object" && v ? Object.values(v).join(" ") : v),
+    clip(1200).pipe(z.string().min(10)),
+  ),
   /** The sentence it would replace, copied exactly, or null when it is new. */
   replaces: optClip(400),
   /** What a judge would push on, and the evidence still needed. */
-  risk: clip(400).pipe(z.string().min(8)),
-  question_back: clip(260).pipe(z.string().min(8)),
+  risk: clip(400).catch(""),
+  question_back: clip(260).pipe(z.string().min(8)).catch("Which part of this would you defend first in front of a judge? What do you think?"),
   truth_source_id: optClip(80),
   /** Outside sources actually retrieved (literature list or web search), never invented. */
   sources: z
@@ -157,6 +160,7 @@ export async function draftIdea(opts: {
       sharedSystemPrefix(),
       "",
       `Task: ${opts.name} on this team has an idea for their Ethics Bowl working document. Do the work a good teammate would before bringing it to the team:`,
+      "0. Read what kind of idea it is. Ideas come in any shape: a claim, a rough note, an analogy or example, a thought experiment, a thinker or paper, a fact or statistic, a case or news story, an objection, a question, a link, or an instruction like 'search on X' or 'look into Y'. Work out what the person is pointing at and what job it could do in this argument (support with backing, analogy, reply to an objection, a stakeholder, a judge question, a sharper claim). If it names something to look up, look it up first and confirm the facts before using them.",
       "1. Research it widely, not just in the team's own material. Use:",
       "   a. the truth source and library passages below;",
       "   b. the open scholarship list below (philosophy papers and books);",
@@ -165,7 +169,7 @@ export async function draftIdea(opts: {
       "   Find what backs it and what cuts against it. A fact, quote or source may only be used if it came from one of these retrieved materials; put each outside source you rely on in sources with its link and why it matters. Never invent a source, a quote or a statistic.",
       "2. Place it: rebuild the team's chain (supports so claim, claim so answer, objection and reply) and decide which step this idea supports, adds or repairs. Say so in fit.",
       "3. Test it: does it repeat what the document already says, conflict with another claim, or need a premise the team hasn't stated? Put what a judge would push on, and any evidence still missing, in risk.",
-      "4. Draft it: write the text exactly as it should appear in that section, in the team's voice and matching the section's structure (Claim N:, Logic line:, S1., Backing:, Q:, A:). Improve the idea where the research shows how, but keep it recognizably theirs. If it replaces an existing sentence, copy that sentence exactly into replaces.",
+      "4. Draft it sharper than it came in: write the text exactly as it should appear in that section, in the team's voice and matching the section's structure (Claim N:, Logic line:, S1., Backing:, Q:, A:). Turn a pointer into the finished piece (for 'search on the Fisher Protocol', explain the thought experiment in one line with its source and say exactly what it shows for this case's claim). Spell out the link to the claim it serves, use the strongest verified detail from the research, cut filler, and answer the obvious judge pushback inside the draft when you can. Keep it recognizably theirs. Never paste the person's raw words back as the draft. If it replaces an existing sentence, copy that sentence exactly into replaces.",
       "Never name another team. Plain words. No em dashes.",
       `section_key must be one of: ${WORKING_SECTION_KEYS.join(", ")}.`,
       'Return JSON: {"section_key","fit","draft","replaces","risk","question_back","truth_source_id","sources":[{"title","url","why"}],"frameworks":["Framework: one plain line on how it bears on the idea"],"verdict"} where verdict is strengthens, repeats or conflicts, and question_back is one question ending with What do you think?',
@@ -214,7 +218,7 @@ export async function draftIdea(opts: {
     sources,
     sectionKey: d.section_key,
     kind: KIND_FOR_SECTION[d.section_key],
-    text: `${lead} ${d.draft} Where it fits: ${d.fit}${lenses} Watch for: ${d.risk} ${question}`,
+    text: `${lead} ${d.draft} ${d.fit ? `Where it fits: ${d.fit}` : ""}${lenses}${d.risk ? ` Watch for: ${d.risk}` : ""} ${question}`,
     weakSpot: d.replaces ? `"${d.replaces}": ${opts.name} suggests a stronger version.` : null,
     why: `${d.fit}${lenses}`,
     stronger: d.draft,

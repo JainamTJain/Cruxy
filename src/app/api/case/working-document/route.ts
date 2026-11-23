@@ -20,6 +20,8 @@ import {
   tellIdeaFromWorkingDoc,
   tickSuggestion,
   undoTakeSuggestion,
+  researchPendingIdea,
+  researchRawIdeas,
 } from "@/lib/working-doc/service";
 import { runCoherenceCheck } from "@/lib/working-doc/coherence";
 
@@ -71,13 +73,20 @@ export async function GET(req: Request) {
       teamId,
       personId: session.personId,
     }).catch(() => false);
+    const { after } = await import("next/server");
     if (started) {
-      const { after } = await import("next/server");
       const { critiqueNow } = await import("@/lib/critique/run");
       after(() =>
         critiqueNow([{ caseId, teamId }], session.personId).then(() => undefined),
       );
     }
+    // Ideas told before research existed (or whose research failed) get
+    // researched and drafted now.
+    after(() =>
+      researchRawIdeas({ caseId, teamId, personId: session.personId }).catch(
+        () => undefined,
+      ),
+    );
   }
 
   const hub = await getWorkingDocumentHub({
@@ -261,6 +270,27 @@ export async function POST(req: Request) {
         took = res.took.applied
           ? { suggestionId: body.suggestionId, sectionKey: res.took.sectionKey }
           : { suggestionId: body.suggestionId, sectionKey: null };
+        break;
+      }
+      case "research_idea": {
+        if (!body.suggestionId) {
+          return NextResponse.json(
+            { error: "Missing suggestion." },
+            { status: 400 },
+          );
+        }
+        const ok = await researchPendingIdea({
+          caseId,
+          teamId,
+          personId: session.personId,
+          suggestionId: body.suggestionId,
+        });
+        if (!ok) {
+          return NextResponse.json(
+            { error: "Cruxy couldn't research that idea just now. Try again in a minute." },
+            { status: 502 },
+          );
+        }
         break;
       }
       case "undo_take": {
