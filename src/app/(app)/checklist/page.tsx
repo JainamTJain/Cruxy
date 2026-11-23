@@ -17,20 +17,33 @@ export default function ChecklistPage() {
   const [complete, setComplete] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [championId, setChampionId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   async function load() {
-    const res = await fetch("/api/checklist");
-    if (!res.ok) return;
-    const data = (await res.json()) as {
-      items: Item[];
-      complete: boolean;
-    };
-    setItems(data.items);
-    setComplete(data.complete);
-    const ch = await fetch("/api/auth/champion");
-    if (ch.ok) {
-      const c = (await ch.json()) as { championId?: string | null };
-      setChampionId(c.championId ?? null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/checklist");
+      if (!res.ok) {
+        setError("Could not load the checklist.");
+        return;
+      }
+      const data = (await res.json()) as {
+        items: Item[];
+        complete: boolean;
+      };
+      setItems(data.items);
+      setComplete(data.complete);
+      setError(null);
+      const ch = await fetch("/api/auth/champion");
+      if (ch.ok) {
+        const c = (await ch.json()) as { championId?: string | null };
+        setChampionId(c.championId ?? null);
+      }
+    } catch {
+      setError("Could not reach the checklist. Check signal and try again.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -39,26 +52,37 @@ export default function ChecklistPage() {
   }, []);
 
   async function toggle(key: string, done: boolean) {
+    if (busy) return;
     setBusy(key);
     try {
-      await fetch("/api/checklist", {
+      const res = await fetch("/api/checklist", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ key, done: !done }),
       });
+      if (!res.ok) {
+        setError("Could not update that step.");
+        return;
+      }
       await load();
+    } catch {
+      setError("Could not update that step.");
     } finally {
       setBusy(null);
     }
   }
 
   async function becomeChampion() {
-    await fetch("/api/auth/champion", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "set" }),
-    });
-    await load();
+    try {
+      await fetch("/api/auth/champion", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "set" }),
+      });
+      await load();
+    } catch {
+      setError("Could not set the champion.");
+    }
   }
 
   const done = items.filter((i) => i.done).length;
@@ -71,6 +95,17 @@ export default function ChecklistPage() {
         {complete ? ", and you are finished" : ""}. Open each item, then mark it
         done.
       </PageIntro>
+      {error ? (
+        <p className="text-sm text-cardinal">
+          {error}{" "}
+          <button type="button" className="underline" onClick={() => void load()}>
+            Try again
+          </button>
+        </p>
+      ) : null}
+      {loading && items.length === 0 ? (
+        <p className="text-sm text-muted">Loading checklist…</p>
+      ) : null}
       <ul className="space-y-3">
         {items.map((item) => (
           <li

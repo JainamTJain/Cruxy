@@ -76,13 +76,17 @@ export default function TeamCalendarPage() {
   const [slotC, setSlotC] = useState("");
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/team/calendar");
-    if (!res.ok) {
-      setStatus("Could not load the calendar.");
-      return;
+    try {
+      const res = await fetch("/api/team/calendar");
+      if (!res.ok) {
+        setStatus("Could not load the calendar.");
+        return;
+      }
+      setData((await res.json()) as Payload);
+      setStatus(null);
+    } catch {
+      setStatus("Could not reach the calendar. Check signal and try again.");
     }
-    setData((await res.json()) as Payload);
-    setStatus(null);
   }, []);
 
   useEffect(() => {

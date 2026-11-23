@@ -113,16 +113,18 @@ export default function HomePage() {
       .then(setData)
       .catch((e: Error) => setError(e.message));
     void fetch("/api/notifications?unread=1")
-      .then((r) => r.json())
-      .then(
-        (d: { notifications?: MentionNote[] }) => {
-          setMentions(
-            (d.notifications ?? []).filter(
-              (n) => n.kind === "chat_mention" && !n.read_at,
-            ),
-          );
-        },
-      )
+      .then(async (r) => {
+        if (!r.ok) return;
+        return r.json() as Promise<{ notifications?: MentionNote[] }>;
+      })
+      .then((d) => {
+        if (!d) return;
+        setMentions(
+          (d.notifications ?? []).filter(
+            (n) => n.kind === "chat_mention" && !n.read_at,
+          ),
+        );
+      })
       .catch(() => undefined);
   }, [load]);
 
@@ -159,8 +161,24 @@ export default function HomePage() {
     }
   }
 
-  if (error) {
-    return <p className="text-sm text-cardinal">{error}</p>;
+  if (error && !data) {
+    return (
+      <main className="flex flex-col gap-3">
+        <p className="text-sm text-cardinal">{error}</p>
+        <button
+          type="button"
+          className="w-fit min-h-11 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white"
+          onClick={() => {
+            setError(null);
+            void load()
+              .then(setData)
+              .catch((e: Error) => setError(e.message));
+          }}
+        >
+          Try again
+        </button>
+      </main>
+    );
   }
   if (!data) {
     return <LoadingGenie label="Loading program map..." />;
@@ -228,7 +246,7 @@ export default function HomePage() {
           <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
             {todayLabel}
           </span>
-          <h1 className="font-display m-0 text-[56px] font-extrabold leading-[0.95] tracking-[-0.03em]">
+          <h1 className="font-display m-0 text-[36px] font-extrabold leading-[0.95] tracking-[-0.03em] sm:text-[48px] lg:text-[56px]">
             Where the program stands
           </h1>
         </div>

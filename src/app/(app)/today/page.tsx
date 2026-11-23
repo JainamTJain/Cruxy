@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
 import {
   TodayFocus,
@@ -26,19 +26,50 @@ type Payload = {
 export default function TodayPage() {
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    void fetch("/api/product/today")
-      .then(async (r) => {
-        if (!r.ok) throw new Error("Could not load Today");
-        return r.json() as Promise<Payload>;
-      })
-      .then(setData)
-      .catch((e: Error) => setError(e.message));
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const ac = new AbortController();
+    const timeout = window.setTimeout(() => ac.abort(), 15_000);
+    try {
+      const r = await fetch("/api/product/today", { signal: ac.signal });
+      if (!r.ok) throw new Error("Could not load Today");
+      const json = (await r.json()) as Payload;
+      setData(json);
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") {
+        setError("Today is taking too long. Check signal and try again.");
+      } else {
+        setError(e instanceof Error ? e.message : "Could not load Today");
+      }
+    } finally {
+      window.clearTimeout(timeout);
+      setLoading(false);
+    }
   }, []);
 
-  if (error) {
-    return <p className="text-sm text-cardinal">{error}</p>;
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  if (error && !data) {
+    return (
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-3 pb-10">
+        <p className="text-sm text-cardinal">{error}</p>
+        <button
+          type="button"
+          className="w-fit min-h-11 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white"
+          onClick={() => void load()}
+        >
+          Try again
+        </button>
+      </main>
+    );
+  }
+  if (loading && !data) {
+    return <LoadingGenie label="Loading Today..." />;
   }
   if (!data) {
     return <LoadingGenie label="Loading Today..." />;
@@ -54,7 +85,7 @@ export default function TodayPage() {
         <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">
           {data.todayLabel ?? "Today"}
         </p>
-        <h1 className="font-display mt-1 text-[40px] font-extrabold leading-none tracking-[-0.02em] sm:text-[48px]">
+        <h1 className="font-display mt-1 text-[36px] font-extrabold leading-none tracking-[-0.02em] sm:text-[48px]">
           Hi {data.personName.split(" ")[0]}
         </h1>
         <p className="mt-2 max-w-md text-sm text-muted">
@@ -65,6 +96,19 @@ export default function TodayPage() {
           <TailoredLine />
         </div>
       </div>
+
+      {error ? (
+        <p className="rounded-xl border border-cardinal/30 bg-cardinal/5 px-3 py-2 text-sm text-cardinal">
+          {error}{" "}
+          <button
+            type="button"
+            className="underline"
+            onClick={() => void load()}
+          >
+            Retry
+          </button>
+        </p>
+      ) : null}
 
       <WinStrip
         daysLeft={data.daysToCompetition}
@@ -89,14 +133,14 @@ export default function TodayPage() {
           <OneTapJudgeDrill caseId={data.leadCase?.id} />
           <Link
             href="/regional"
-            className="inline-flex items-center justify-center rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-white"
+            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-white"
           >
             Round card and timer
           </Link>
           {Date.now() >= Date.UTC(2026, 11, 5, 8) ? (
             <Link
               href="/season"
-              className="inline-flex items-center justify-center rounded-xl border border-ink/15 bg-white px-4 py-3 text-sm font-semibold text-ink"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-ink/15 bg-white px-4 py-3 text-sm font-semibold text-ink"
             >
               After the regional
             </Link>
