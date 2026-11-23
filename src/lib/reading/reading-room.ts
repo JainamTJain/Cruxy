@@ -8,6 +8,7 @@ import "server-only";
 
 import { isSampleDataMode } from "@/lib/db/config";
 import { logActivity } from "@/lib/db/repository";
+import { readStore, updateStore } from "@/lib/db/sample-store";
 import { getServiceSupabase } from "@/lib/db/supabase/client";
 import {
   digestText,
@@ -51,10 +52,6 @@ export type ReadingView = {
   textError: string | null;
 };
 
-const sampleAnnotations: ReadingAnnotation[] = [];
-const sampleWebPassages = new Map<string, { ord: number; anchor: string | null; text: string }[]>();
-const sampleWebDigest = new Map<string, ReadingDigest | null>();
-
 /** Fetch, split and digest a web reading the first time someone opens it. */
 async function ensureWebText(row: {
   id: string;
@@ -69,8 +66,22 @@ async function ensureWebText(row: {
     const parts = splitPassages(text).map((p, i) => ({ ord: i, anchor: p.anchor, text: p.text }));
     const digest = await digestText({ caseId: row.case_id, title: row.title, text, personId }).catch(() => null);
     if (isSampleDataMode()) {
-      sampleWebPassages.set(row.id, parts);
-      sampleWebDigest.set(row.id, digest);
+      await updateStore((store) => {
+        const passages =
+          store.case_open_reading_passages ?? (store.case_open_reading_passages = []);
+        for (let i = passages.length - 1; i >= 0; i--) {
+          if (passages[i]!.open_reading_id === row.id) passages.splice(i, 1);
+        }
+        for (const p of parts) {
+          passages.push({ open_reading_id: row.id, ord: p.ord, anchor: p.anchor, text: p.text });
+        }
+        const digests =
+          store.case_open_reading_digests ?? (store.case_open_reading_digests = []);
+        const di = digests.findIndex((d) => d.open_reading_id === row.id);
+        const entry = { open_reading_id: row.id, digest };
+        if (di >= 0) digests[di] = entry;
+        else digests.push(entry);
+      });
     } else {
       const sb = getServiceSupabase();
       await sb.from("case_open_reading_passages").delete().eq("open_reading_id", row.id);
@@ -109,7 +120,19 @@ export async function loadReading(opts: {
     if (isSampleDataMode()) {
       const row = (await listOpenReadings(opts.caseId)).find((r) => r.id === opts.id);
       if (!row) return null;
-      if (!sampleWebPassages.has(row.id)) await ensureWebText(row, opts.personId);
+      let store = await readStore();
+      const hasPassages = (store.case_open_reading_passages ?? []).some(
+        (p) => p.open_reading_id === row.id,
+      );
+      if (!hasPassages) await ensureWebText(row, opts.personId);
+      store = await readStore();
+      const passages = (store.case_open_reading_passages ?? [])
+        .filter((p) => p.open_reading_id === row.id)
+        .sort((a, b) => a.ord - b.ord)
+        .map(({ ord, anchor, text }) => ({ ord, anchor, text }));
+      const digest =
+        store.case_open_reading_digests?.find((d) => d.open_reading_id === row.id)
+          ?.digest ?? null;
       return {
         kind: "web",
         id: row.id,
@@ -118,9 +141,9 @@ export async function loadReading(opts: {
         sourceUrl: row.url,
         byline: [row.authors, row.year].filter(Boolean).join(", ") || null,
         why: row.why,
-        passages: sampleWebPassages.get(row.id) ?? [],
-        digest: sampleWebDigest.get(row.id) ?? null,
-        textStatus: sampleWebPassages.get(row.id)?.length ? "done" : "failed",
+        passages,
+        digest,
+        textStatus: passages.length ? "done" : "failed",
         textError: null,
       };
     }
@@ -182,7 +205,8 @@ export async function listAnnotations(opts: {
   readingId?: string;
 }): Promise<ReadingAnnotation[]> {
   if (isSampleDataMode()) {
-    return sampleAnnotations.filter(
+    const store = await readStore();
+    return (store.reading_annotations ?? []).filter(
       (a) =>
         a.team_id === opts.teamId &&
         a.case_id === opts.caseId &&
@@ -213,7 +237,10 @@ export async function addAnnotation(input: Omit<ReadingAnnotation, "id" | "creat
     created_at: nowIso(),
   };
   if (isSampleDataMode()) {
-    sampleAnnotations.push(row);
+    await updateStore((store) => {
+      const anns = store.reading_annotations ?? (store.reading_annotations = []);
+      anns.push(row);
+    });
   } else {
     const { error } = await getServiceSupabase().from("reading_annotations").insert(row);
     if (error) throw new Error(`addAnnotation: ${error.message}`);
@@ -229,8 +256,11 @@ export async function addAnnotation(input: Omit<ReadingAnnotation, "id" | "creat
 
 export async function deleteAnnotation(opts: { id: string; teamId: string; personId: string }): Promise<void> {
   if (isSampleDataMode()) {
-    const i = sampleAnnotations.findIndex((a) => a.id === opts.id && a.team_id === opts.teamId);
-    if (i >= 0) sampleAnnotations.splice(i, 1);
+    await updateStore((store) => {
+      const anns = store.reading_annotations ?? (store.reading_annotations = []);
+      const i = anns.findIndex((a) => a.id === opts.id && a.team_id === opts.teamId);
+      if (i >= 0) anns.splice(i, 1);
+    });
   } else {
     const { error } = await getServiceSupabase()
       .from("reading_annotations")

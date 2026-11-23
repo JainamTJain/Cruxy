@@ -339,6 +339,46 @@ export interface SampleStore {
   solo_case_visits?: unknown[];
   /** Case workflow v2: resumable solo Q in Practice. */
   solo_qa_sessions?: import("@/lib/db/supabase/practice-study-extra").SoloQaSession[];
+  /**
+   * Wave F reading room / imported readings (migration 00074 + 00090).
+   * Must survive migrateStoreShape: unknown keys are dropped on every read,
+   * and the next updateStore would wipe them from disk.
+   */
+  case_reading_imports?: {
+    id: string;
+    team_id: string;
+    case_id: string;
+    title: string;
+    body: string;
+    kind: string;
+    drive_file_id: string | null;
+    shared: boolean;
+    created_by: string | null;
+    created_at: string;
+  }[];
+  case_reading_opt_ins?: {
+    id: string;
+    team_id: string;
+    import_id: string;
+    opted_in_by: string | null;
+    created_at: string;
+  }[];
+  case_reading_digests?: import("@/lib/reading/import-reading").ReadingDigestRow[];
+  case_reading_passages?: (import("@/lib/reading/import-reading").ReadingPassageRow & {
+    id: string;
+  })[];
+  reading_annotations?: import("@/lib/reading/reading-room").ReadingAnnotation[];
+  /** Cached text for web open-readings opened in the reading room. */
+  case_open_reading_passages?: {
+    open_reading_id: string;
+    ord: number;
+    anchor: string | null;
+    text: string;
+  }[];
+  case_open_reading_digests?: {
+    open_reading_id: string;
+    digest: import("@/lib/reading/import-reading").ReadingDigest | null;
+  }[];
 }
 
 function emptyCaseBrainFields(): Pick<
@@ -904,6 +944,13 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     solo_handoffs: raw.solo_handoffs ?? [],
     solo_case_visits: raw.solo_case_visits ?? [],
     solo_qa_sessions: raw.solo_qa_sessions ?? [],
+    case_reading_imports: raw.case_reading_imports ?? [],
+    case_reading_opt_ins: raw.case_reading_opt_ins ?? [],
+    case_reading_digests: raw.case_reading_digests ?? [],
+    case_reading_passages: raw.case_reading_passages ?? [],
+    reading_annotations: raw.reading_annotations ?? [],
+    case_open_reading_passages: raw.case_open_reading_passages ?? [],
+    case_open_reading_digests: raw.case_open_reading_digests ?? [],
   };
 }
 

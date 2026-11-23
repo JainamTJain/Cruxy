@@ -11,7 +11,9 @@ export const COACH_STARTER = "719304";
 export const ADMIN_STARTER = "135790";
 export const MEMBER_PASS = "159753";
 export const FIRST_RUN_PASS = "258014";
+export const CASE1 = "c0000000-0000-4000-8000-000000000001";
 export const CASE9 = "c0000000-0000-4000-8000-000000000009";
+export const TEAM1 = "11111111-1111-1111-1111-111111111111";
 export const TEAM3 = "33333333-3333-3333-3333-333333333333";
 export const SESSION =
   process.env.E2E_SESSION_ID ?? "fe4b6f86-aaa4-4291-a98f-284e6d2a87f6";

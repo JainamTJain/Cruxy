@@ -16,6 +16,7 @@ import { runAgent } from "@/lib/cruxy/agents/runAgent";
 import { sharedSystemPrefix } from "@/lib/cruxy/prompts/shared";
 import { isSampleDataMode } from "@/lib/db/config";
 import { listCases, logActivity } from "@/lib/db/repository";
+import { readStore, updateStore } from "@/lib/db/sample-store";
 import { getServiceSupabase } from "@/lib/db/supabase/client";
 import { nowIso } from "@/lib/utils";
 
@@ -43,7 +44,7 @@ export type ReadingDigestRow = {
   digested_at: string | null;
 };
 
-type PassageRow = {
+export type ReadingPassageRow = {
   import_id: string;
   team_id: string;
   case_id: string;
@@ -51,9 +52,6 @@ type PassageRow = {
   anchor: string | null;
   text: string;
 };
-
-const sampleDigests: ReadingDigestRow[] = [];
-const samplePassages: (PassageRow & { id: string })[] = [];
 
 // ---------- Text extraction ----------
 
@@ -166,9 +164,12 @@ export function splitPassages(text: string): { anchor: string; text: string }[] 
 
 async function saveDigestRow(row: ReadingDigestRow): Promise<void> {
   if (isSampleDataMode()) {
-    const i = sampleDigests.findIndex((d) => d.import_id === row.import_id);
-    if (i >= 0) sampleDigests[i] = row;
-    else sampleDigests.push(row);
+    await updateStore((store) => {
+      const digests = store.case_reading_digests ?? (store.case_reading_digests = []);
+      const i = digests.findIndex((d) => d.import_id === row.import_id);
+      if (i >= 0) digests[i] = row;
+      else digests.push(row);
+    });
     return;
   }
   const { error } = await getServiceSupabase()
@@ -177,10 +178,17 @@ async function saveDigestRow(row: ReadingDigestRow): Promise<void> {
   if (error) throw new Error(`saveDigestRow: ${error.message}`);
 }
 
-async function savePassages(rows: PassageRow[]): Promise<void> {
+async function savePassages(rows: ReadingPassageRow[]): Promise<void> {
   if (!rows.length) return;
   if (isSampleDataMode()) {
-    for (const r of rows) samplePassages.push({ ...r, id: randomUUID() });
+    await updateStore((store) => {
+      const passages = store.case_reading_passages ?? (store.case_reading_passages = []);
+      const importId = rows[0]!.import_id;
+      for (let i = passages.length - 1; i >= 0; i--) {
+        if (passages[i]!.import_id === importId) passages.splice(i, 1);
+      }
+      for (const r of rows) passages.push({ ...r, id: randomUUID() });
+    });
     return;
   }
   const sb = getServiceSupabase();
@@ -196,13 +204,18 @@ export async function listReadingDigests(opts: {
   caseId: string;
 }): Promise<(ReadingDigestRow & { title: string })[]> {
   if (isSampleDataMode()) {
-    const { readStore } = await import("@/lib/db/sample-store");
-    const store = (await readStore()) as { case_reading_imports?: { id: string; title: string }[] };
-    return sampleDigests
+    const store = await readStore();
+    const digests = store.case_reading_digests ?? [];
+    const imports = store.case_reading_imports ?? [];
+    return digests
       .filter((d) => d.team_id === opts.teamId && d.case_id === opts.caseId)
       .map((d) => ({
         ...d,
-        title: store.case_reading_imports?.find((i) => i.id === d.import_id)?.title ?? d.file_name ?? d.source_url ?? "Reading",
+        title:
+          imports.find((i) => i.id === d.import_id)?.title ??
+          d.file_name ??
+          d.source_url ??
+          "Reading",
       }));
   }
   const { data, error } = await getServiceSupabase()
@@ -226,9 +239,12 @@ export async function searchReadingPassages(opts: {
 }): Promise<{ id: string; import_id: string; anchor: string | null; text: string; score: number }[]> {
   const terms = [...new Set(opts.query.toLowerCase().match(/[a-z][a-z'-]{3,}/g) ?? [])].slice(0, 16);
   if (!terms.length) return [];
-  let rows: (PassageRow & { id: string })[];
+  let rows: (ReadingPassageRow & { id: string })[];
   if (isSampleDataMode()) {
-    rows = samplePassages.filter((p) => p.team_id === opts.teamId && p.case_id === opts.caseId);
+    const store = await readStore();
+    rows = (store.case_reading_passages ?? []).filter(
+      (p) => p.team_id === opts.teamId && p.case_id === opts.caseId,
+    );
   } else {
     const { data, error } = await getServiceSupabase()
       .from("case_reading_passages")
@@ -237,7 +253,7 @@ export async function searchReadingPassages(opts: {
       .eq("case_id", opts.caseId)
       .limit(2000);
     if (error) return [];
-    rows = (data ?? []) as (PassageRow & { id: string })[];
+    rows = (data ?? []) as (ReadingPassageRow & { id: string })[];
   }
   return rows
     .map((r) => {
@@ -468,7 +484,8 @@ export async function listReadingPassages(opts: {
   teamId: string;
 }): Promise<{ ord: number; anchor: string | null; text: string }[]> {
   if (isSampleDataMode()) {
-    return samplePassages
+    const store = await readStore();
+    return (store.case_reading_passages ?? [])
       .filter((p) => p.import_id === opts.importId && p.team_id === opts.teamId)
       .sort((a, b) => a.ord - b.ord)
       .map(({ ord, anchor, text }) => ({ ord, anchor, text }));
