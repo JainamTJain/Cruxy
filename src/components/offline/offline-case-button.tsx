@@ -77,7 +77,7 @@ export function OfflineCaseButton({ caseId, teamId, className }: Props) {
       });
       // Warm the SW cache for this pack URL and C's competition routes.
       if ("caches" in window) {
-        const cache = await caches.open("crux-offline-v2");
+        const cache = await caches.open("crux-offline-v3");
         await cache.put(
           `/api/offline/pack/${caseId}?teamId=${encodeURIComponent(teamId)}`,
           new Response(raw, {

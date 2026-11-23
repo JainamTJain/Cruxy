@@ -2,10 +2,12 @@
  * Cache shell + offline pack API + C's competition/timer routes when present.
  */
 // Bump on any change here so every browser drops the old cache.
-const VERSION = "crux-offline-v2";
+const VERSION = "crux-offline-v3";
 const SHELL = [
   "/",
   "/today",
+  "/regional",
+  "/calm",
   "/case-brain",
   "/manifest.webmanifest",
   "/icons/icon-192.png",
@@ -33,7 +35,9 @@ function isOfflineApi(url) {
     url.pathname.startsWith("/api/case-home/") ||
     url.pathname.startsWith("/api/case-brain/") ||
     url.pathname.startsWith("/api/revision/") ||
-    // C Wave 9 competition day / timer (cache when those routes land)
+    url.pathname.startsWith("/api/regional") ||
+    url.pathname.startsWith("/api/calm/") ||
+    // Legacy path name kept for older packs
     url.pathname.startsWith("/api/competition/") ||
     url.pathname.startsWith("/api/practice/rounds/")
   );
@@ -43,6 +47,8 @@ function isAppNavigation(request, url) {
   return (
     request.mode === "navigate" ||
     url.pathname.startsWith("/case-brain") ||
+    url.pathname.startsWith("/regional") ||
+    url.pathname.startsWith("/calm") ||
     url.pathname.startsWith("/competition") ||
     url.pathname.startsWith("/practice/rounds") ||
     url.pathname.startsWith("/today")
