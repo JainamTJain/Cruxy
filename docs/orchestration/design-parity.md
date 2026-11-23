@@ -253,7 +253,7 @@ For each screen, every visible label, number, button and image in the reference 
 
 ## Cruxy.html
 
-- [ ] D-0240 Crux: Cruxy floating, sleeping in the lamp
+- [x] D-0240 Crux: Cruxy floating, sleeping in the lamp [`src/components/cruxy/floating-cruxy.tsx`, `cruxy-lamp.tsx`]
 - [ ] D-0241 crux
 - [ ] D-0242 Program
 - [ ] D-0243 My roadmap
@@ -286,7 +286,7 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0270 Ask me another
 - [x] D-0271 You called. What are you trying to figure out? [src/components/cruxy/cruxy-context.tsx]
 - [ ] D-0272 Quiz me on Case 9
-- [ ] D-0273 Back to the lamp. Tap it whenever you want to think something through.
+- [x] D-0273 Back to the lamp. Tap it whenever you want to think something through. [`SLEEP_GOODBYE` in `src/lib/cruxy/character.ts`, sleep path in `cruxy-context.tsx`]
 - [x] D-0274 Back to the lamp [src/components/cruxy/floating-cruxy.tsx]
 - [x] D-0275 z z [src/components/cruxy/cruxy-lamp.tsx]
 - [x] D-0276 [image] /cruxy/cruxy-lamp.png
@@ -305,7 +305,7 @@ For each screen, every visible label, number, button and image in the reference 
 - [x] D-0286 Changing moods is a nice to have. If it isn't built, Cruxy stays curious. [src/components/cruxy/floating-cruxy.tsx]
 - [x] D-0287 [image] Cruxy looking curious
 - [ ] D-0288 Curious
-- [ ] D-0289 The default. Cruxy is asking you a question.
+- [x] D-0289 The default. Cruxy is asking you a question. [`ask.question` mood + specific question in drawer / floating]
 - [x] D-0290 [image] Cruxy listening
 - [ ] D-0291 Listening
 - [ ] D-0292 While you type, speak or record an answer.
@@ -326,7 +326,7 @@ For each screen, every visible label, number, button and image in the reference 
 - [ ] D-0307 A round went worse than your own past. Cruxy feels it with you, then asks what you'd change.
 - [x] D-0308 [image] Cruxy sleepy
 - [ ] D-0309 Sleepy
-- [ ] D-0310 Going back to the lamp, or nothing has happened for 5 minutes.
+- [x] D-0310 Going back to the lamp, or nothing has happened for 5 minutes. [`IDLE_MS` sleep in `cruxy-context.tsx`]
 - [x] D-0311 [image] Cruxy fierce
 - [ ] D-0312 Fierce
 - [ ] D-0313 Only while Cruxy plays the other team in practice. Never aimed at a person.

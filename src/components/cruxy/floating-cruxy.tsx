@@ -10,7 +10,13 @@ import {
 import { usePathname } from "next/navigation";
 import { useCruxyMood } from "@/components/cruxy/mood/use-cruxy-mood";
 import { usePrefersReducedMotion } from "@/components/motion/reduced-motion";
-import { CALL_QUESTION } from "@/lib/cruxy/character";
+import {
+  CALL_QUESTION,
+  HINT_FALLBACK,
+  TIMEOUT_MESSAGE,
+  friendlyCruxyError,
+} from "@/lib/cruxy/character";
+import { fitPhoneAnswer } from "@/lib/cruxy/shorten";
 import { cn } from "@/lib/utils";
 import { cleanReaderText } from "@/lib/text/reader-text";
 
@@ -127,6 +133,14 @@ export function FloatingCruxy() {
   async function send(text: string) {
     const question = text.trim();
     if (!question || thinking) return;
+    if (/^one hint, please$/i.test(question)) {
+      setAsked(question);
+      setPlan(null);
+      setSources(0);
+      emitCruxyEvent("hint.given");
+      setBubble(HINT_FALLBACK);
+      return;
+    }
     setAsked(question);
     setPlan(null);
     setSources(0);
@@ -134,6 +148,8 @@ export function FloatingCruxy() {
     setBubble("Thinking...");
     emitCruxyEvent("listen.typing");
     const caseMatch = pathname.match(/\/(?:case-brain|team\/cases)\/([0-9a-f-]{36})/);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 55_000);
     try {
       const res = await fetch("/api/cruxy/act", {
         method: "POST",
@@ -143,6 +159,7 @@ export function FloatingCruxy() {
           page: pathname,
           caseId: caseMatch?.[1] ?? null,
         }),
+        signal: controller.signal,
       });
       const data = (await res.json().catch(() => ({}))) as {
         kind?: "answer" | "plan";
@@ -154,10 +171,7 @@ export function FloatingCruxy() {
         error?: string;
       };
       if (!res.ok) {
-        setBubble(
-          data.error ??
-            "I could not reach Cruxy just now. Try again in a moment, or tap Expand.",
-        );
+        setBubble(friendlyCruxyError(res.status, data.error));
         return;
       }
       if (data.kind === "plan" && data.planId) {
@@ -172,10 +186,20 @@ export function FloatingCruxy() {
       setSources(Array.isArray(data.citations) ? data.citations.length : 0);
       // Mood first: its own line must never replace the answer.
       emitCruxyEvent("feedback.answered_well");
-      setBubble(data.text ?? "I do not have an answer for that yet.");
-    } catch {
-      setBubble("I could not reach Cruxy just now. Try again in a moment.");
+      const raw = data.text ?? "I do not have an answer for that yet.";
+      // Phone bubble: keep answers short unless they open Expand.
+      const onPhone = window.innerWidth < 640;
+      const fitted = onPhone ? fitPhoneAnswer(raw) : { text: raw };
+      setBubble(fitted.text);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      setBubble(
+        /abort/i.test(msg)
+          ? TIMEOUT_MESSAGE
+          : friendlyCruxyError(0, msg),
+      );
     } finally {
+      window.clearTimeout(timeoutId);
       setThinking(false);
     }
   }
@@ -482,7 +506,18 @@ export function FloatingCruxy() {
               {thinking ? "..." : "Send"}
             </button>
           </form>
-          <div className="mt-2 flex justify-end">
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+            <button
+              type="button"
+              className="rounded-lg border border-ink/15 bg-white px-2.5 py-1.5 text-[12px] font-medium text-ink"
+              disabled={thinking}
+              onClick={(e) => {
+                e.stopPropagation();
+                void send("One hint, please");
+              }}
+            >
+              One hint, please
+            </button>
             <button
               type="button"
               className="rounded-lg px-2 py-1 text-[11px] text-muted underline"
@@ -493,7 +528,7 @@ export function FloatingCruxy() {
                 sleep();
               }}
             >
-              Close
+              Back to the lamp
             </button>
           </div>
         </div>

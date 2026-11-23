@@ -91,17 +91,20 @@ export async function POST(req: Request) {
       citations: reply.citations ?? [],
       wantsMoreAvailable: reply.wantsMoreAvailable ?? false,
       leanFlag: reply.leanFlag ?? null,
+      refusedWithoutSources: reply.refusedWithoutSources ?? false,
+      questionFirst: reply.questionFirst ?? null,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "";
+    const { friendlyCruxyError, isTimeoutError } = await import(
+      "@/lib/cruxy/character"
+    );
+    const status = isTimeoutError(msg) ? 408 : 500;
     return NextResponse.json(
       {
-        error:
-          msg && msg.length < 160
-            ? msg
-            : "Cruxy hit a problem. Try again, or tap Expand.",
+        error: friendlyCruxyError(status, msg),
       },
-      { status: 500 },
+      { status },
     );
   }
 }

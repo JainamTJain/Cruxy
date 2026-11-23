@@ -15,7 +15,7 @@ import {
   type CruxyEvent,
   type CruxyMood,
 } from "@/components/cruxy/mood-events";
-import { CALL_QUESTION } from "@/lib/cruxy/character";
+import { CALL_QUESTION, SLEEP_GOODBYE } from "@/lib/cruxy/character";
 
 export type { CruxyMood };
 
@@ -156,7 +156,8 @@ export function CruxyProvider({ children }: { children: React.ReactNode }) {
 
   const sleep = useCallback(() => {
     emitCruxyEvent("sleep");
-    setBubble(null);
+    // Brief goodbye while swirling home (D-0273).
+    setBubble(SLEEP_GOODBYE);
     setDrawerOpen(false);
     setFloatMotion("exit");
     setLampMotion("swirl");
@@ -167,6 +168,7 @@ export function CruxyProvider({ children }: { children: React.ReactNode }) {
     }
     if (motionTimer.current) window.clearTimeout(motionTimer.current);
     motionTimer.current = window.setTimeout(() => {
+      setBubble(null);
       setAwake(false);
       setFloatMotion(null);
       setLampMotion(null);

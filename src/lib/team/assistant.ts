@@ -293,6 +293,17 @@ export async function askTeamAssistant(
           kind: s.kind ?? "truth_item",
         }));
 
+  // Spend cap / timeout: surface the refusal plainly, no fake citations.
+  if (reply.refusedReason) {
+    return {
+      text: reply.text,
+      citations: [],
+      refusedWithoutSources: true,
+      stub: false,
+      questionFirst: null,
+    };
+  }
+
   return {
     text: reply.questionFirst
       ? reply.text
