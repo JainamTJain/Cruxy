@@ -104,6 +104,8 @@ function htmlToText(html: string): { text: string; title: string | null } {
     .replace(/[ \t\u00a0]+/g, " ")
     .replace(/ *\n */g, "\n")
     .replace(/ +([,.;:!?)\]])/g, "$1")
+    // A tag boundary can swallow the space after a comma ("provide,and").
+    .replace(/,(?=[A-Za-z])/g, ", ")
     .replace(/([(\[]) +/g, "$1")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
