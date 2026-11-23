@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChunkedRecorder } from "@/components/practice/chunked-recorder";
 import { CruxyJudgeQa } from "@/components/practice/cruxy-judge-qa";
 import { LiveCaptions } from "@/components/practice/live-captions";
@@ -11,6 +11,7 @@ import { PriorReflectionBanner } from "@/components/practice/prior-reflection-ba
 import { ScorePredictionForm } from "@/components/practice/score-prediction-form";
 import { TextOnlyBanner } from "@/components/practice/text-only-banner";
 import { PreRoundCalmCta } from "@/components/product";
+import { DRILL_ROUTES } from "@/lib/practice/join-routing";
 import type { RecordingLayout } from "@/lib/practice/types";
 
 type Round = {
@@ -88,26 +89,39 @@ export default function RoundPage() {
   const [predictionsReady, setPredictionsReady] = useState(false);
   const [personId, setPersonId] = useState<string | null>(null);
   const [startMsg, setStartMsg] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [finalizeMsg, setFinalizeMsg] = useState<string | null>(null);
+  const [timeUp, setTimeUp] = useState(false);
+  const [talkPeople, setTalkPeople] = useState<number | null>(null);
+  const timeUpAnnounced = useRef(false);
   const cruxyPrompt =
     "Your four-part test would also send back the Parthenon Marbles. Are you ready to say that?";
 
   async function refresh() {
-    const res = await fetch(`/api/practice/rounds/${params.id}`);
-    const data = await res.json();
-    if (!res.ok) return;
-    setRound(data.round);
-    setRecording(data.recording);
-    setLines(data.lines ?? []);
-    setPeople(data.people ?? []);
-    setTeams(data.teams ?? []);
-    setJudgesMeta(data.judges ?? []);
-    setRecordingOk(Boolean(data.recordingOk));
-    setTextOnlyNames(
-      Array.isArray(data.textOnlyBanner?.names)
-        ? (data.textOnlyBanner.names as string[])
-        : [],
-    );
-    if (data.round?.phase !== "setup") setPredictionsReady(true);
+    try {
+      const res = await fetch(`/api/practice/rounds/${params.id}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setLoadError(data.error ?? "Could not load this round.");
+        return;
+      }
+      setLoadError(null);
+      setRound(data.round);
+      setRecording(data.recording);
+      setLines(data.lines ?? []);
+      setPeople(data.people ?? []);
+      setTeams(data.teams ?? []);
+      setJudgesMeta(data.judges ?? []);
+      setRecordingOk(Boolean(data.recordingOk));
+      setTextOnlyNames(
+        Array.isArray(data.textOnlyBanner?.names)
+          ? (data.textOnlyBanner.names as string[])
+          : [],
+      );
+      if (data.round?.phase !== "setup") setPredictionsReady(true);
+    } catch {
+      setLoadError("Network problem loading this round. Check your connection.");
+    }
   }
 
   useEffect(() => {
@@ -132,10 +146,18 @@ export default function RoundPage() {
   }, [round?.phase, round?.phase_entered_at]);
 
   useEffect(() => {
-    if (paused || round?.phase === "done" || round?.phase === "setup") return;
+    if (paused || round?.phase === "done" || round?.phase === "setup" || timeUp)
+      return;
     const id = setInterval(() => setElapsed((e) => e + 1), 1000);
     return () => clearInterval(id);
-  }, [paused, round?.phase]);
+  }, [paused, round?.phase, timeUp]);
+
+  // Drill modes use dedicated phone screens (redirect in effect, not during render).
+  useEffect(() => {
+    if (!round) return;
+    const href = DRILL_ROUTES[round.mode];
+    if (href) router.replace(href);
+  }, [round, router]);
 
   const presentTeam = useMemo(() => {
     if (!round?.sides.presenting) return "Team";
@@ -158,50 +180,137 @@ export default function RoundPage() {
   const isRecording =
     micOn || recording?.status === "recording" || round?.phase === "response";
 
-  async function start() {
-    setStartMsg(null);
-    const res = await fetch(`/api/practice/rounds/${params.id}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "start" }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setStartMsg(data.error ?? "Could not start. Everyone must predict first.");
+  // Hard stop at time (regional behavior).
+  useEffect(() => {
+    if (!round || round.phase === "setup" || round.phase === "done") return;
+    if (phaseMaxSec <= 0) return;
+    if (elapsed < phaseMaxSec) {
+      setTimeUp(false);
+      timeUpAnnounced.current = false;
       return;
     }
-    setElapsed(0);
-    setPaused(false);
-    await refresh();
+    setTimeUp(true);
+    if (!timeUpAnnounced.current) {
+      timeUpAnnounced.current = true;
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.speak(
+          new SpeechSynthesisUtterance("That's time."),
+        );
+      }
+    }
+  }, [elapsed, phaseMaxSec, round]);
+
+  async function start() {
+    setStartMsg(null);
+    setTimeUp(false);
+    timeUpAnnounced.current = false;
+    try {
+      const res = await fetch(`/api/practice/rounds/${params.id}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "start" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setStartMsg(
+          data.error ?? "Could not start. Everyone must predict first.",
+        );
+        return;
+      }
+      setElapsed(0);
+      setPaused(false);
+      await refresh();
+    } catch {
+      setStartMsg("Network problem starting. Try again.");
+    }
   }
 
   async function nextPhase() {
-    if (!round) return;
+    if (!round || busy) return;
+    if (timeUp === false && left > 0) {
+      // Allow early advance; hard stop only blocks speaking after 0.
+    }
     const order = ["presentation", "commentary", "response", "judges_qa", "scoring"];
     const i = order.indexOf(round.phase);
     const next = order[Math.min(i + 1, order.length - 1)];
-    await fetch(`/api/practice/rounds/${params.id}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action: "phase", phase: next }),
-    });
-    setElapsed(0);
-    await refresh();
+    try {
+      const res = await fetch(`/api/practice/rounds/${params.id}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "phase", phase: next }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setStartMsg(data.error ?? "Could not change phase.");
+        return;
+      }
+      setElapsed(0);
+      setTimeUp(false);
+      timeUpAnnounced.current = false;
+      await refresh();
+    } catch {
+      setStartMsg("Network problem changing phase. Try again.");
+    }
   }
 
   async function finalize() {
+    if (busy) return;
     setBusy(true);
-    const res = await fetch(`/api/practice/rounds/${params.id}/finalize`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    setBusy(false);
-    if (res.ok) {
+    setFinalizeMsg(null);
+    try {
+      const res = await fetch(`/api/practice/rounds/${params.id}/finalize`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setBusy(false);
+        setFinalizeMsg(
+          [data.error, data.whatToDo].filter(Boolean).join(" ") ||
+            "Could not finish. Saved audio parts are kept. Try again.",
+        );
+        await refresh();
+        return;
+      }
+      if (typeof data.talkPeople === "number") setTalkPeople(data.talkPeople);
+      if (data.transcriptStub) {
+        setFinalizeMsg(
+          data.whatToDo ??
+            "Transcript used a stand-in. Opening the report anyway.",
+        );
+        window.setTimeout(() => {
+          router.push(`/practice/rounds/${params.id}/report`);
+        }, 1400);
+        return;
+      }
       router.push(`/practice/rounds/${params.id}/report`);
-      return;
+    } catch {
+      setBusy(false);
+      setFinalizeMsg(
+        "Network dropped while finishing. Saved audio parts are kept. Tap End round again.",
+      );
     }
-    await refresh();
+  }
+
+  if (loadError) {
+    return (
+      <div className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-[#0C0D11] px-6 text-center text-[#C9CCD3]">
+        <p className="m-0 text-sm text-[#F87171]" role="alert">
+          {loadError}
+        </p>
+        <button
+          type="button"
+          className="h-11 rounded-xl bg-[#F2F3F5] px-4 text-sm font-semibold text-[#0C0D11]"
+          onClick={() => void refresh()}
+        >
+          Try again
+        </button>
+        <Link href="/practice" className="text-sm text-[#8C929D] underline">
+          Back to Practice
+        </Link>
+      </div>
+    );
   }
 
   if (!round) {
@@ -212,18 +321,12 @@ export default function RoundPage() {
     );
   }
 
-  // Drill modes use dedicated phone screens (Workstream G Wave 5)
-  const drillRoutes: Record<string, string> = {
-    thesis_30: "/practice/drills/thesis",
-    moderator_drill: "/practice/drills/moderator",
-    commentary_drill: "/practice/drills/commentary",
-    judges_qa_drill: "/practice/drills/judges-qa",
-    free_record: "/practice/drills/free-record",
-    conferral_drill: "/practice/drills/conferral",
-    qa_routing: "/practice/drills/qa-routing",
-  };
-  if (drillRoutes[round.mode]) {
-    router.replace(drillRoutes[round.mode]!);
+  if (DRILL_ROUTES[round.mode]) {
+    return (
+      <div className="fixed inset-0 z-40 flex items-center justify-center bg-[#0C0D11] text-[#C9CCD3]">
+        Opening drill…
+      </div>
+    );
   }
 
   const presenters = people.filter(
@@ -233,16 +336,28 @@ export default function RoundPage() {
   return (
     <div className="fixed inset-0 z-40 overflow-y-auto bg-[#0C0D11] text-[#F2F3F5]">
       {isRecording ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-[#C62828] px-8 py-2.5 text-sm font-semibold text-white">
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-[#C62828] px-4 py-2.5 text-sm font-semibold text-white sm:px-8">
           <span className="flex items-center gap-2.5">
             <span className="h-2.5 w-2.5 rounded-full bg-white" />
-            Recording: everyone in this room agreed to be recorded
+            {(round.recording_layout ?? "room") === "own_device" ||
+            (round.recording_layout ?? "room") === "mixed"
+              ? "Recording on this device"
+              : "Recording: everyone in this room agreed to be recorded"}
           </span>
           <span className="font-mono">{clockLabel(elapsed)}</span>
         </div>
       ) : null}
 
-      <div className="mx-auto flex max-w-[1360px] flex-col gap-5 px-8 py-6">
+      {timeUp ? (
+        <div
+          className="bg-gold px-4 py-3 text-center text-sm font-bold text-[#0C0D11] sm:px-8"
+          role="status"
+        >
+          That&apos;s time. Stop speaking. Tap Next phase when the room is ready.
+        </div>
+      ) : null}
+
+      <div className="mx-auto flex max-w-[1360px] flex-col gap-5 px-4 py-6 sm:px-8">
         <TextOnlyBanner
           names={textOnlyNames}
           selfTextOnly={!recordingOk}
@@ -350,7 +465,11 @@ export default function RoundPage() {
                     ? "Ready to start"
                     : "Time left"}
               </span>
-              <span className="font-mono text-[112px] font-semibold leading-none text-gold">
+              <span
+                className={`font-mono font-semibold leading-none text-gold text-[64px] sm:text-[112px] ${
+                  timeUp ? "opacity-80" : ""
+                }`}
+              >
                 {round.phase === "setup" ? "00:00" : clockLabel(left)}
               </span>
             </div>
@@ -360,13 +479,11 @@ export default function RoundPage() {
                 Cruxy&apos;s strongest point in its commentary. Answer this
                 first
               </span>
-              <p className="font-display m-0 text-[28px] font-semibold leading-tight sm:text-[34px]">
-                &ldquo;Your four-part test would also send back the Parthenon
-                Marbles. Are you ready to say that?&rdquo;
+              <p className="font-display m-0 text-[22px] font-semibold leading-tight sm:text-[34px]">
+                &ldquo;{cruxyPrompt}&rdquo;
               </p>
               <span className="text-[13px] text-[#8C929D]">
-                Built from the strongest opposing points in all three teams&apos;
-                case brains
+                Cruxy playing the other team. Answer this first when you respond.
               </span>
               {showFullCommentary ? (
                 <p className="mt-2 text-sm leading-relaxed text-[#C9CCD3]">
@@ -420,7 +537,20 @@ export default function RoundPage() {
                 </button>
               )}
               {startMsg ? (
-                <p className="m-0 text-sm text-[#F87171]">{startMsg}</p>
+                <p className="m-0 text-sm text-[#F87171]" role="alert">
+                  {startMsg}
+                </p>
+              ) : null}
+              {finalizeMsg ? (
+                <p className="m-0 w-full text-sm text-[#E8C36A]" role="alert">
+                  {finalizeMsg}
+                </p>
+              ) : null}
+              {talkPeople != null && talkPeople > 0 ? (
+                <p className="m-0 w-full text-xs text-[#8C929D]">
+                  Talk stats ready for {talkPeople}{" "}
+                  {talkPeople === 1 ? "person" : "people"} on the report.
+                </p>
               ) : null}
             </div>
 
@@ -475,38 +605,37 @@ export default function RoundPage() {
             <section className="flex flex-col gap-3 rounded-[20px] border border-[#262934] bg-[#16181F] p-5">
               <h2 className="m-0 text-base font-bold">In this round</h2>
               <div className="flex flex-col gap-2 text-sm">
-                {(presenters.length
-                  ? presenters
-                  : [
-                      { id: "1", name: "Jainam", team_id: null },
-                      { id: "2", name: "Katie", team_id: null },
-                      { id: "3", name: "Daniel", team_id: null },
-                      { id: "4", name: "Nick", team_id: null },
-                    ]
-                ).map((p, i) => {
-                  const role =
-                    i === 0
-                      ? "Lead 1"
-                      : i === 1
-                        ? "Lead 2"
-                        : i === 2
-                          ? "Counter"
-                          : "Supporter";
-                  const speaking = i === 0 && round.phase === "response";
-                  return (
-                    <span
-                      key={p.id}
-                      className="flex justify-between gap-2"
-                    >
-                      <span>
-                        {p.name}, {role}
+                {presenters.length === 0 ? (
+                  <span className="text-[#8C929D]">
+                    No presenters listed yet. Join from the session page or tap
+                    I&apos;m here.
+                  </span>
+                ) : (
+                  presenters.map((p, i) => {
+                    const role =
+                      i === 0
+                        ? "Lead 1"
+                        : i === 1
+                          ? "Lead 2"
+                          : i === 2
+                            ? "Counter"
+                            : "Supporter";
+                    const speaking = i === 0 && round.phase === "response";
+                    return (
+                      <span
+                        key={p.id}
+                        className="flex justify-between gap-2"
+                      >
+                        <span>
+                          {p.name}, {role}
+                        </span>
+                        <span className="text-[#8C929D]">
+                          {speaking ? "speaking" : "present"}
+                        </span>
                       </span>
-                      <span className="text-[#8C929D]">
-                        {speaking ? "speaking" : "present"}
-                      </span>
-                    </span>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
               <span className="text-[13px] text-[#8C929D]">
                 Attendance is confirmed by Jainam or Dr. B.

@@ -90,38 +90,61 @@ export function SessionClient() {
   const [inviteMsg, setInviteMsg] = useState<string | null>(null);
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [textOnlyNames, setTextOnlyNames] = useState<string[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [hereMsg, setHereMsg] = useState<string | null>(null);
+  const [hereBusy, setHereBusy] = useState(false);
+  const [nextBusy, setNextBusy] = useState(false);
+  const [selfPresent, setSelfPresent] = useState(false);
 
   async function refresh() {
-    const res = await fetch(`/api/practice/sessions/${params.id}`);
-    const data = await res.json();
-    if (!res.ok) return;
-    setSession(data.session);
-    setAttendance(data.attendance ?? []);
-    setAdmin(Boolean(data.admin));
-    setCanInvite(Boolean(data.canInvite));
-    setPeople(data.people ?? []);
-    setJoinedJudgeIds(data.joinedJudgeIds ?? []);
-    setTextOnlyNames(
-      Array.isArray(data.textOnlyBanner?.names)
-        ? (data.textOnlyBanner.names as string[])
-        : [],
-    );
-    if (data.code) setCode(data.code);
-    if (data.creatorName) setCreatorName(data.creatorName);
-    if (data.teams) setTeams(data.teams);
-    if (typeof window !== "undefined") {
-      const origin = window.location.origin;
-      setShareLink(
-        data.code
-          ? `${origin}/practice?code=${data.code}`
-          : `${origin}/practice/sessions/${params.id}`,
+    try {
+      const res = await fetch(`/api/practice/sessions/${params.id}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setLoadError(data.error ?? "Could not load this session.");
+        return;
+      }
+      setLoadError(null);
+      setSession(data.session);
+      setAttendance(data.attendance ?? []);
+      setAdmin(Boolean(data.admin));
+      setCanInvite(Boolean(data.canInvite));
+      setPeople(data.people ?? []);
+      setJoinedJudgeIds(data.joinedJudgeIds ?? []);
+      setTextOnlyNames(
+        Array.isArray(data.textOnlyBanner?.names)
+          ? (data.textOnlyBanner.names as string[])
+          : [],
       );
-    }
-    const r0 = data.session?.rounds?.[0] as Round | undefined;
-    if (r0) {
-      if (r0.judges.cruxy && r0.judges.humans.length) setJudgeMode("both");
-      else if (r0.judges.cruxy) setJudgeMode("cruxy");
-      else setJudgeMode("in_person");
+      if (data.code) setCode(data.code);
+      if (data.creatorName) setCreatorName(data.creatorName);
+      if (data.teams) setTeams(data.teams);
+      if (typeof window !== "undefined") {
+        const origin = window.location.origin;
+        // Never put session codes in member share links (admins only).
+        setShareLink(
+          data.admin && data.code
+            ? `${origin}/practice?code=${data.code}`
+            : `${origin}/practice/sessions/${params.id}`,
+        );
+      }
+      const meRes = await fetch("/api/auth/me");
+      const me = await meRes.json().catch(() => ({}));
+      const meId = me?.person?.id ?? me?.session?.personId ?? null;
+      if (meId && Array.isArray(data.attendance)) {
+        const mine = data.attendance.find(
+          (a: Att) => a.person_id === meId && a.status !== "absent",
+        );
+        setSelfPresent(Boolean(mine));
+      }
+      const r0 = data.session?.rounds?.[0] as Round | undefined;
+      if (r0) {
+        if (r0.judges.cruxy && r0.judges.humans.length) setJudgeMode("both");
+        else if (r0.judges.cruxy) setJudgeMode("cruxy");
+        else setJudgeMode("in_person");
+      }
+    } catch {
+      setLoadError("Network problem loading this session. Refresh to try again.");
     }
   }
 
@@ -139,7 +162,14 @@ export function SessionClient() {
     })
       .then((r) => r.json())
       .then((d) => {
-        if (d.code) setCode(d.code);
+        if (d.code) {
+          setCode(d.code);
+          if (typeof window !== "undefined") {
+            setShareLink(
+              `${window.location.origin}/practice?code=${d.code}`,
+            );
+          }
+        }
       });
   }, [admin, code, params.id]);
 
@@ -157,11 +187,6 @@ export function SessionClient() {
     [people],
   );
 
-  const attByPerson = useMemo(
-    () => Object.fromEntries(attendance.map((a) => [a.person_id, a])),
-    [attendance],
-  );
-
   const presentCount = attendance.filter((a) => a.status !== "absent").length;
 
   async function setAtt(personId: string, status: Att["status"]) {
@@ -176,6 +201,63 @@ export function SessionClient() {
       }),
     });
     await refresh();
+  }
+
+  async function imHere() {
+    if (hereBusy) return;
+    setHereBusy(true);
+    setHereMsg(null);
+    try {
+      const res = await fetch("/api/practice/attendance", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          sessionId: params.id,
+          status: "present",
+          source: "self",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setHereMsg(data.error ?? "Could not mark you present. Try again.");
+        setHereBusy(false);
+        return;
+      }
+      setSelfPresent(true);
+      setHereMsg("You're marked present.");
+      await refresh();
+    } catch {
+      setHereMsg("Network problem. Check your connection and try again.");
+    } finally {
+      setHereBusy(false);
+    }
+  }
+
+  async function nextRound() {
+    if (nextBusy) return;
+    setNextBusy(true);
+    setMsg(null);
+    try {
+      const res = await fetch(`/api/practice/sessions/${params.id}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "next_round" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setNextBusy(false);
+      if (!res.ok) {
+        setMsg(data.error ?? data.whatToDo ?? "Could not advance.");
+        return;
+      }
+      if (data.href) {
+        window.location.href = data.href;
+        return;
+      }
+      await refresh();
+    } catch {
+      setNextBusy(false);
+      setMsg("Network problem advancing. Try again.");
+    }
   }
 
   async function applyJudgeMode(mode: typeof judgeMode) {
@@ -223,6 +305,23 @@ export function SessionClient() {
       title: `Case ${r.case_number}: ${presentingLabel}, ${commentingLabel}`,
       sub: `Moderator: ${mod}, judges: ${judgeBits || "none"}, ${r.timings.presentation_max} / ${r.timings.commentary_max} / ${r.timings.qa_max} min`,
     };
+  }
+
+  if (loadError) {
+    return (
+      <div className="space-y-3 rounded-2xl border border-cardinal/30 bg-white p-5">
+        <p className="m-0 text-sm text-cardinal" role="alert">
+          {loadError}
+        </p>
+        <button
+          type="button"
+          className="h-11 rounded-xl bg-ink px-4 text-sm font-semibold text-white"
+          onClick={() => void refresh()}
+        >
+          Try again
+        </button>
+      </div>
+    );
   }
 
   if (!session) {
@@ -332,12 +431,12 @@ export function SessionClient() {
                 const blurb = roundBlurb(r);
                 const now = r.phase !== "setup" && r.phase !== "done";
                 const when =
-                  i === 0 && now
-                    ? "NOW"
-                    : i === 1
-                      ? "7:00 PM"
-                      : i === 2
-                        ? "7:45 PM"
+                  r.phase === "done"
+                    ? "done"
+                    : now
+                      ? "NOW"
+                      : r.phase === "setup"
+                        ? "ready"
                         : "";
                 return (
                   <Link
@@ -484,12 +583,24 @@ export function SessionClient() {
                   </div>
                 ) : null}
 
-                <Link
-                  href={`/practice/rounds/${round1.id}`}
-                  className="flex h-[52px] items-center justify-center rounded-[14px] bg-cardinal text-base font-bold text-white"
-                >
-                  Start Round 1 and record
-                </Link>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href={`/practice/rounds/${round1.id}`}
+                    className="flex h-[52px] flex-1 items-center justify-center rounded-[14px] bg-cardinal text-base font-bold text-white"
+                  >
+                    Start Round 1 and record
+                  </Link>
+                  {session.rounds.length > 1 ? (
+                    <button
+                      type="button"
+                      disabled={nextBusy}
+                      onClick={() => void nextRound()}
+                      className="flex h-[52px] items-center justify-center rounded-[14px] border border-ink px-4 text-sm font-bold disabled:opacity-50"
+                    >
+                      {nextBusy ? "Advancing…" : "Next round"}
+                    </button>
+                  ) : null}
+                </div>
                 {msg ? <p className="text-sm text-muted">{msg}</p> : null}
               </section>
             ) : (
@@ -510,12 +621,31 @@ export function SessionClient() {
                   ) : null}
                   .
                 </p>
-                <Link
-                  href="/judging"
-                  className="mt-3 inline-flex h-11 items-center rounded-xl border border-line px-4 text-sm font-semibold"
-                >
-                  Judging portal
-                </Link>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={hereBusy || selfPresent}
+                    onClick={() => void imHere()}
+                    className="inline-flex h-11 items-center rounded-xl bg-cardinal px-4 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    {selfPresent
+                      ? "You're here"
+                      : hereBusy
+                        ? "Marking…"
+                        : "I'm here"}
+                  </button>
+                  <Link
+                    href="/judging"
+                    className="inline-flex h-11 items-center rounded-xl border border-line px-4 text-sm font-semibold"
+                  >
+                    Judging portal
+                  </Link>
+                </div>
+                {hereMsg ? (
+                  <p className="mt-2 text-sm text-muted" role="status">
+                    {hereMsg}
+                  </p>
+                ) : null}
               </section>
             )}
 
@@ -584,22 +714,39 @@ export function SessionClient() {
                 Attendance
               </h2>
               <span className="text-[13px] font-semibold">
-                {presentCount} of {people.length || 14}
+                {presentCount} of {people.length || presentCount}
               </span>
             </div>
             <span className="pb-1.5 text-[13px] text-muted">
               Cruxy pre-fills from voices and joined devices. Jainam or Dr. B
-              confirms.
+              confirms. Members can tap I&apos;m here.
             </span>
+            {!admin ? (
+              <button
+                type="button"
+                disabled={hereBusy || selfPresent}
+                onClick={() => void imHere()}
+                className="mb-2 h-10 rounded-xl bg-cardinal px-3 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {selfPresent
+                  ? "You're here"
+                  : hereBusy
+                    ? "Marking…"
+                    : "I'm here"}
+              </button>
+            ) : null}
+            {hereMsg && admin ? (
+              <p className="m-0 pb-1 text-xs text-muted">{hereMsg}</p>
+            ) : null}
             {(attendance.length
               ? attendance
-              : people.slice(0, 11).map((p) => ({
+              : people.map((p) => ({
                   person_id: p.id,
                   status: "absent" as const,
                   source: "admin",
                 }))
             )
-              .slice(0, 11)
+              .slice(0, 20)
               .map((a) => {
                 const p = personById[a.person_id];
                 if (!p) return null;

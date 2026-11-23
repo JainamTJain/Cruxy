@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChunkedRecorder } from "@/components/practice/chunked-recorder";
+import { DrillFinalizeBar } from "@/components/practice/drill-finalize-bar";
 import { DrillShell } from "@/components/practice/drill-shell";
 import { speakText, stopSpeaking } from "@/lib/practice/speech";
 import { useDrillSession } from "../use-drill-session";
@@ -148,12 +149,21 @@ export default function QaRoutingPage() {
           </select>
         </label>
         {session?.roundId ? (
-          <ChunkedRecorder
-            roundId={session.roundId}
-            embedded
-            consentOk={session.recordingOk}
-            onRecordingChange={setRecording}
-          />
+          <>
+            <ChunkedRecorder
+              roundId={session.roundId}
+              embedded
+              consentOk={session.recordingOk}
+              onRecordingChange={setRecording}
+            />
+            <p className="text-xs text-[#8C929D]">
+              Finish first so the transcript exists, then check routing.
+            </p>
+            <DrillFinalizeBar
+              roundId={session.roundId}
+              label="Finish and save transcript"
+            />
+          </>
         ) : null}
         <button
           type="button"
