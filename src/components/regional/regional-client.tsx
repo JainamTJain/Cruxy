@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { PageIntro } from "@/components/page-intro";
 import { AppeTimer } from "@/components/regional/appe-timer";
 import { LoadingGenie } from "@/components/cruxy/mood/loading-genie";
+import { OfflineCaseButton } from "@/components/offline/offline-case-button";
 import { PreRoundCalmCta } from "@/components/product";
 import { cn } from "@/lib/utils";
 
@@ -86,14 +87,18 @@ export function RegionalClient() {
   const [activeRound, setActiveRound] = useState(1);
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/regional");
-    const json = (await res.json()) as Hub & { error?: string };
-    if (!res.ok) {
-      setError(json.error ?? "Could not load Competition Day.");
-      return;
+    try {
+      const res = await fetch("/api/regional");
+      const json = (await res.json()) as Hub & { error?: string };
+      if (!res.ok) {
+        setError(json.error ?? "Could not load Competition Day.");
+        return;
+      }
+      setData(json);
+      setError(null);
+    } catch {
+      setError("Could not reach Competition Day. Check signal and try again.");
     }
-    setData(json);
-    setError(null);
   }, []);
 
   useEffect(() => {
@@ -101,6 +106,7 @@ export function RegionalClient() {
   }, [load]);
 
   async function post(body: Record<string, unknown>) {
+    if (busy) return false;
     setBusy(true);
     setError(null);
     try {
@@ -109,20 +115,39 @@ export function RegionalClient() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
       });
-      const json = (await res.json()) as { error?: string };
+      const json = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
         setError(json.error ?? "Could not save.");
         return false;
       }
       await load();
       return true;
+    } catch {
+      setError("Save failed. Bad wifi is common at UCSB; try again.");
+      return false;
     } finally {
       setBusy(false);
     }
   }
 
   if (!data) {
-    if (error) return <p className="text-sm text-cardinal">{error}</p>;
+    if (error) {
+      return (
+        <main className="space-y-3">
+          <p className="text-sm text-cardinal">{error}</p>
+          <button
+            type="button"
+            className="rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white"
+            onClick={() => {
+              setError(null);
+              void load();
+            }}
+          >
+            Try again
+          </button>
+        </main>
+      );
+    }
     return <LoadingGenie label="Loading Competition Day..." />;
   }
 
@@ -189,7 +214,7 @@ export function RegionalClient() {
           teamPeople={teamPeople}
           busy={busy}
           onSave={(payload) =>
-            void post({
+            post({
               action: "save_round",
               competitionId: data.competition!.id,
               teamId: data.viewer.teamId,
@@ -206,7 +231,7 @@ export function RegionalClient() {
           data={data}
           busy={busy}
           onLog={(payload) =>
-            void post({
+            post({
               action: "log_round",
               competitionId: data.competition!.id,
               teamId: data.viewer.teamId,
@@ -221,7 +246,7 @@ export function RegionalClient() {
           data={data}
           busy={busy}
           onDebrief={(logId, debriefWorked, debriefChange) =>
-            void post({
+            post({
               action: "save_debrief",
               logId,
               debriefWorked,
@@ -236,7 +261,7 @@ export function RegionalClient() {
           data={data}
           busy={busy}
           onSave={(patch) =>
-            void post({
+            post({
               action: "save_logistics",
               competitionId: data.competition!.id,
               ...patch,
@@ -255,7 +280,7 @@ function LogisticsPanel({
 }: {
   data: Hub;
   busy: boolean;
-  onSave: (patch: Record<string, unknown>) => void;
+  onSave: (patch: Record<string, unknown>) => Promise<boolean>;
 }) {
   const L = data.logistics!;
   const [draft, setDraft] = useState({
@@ -339,12 +364,25 @@ function LogisticsPanel({
                 placeholder={data.emptyLabel}
               />
             </label>
+            <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+              <span className="font-semibold">Carpool list</span>
+              <textarea
+                rows={3}
+                className="rounded-[10px] border border-mist px-3 py-2"
+                value={draft.carpool_list}
+                disabled={busy}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, carpool_list: e.target.value }))
+                }
+                placeholder="Simple list of who rides with whom. Not a sign-up."
+              />
+            </label>
             <button
               type="button"
               disabled={busy}
-              className="rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60 sm:col-span-2 sm:w-fit"
+              className="min-h-11 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60 sm:col-span-2 sm:w-fit"
               onClick={() =>
-                onSave({
+                void onSave({
                   schedule_text: draft.schedule_text || null,
                   departure_time: draft.departure_time || null,
                   meeting_point: draft.meeting_point || null,
@@ -393,6 +431,14 @@ function LogisticsPanel({
                 {L.packing_display}
               </dd>
             </div>
+            <div className="sm:col-span-2">
+              <dt className="text-[12px] font-bold uppercase tracking-[0.08em] text-muted">
+                Carpool
+              </dt>
+              <dd className="m-0 mt-1 whitespace-pre-wrap text-sm leading-snug">
+                {L.carpool_display}
+              </dd>
+            </div>
           </dl>
         )}
       </section>
@@ -415,7 +461,7 @@ function RoundDayPanel({
   setActiveRound: (n: number) => void;
   teamPeople: Hub["people"];
   busy: boolean;
-  onSave: (payload: Record<string, unknown>) => void;
+  onSave: (payload: Record<string, unknown>) => Promise<boolean>;
 }) {
   const [caseId, setCaseId] = useState(round?.case_id ?? "");
   const [side, setSide] = useState<"presenting" | "commenting" | "">(
@@ -493,12 +539,26 @@ function RoundDayPanel({
         ))}
       </div>
 
-      <PreRoundCalmCta
+        <PreRoundCalmCta
         caseId={caseId || null}
         nextHref="/regional"
         compact
         className="w-full sm:w-auto"
       />
+
+      {caseId && data.viewer.teamId ? (
+        <section className="rounded-[20px] bg-white p-4">
+          <h2 className="font-display m-0 text-base font-extrabold">
+            Save this case for offline
+          </h2>
+          <p className="mt-1 text-xs text-muted">
+            UCSB wifi drops. Keep the case packet on this phone before you go.
+          </p>
+          <div className="mt-2">
+            <OfflineCaseButton caseId={caseId} teamId={data.viewer.teamId} />
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-[20px] bg-white p-5">
         <h2 className="font-display m-0 text-[28px] font-extrabold leading-tight sm:text-[36px]">
@@ -623,7 +683,7 @@ function RoundDayPanel({
           disabled={busy || !data.viewer.teamId}
           className="mt-5 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
           onClick={() =>
-            onSave({
+            void onSave({
               roundNumber: activeRound,
               caseId: caseId || null,
               caseLabel: caseRow
@@ -650,7 +710,7 @@ function LogPanel({
 }: {
   data: Hub;
   busy: boolean;
-  onLog: (payload: Record<string, unknown>) => void;
+  onLog: (payload: Record<string, unknown>) => Promise<boolean>;
 }) {
   const [form, setForm] = useState({
     opponent: "",
@@ -812,31 +872,36 @@ function LogPanel({
         <button
           type="button"
           disabled={busy || !form.opponent.trim()}
-          className="mt-4 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          className="mt-4 min-h-11 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
           onClick={() => {
             const cas = data.cases.find((c) => c.id === form.caseId);
-            onLog({
-              opponent: form.opponent,
-              caseId: form.caseId || null,
+            const snapshot = { ...form };
+            void onLog({
+              opponent: snapshot.opponent,
+              caseId: snapshot.caseId || null,
               caseNumber: cas?.number ?? null,
-              roundNumber: Number(form.roundNumber) || null,
-              side: form.side || null,
-              moderatorQuestion: form.moderatorQuestion || null,
-              judgesQuestions: form.judgesQuestions || null,
-              judgeComments: form.judgeComments || null,
-              scoreUs: form.scoreUs ? Number(form.scoreUs) : null,
-              scoreThem: form.scoreThem ? Number(form.scoreThem) : null,
-              result: form.result,
+              roundNumber: Number(snapshot.roundNumber) || null,
+              side: snapshot.side || null,
+              moderatorQuestion: snapshot.moderatorQuestion || null,
+              judgesQuestions: snapshot.judgesQuestions || null,
+              judgeComments: snapshot.judgeComments || null,
+              scoreUs: snapshot.scoreUs ? Number(snapshot.scoreUs) : null,
+              scoreThem: snapshot.scoreThem
+                ? Number(snapshot.scoreThem)
+                : null,
+              result: snapshot.result,
+            }).then((ok) => {
+              if (!ok) return;
+              setForm((f) => ({
+                ...f,
+                opponent: "",
+                moderatorQuestion: "",
+                judgesQuestions: "",
+                judgeComments: "",
+                scoreUs: "",
+                scoreThem: "",
+              }));
             });
-            setForm((f) => ({
-              ...f,
-              opponent: "",
-              moderatorQuestion: "",
-              judgesQuestions: "",
-              judgeComments: "",
-              scoreUs: "",
-              scoreThem: "",
-            }));
           }}
         >
           Save round log
@@ -897,7 +962,11 @@ function DebriefPanel({
 }: {
   data: Hub;
   busy: boolean;
-  onDebrief: (logId: string, worked: string, change: string) => void;
+  onDebrief: (
+    logId: string,
+    worked: string,
+    change: string,
+  ) => Promise<boolean>;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -934,7 +1003,7 @@ function DebriefPanel({
                 <DebriefInline
                   busy={busy}
                   onSave={(worked, change) =>
-                    onDebrief(log.id, worked, change)
+                    void onDebrief(log.id, worked, change)
                   }
                 />
               </li>

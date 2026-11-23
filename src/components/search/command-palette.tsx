@@ -14,6 +14,8 @@ import type { GlobalSearchGroup } from "@/lib/search/types";
 import { cn } from "@/lib/utils";
 
 const OPEN_EVENT = "crux:open-search";
+/** After this many ms with no reply, show a slow-search tip. */
+const SLOW_MS = 700;
 
 export function openGlobalSearch() {
   if (typeof window !== "undefined") {
@@ -57,6 +59,7 @@ export function SearchOpenButton({
 export function GlobalSearchHost() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const listId = useId();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -65,12 +68,18 @@ export function GlobalSearchHost() {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [active, setActive] = useState(0);
+  const [slow, setSlow] = useState(false);
 
   const flat = groups.flatMap((g) =>
     g.hits.map((h) => ({ ...h, group: g.label })),
   );
 
   const run = useCallback((query: string) => {
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+    setSlow(false);
+
     startTransition(() => {
       void (async () => {
         if (query.trim().length < 2) {
@@ -79,23 +88,40 @@ export function GlobalSearchHost() {
           setError(null);
           return;
         }
-        const res = await fetch(
-          `/api/search?q=${encodeURIComponent(query.trim())}`,
-        );
-        const json = (await res.json()) as {
-          groups?: GlobalSearchGroup[];
-          took_ms?: number;
-          error?: string;
-        };
-        if (!res.ok) {
-          setError(json.error ?? "Search failed.");
+        const slowTimer = window.setTimeout(() => {
+          if (!ac.signal.aborted) setSlow(true);
+        }, SLOW_MS);
+        try {
+          const res = await fetch(
+            `/api/search?q=${encodeURIComponent(query.trim())}`,
+            { signal: ac.signal },
+          );
+          const json = (await res.json()) as {
+            groups?: GlobalSearchGroup[];
+            took_ms?: number;
+            error?: string;
+          };
+          if (ac.signal.aborted) return;
+          if (!res.ok) {
+            setError(json.error ?? "Search failed.");
+            setGroups([]);
+            setTook(null);
+            return;
+          }
+          setError(null);
+          setGroups(json.groups ?? []);
+          setTook(json.took_ms ?? null);
+          setActive(0);
+        } catch (e) {
+          if (ac.signal.aborted) return;
+          if (e instanceof DOMException && e.name === "AbortError") return;
+          setError("Search could not reach the server. Try again.");
           setGroups([]);
-          return;
+          setTook(null);
+        } finally {
+          window.clearTimeout(slowTimer);
+          if (!ac.signal.aborted) setSlow(false);
         }
-        setError(null);
-        setGroups(json.groups ?? []);
-        setTook(json.took_ms ?? null);
-        setActive(0);
       })();
     });
   }, []);
@@ -110,10 +136,12 @@ export function GlobalSearchHost() {
     if (open) {
       window.setTimeout(() => inputRef.current?.focus(), 20);
     } else {
+      abortRef.current?.abort();
       setQ("");
       setGroups([]);
       setTook(null);
       setError(null);
+      setSlow(false);
     }
   }, [open]);
 
@@ -181,22 +209,33 @@ export function GlobalSearchHost() {
             className="h-12 w-full border-0 bg-transparent text-base outline-none placeholder:text-muted"
             aria-controls={listId}
             aria-autocomplete="list"
+            aria-activedescendant={
+              flat[active] ? `search-hit-${flat[active]!.id}` : undefined
+            }
           />
-          {pending ? (
+          {pending || slow ? (
             <LoadingGenie compact size={36} label="" />
           ) : took != null ? (
             <span className="shrink-0 text-[11px] text-muted">{took} ms</span>
           ) : null}
         </div>
 
-        <div id={listId} className="max-h-[55vh] overflow-y-auto p-2">
+        <div id={listId} className="max-h-[55vh] overflow-y-auto p-2" role="listbox">
+          {slow && !error ? (
+            <p className="px-3 py-2 text-xs text-muted">
+              Still searching. Bad wifi can make this slow.
+            </p>
+          ) : null}
           {error ? (
-            <p className="px-3 py-4 text-sm text-cardinal">{error}</p>
+            <p className="px-3 py-4 text-sm text-cardinal" role="alert">
+              {error}
+            </p>
           ) : null}
           {!error &&
           q.trim().length >= 2 &&
           groups.length === 0 &&
-          !pending ? (
+          !pending &&
+          !slow ? (
             <p className="px-3 py-4 text-sm text-muted">
               Nothing matched. Try a case number or a short phrase.
             </p>
@@ -221,6 +260,9 @@ export function GlobalSearchHost() {
                     <li key={`${h.kind}:${h.id}`}>
                       <button
                         type="button"
+                        id={`search-hit-${h.id}`}
+                        role="option"
+                        aria-selected={idx === active}
                         onClick={() => go(h.href)}
                         onMouseEnter={() => setActive(idx)}
                         className={cn(

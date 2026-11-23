@@ -9,6 +9,7 @@ import {
   PreRoundCalmCta,
   PreRoundWarmupCta,
 } from "@/components/product";
+import { DRILL_ROUTES, hrefForPracticeScreen } from "@/lib/practice/join-routing";
 import type { PracticeMode } from "@/lib/practice/types";
 
 type CaseRow = { id: string; number: number; title: string; active: boolean };
@@ -79,18 +80,29 @@ export default function PracticePage() {
   const [caseId, setCaseId] = useState<string>("");
   const [code, setCode] = useState("");
   const [joinMsg, setJoinMsg] = useState<string | null>(null);
-  const [createdCode, setCreatedCode] = useState<string | null>(null);
+  const [createdJoinPath, setCreatedJoinPath] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [online, setOnline] = useState(false);
   const [inviteTeamId, setInviteTeamId] = useState("");
 
   async function refresh() {
-    const res = await fetch("/api/practice/sessions");
-    const data = await res.json();
-    setSessions(data.sessions ?? []);
-    setCases((data.cases ?? []).filter((c: CaseRow) => c.active));
-    setTeams(data.teams ?? []);
-    if (!caseId && data.cases?.[0]) setCaseId(data.cases.find((c: CaseRow) => c.active)?.id ?? "");
+    try {
+      const res = await fetch("/api/practice/sessions");
+      const data = await res.json();
+      if (!res.ok) {
+        setLoadError(data.error ?? "Could not load practice. Refresh the page.");
+        return;
+      }
+      setLoadError(null);
+      setSessions(data.sessions ?? []);
+      setCases((data.cases ?? []).filter((c: CaseRow) => c.active));
+      setTeams(data.teams ?? []);
+      if (!caseId && data.cases?.[0]) setCaseId(data.cases.find((c: CaseRow) => c.active)?.id ?? "");
+    } catch {
+      setLoadError("Network problem loading practice. Check your connection and refresh.");
+    }
   }
 
   useEffect(() => {
@@ -110,10 +122,16 @@ export default function PracticePage() {
       });
       const data = await res.json();
       if (res.ok && data.session?.id) {
-        window.location.href = `/practice/sessions/${data.session.id}?screen=${data.screen ?? "observer"}`;
+        window.location.href =
+          data.href ??
+          hrefForPracticeScreen(data.screen, {
+            sessionId: data.session.id,
+            roundId: data.roundId ?? data.rounds?.[0]?.id ?? null,
+          });
       } else {
         setJoinMsg(
-          data.error ?? "Could not join from that link. Check the code and try again.",
+          [data.error, data.whatToDo].filter(Boolean).join(" ") ||
+            "Could not join from that link. Check the code and try again.",
         );
       }
     })();
@@ -121,16 +139,7 @@ export default function PracticePage() {
   }, []);
 
   async function startPractice() {
-    const drillRoutes: Partial<Record<PracticeMode, string>> = {
-      moderator_drill: "/practice/drills/moderator",
-      commentary_drill: "/practice/drills/commentary",
-      judges_qa_drill: "/practice/drills/judges-qa",
-      free_record: "/practice/drills/free-record",
-      conferral_drill: "/practice/drills/conferral",
-      qa_routing: "/practice/drills/qa-routing",
-      thesis_30: "/practice/drills/thesis",
-    };
-    const drillHref = drillRoutes[mode];
+    const drillHref = DRILL_ROUTES[mode];
     if (drillHref) {
       window.location.href = caseId
         ? `${drillHref}?caseId=${encodeURIComponent(caseId)}`
@@ -138,56 +147,77 @@ export default function PracticePage() {
       return;
     }
 
+    if (busy) return;
     setBusy(true);
-    setCreatedCode(null);
+    setCreatedJoinPath(null);
+    setStartError(null);
     const caseRow = cases.find((c) => c.id === caseId);
     const myTeam = teams[0]?.id ?? null;
-    const res = await fetch("/api/practice/sessions", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        kind: "member_practice",
-        title: `${MODES.find((m) => m.id === mode)?.label ?? "Practice"}`,
-        mode,
-        online,
-        inviteTeamIds: inviteTeamId ? [inviteTeamId] : [],
-        rounds: [
-          {
-            caseId: caseId || null,
-            caseNumber: caseRow?.number ?? null,
-            teamIds: myTeam ? [myTeam] : [],
-            sides: { presenting: myTeam, commenting: null },
-            moderator: "cruxy",
-            judges: { humans: [], cruxy: true },
-            mode,
-          },
-        ],
-      }),
-    });
-    const data = await res.json();
-    setBusy(false);
-    if (data.session?.code) setCreatedCode(data.session.code);
-    if (data.session?.id) {
-      await refresh();
-      window.location.href = `/practice/sessions/${data.session.id}`;
+    try {
+      const res = await fetch("/api/practice/sessions", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          kind: "member_practice",
+          title: `${MODES.find((m) => m.id === mode)?.label ?? "Practice"}`,
+          mode,
+          online,
+          inviteTeamIds: inviteTeamId ? [inviteTeamId] : [],
+          rounds: [
+            {
+              caseId: caseId || null,
+              caseNumber: caseRow?.number ?? null,
+              teamIds: myTeam ? [myTeam] : [],
+              sides: { presenting: myTeam, commenting: null },
+              moderator: "cruxy",
+              judges: { humans: [], cruxy: true },
+              mode,
+            },
+          ],
+        }),
+      });
+      const data = await res.json();
+      setBusy(false);
+      if (!res.ok) {
+        setStartError(data.error ?? "Could not start practice. Try again.");
+        return;
+      }
+      if (data.session?.joinPath) setCreatedJoinPath(data.session.joinPath);
+      if (data.session?.id) {
+        await refresh();
+        window.location.href = `/practice/sessions/${data.session.id}`;
+      }
+    } catch {
+      setBusy(false);
+      setStartError("Network problem. Check your connection and try again.");
     }
   }
 
   async function join() {
     setJoinMsg(null);
-    const res = await fetch("/api/practice/join", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ code }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setJoinMsg(
-        data.error ?? "Could not join. Check the code with the person who started practice.",
-      );
-      return;
+    try {
+      const res = await fetch("/api/practice/join", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setJoinMsg(
+          [data.error, data.whatToDo].filter(Boolean).join(" ") ||
+            "Could not join. Check the code with the person who started practice.",
+        );
+        return;
+      }
+      window.location.href =
+        data.href ??
+        hrefForPracticeScreen(data.screen, {
+          sessionId: data.session.id,
+          roundId: data.roundId ?? data.rounds?.[0]?.id ?? null,
+        });
+    } catch {
+      setJoinMsg("Network problem joining. Check your connection and try again.");
     }
-    window.location.href = `/practice/sessions/${data.session.id}?screen=${data.screen}`;
   }
 
   return (
@@ -196,6 +226,12 @@ export default function PracticePage() {
         Study flashcards by your role, answer solo questions, or run a drill or
         full round with your team.
       </PageIntro>
+
+      {loadError ? (
+        <p className="rounded-xl border border-cardinal/30 bg-white px-4 py-3 text-sm text-cardinal" role="alert">
+          {loadError}
+        </p>
+      ) : null}
 
       <section className="rounded-[20px] border border-ink/10 bg-white p-5">
         <h2 className="font-display m-0 text-xl font-extrabold">Study</h2>
@@ -299,17 +335,21 @@ export default function PracticePage() {
             <Button type="button" disabled={busy} onClick={() => void startPractice()}>
               {busy ? "Starting…" : "Start practice"}
             </Button>
-            {createdCode ? (
+            {startError ? (
+              <p className="text-sm text-cardinal" role="alert">
+                {startError}
+              </p>
+            ) : null}
+            {createdJoinPath ? (
               <div className="space-y-1 text-sm">
                 <p>
-                  Share this join code:{" "}
-                  <span className="font-mono font-semibold">{createdCode}</span>
+                  Session codes are for admins. Invite your team from the
+                  session page, or share this link:
                 </p>
                 <p className="break-all text-muted">
-                  Or send this link:{" "}
                   {typeof window !== "undefined"
-                    ? `${window.location.origin}/practice?code=${createdCode}`
-                    : `/practice?code=${createdCode}`}
+                    ? `${window.location.origin}${createdJoinPath}`
+                    : createdJoinPath}
                 </p>
               </div>
             ) : null}

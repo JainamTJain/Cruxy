@@ -18,7 +18,14 @@ export async function POST(req: Request) {
   if (!person) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  person.email = body.email?.trim() || null;
+  const email = body.email?.trim() || null;
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json(
+      { error: "Enter a valid email address." },
+      { status: 400 },
+    );
+  }
+  person.email = email;
   person.email_reminders_opt_in = Boolean(body.emailRemindersOptIn);
   if (
     typeof body.digestOptIn === "boolean" &&

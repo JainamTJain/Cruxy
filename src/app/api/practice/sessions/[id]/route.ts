@@ -93,6 +93,50 @@ export async function POST(
     return NextResponse.json({ session: { ...ended, code_hash: undefined } });
   }
 
+  if (body.action === "next_round") {
+    const { advanceRoundPhase } = await import(
+      "@/lib/db/practice-repository"
+    );
+    const row = await getSessionById(id);
+    if (!row) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    const rounds = [...row.rounds].sort((a, b) => a.order - b.order);
+    const current =
+      rounds.find(
+        (r) =>
+          r.phase !== "setup" && r.phase !== "done" && r.phase !== "scoring",
+      ) ??
+      rounds.find((r) => r.phase === "scoring") ??
+      rounds.find((r) => r.phase !== "done");
+    if (!current) {
+      return NextResponse.json(
+        { error: "No open round left", whatToDo: "All rounds are done." },
+        { status: 400 },
+      );
+    }
+    if (current.phase !== "done") {
+      await advanceRoundPhase(current.id, "done");
+    }
+    const next = rounds.find(
+      (r) => r.order > current.order && r.phase !== "done",
+    );
+    if (!next) {
+      return NextResponse.json({
+        ok: true,
+        done: true,
+        nextRoundId: null,
+        href: `/practice/sessions/${id}`,
+      });
+    }
+    return NextResponse.json({
+      ok: true,
+      done: false,
+      nextRoundId: next.id,
+      href: `/practice/rounds/${next.id}`,
+    });
+  }
+
   if (body.action === "set_judges" && body.roundId && body.mode) {
     await setRoundJudgeMode({
       roundId: body.roundId,

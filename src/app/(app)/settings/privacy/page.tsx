@@ -20,17 +20,31 @@ export default function PrivacyCentrePage() {
   const [reRecord, setReRecord] = useState(false);
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   async function refresh() {
-    const [inv, me] = await Promise.all([
-      fetch("/api/privacy/inventory").then((r) => r.json()),
-      fetch("/api/auth/me").then((r) => r.json()),
-    ]);
-    setItems((inv as { items?: Item[] }).items ?? []);
-    setRecordingOk(
-      (me as { person?: { recording_ok?: boolean } }).person
-        ?.recording_ok !== false,
-    );
+    setLoadError(null);
+    try {
+      const [invRes, meRes] = await Promise.all([
+        fetch("/api/privacy/inventory"),
+        fetch("/api/auth/me"),
+      ]);
+      if (!invRes.ok || !meRes.ok) {
+        setLoadError("Could not load privacy details. Refresh and try again.");
+        return;
+      }
+      const inv = (await invRes.json()) as { items?: Item[] };
+      const me = (await meRes.json()) as {
+        person?: { recording_ok?: boolean };
+      };
+      setItems(inv.items ?? []);
+      setRecordingOk(me.person?.recording_ok !== false);
+    } catch {
+      setLoadError("Could not load privacy details. Refresh and try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -134,20 +148,31 @@ export default function PrivacyCentrePage() {
         <h2 className="font-display m-0 text-xl font-extrabold">
           What we store
         </h2>
-        <ul className="mt-4 list-none space-y-4 p-0">
-          {items.map((item) => (
-            <li key={item.key} className="border-t border-line pt-3 first:border-0 first:pt-0">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="font-medium">{item.label}</span>
-                <span className="text-xs text-muted">
-                  {item.present ? "On file" : "None yet"}
-                </span>
-              </div>
-              <p className="mt-1 text-sm text-muted">{item.stored}</p>
-              <p className="mt-1 text-sm">{item.whoSees}</p>
-            </li>
-          ))}
-        </ul>
+        {loading ? (
+          <p className="mt-4 text-sm text-muted">Loading…</p>
+        ) : loadError ? (
+          <p className="mt-4 text-sm text-cardinal">{loadError}</p>
+        ) : items.length === 0 ? (
+          <p className="mt-4 text-sm text-muted">Nothing stored yet.</p>
+        ) : (
+          <ul className="mt-4 list-none space-y-4 p-0">
+            {items.map((item) => (
+              <li
+                key={item.key}
+                className="border-t border-line pt-3 first:border-0 first:pt-0"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-medium">{item.label}</span>
+                  <span className="text-xs text-muted">
+                    {item.present ? "On file" : "None yet"}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-muted">{item.stored}</p>
+                <p className="mt-1 text-sm">{item.whoSees}</p>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="rounded-[20px] bg-white p-5">

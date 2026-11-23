@@ -20,21 +20,29 @@ function DeckReviewInner() {
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    setLoading(true);
     const q = new URLSearchParams({ deck });
     if (caseId) q.set("caseId", caseId);
-    const res = await fetch(`/api/practice/study?${q.toString()}`);
-    if (!res.ok) {
-      setError("Could not load this deck.");
-      return;
+    try {
+      const res = await fetch(`/api/practice/study?${q.toString()}`);
+      if (!res.ok) {
+        setError("Could not load this deck. Try again.");
+        return;
+      }
+      const data = (await res.json()) as { cards: DueItem[] };
+      setItems(data.cards);
+      setIdx(0);
+      setFlipped(false);
+      setError(null);
+    } catch {
+      setError("Could not load this deck. Try again.");
+    } finally {
+      setLoading(false);
     }
-    const data = (await res.json()) as { cards: DueItem[] };
-    setItems(data.cards);
-    setIdx(0);
-    setFlipped(false);
-    setError(null);
   }, [deck, caseId]);
 
   useEffect(() => {
@@ -46,9 +54,10 @@ function DeckReviewInner() {
   async function grade(kind: "again" | "practice" | "got") {
     if (!current || busy) return;
     setBusy(true);
+    setError(null);
     const g = kind === "again" ? 1 : kind === "practice" ? 2 : 3;
     try {
-      await fetch("/api/practice/study", {
+      const res = await fetch("/api/practice/study", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -58,10 +67,17 @@ function DeckReviewInner() {
           mode: "typed",
         }),
       });
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
+        setError(data.error ?? "Could not save. Try again.");
+        return;
+      }
       const next = items.filter((_, i) => i !== idx);
       setItems(next);
       setIdx(0);
       setFlipped(false);
+    } catch {
+      setError("Could not save. Try again.");
     } finally {
       setBusy(false);
     }
@@ -76,13 +92,26 @@ function DeckReviewInner() {
       <PageIntro title={meta.title}>{meta.blurb}</PageIntro>
 
       <p className="m-0 text-sm text-muted">
-        {items.length} due today
-        {caseId ? " for this case" : ""}.
+        {loading ? "Loading…" : `${items.length} due today`}
+        {!loading && caseId ? " for this case" : ""}.
       </p>
 
-      {error ? <p className="text-sm text-cardinal">{error}</p> : null}
+      {error ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-cardinal" role="alert">
+            {error}
+          </p>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="h-10 rounded-xl border border-ink/15 bg-white px-3 text-sm font-semibold"
+          >
+            Try again
+          </button>
+        </div>
+      ) : null}
 
-      {!current ? (
+      {!loading && !current ? (
         <div className="rounded-[20px] bg-white p-6">
           <p className="m-0 text-sm">
             Nothing due in this deck. Come back tomorrow, or open another deck.

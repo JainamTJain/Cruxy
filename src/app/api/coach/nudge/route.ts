@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
+import { requireAdmin, requireSession } from "@/lib/auth/require-session";
 import { getPersonById } from "@/lib/db/repository";
 import { sendCoachNudge } from "@/lib/coach/team-view";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  const session = await getSession();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const person = await getPersonById(session.personId);
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
+  const denied = requireAdmin(auth.session);
+  if (denied) return denied;
+  const person = await getPersonById(auth.session.personId);
   if (
     !person ||
     (person.role !== "coach_admin" && person.role !== "tech_admin")
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     );
   }
   const result = await sendCoachNudge({
-    actorId: session.personId,
+    actorId: auth.session.personId,
     personId: body.personId,
     teamId: body.teamId,
     note: body.note,

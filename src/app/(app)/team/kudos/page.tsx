@@ -17,37 +17,43 @@ export default function KudosPage() {
   const names = Object.fromEntries(people.map((p) => [p.id, p.name]));
 
   const load = useCallback(async () => {
-    const [kRes, pRes, meRes] = await Promise.all([
-      fetch("/api/team/kudos"),
-      fetch("/api/auth/people"),
-      fetch("/api/auth/me"),
-    ]);
-    let teamId: string | null = null;
-    if (meRes.ok) {
-      const me = (await meRes.json()) as {
-        person?: { id?: string; team_id?: string | null };
-      };
-      teamId = me.person?.team_id ?? null;
-      if (me.person?.id) setMeId(me.person.id);
-    }
-    if (kRes.ok) {
-      const d = (await kRes.json()) as {
-        kudos: PeerKudos[];
-        meId: string;
-        teamId?: string;
-      };
-      setKudos(d.kudos ?? []);
-      setMeId(d.meId);
-      if (d.teamId) teamId = d.teamId;
-    }
-    if (pRes.ok) {
-      const d = (await pRes.json()) as {
-        people?: (Person & { team_id?: string | null })[];
-      };
-      const list = (d.people ?? []).filter((p) =>
-        teamId ? p.team_id === teamId : true,
-      );
-      setPeople(list.map((p) => ({ id: p.id, name: p.name })));
+    try {
+      const [kRes, pRes, meRes] = await Promise.all([
+        fetch("/api/team/kudos"),
+        fetch("/api/auth/people"),
+        fetch("/api/auth/me"),
+      ]);
+      let teamId: string | null = null;
+      if (meRes.ok) {
+        const me = (await meRes.json()) as {
+          person?: { id?: string; team_id?: string | null };
+        };
+        teamId = me.person?.team_id ?? null;
+        if (me.person?.id) setMeId(me.person.id);
+      }
+      if (kRes.ok) {
+        const d = (await kRes.json()) as {
+          kudos: PeerKudos[];
+          meId: string;
+          teamId?: string;
+        };
+        setKudos(d.kudos ?? []);
+        setMeId(d.meId);
+        if (d.teamId) teamId = d.teamId;
+      } else {
+        setStatus("Could not load kudos.");
+      }
+      if (pRes.ok) {
+        const d = (await pRes.json()) as {
+          people?: (Person & { team_id?: string | null })[];
+        };
+        const list = (d.people ?? []).filter((p) =>
+          teamId ? p.team_id === teamId : true,
+        );
+        setPeople(list.map((p) => ({ id: p.id, name: p.name })));
+      }
+    } catch {
+      setStatus("Could not reach kudos. Check signal and try again.");
     }
   }, []);
 
@@ -56,7 +62,7 @@ export default function KudosPage() {
   }, [load]);
 
   async function send() {
-    if (!toPersonId || !note.trim()) return;
+    if (!toPersonId || !note.trim() || busy) return;
     setBusy(true);
     try {
       const res = await fetch("/api/team/kudos", {
@@ -72,6 +78,8 @@ export default function KudosPage() {
       setNote("");
       setStatus("Note sent. They will see it in notifications and on Progress.");
       await load();
+    } catch {
+      setStatus("Could not send. Check signal and try again.");
     } finally {
       setBusy(false);
     }

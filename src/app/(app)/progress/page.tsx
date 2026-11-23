@@ -58,11 +58,20 @@ export default function ProgressPage() {
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>(
     {},
   );
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   async function refresh() {
-    const res = await fetch("/api/my-progress");
-    if (!res.ok) return;
-    setView((await res.json()) as View);
+    setLoadError(null);
+    try {
+      const res = await fetch("/api/my-progress");
+      if (!res.ok) {
+        setLoadError("Could not load progress. Try again.");
+        return;
+      }
+      setView((await res.json()) as View);
+    } catch {
+      setLoadError("Could not load progress. Try again.");
+    }
   }
 
   useEffect(() => {
@@ -127,12 +136,22 @@ export default function ProgressPage() {
   }
 
   async function setGoalStatus(id: string, status: GoalStatus) {
-    await fetch(`/api/goals/${id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    await refresh();
+    setMsg(null);
+    try {
+      const res = await fetch(`/api/goals/${id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
+        setMsg(data.error ?? "Could not update goal.");
+        return;
+      }
+      await refresh();
+    } catch {
+      setMsg("Could not update goal.");
+    }
   }
 
   async function postComment(goalId: string) {
@@ -173,8 +192,19 @@ export default function ProgressPage() {
         </Link>
       </p>
 
-      {!view ? (
-        <p className="text-sm text-muted">Loading…</p>
+      {loadError && !view ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-cardinal" role="alert">
+            {loadError}
+          </p>
+          <Button type="button" onClick={() => void refresh()}>
+            Try again
+          </Button>
+        </div>
+      ) : !view ? (
+        <p className="text-sm text-muted" role="status">
+          Loading…
+        </p>
       ) : (
         <>
           {nextFocus ? (

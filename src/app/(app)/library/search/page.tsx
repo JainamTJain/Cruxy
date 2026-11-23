@@ -30,6 +30,8 @@ export default function LibrarySearchPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [hits, setHits] = useState<Hit[]>([]);
   const [searched, setSearched] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void fetch("/api/revision/one-pagers")
@@ -42,16 +44,35 @@ export default function LibrarySearchPage() {
 
   async function runSearch(e?: React.FormEvent) {
     e?.preventDefault();
-    const params = new URLSearchParams();
-    if (q.trim()) params.set("q", q.trim());
-    if (caseNumber) params.set("case", caseNumber);
-    if (type) params.set("type", type);
-    if (teamId) params.set("team", teamId);
-    const res = await fetch(`/api/library/search?${params}`);
-    if (!res.ok) return;
-    const data = (await res.json()) as { hits: Hit[] };
-    setHits(data.hits);
-    setSearched(true);
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (q.trim()) params.set("q", q.trim());
+      if (caseNumber) params.set("case", caseNumber);
+      if (type) params.set("type", type);
+      if (teamId) params.set("team", teamId);
+      const res = await fetch(`/api/library/search?${params}`);
+      if (!res.ok) {
+        const j = (await res.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setError(j?.error ?? "Search failed. Try again.");
+        setHits([]);
+        setSearched(true);
+        return;
+      }
+      const data = (await res.json()) as { hits: Hit[] };
+      setHits(data.hits);
+      setSearched(true);
+    } catch {
+      setError("Search failed. Check your connection and try again.");
+      setHits([]);
+      setSearched(true);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -67,17 +88,29 @@ export default function LibrarySearchPage() {
         </p>
       </div>
 
-      <form onSubmit={(e) => void runSearch(e)} className="flex flex-wrap gap-2">
+      <form
+        onSubmit={(e) => void runSearch(e)}
+        className="flex flex-wrap gap-2"
+        aria-label="Library search"
+      >
+        <label className="sr-only" htmlFor="library-search-q">
+          Search query
+        </label>
         <input
+          id="library-search-q"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search library…"
-          className="min-w-[12rem] flex-1 rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm"
+          className="min-h-11 min-w-[12rem] flex-1 rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm"
         />
+        <label className="sr-only" htmlFor="library-search-case">
+          Case filter
+        </label>
         <select
+          id="library-search-case"
           value={caseNumber}
           onChange={(e) => setCaseNumber(e.target.value)}
-          className="rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm"
+          className="min-h-11 rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm"
         >
           <option value="">All cases</option>
           {CASE_TITLES.filter((c) => c.active).map((c) => (
@@ -86,10 +119,14 @@ export default function LibrarySearchPage() {
             </option>
           ))}
         </select>
+        <label className="sr-only" htmlFor="library-search-team">
+          Team filter
+        </label>
         <select
+          id="library-search-team"
           value={teamId}
           onChange={(e) => setTeamId(e.target.value)}
-          className="rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm"
+          className="min-h-11 rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm"
         >
           <option value="">All teams</option>
           {teams.map((t) => (
@@ -98,10 +135,14 @@ export default function LibrarySearchPage() {
             </option>
           ))}
         </select>
+        <label className="sr-only" htmlFor="library-search-type">
+          Type filter
+        </label>
         <select
+          id="library-search-type"
           value={type}
           onChange={(e) => setType(e.target.value)}
-          className="rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm"
+          className="min-h-11 rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm"
         >
           <option value="">All types</option>
           <option value="case_set">Case set</option>
@@ -112,8 +153,16 @@ export default function LibrarySearchPage() {
           <option value="coach_guidance">Coach guidance</option>
           <option value="truth">Evidence Library</option>
         </select>
-        <Button type="submit">Search</Button>
+        <Button type="submit" disabled={busy} className="min-h-11">
+          {busy ? "Searching…" : "Search"}
+        </Button>
       </form>
+
+      {error ? (
+        <p className="rounded-2xl border border-cardinal/30 bg-cardinal/10 px-4 py-3 text-sm text-cardinal">
+          {error}
+        </p>
+      ) : null}
 
       <ul className="space-y-3">
         {!searched ? (

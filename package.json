@@ -10,6 +10,7 @@
     "check:track3": "tsx scripts/track3-checks.ts",
     "check:track4": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/track4-checks.ts",
     "check:track5": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/track5-checks.ts",
+    "check:practice-robustness": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/practice-robustness-checks.ts",
     "check:track6": "tsx scripts/track6-checks.ts",
     "dev": "next dev",
     "lint": "eslint",
@@ -30,7 +31,12 @@
     "test:voiceprint": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/voiceprint-accuracy.ts",
     "download:voiceprint-model": "node scripts/download-voiceprint-model.mjs",
     "check:critique": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/critique-engine-checks.ts",
-    "check:judging": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/judging-robustness-checks.ts"
+    "check:judging": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/judging-robustness-checks.ts",
+    "check:admin-library": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/admin-library-robustness-checks.ts",
+    "check:revision": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/check-revision-robustness.ts",
+    "check:roadmap-extra": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/roadmap-extra-checks.ts",
+    "check:mastery-map": "NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/mastery-map-checks.ts",
+    "check:competition-day": "USE_SAMPLE_DATA=1 NODE_OPTIONS='--require ./scripts/preload-server-only.cjs' tsx scripts/check-competition-day.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.2",

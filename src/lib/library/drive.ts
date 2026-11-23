@@ -1,6 +1,9 @@
 import "server-only";
 import { google, type drive_v3 } from "googleapis";
-import type { DriveListedFile } from "@/lib/library/types";
+import {
+  MAX_DRIVE_FILE_BYTES,
+  type DriveListedFile,
+} from "@/lib/library/types";
 import { checksumOf } from "@/lib/library/embeddings";
 
 export const DRIVE_READER_EMAIL =
@@ -312,7 +315,7 @@ export async function listDriveFiles(): Promise<{
         const res = await drive.files.list({
           q: `'${folder.id}' in parents and trashed = false`,
           fields:
-            "nextPageToken,files(id,name,mimeType,modifiedTime,md5Checksum,shortcutDetails)",
+            "nextPageToken,files(id,name,mimeType,modifiedTime,md5Checksum,size,shortcutDetails)",
           pageSize: 100,
           pageToken,
           supportsAllDrives: true,
@@ -347,6 +350,11 @@ export async function listDriveFiles(): Promise<{
           if (seenFiles.has(targetId)) continue;
           seenFiles.add(targetId);
           const modified = f.modifiedTime ?? new Date().toISOString();
+          const sizeRaw = (f as { size?: string | null }).size;
+          const size_bytes =
+            sizeRaw != null && sizeRaw !== ""
+              ? Number.parseInt(sizeRaw, 10)
+              : null;
           files.push({
             drive_id: targetId,
             name: f.name,
@@ -355,6 +363,10 @@ export async function listDriveFiles(): Promise<{
             modified_at: modified,
             checksum:
               f.md5Checksum ?? checksumOf(`${f.id}|${modified}|${f.name}`),
+            size_bytes:
+              Number.isFinite(size_bytes) && size_bytes != null
+                ? size_bytes
+                : null,
           });
         }
         pageToken = res.data.nextPageToken ?? undefined;
@@ -418,7 +430,12 @@ function extractPrintableFromPdf(buf: Buffer): {
 /** Export / download text for a Drive file. Sample stubs already include text. */
 export async function extractDriveText(
   listed: DriveListedFile,
-): Promise<{ text: string; scannedPdf: boolean; stub: boolean }> {
+): Promise<{
+  text: string;
+  scannedPdf: boolean;
+  stub: boolean;
+  tooLarge?: boolean;
+}> {
   if (listed.text_content != null) {
     return { text: listed.text_content, scannedPdf: false, stub: true };
   }
@@ -426,9 +443,22 @@ export async function extractDriveText(
   const status = getDriveConfigStatus();
   if (!status.configured) {
     return {
-      text: `(No text available for ${listed.name} — Drive not configured.)`,
+      text: `(No text available for ${listed.name}. Drive not configured.)`,
       scannedPdf: false,
       stub: true,
+    };
+  }
+
+  if (
+    listed.size_bytes != null &&
+    listed.size_bytes > MAX_DRIVE_FILE_BYTES &&
+    !listed.mime.startsWith("application/vnd.google-apps.")
+  ) {
+    return {
+      text: `[Too large to digest (${Math.round(listed.size_bytes / (1024 * 1024))} MB): ${listed.name}]`,
+      scannedPdf: false,
+      stub: false,
+      tooLarge: true,
     };
   }
 

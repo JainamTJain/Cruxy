@@ -336,6 +336,20 @@ export async function listDayLogs(input: {
   return ((data ?? []) as Record<string, unknown>[]).map(normalizeDayLog);
 }
 
+/** Load one competition log by id (for debrief permission checks). */
+export async function getDayLogById(id: string): Promise<DayLogRow | null> {
+  if (isSampleDataMode()) {
+    return sampleLogs.find((l) => l.id === id) ?? null;
+  }
+  const { data, error } = await getServiceSupabase()
+    .from("competition_logs")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(`getDayLogById: ${error.message}`);
+  return data ? normalizeDayLog(data as Record<string, unknown>) : null;
+}
+
 function normalizeDayLog(r: Record<string, unknown>): DayLogRow {
   return {
     id: String(r.id),

@@ -37,12 +37,15 @@ export async function listTeams(): Promise<Team[]> {
   return store.teams;
 }
 
-export async function listLibraryFiles(): Promise<LibraryFile[]> {
+export async function listLibraryFiles(opts?: {
+  includeRemoved?: boolean;
+}): Promise<LibraryFile[]> {
   if (!isSampleDataMode()) {
-    return (await sb()).listLibraryFiles();
+    return (await sb()).listLibraryFiles(opts);
   }
   const store = await readStore();
-  return store.files;
+  if (opts?.includeRemoved) return store.files;
+  return store.files.filter((f) => f.status !== "removed");
 }
 
 export async function getLibraryFile(id: string): Promise<LibraryFile | null> {
@@ -112,8 +115,9 @@ export async function listSortingQueue(): Promise<LibraryFile[]> {
   const store = await readStore();
   return store.files.filter(
     (f) =>
-      f.status === "sorting_queue" ||
-      (f.confidence != null && f.confidence < 0.7),
+      f.status !== "removed" &&
+      (f.status === "sorting_queue" ||
+        (f.confidence != null && f.confidence < 0.7)),
   );
 }
 

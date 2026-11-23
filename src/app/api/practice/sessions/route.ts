@@ -98,15 +98,18 @@ export async function POST(req: Request) {
     rounds,
   });
 
+  const isAdmin =
+    session.adminView &&
+    (session.role === "tech_admin" || session.role === "coach_admin");
+
   return NextResponse.json({
     session: {
       ...created.session,
-      // Plain code only to admins (or starter of member practice)
-      code:
-        kind === "admin" || kind === "member_practice"
-          ? created.plainCode
-          : null,
+      // Decisions: session codes are visible to admins only.
+      // Members share the session link or use Invite on the session page.
+      code: isAdmin ? created.plainCode : null,
       code_hash: undefined,
+      joinPath: `/practice/sessions/${created.session.id}`,
     },
     rounds: created.rounds,
   });

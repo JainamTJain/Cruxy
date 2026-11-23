@@ -9,7 +9,8 @@ export type UnreadableKind =
   | "image"
   | "slides"
   | "binary"
-  | "extract_failed";
+  | "extract_failed"
+  | "too_large";
 
 export type UnreadableFile = {
   id: string;
@@ -40,6 +41,8 @@ const WHAT_TO_DO: Record<UnreadableKind, string> = {
     "Re-export the file from Google Drive (File, Download as PDF or plain text), then Sync now.",
   binary:
     "This file has no usable text yet. Replace it with a Doc, Sheet, or text PDF in the Drive folder.",
+  too_large:
+    "This file is over 40 MB. Split it or export a smaller text PDF into the Drive folder, then Sync now.",
 };
 
 export function classifyUnreadable(file: LibraryFile): UnreadableFile | null {
@@ -75,6 +78,7 @@ export function inferUnreadableReason(args: {
   if (args.scannedPdf || /^\[Scanned PDF flagged/i.test(args.text)) {
     return "scanned_pdf";
   }
+  if (/^\[Too large to digest/i.test(args.text)) return "too_large";
   if (/\(Extract failed/i.test(args.text)) return "extract_failed";
   if (
     mimeLooksImage(args.mime) ||
@@ -107,6 +111,8 @@ export function unreadableKindLabel(kind: UnreadableKind): string {
       return "Slides";
     case "extract_failed":
       return "Extract failed";
+    case "too_large":
+      return "Too large";
     default:
       return "Not readable";
   }
