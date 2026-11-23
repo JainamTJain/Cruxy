@@ -231,14 +231,16 @@ export async function draftIdea(opts: {
   const sources = d.sources
     .filter((x) => x.title.length > 3)
     .map((x) => ({ title: x.title, url: x.url && /^https?:\/\//.test(x.url) ? x.url : null, why: x.why }));
-  const lenses = d.frameworks.length ? ` Lenses: ${d.frameworks.join(" ")}` : "";
+  const lenses = d.frameworks.length ? `\nLenses:\n${d.frameworks.map((f) => `- ${f}`).join("\n")}` : "";
+  const watch = d.risk ? `\nWatch for: ${d.risk}` : "";
   return {
     sources,
     sectionKey: d.section_key,
     kind: KIND_FOR_SECTION[d.section_key],
-    text: `${lead} ${d.draft} ${d.fit ? `Where it fits: ${d.fit}` : ""}${lenses}${d.risk ? ` Watch for: ${d.risk}` : ""} ${question}`,
+    // The card leads with the person's own words; the draft and reasoning sit in their own fields.
+    text: `${lead} "${opts.idea.trim().slice(0, 600)}"`,
     weakSpot: d.replaces ? `"${d.replaces}": ${opts.name} suggests a stronger version.` : null,
-    why: `${d.fit}${lenses}`,
+    why: `${d.fit}${watch}${lenses}`,
     stronger: d.draft,
     questionBack: question,
     citation: cite?.label ?? (sources[0]?.title ?? null),

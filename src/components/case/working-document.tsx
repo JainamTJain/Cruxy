@@ -941,6 +941,27 @@ function ChainSteps({ chain }: { chain: string }) {
   );
 }
 
+/** why_weak can carry "Watch for:" and "Lenses:" parts; show each on its own. */
+function splitWhy(raw: string | null | undefined): { main: string; watch: string; lenses: string[] } {
+  const text = (raw ?? "").trim();
+  if (!text) return { main: "", watch: "", lenses: [] };
+  const li = text.search(/\s*Lenses:/);
+  const beforeLenses = li >= 0 ? text.slice(0, li) : text;
+  const lensText = li >= 0 ? text.slice(li).replace(/^\s*Lenses:\s*/, "") : "";
+  const wi = beforeLenses.search(/\s*Watch for:/);
+  const main = (wi >= 0 ? beforeLenses.slice(0, wi) : beforeLenses).trim();
+  const watch = wi >= 0 ? beforeLenses.slice(wi).replace(/^\s*Watch for:\s*/, "").trim() : "";
+  let lenses = lensText
+    .split(/\n+-?\s*/)
+    .map((x) => x.replace(/^-\s*/, "").trim())
+    .filter(Boolean);
+  // Older rows joined the lenses with spaces: split before each "Name:" heading.
+  if (lenses.length === 1 && (lenses[0]!.match(/[A-Z][A-Za-z' ]{2,30}:/g)?.length ?? 0) > 1) {
+    lenses = lenses[0]!.split(/\s+(?=[A-Z][A-Za-z' ]{2,30}:)/).map((x) => x.trim()).filter(Boolean);
+  }
+  return { main, watch, lenses };
+}
+
 function DetailBlock({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
@@ -983,7 +1004,14 @@ function SuggestionCard({
   const kindLabel = s.fallacy_name ? `Fallacy: ${s.fallacy_name}` : (KIND_LABEL[s.kind] ?? "Suggestion");
   const who = fromMember ? s.created_by_name : s.source === "cruxy" ? "Cruxy" : s.source === "member" ? "Teammate" : "Evidence Library";
   // The one line a reader needs first: what is wrong, or the idea itself.
-  const headline = fromMember ? s.text : (s.weak_spot || s.text);
+  // Older researched ideas packed everything into text; keep only their lead.
+  const packed = fromMember && structured && /idea, researched/i.test(s.text) && !/:\s*"/.test(s.text);
+  const headline = packed ? s.text.split(":")[0] : fromMember ? s.text : (s.weak_spot || s.text);
+  const why = splitWhy(s.why_weak);
+  if (packed && !why.watch) {
+    const m = s.text.match(/Watch for:\s*([\s\S]*?)(?:\s+[^.?!]*\?\s*What do you think\?\s*)?$/);
+    if (m?.[1]) why.watch = m[1].trim();
+  }
   const hasDetails = Boolean(
     s.logic_chain || s.why_weak || s.question_back || s.research_sources?.length || s.citation || (structured && (s.stronger_version?.length ?? 0) > 220),
   );
@@ -1026,8 +1054,30 @@ function SuggestionCard({
               <ChainSteps chain={s.logic_chain} />
             </DetailBlock>
           ) : null}
-          {s.why_weak ? (
-            <DetailBlock label={fromMember ? "Where it fits" : "Why a judge would push here"}>{s.why_weak}</DetailBlock>
+          {why.main ? (
+            <DetailBlock label={fromMember ? "Where it fits" : "Why a judge would push here"}>{why.main}</DetailBlock>
+          ) : null}
+          {why.watch ? <DetailBlock label="Watch for">{why.watch}</DetailBlock> : null}
+          {why.lenses.length ? (
+            <DetailBlock label="Lenses">
+              <ul className="m-0 list-none space-y-1 p-0">
+                {why.lenses.map((l) => {
+                  const i = l.indexOf(":");
+                  return (
+                    <li key={l}>
+                      {i > 0 && i < 40 ? (
+                        <>
+                          <span className="font-semibold">{l.slice(0, i)}:</span>
+                          {l.slice(i + 1)}
+                        </>
+                      ) : (
+                        l
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </DetailBlock>
           ) : null}
           {s.question_back ? (
             <DetailBlock label="Ask yourself">
