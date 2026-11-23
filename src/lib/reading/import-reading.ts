@@ -275,7 +275,8 @@ export async function digestText(opts: {
   caseId: string;
   title: string;
   text: string;
-  personId: string;
+  /** Null for scheduled jobs with no person behind them. */
+  personId: string | null;
 }): Promise<ReadingDigest | null> {
   const cases = await listCases();
   const c = cases.find((x) => x.id === opts.caseId);
