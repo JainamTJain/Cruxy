@@ -227,6 +227,40 @@ export function ruleFindings(input: {
     }
   }
 
+  // Missing link: a claim that asserts a concept none of its premises reach.
+  // Premises are the claim's logic line plus every support and backing. If the
+  // claim's load-bearing idea never appears below it, the step from the
+  // supports to the claim needs an unstated premise.
+  {
+    const claimBlocks = claims.split(/\n(?=\s*claim \d+\s*:)/i);
+    const stem = (w: string) => w.slice(0, 5);
+    const supportStems = new Set([...terms(support)].map(stem));
+    for (const block of claimBlocks) {
+      const head = block.match(/claim \d+\s*:\s*(.+)/i)?.[1]?.trim();
+      if (!head || FRAMEWORK_RE.test(head)) continue;
+      const logic = block.match(/logic line\s*:\s*(.+)/i)?.[1] ?? "";
+      const premiseStems = new Set([...supportStems, ...[...terms(logic)].map(stem)]);
+      const jumps = [...terms(head)]
+        .filter((w) => w.length >= 7 && !premiseStems.has(stem(w)))
+        .sort((x, y) => y.length - x.length);
+      if (jumps.length < 2) continue;
+      const leap = jumps[0]!;
+      out.push({
+        kind: "missing_link",
+        sectionKey: "claims",
+        weakSpot: `"${quote(head)}" rests on "${leap}", but none of its supports or its logic line gets you there.`,
+        why: "A judge follows the chain one step at a time. If the supports are all true and the claim could still be false, the step between them is doing work nobody defended.",
+        stronger: `Add the bridge as its own line under this claim: "${leap.replace(/^\w/, (c) => c.toUpperCase())} follows from our supports because ..." and name the principle that links them.`,
+        questionBack: `If a judge granted every support, what stops them from denying the claim? ${ASK}`,
+        fallacyName: null,
+        chain: `Supports, then [gap: why do they establish "${leap}"?], then the claim.`,
+        ...cite(bestTruth(truth, head)),
+        rank: 0,
+      });
+      break;
+    }
+  }
+
   // Disconnected claim: a claim that does not serve the one-sentence answer.
   if (!empty(answer)) {
     for (const c of claimLines.slice(0, 4)) {

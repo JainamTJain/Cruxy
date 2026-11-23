@@ -50,6 +50,7 @@ const findingSchema = z.object({
   question_back: clipStr(260).pipe(z.string().min(8)),
   fallacy_name: optStr(80),
   truth_source_id: optStr(80),
+  chain: optStr(400),
 });
 type LlmFinding = z.infer<typeof findingSchema>;
 
@@ -68,6 +69,7 @@ const llmSchema = z.object({
 });
 
 const KIND_WORDS: [RegExp, (typeof CRITIQUE_KINDS)[number]][] = [
+  [/missing.?link|gap in (the )?(chain|reasoning)|unstated premise|bridge|inference/, "missing_link"],
   [/fallac|circular|dilemma|slope|generali/, "logical_fallacy"],
   [/counter|objection|rebut/, "unanswered_counter"],
   [/stakeholder|voiceless/, "missing_stakeholder"],
@@ -114,6 +116,7 @@ function normalizeFinding(r: unknown): unknown {
     question_back: question ?? "Which version would you defend in front of a judge? What do you think?",
     fallacy_name: pick(o, "fallacy_name", "fallacyName", "fallacy") ?? null,
     truth_source_id: pick(o, "truth_source_id", "truthSourceId", "source_id") ?? null,
+    chain: pick(o, "chain", "logic_chain", "logicChain") ?? null,
   };
 }
 
@@ -201,7 +204,13 @@ function mergeFindings(
       fallacyName: f.kind === "logical_fallacy" ? f.fallacy_name : null,
       truthSourceId: cite?.id ?? null,
       cannotCite: !cite,
-      rank: f.kind === "logical_fallacy" || f.kind === "unanswered_counter" ? 1 : 2,
+      chain: f.kind === "missing_link" ? f.chain : null,
+      rank:
+        f.kind === "missing_link"
+          ? 0
+          : f.kind === "logical_fallacy" || f.kind === "unanswered_counter"
+            ? 1
+            : 2,
     });
   }
   if (!out.length) return rules;
@@ -268,7 +277,13 @@ export async function critiqueWorkingDocument(opts: {
         "",
         "Task: you are Cruxy reviewing a team's Ethics Bowl working document like a tough, fair APPE judge and a philosophy coach.",
         "Judges score: clarity and logic of the argument, whether it identifies and weighs the central moral dimensions, awareness of views that weigh heavily for people who disagree, and responsiveness. Aim every finding at a point a judge would actually take off.",
-        "Find the real weaknesses, strongest first. Check each of these and report only what is actually wrong:",
+        "First, trace the logic. Before judging anything, rebuild the argument as chains, silently:",
+        "- For each claim: list its premises (the supports, with their backing) as A, B, C, then each step the document takes: A so B, B so C, C so the claim, the claim so the one sentence answer.",
+        "- Test every single step on its own: if the earlier lines were all true, would this line have to follow? A step that only follows with an unstated premise is a missing link. Name that premise exactly (for example: you need \"if a decision can't be appealed, no one is answerable for it\").",
+        "- Check the joins between parts: each claim to the answer, the objection to the claim it attacks, the reply to that exact objection, and each framework to the conclusion it is used for.",
+        "- Check the chain is not circular (the conclusion hiding in a premise) and that a key term means the same thing at every step.",
+        "For every missing link, report a finding with kind missing_link. Set chain to the short reconstructed chain with the gap marked, in plain words, like: \"Machines can't be punished, so no one is answerable. [Gap: why answerability needs punishment?] So killing must stay with humans.\" Set stronger to the bridging sentence, written so it can be pasted into the document, plus its reason.",
+        "Then find the other real weaknesses, strongest first. Check each of these and report only what is actually wrong:",
         "1. Fallacies from the reasoning standard (false dilemma, slippery slope without a stopping point, post hoc, appeal to authority, equivocation on a key term, hasty generalization, circular support, straw man of the other side). Name the fallacy.",
         "2. Supports that fail the acceptable, relevant, sufficient test, or a logic line where the supports could all be true and the claim still false.",
         "3. A claim that does not connect to the one-sentence answer.",
@@ -279,13 +294,14 @@ export async function critiqueWorkingDocument(opts: {
         "- quote: copy the exact words from the document the finding is about (null only if the section is empty).",
         "- weak_spot: one sentence saying what is wrong with that quote, specific to this case. Never generic advice that would fit any document.",
         "- why: why a judge would mark it down.",
-        "- stronger: a concrete rewrite or addition the team can paste in, using the case facts and the truth source where they help.",
+        "- stronger: the exact text to put in the document, written in the team's voice so it can replace the quote word for word (or be added to the section when nothing is quoted). Not advice about what to write: the writing itself. Use case facts and the truth source where they help.",
+        "- chain: for missing_link findings, the reconstructed chain with the gap marked; otherwise null.",
         "- question_back: one Socratic question that ends with What do you think?",
         "- truth_source_id: the id of the truth-source item that backs the stronger version, or null.",
         "Return between 4 and 12 findings when the document has that many real problems; fewer if it is strong. Do not pad.",
         `section_key must be exactly one of: ${WORKING_SECTION_KEYS.map((k) => `${k} (${WORKING_SECTION_LABELS[k]})`).join(", ")}.`,
-        "Each finding is an object with exactly these keys: kind, section_key, quote, weak_spot, why, stronger, question_back, fallacy_name, truth_source_id.",
-        "Kinds: missing_perspective, missing_stakeholder, unanswered_counter, logical_fallacy, disconnected_claim, loose_end, evidence_gap, sharper_wording.",
+        "Each finding is an object with exactly these keys: kind, section_key, quote, weak_spot, why, stronger, question_back, fallacy_name, truth_source_id, chain.",
+        "Kinds: missing_link, logical_fallacy, disconnected_claim, unanswered_counter, evidence_gap, missing_perspective, missing_stakeholder, loose_end, sharper_wording. Missing links in the main chain come first.",
         "truth_additions: up to 3 ideas this team wrote that are clearly stronger than, or missing from, the truth source (a sharper argument, a better reply to an objection, a stakeholder or analogy the prep lacks). Rewrite each in your own neutral words with no team or person named. Leave it empty if the document only repeats the truth source.",
         "Never name a USC team. Plain words. No em dashes. Ethics over law. Never write an id inside a sentence.",
         "Output JSON only.",
@@ -307,6 +323,7 @@ export async function critiqueWorkingDocument(opts: {
           question_back: r.questionBack,
           fallacy_name: r.fallacyName,
           truth_source_id: r.truthSourceId,
+          chain: r.chain ?? null,
         })),
       }),
     });
@@ -362,6 +379,7 @@ export async function critiqueWorkingDocument(opts: {
         fallacyName: f.fallacyName,
         truthSourceRef: cite?.label ?? null,
         cannotCite: f.cannotCite || !cite,
+        logicChain: f.chain ?? null,
       };
     }),
   );

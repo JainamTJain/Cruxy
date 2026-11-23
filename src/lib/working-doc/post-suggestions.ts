@@ -34,6 +34,7 @@ export type PostSuggestionInput = {
   fallacyName?: string | null;
   truthSourceRef?: string | null;
   cannotCite?: boolean;
+  logicChain?: string | null;
 };
 
 function scrub(s: string): string {
@@ -123,6 +124,7 @@ export async function postSuggestions(
           ? scrub(input.truthSourceRef)
           : null,
         cannot_cite: Boolean(input.cannotCite),
+        logic_chain: input.logicChain ? scrub(input.logicChain) : null,
       });
       posted.push(row);
       openBySection.set(sk, open + 1);

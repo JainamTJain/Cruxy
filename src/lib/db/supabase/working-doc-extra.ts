@@ -63,7 +63,8 @@ export type WorkingSuggestionKind =
   | "disconnected_claim"
   | "loose_end"
   | "evidence_gap"
-  | "sharper_wording";
+  | "sharper_wording"
+  | "missing_link";
 
 export type WorkingSuggestionSource =
   | "cruxy"
@@ -97,6 +98,12 @@ export type WorkingSuggestionRow = {
   fallacy_name?: string | null;
   truth_source_ref?: string | null;
   cannot_cite?: boolean;
+  /** Reconstructed reasoning chain for missing-link findings (00078). */
+  logic_chain?: string | null;
+  /** Set when Take wrote the suggestion into the section (00078). */
+  applied_at?: string | null;
+  /** Section text before Take, for undo (00078). */
+  prev_body?: string | null;
 };
 
 export type EvidenceTeamDecisionRow = {
@@ -399,6 +406,7 @@ export async function insertSuggestion(
     fallacy_name: input.fallacy_name ?? null,
     truth_source_ref: input.truth_source_ref ?? null,
     cannot_cite: input.cannot_cite ?? false,
+    ...(input.logic_chain ? { logic_chain: input.logic_chain } : {}),
   };
   if (isSampleDataMode()) {
     const dup = sampleSuggestions.find(
@@ -637,4 +645,63 @@ export async function retirePendingCritique(input: {
     .in("id", drop);
   if (delErr) return 0;
   return drop.length;
+}
+
+/** Record that Take wrote a suggestion into a section, keeping the old text for undo. */
+export async function markSuggestionApplied(input: {
+  id: string;
+  prevBody: string;
+  sectionKey: WorkingSectionKey;
+}): Promise<void> {
+  const patch = {
+    applied_at: nowIso(),
+    prev_body: input.prevBody,
+    section_key: input.sectionKey,
+  };
+  if (isSampleDataMode()) {
+    const i = sampleSuggestions.findIndex((s) => s.id === input.id);
+    if (i >= 0) sampleSuggestions[i] = { ...sampleSuggestions[i]!, ...patch };
+    return;
+  }
+  const { error } = await getServiceSupabase()
+    .from("working_doc_suggestions")
+    .update(patch)
+    .eq("id", input.id);
+  if (error) throw new Error(`markSuggestionApplied: ${error.message}`);
+}
+
+export async function getSuggestionById(
+  id: string,
+): Promise<WorkingSuggestionRow | null> {
+  if (isSampleDataMode()) {
+    return sampleSuggestions.find((s) => s.id === id) ?? null;
+  }
+  const { data, error } = await getServiceSupabase()
+    .from("working_doc_suggestions")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(`getSuggestionById: ${error.message}`);
+  return (data as WorkingSuggestionRow | null) ?? null;
+}
+
+/** Undo a Take: put the suggestion back in the rail and clear the applied mark. */
+export async function reopenSuggestion(id: string): Promise<void> {
+  const patch = {
+    status: "pending" as const,
+    decided_at: null,
+    decided_by: null,
+    applied_at: null,
+    prev_body: null,
+  };
+  if (isSampleDataMode()) {
+    const i = sampleSuggestions.findIndex((s) => s.id === id);
+    if (i >= 0) sampleSuggestions[i] = { ...sampleSuggestions[i]!, ...patch };
+    return;
+  }
+  const { error } = await getServiceSupabase()
+    .from("working_doc_suggestions")
+    .update(patch)
+    .eq("id", id);
+  if (error) throw new Error(`reopenSuggestion: ${error.message}`);
 }

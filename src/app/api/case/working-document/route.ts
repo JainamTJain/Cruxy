@@ -19,6 +19,7 @@ import {
   suggestLibraryFact,
   tellIdeaFromWorkingDoc,
   tickSuggestion,
+  undoTakeSuggestion,
 } from "@/lib/working-doc/service";
 import { runCoherenceCheck } from "@/lib/working-doc/coherence";
 
@@ -136,6 +137,7 @@ export async function POST(req: Request) {
     );
   }
 
+  let took: { suggestionId: string; sectionKey: string | null } | null = null;
   try {
     switch (body.action) {
       case "start_crux": {
@@ -250,7 +252,25 @@ export async function POST(req: Request) {
             { status: 400 },
           );
         }
-        await tickSuggestion({
+        const res = await tickSuggestion({
+          caseId,
+          teamId,
+          personId: session.personId,
+          suggestionId: body.suggestionId,
+        });
+        took = res.took.applied
+          ? { suggestionId: body.suggestionId, sectionKey: res.took.sectionKey }
+          : { suggestionId: body.suggestionId, sectionKey: null };
+        break;
+      }
+      case "undo_take": {
+        if (!body.suggestionId) {
+          return NextResponse.json(
+            { error: "Missing suggestion." },
+            { status: 400 },
+          );
+        }
+        await undoTakeSuggestion({
           caseId,
           teamId,
           personId: session.personId,
@@ -336,6 +356,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ...hub,
       canEdit: true,
+      took,
     });
   } catch (e) {
     return NextResponse.json(

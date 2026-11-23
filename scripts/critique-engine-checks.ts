@@ -75,7 +75,7 @@ async function main() {
   // --- Rules: every kind present ---
   const sections = emptySections();
   sections.answer_one_sentence = "Museums should return coercively taken objects.";
-  sections.claims = "Title is defective.";
+  sections.claims = "Claim 1: Title is defective because restitution obligations override acquisition.";
   sections.support = "Because war spoils always transfer cleanly.";
   sections.objection_reply = "They say law blocks return.";
   sections.values_in_tension = "Justice versus access.";

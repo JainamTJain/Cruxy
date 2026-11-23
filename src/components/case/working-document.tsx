@@ -63,6 +63,12 @@ type Hub = {
     source: string;
     created_by_name: string | null;
     created_at_label: string | null;
+    weak_spot?: string | null;
+    why_weak?: string | null;
+    stronger_version?: string | null;
+    question_back?: string | null;
+    fallacy_name?: string | null;
+    logic_chain?: string | null;
   }>;
   checklist: Array<{
     id: string;
@@ -115,6 +121,15 @@ const KIND_LABEL: Record<string, string> = {
   counter: "Counterargument",
   sharper: "Sharper claim",
   question: "Question",
+  missing_perspective: "Missing perspective",
+  missing_stakeholder: "Missing stakeholder",
+  unanswered_counter: "Unanswered objection",
+  logical_fallacy: "Fallacy",
+  disconnected_claim: "Claim does not connect",
+  loose_end: "Loose end",
+  evidence_gap: "Needs evidence",
+  sharper_wording: "Sharper wording",
+  missing_link: "Missing link",
 };
 
 function Attr({
@@ -134,12 +149,14 @@ function Attr({
 
 function IdeaAndCoherenceBar({
   busy,
+  researching,
   ideaDraft,
   setIdeaDraft,
   onTellIdea,
   onCoherence,
 }: {
   busy: boolean;
+  researching: boolean;
   ideaDraft: string;
   setIdeaDraft: (v: string) => void;
   onTellIdea: () => void;
@@ -151,8 +168,9 @@ function IdeaAndCoherenceBar({
         Tell Cruxy an idea
       </h3>
       <p className="mt-1 text-sm text-muted">
-        Cruxy writes it up as a suggestion with your name for the team to tick
-        or cross. Strong ideas may also reach other teams anonymously.
+        Cruxy researches it against the case and your sources, works out where
+        it fits in your reasoning and drafts it as a suggestion with your name.
+        Strong ideas may also reach other teams anonymously.
       </p>
       <textarea
         rows={3}
@@ -169,7 +187,7 @@ function IdeaAndCoherenceBar({
           className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
           onClick={onTellIdea}
         >
-          Add as suggestion
+          {researching ? "Researching your idea..." : "Add as suggestion"}
         </button>
         <button
           type="button"
@@ -187,9 +205,12 @@ function IdeaAndCoherenceBar({
 export function WorkingDocument({
   caseId,
   teamId,
+  queue,
 }: {
   caseId: string;
   teamId: string;
+  /** Other ideas waiting on this case (practice, research, other teams), shown in the same rail. */
+  queue?: { count: number; node: React.ReactNode };
 }) {
   const [data, setData] = useState<Hub | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -206,6 +227,8 @@ export function WorkingDocument({
   const [review, setReview] = useState<ImportReview | null>(null);
   const [statusNote, setStatusNote] = useState<string | null>(null);
   const [ideaDraft, setIdeaDraft] = useState("");
+  const [took, setTook] = useState<{ suggestionId: string; sectionKey: string | null } | null>(null);
+  const [researching, setResearching] = useState(false);
   const [annotations, setAnnotations] = useState<WorkingAnn[]>([]);
 
   const loadAnnotations = useCallback(async () => {
@@ -303,12 +326,17 @@ export function WorkingDocument({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ caseId, teamId, ...body }),
       });
-      const json = (await res.json()) as Hub & { error?: string };
+      const json = (await res.json()) as Hub & {
+        error?: string;
+        took?: { suggestionId: string; sectionKey: string | null } | null;
+      };
       if (!res.ok) {
         setError(json.error ?? "Could not save.");
         return false;
       }
       setData(json);
+      if (body.action === "tick_suggestion") setTook(json.took ?? null);
+      if (body.action === "undo_take") setTook(null);
       const drafts: Record<string, string> = {};
       for (const s of json.sections) drafts[s.key] = s.body;
       setSectionDrafts(drafts);
@@ -406,14 +434,23 @@ export function WorkingDocument({
             busy={editBusy}
             ideaDraft={ideaDraft}
             setIdeaDraft={setIdeaDraft}
-            onTellIdea={() =>
+            researching={researching}
+            onTellIdea={() => {
+              setResearching(true);
               void post({
                 action: "tell_idea",
                 text: ideaDraft.trim(),
-              }).then((ok) => {
-                if (ok) setIdeaDraft("");
               })
-            }
+                .then((ok) => {
+                  if (ok) {
+                    setIdeaDraft("");
+                    setStatusNote(
+                      "Cruxy researched your idea, found where it fits and drafted it. It's at the top of Suggestions with your name.",
+                    );
+                  }
+                })
+                .finally(() => setResearching(false));
+            }}
             onCoherence={() => void post({ action: "coherence_check" })}
           />
         ) : null}
@@ -515,6 +552,12 @@ export function WorkingDocument({
               caseId={caseId}
               teamId={teamId}
               suggestions={data.suggestions}
+              queue={queue}
+              took={took}
+              sectionLabel={(k) =>
+                data.sectionDefs.find((d) => d.key === k)?.label ?? "the document"
+              }
+              onUndo={(id) => void post({ action: "undo_take", suggestionId: id })}
               busy={editBusy}
               crossReasons={crossReasons}
               setCrossReasons={setCrossReasons}
@@ -712,6 +755,10 @@ function SuggestionsRail({
   caseId,
   teamId,
   suggestions,
+  queue,
+  took,
+  sectionLabel,
+  onUndo,
   busy,
   crossReasons,
   setCrossReasons,
@@ -721,22 +768,51 @@ function SuggestionsRail({
   caseId: string;
   teamId: string;
   suggestions: Hub["suggestions"];
+  queue?: { count: number; node: React.ReactNode };
+  took: { suggestionId: string; sectionKey: string | null } | null;
+  sectionLabel: (key: string) => string;
+  onUndo: (id: string) => void;
   busy: boolean;
   crossReasons: Record<string, string>;
   setCrossReasons: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   onTick: (id: string) => void;
   onCross: (id: string) => void;
 }) {
+  const total = suggestions.length + (queue?.count ?? 0);
   return (
-    <aside className="rounded-[20px] bg-white p-4 lg:sticky lg:top-4 lg:self-start">
-      <h3 className="font-display m-0 text-lg font-extrabold">Suggestions</h3>
+    <aside className="rounded-[20px] bg-white p-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto">
+      <div className="flex items-baseline justify-between gap-2">
+        <h3 className="font-display m-0 text-lg font-extrabold">Suggestions</h3>
+        <span className="font-display text-lg font-extrabold text-cardinal">
+          {total}
+        </span>
+      </div>
       <p className="mt-1 text-[13px] text-muted">
-        Tick to keep, cross to hide. Cruxy, teammates and strong anonymous ideas
-        land here.
+        Take writes it into your document. Cross hides it.
       </p>
-      {suggestions.length === 0 ? (
+      {took ? (
+        <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-[#E8F4EC] px-3 py-2 text-[13px] text-[#1F5F3B]">
+          <span>
+            {took.sectionKey
+              ? `Added to ${sectionLabel(took.sectionKey)}.`
+              : "Added to your to-do list."}
+          </span>
+          {took.sectionKey ? (
+            <button
+              type="button"
+              disabled={busy}
+              className="font-semibold underline"
+              onClick={() => onUndo(took.suggestionId)}
+            >
+              Undo
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      {total === 0 ? (
         <p className="mt-3 text-sm text-muted">None waiting.</p>
-      ) : (
+      ) : null}
+      {suggestions.length ? (
         <ul className="mt-3 m-0 list-none space-y-2 p-0">
           {suggestions.map((s) => (
             <SuggestionCard
@@ -752,7 +828,15 @@ function SuggestionsRail({
             />
           ))}
         </ul>
-      )}
+      ) : null}
+      {queue && queue.count > 0 ? (
+        <div className="mt-4 border-t border-[#ECEEF1] pt-3">
+          <p className="m-0 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
+            From practice, research and other teams
+          </p>
+          <div className="mt-2 flex flex-col gap-3">{queue.node}</div>
+        </div>
+      ) : null}
     </aside>
   );
 }
@@ -776,23 +860,50 @@ function SuggestionCard({
   onTick: () => void;
   onCross: () => void;
 }) {
+  const structured = Boolean(s.stronger_version);
+  const fromMember = s.source === "member" && s.created_by_name;
   return (
     <li className="rounded-[12px] border border-mist bg-[#F7F8FA] px-3 py-2.5">
       <p className="m-0 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
-        {KIND_LABEL[s.kind] ?? "Suggestion"}
-        {s.source === "member" && s.created_by_name
-          ? ` from ${s.created_by_name}`
-          : s.source === "cruxy"
-            ? " from Cruxy"
-            : ""}
+        {s.fallacy_name ? `Fallacy: ${s.fallacy_name}` : (KIND_LABEL[s.kind] ?? "Suggestion")}
+        {fromMember ? ` from ${s.created_by_name}` : s.source === "cruxy" ? " from Cruxy" : ""}
       </p>
-      <p className="m-0 mt-1 text-sm leading-snug">
-        <LinkedText text={s.text} caseId={caseId} />
-      </p>
-      {s.citation ? (
-        <p className="m-0 mt-1 font-mono text-[11px] text-muted">
-          {s.citation}
+      {structured ? (
+        <div className="mt-1 flex flex-col gap-1.5 text-sm leading-snug">
+          {s.logic_chain ? (
+            <p className="m-0 rounded-lg bg-white px-2 py-1.5 text-[13px] text-[#3B404A]">
+              <span className="font-semibold">Chain: </span>
+              {s.logic_chain}
+            </p>
+          ) : null}
+          {s.weak_spot && !fromMember ? (
+            <p className="m-0">
+              <LinkedText text={s.weak_spot} caseId={caseId} />
+            </p>
+          ) : null}
+          {s.why_weak ? (
+            <p className="m-0 text-[13px] text-muted">
+              {fromMember ? "Where it fits: " : "Why it matters: "}
+              {s.why_weak}
+            </p>
+          ) : null}
+          <p className="m-0 rounded-lg border-l-[3px] border-[#1F7A4D] bg-white px-2.5 py-1.5">
+            <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-[#1F7A4D]">
+              {fromMember ? "Cruxy's draft" : "Stronger"}
+            </span>
+            {s.stronger_version}
+          </p>
+          {s.question_back ? (
+            <p className="m-0 text-[13px] italic text-[#3B404A]">{s.question_back}</p>
+          ) : null}
+        </div>
+      ) : (
+        <p className="m-0 mt-1 text-sm leading-snug">
+          <LinkedText text={s.text} caseId={caseId} />
         </p>
+      )}
+      {s.citation ? (
+        <p className="m-0 mt-1 text-[11px] text-muted">Source: {s.citation}</p>
       ) : null}
       <Attr
         name={
@@ -808,11 +919,11 @@ function SuggestionCard({
         <button
           type="button"
           disabled={busy}
-          aria-label="Tick suggestion"
-          className="rounded-lg bg-ink px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+          aria-label="Take suggestion"
+          className="rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
           onClick={onTick}
         >
-          Tick
+          Take
         </button>
         <input
           className="h-8 w-24 rounded-lg border border-mist bg-white px-2 text-xs"
@@ -838,7 +949,7 @@ function SuggestionCard({
         teamId={teamId}
         kind="suggestion"
         targetId={s.id}
-        title={s.text.slice(0, 80)}
+        title={(s.stronger_version ?? s.text).slice(0, 80)}
       />
     </li>
   );

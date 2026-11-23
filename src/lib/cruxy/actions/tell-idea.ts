@@ -7,10 +7,7 @@ import "server-only";
 
 import { callCruxy } from "@/lib/cruxy/callCruxy";
 import { cannotDoYet, type ActPlanResult } from "@/lib/cruxy/actions/types";
-import { ensureTeamBrief } from "@/lib/case-brain/team-brief";
-import { getPersonById, logActivity } from "@/lib/db/repository";
-import { insertSuggestion } from "@/lib/db/supabase/working-doc-extra";
-import { evaluateAndMaybeTravel } from "@/lib/working-doc/idea-travel";
+import { getPersonById } from "@/lib/db/repository";
 export type TellIdeaData = {
   caseId: string;
   suggestionText: string;
@@ -143,45 +140,17 @@ export async function applyTellIdea(input: {
   personId: string;
   teamId: string;
 }): Promise<{ message: string }> {
-  const brief = await ensureTeamBrief({
+  // Same path as the working document: Cruxy researches and drafts it first.
+  const { tellIdeaFromWorkingDoc } = await import("@/lib/working-doc/service");
+  await tellIdeaFromWorkingDoc({
+    caseId: input.data.caseId,
     teamId: input.teamId,
-    caseId: input.data.caseId,
     personId: input.personId,
-  });
-
-  const sug = await insertSuggestion({
-    case_id: input.data.caseId,
-    team_id: input.teamId,
-    brief_id: brief.id,
-    kind: input.data.kind,
-    text: input.data.suggestionText,
-    citation: null,
-    paragraph_anchor: null,
-    section_key: null,
-    source: "member",
-    truth_item_id: null,
-    created_by: input.personId,
-  });
-
-  // Score for possible anonymous travel to other teams (never reveals source team).
-  void evaluateAndMaybeTravel({
-    caseId: input.data.caseId,
-    sourceTeamId: input.teamId,
-    sourceKind: "told_cruxy",
-    sourceRef: sug.id,
-    ideaText: input.data.rawIdea || input.data.suggestionText,
-    personId: input.personId,
-  }).catch(() => undefined);
-
-  await logActivity({
-    person_id: input.personId,
-    action: "working_doc_idea_told",
-    target: sug.id,
-    meta: { caseId: input.data.caseId },
+    text: input.data.rawIdea || input.data.suggestionText,
   });
 
   return {
     message:
-      "Done. Your idea is on the working document as a suggestion with your name. Teammates can tick or cross it.",
+      "Done. I researched your idea and drafted it into a suggestion with your name on the working document. Teammates can take it or cross it.",
   };
 }

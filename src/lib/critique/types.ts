@@ -13,6 +13,7 @@ export const CRITIQUE_KINDS = [
   "loose_end",
   "evidence_gap",
   "sharper_wording",
+  "missing_link",
 ] as const;
 
 export type CritiqueKind = (typeof CRITIQUE_KINDS)[number];
@@ -48,6 +49,8 @@ export type CritiqueFinding = {
   questionBack: string;
   /** Named fallacy when kind is logical_fallacy. */
   fallacyName: string | null;
+  /** The reconstructed chain, e.g. "A, so B. B, so C. Missing: B leads to C". */
+  chain?: string | null;
   truthSourceId: string | null;
   cannotCite: boolean;
   /** Rank within the section (lower is stronger). */
