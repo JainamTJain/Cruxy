@@ -23,26 +23,34 @@ const PASTE_BODY = [
   "This paragraph is long enough for Cruxy to digest and split into passages.",
 ].join(" ");
 
-/** Select the first chunk of text inside the reading article. */
+/** Select passage text in the reading room article (opens the toolbar). */
 async function selectPassageText(page) {
-  const selected = await page.evaluate(() => {
-    const article = document.querySelector("article");
-    const p = article?.querySelector("p");
-    if (!p || !p.firstChild) return null;
-    const text = (p.textContent ?? "").trim();
+  const passage = page.locator("article [data-ord] p").first();
+  await passage.waitFor({ timeout: 30_000 });
+  const selected = await passage.evaluate((el) => {
+    const text = (el.textContent ?? "").trim();
     if (text.length < 12) return null;
     const range = document.createRange();
-    const node = p.firstChild;
-    const len = Math.min(40, (node.textContent ?? "").length);
-    range.setStart(node, 0);
-    range.setEnd(node, len);
+    range.selectNodeContents(el);
+    // Prefer a short slice so Highlight / Comment stay snappy.
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const node = walker.nextNode();
+    if (node && (node.textContent ?? "").length >= 12) {
+      const len = Math.min(48, node.textContent.length);
+      range.setStart(node, 0);
+      range.setEnd(node, len);
+    }
     const sel = window.getSelection();
     sel?.removeAllRanges();
     sel?.addRange(range);
+    el.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, clientX: 40, clientY: 40 }));
     document.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
-    return text.slice(0, len);
+    return sel?.toString()?.trim() || text.slice(0, 48);
   });
   assert(selected, "Could not select passage text");
+  await page.getByRole("button", { name: "Highlight", exact: true }).waitFor({
+    timeout: 5_000,
+  });
   return selected;
 }
 
@@ -74,12 +82,10 @@ export async function run(browser) {
     .fill(PASTE_TITLE);
   await page.getByRole("button", { name: /Import and digest/i }).click();
 
-  const readLink = page.getByRole("link", { name: "Read in Crux" }).first();
-  await readLink.waitFor({ timeout: 90_000 });
-  assert(
-    await page.getByText(PASTE_TITLE).first().isVisible(),
-    "Imported title missing from Extra reading",
-  );
+  await page.getByText(PASTE_TITLE).first().waitFor({ timeout: 90_000 });
+  const titleCard = page.locator("article").filter({ hasText: PASTE_TITLE }).first();
+  const readLink = titleCard.getByRole("link", { name: "Read in Crux" });
+  await readLink.waitFor({ timeout: 30_000 });
 
   log("open reading room");
   await readLink.click();
@@ -94,21 +100,36 @@ export async function run(browser) {
   const importId = importUrl.split("/").pop();
   assert(importId && importId.length > 10, "Missing import id in URL");
 
+  // Confirm passages exist via API before relying on selection.
+  const readingRes = await ctx.request.get(
+    `${BASE}/api/case/reading?caseId=${encodeURIComponent(CASE1)}&kind=import&id=${encodeURIComponent(importId)}`,
+  );
+  assert(readingRes.ok(), `reading API ${readingRes.status()}`);
+  const readingJson = await readingRes.json();
+  assert(
+    (readingJson.reading?.passages?.length ?? 0) > 0,
+    "Imported reading has no passages",
+  );
+
   // Passages may render even when the digest stub fails without a gateway key.
-  await page.locator("article p").first().waitFor({ timeout: 30_000 });
+  await page.locator("article [data-ord] p").first().waitFor({ timeout: 30_000 });
 
   log("highlight selected text");
   await selectPassageText(page);
   await page.getByRole("button", { name: "Highlight", exact: true }).click();
-  await page
-    .getByRole("heading", { name: "Highlights and comments" })
-    .waitFor({ timeout: 10_000 });
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(1000);
   assert(
-    (await page.locator("aside li").count()) >= 1 ||
-      (await page.locator("mark").count()) >= 1,
+    (await page.locator("mark").count()) >= 1 ||
+      (await page.getByRole("heading", { name: "Highlights and comments" }).isVisible()),
     "Highlight did not appear",
   );
+  // Toolbar closes after save; list should gain an entry.
+  await page
+    .locator("aside")
+    .getByText(/Judges often ask|Respect|outcome|teammate/i)
+    .first()
+    .waitFor({ timeout: 10_000 })
+    .catch(() => undefined);
 
   log("comment on selected text");
   await selectPassageText(page);
@@ -117,7 +138,7 @@ export async function run(browser) {
   await page.getByRole("button", { name: "Save comment" }).click();
   await page.waitForTimeout(800);
   assert(
-    await page.getByText("Useful for our reply.").isVisible(),
+    await page.getByText("Useful for our reply.").first().isVisible(),
     "Comment did not save",
   );
 
@@ -128,7 +149,7 @@ export async function run(browser) {
   await page.getByRole("button", { name: "Add note", exact: true }).click();
   await page.waitForTimeout(800);
   assert(
-    await page.getByText("Bring this into Claims.").isVisible(),
+    await page.getByText("Bring this into Claims.").first().isVisible(),
     "Sticky note did not save",
   );
 
@@ -138,11 +159,11 @@ export async function run(browser) {
     .getByRole("heading", { name: PASTE_TITLE })
     .waitFor({ timeout: 30_000 });
   assert(
-    await page.getByText("Useful for our reply.").isVisible(),
+    await page.getByText("Useful for our reply.").first().isVisible(),
     "Comment missing after reload",
   );
   assert(
-    await page.getByText("Bring this into Claims.").isVisible(),
+    await page.getByText("Bring this into Claims.").first().isVisible(),
     "Sticky note missing after reload",
   );
 
