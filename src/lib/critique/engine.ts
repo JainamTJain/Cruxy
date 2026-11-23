@@ -67,11 +67,65 @@ const llmSchema = z.object({
   truth_additions: z.array(z.unknown()).default([]),
 });
 
-function readFindings(raw: unknown[]): LlmFinding[] {
+const KIND_WORDS: [RegExp, (typeof CRITIQUE_KINDS)[number]][] = [
+  [/fallac|circular|dilemma|slope|generali/, "logical_fallacy"],
+  [/counter|objection|rebut/, "unanswered_counter"],
+  [/stakeholder|voiceless/, "missing_stakeholder"],
+  [/perspective|view|other side/, "missing_perspective"],
+  [/evidence|backing|support|fact|sufficien/, "evidence_gap"],
+  [/disconnect|connect|relevan/, "disconnected_claim"],
+  [/loose|question|open/, "loose_end"],
+  [/word|clar|vague|sharp/, "sharper_wording"],
+];
+const SECTION_WORDS: [RegExp, WorkingSectionKey][] = [
+  [/answer|one sentence|thesis/, "answer_one_sentence"],
+  [/support|backing|evidence/, "support"],
+  [/objection|counter|reply/, "objection_reply"],
+  [/value|tension|stakeholder/, "values_in_tension"],
+  [/judge|question|q ?& ?a/, "judges_questions"],
+  [/claim/, "claims"],
+];
+
+function pick(o: Record<string, unknown>, ...keys: string[]): unknown {
+  for (const k of keys) if (o[k] != null && o[k] !== "") return o[k];
+  return undefined;
+}
+
+/** Map the model's wording onto our keys, so a near miss is not thrown away. */
+function normalizeFinding(r: unknown): unknown {
+  if (!r || typeof r !== "object") return r;
+  const o = r as Record<string, unknown>;
+  const kindRaw = String(pick(o, "kind", "type", "category") ?? "").toLowerCase().replace(/[\s-]+/g, "_");
+  const kind = (CRITIQUE_KINDS as readonly string[]).includes(kindRaw)
+    ? kindRaw
+    : KIND_WORDS.find(([re]) => re.test(kindRaw.replace(/_/g, " ")))?.[1] ?? "sharper_wording";
+  const secRaw = String(pick(o, "section_key", "section", "sectionKey") ?? "").toLowerCase().replace(/[\s-]+/g, "_");
+  const section = (WORKING_SECTION_KEYS as readonly string[]).includes(secRaw)
+    ? secRaw
+    : SECTION_WORDS.find(([re]) => re.test(secRaw.replace(/_/g, " ")))?.[1] ?? "claims";
+  const question = pick(o, "question_back", "questionBack", "question");
+  return {
+    kind,
+    section_key: section,
+    quote: pick(o, "quote", "quoted_text", "excerpt", "text") ?? null,
+    weak_spot: pick(o, "weak_spot", "weakSpot", "weakness", "issue", "problem"),
+    why: pick(o, "why", "why_weak", "whyWeak", "reason", "impact"),
+    stronger: pick(o, "stronger", "stronger_version", "strongerVersion", "fix", "rewrite", "suggestion"),
+    question_back: question ?? "Which version would you defend in front of a judge? What do you think?",
+    fallacy_name: pick(o, "fallacy_name", "fallacyName", "fallacy") ?? null,
+    truth_source_id: pick(o, "truth_source_id", "truthSourceId", "source_id") ?? null,
+  };
+}
+
+function readFindings(raw: unknown[], stats?: { firstIssue: string }): LlmFinding[] {
   const out: LlmFinding[] = [];
   for (const r of raw) {
-    const p = findingSchema.safeParse(r);
+    const p = findingSchema.safeParse(normalizeFinding(r));
     if (p.success) out.push(p.data);
+    else if (stats && !stats.firstIssue) {
+      const i = p.error.issues[0];
+      stats.firstIssue = i ? `${i.path.join(".")}: ${i.message}`.slice(0, 80) : "invalid";
+    }
     if (out.length >= 14) break;
   }
   return out;
@@ -229,6 +283,8 @@ export async function critiqueWorkingDocument(opts: {
         "- question_back: one Socratic question that ends with What do you think?",
         "- truth_source_id: the id of the truth-source item that backs the stronger version, or null.",
         "Return between 4 and 12 findings when the document has that many real problems; fewer if it is strong. Do not pad.",
+        `section_key must be exactly one of: ${WORKING_SECTION_KEYS.map((k) => `${k} (${WORKING_SECTION_LABELS[k]})`).join(", ")}.`,
+        "Each finding is an object with exactly these keys: kind, section_key, quote, weak_spot, why, stronger, question_back, fallacy_name, truth_source_id.",
         "Kinds: missing_perspective, missing_stakeholder, unanswered_counter, logical_fallacy, disconnected_claim, loose_end, evidence_gap, sharper_wording.",
         "truth_additions: up to 3 ideas this team wrote that are clearly stronger than, or missing from, the truth source (a sharper argument, a better reply to an objection, a stakeholder or analogy the prep lacks). Rewrite each in your own neutral words with no team or person named. Leave it empty if the document only repeats the truth source.",
         "Never name a USC team. Plain words. No em dashes. Ethics over law. Never write an id inside a sentence.",
@@ -257,8 +313,9 @@ export async function critiqueWorkingDocument(opts: {
     if (!result.ok) modelNote = "model refused";
     else if ((result as { stub?: boolean }).stub) modelNote = "model unreadable";
     if (result.ok && !(result as { stub?: boolean }).stub) {
-      llmFindings = readFindings(result.data.findings);
-      modelNote = `model=${result.data.findings.length} valid=${llmFindings.length}`;
+      const readStats = { firstIssue: "" };
+      llmFindings = readFindings(result.data.findings, readStats);
+      modelNote = `model=${result.data.findings.length} valid=${llmFindings.length}${readStats.firstIssue ? ` issue=${readStats.firstIssue}` : ""}`;
       // Cruxy edits the shared truth source from the team's strongest ideas.
       const { addTruthAddition } = await import("@/lib/critique/truth-additions");
       for (const a of readAdditions(result.data.truth_additions ?? [])) {
