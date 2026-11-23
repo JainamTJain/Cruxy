@@ -8,7 +8,7 @@ import {
 } from "@/lib/critique/run";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 /**
  * Trigger a critique of the working document for this team/case.
