@@ -77,7 +77,6 @@ export async function run(browser) {
     await page.getByRole("button", { name: /Add as suggestion/i }).click();
     await page.waitForTimeout(1500);
   }
-  }
 
   for (const w of WIDTHS) {
     log(`viewport ${w}`);
