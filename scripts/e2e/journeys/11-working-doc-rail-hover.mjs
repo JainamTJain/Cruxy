@@ -48,18 +48,35 @@ export async function run(browser) {
   await ensureWorkingDoc(page);
   await expectNoCrash(page, "working tab");
 
+  // Put two framework terms in a section so hover cards can be tested.
+  async function ensureFrameworkMarks() {
+    if ((await page.locator("[data-framework-mark]").count()) >= 2) return;
+    const editBtn = page.getByRole("button", { name: /^Edit$/i }).first();
+    if (!(await editBtn.isVisible({ timeout: 5000 }).catch(() => false))) {
+      log("no Edit button; cannot seed framework terms");
+      return;
+    }
+    await editBtn.click();
+    const area = page.locator("textarea").first();
+    await area.waitFor({ timeout: 8000 });
+    const seeded =
+      "The values in tension are dignity and efficiency. " +
+      "A categorical imperative test asks whether the rule treats people as ends.";
+    await area.fill(seeded);
+    const save = page.getByRole("button", { name: /^Save$/i }).first();
+    await save.click();
+    await page.waitForTimeout(1500);
+  }
+  await ensureFrameworkMarks();
+
   const ideaBox = page.getByPlaceholder(/My idea is/i);
-  if (await ideaBox.isVisible({ timeout: 6000 }).catch(() => false)) {
+  if (await ideaBox.isVisible({ timeout: 4000 }).catch(() => false)) {
     await ideaBox.fill(
-      "The values in tension here include dignity and the categorical imperative.",
+      "Judges care about a clear stake for the people named in the case.",
     );
     await page.getByRole("button", { name: /Add as suggestion/i }).click();
-    await page.waitForTimeout(2000);
-    const coherence = page.getByRole("button", { name: /Check coherence/i });
-    if (await coherence.isVisible().catch(() => false)) {
-      await coherence.click();
-      await page.waitForTimeout(2000);
-    }
+    await page.waitForTimeout(1500);
+  }
   }
 
   for (const w of WIDTHS) {
