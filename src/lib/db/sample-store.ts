@@ -953,6 +953,13 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     reading_note_suggestions: raw.reading_note_suggestions ?? [],
     case_open_reading_passages: raw.case_open_reading_passages ?? [],
     case_open_reading_digests: raw.case_open_reading_digests ?? [],
+    // Bags kept by other modules (discussion threads, replies, visits and the
+    // like) are not typed here; keep them instead of dropping them on load.
+    ...Object.fromEntries(
+      Object.entries(raw as Record<string, unknown>).filter(
+        ([k, v]) => /^discussion_/.test(k) && Array.isArray(v),
+      ),
+    ),
   };
 }
 

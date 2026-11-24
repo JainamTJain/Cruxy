@@ -272,6 +272,34 @@ export async function POST(req: Request) {
           : { suggestionId: body.suggestionId, sectionKey: null };
         break;
       }
+      case "cruxy_reply": {
+        // @Cruxy in a suggestion's thread: Cruxy pushes back in the thread.
+        if (!body.suggestionId) {
+          return NextResponse.json({ error: "Missing suggestion." }, { status: 400 });
+        }
+        const { cruxyChallenge } = await import("@/lib/working-doc/suggestion-dialogue");
+        const reply = await cruxyChallenge({
+          suggestionId: body.suggestionId,
+          caseId,
+          teamId,
+          personId: session.personId,
+        });
+        return NextResponse.json({ reply });
+      }
+      case "redraft": {
+        // Rewrite the suggestion from the thread, at any point.
+        if (!body.suggestionId) {
+          return NextResponse.json({ error: "Missing suggestion." }, { status: 400 });
+        }
+        const { redraftSuggestion } = await import("@/lib/working-doc/suggestion-dialogue");
+        await redraftSuggestion({
+          suggestionId: body.suggestionId,
+          caseId,
+          teamId,
+          personId: session.personId,
+        });
+        break;
+      }
       case "research_idea": {
         if (!body.suggestionId) {
           return NextResponse.json(

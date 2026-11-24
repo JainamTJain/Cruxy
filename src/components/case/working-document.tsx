@@ -561,6 +561,9 @@ export function WorkingDocument({
               }
               onUndo={(id) => void post({ action: "undo_take", suggestionId: id })}
               onResearch={(id) => void post({ action: "research_idea", suggestionId: id })}
+              onRedraft={async (id) => {
+                await post({ action: "redraft", suggestionId: id });
+              }}
               busy={editBusy}
               crossReasons={crossReasons}
               setCrossReasons={setCrossReasons}
@@ -751,6 +754,7 @@ function SuggestionsRail({
   sectionLabel,
   onUndo,
   onResearch,
+  onRedraft,
   busy,
   crossReasons,
   setCrossReasons,
@@ -770,6 +774,7 @@ function SuggestionsRail({
   onTick: (id: string) => void;
   onCross: (id: string) => void;
   onResearch?: (id: string) => void;
+  onRedraft?: (id: string) => Promise<void>;
 }) {
   const total = suggestions.length + (queue?.count ?? 0);
   // Teammates' ideas first, then breaks in the reasoning, then the rest.
@@ -863,6 +868,7 @@ function SuggestionsRail({
               }}
               onCross={() => onCross(s.id)}
               onResearch={onResearch ? () => onResearch(s.id) : undefined}
+              onRedraft={onRedraft ? () => onRedraft(s.id) : undefined}
             />
           ))}
         </ul>
@@ -966,7 +972,7 @@ function DetailBlock({ label, children }: { label: string; children: React.React
   return (
     <div>
       <p className="m-0 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{label}</p>
-      <div className="mt-1 text-[13px] leading-relaxed">{children}</div>
+      <div className="mt-1 whitespace-pre-line text-[13px] leading-relaxed">{children}</div>
     </div>
   );
 }
@@ -984,6 +990,7 @@ function SuggestionCard({
   onTick,
   onCross,
   onResearch,
+  onRedraft,
 }: {
   s: Hub["suggestions"][number];
   caseId: string;
@@ -995,8 +1002,10 @@ function SuggestionCard({
   onTick: () => void;
   onCross: () => void;
   onResearch?: () => void;
+  onRedraft?: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
+  const [redrafting, setRedrafting] = useState(false);
   const [crossing, setCrossing] = useState(false);
   const structured = Boolean(s.stronger_version);
   const fromMember = s.source === "member" && s.created_by_name;
@@ -1117,13 +1126,6 @@ function SuggestionCard({
             <DetailBlock label="Source">{s.citation}</DetailBlock>
           ) : null}
           <Attr name={who} when={s.created_at_label} />
-          <ThreadInline
-            caseId={caseId}
-            teamId={teamId}
-            kind="suggestion"
-            targetId={s.id}
-            title={(s.stronger_version ?? s.text).slice(0, 80)}
-          />
         </div>
       ) : null}
 
@@ -1188,6 +1190,24 @@ function SuggestionCard({
           >
             Cross
           </button>
+          {onRedraft && structured ? (
+            <button
+              type="button"
+              disabled={busy || redrafting}
+              title="Cruxy rewrites the draft deeper, using the replies so far"
+              className="min-h-9 rounded-lg border border-[#D9D1F7] bg-white px-3 text-xs font-semibold text-[#4B2E9A] disabled:opacity-60"
+              onClick={async () => {
+                setRedrafting(true);
+                try {
+                  await onRedraft();
+                } finally {
+                  setRedrafting(false);
+                }
+              }}
+            >
+              {redrafting ? "Redrafting..." : "Redraft"}
+            </button>
+          ) : null}
           {hasDetails || !open ? (
             <button
               type="button"
@@ -1200,6 +1220,15 @@ function SuggestionCard({
           ) : null}
         </div>
       )}
+      {/* The conversation with the team and Cruxy, one tap away. */}
+      <ThreadInline
+        caseId={caseId}
+        teamId={teamId}
+        kind="suggestion"
+        targetId={s.id}
+        title={(s.stronger_version ?? s.text).slice(0, 80)}
+        onRedraft={structured ? onRedraft : undefined}
+      />
     </li>
   );
 }

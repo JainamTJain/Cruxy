@@ -24,8 +24,10 @@ export type DiscussionThread = {
 export type DiscussionReply = {
   id: string;
   thread_id: string;
-  person_id: string;
+  /** Null when Cruxy wrote it. */
+  person_id: string | null;
   person_name: string | null;
+  author?: "person" | "cruxy";
   body: string;
   mention_ids: string[];
   created_at: string;
