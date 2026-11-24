@@ -245,6 +245,7 @@ function FrameworkMark({
     >
       <button
         type="button"
+        data-framework-mark
         className="border-b border-dotted border-ink/35 bg-transparent p-0 font-inherit text-inherit underline-offset-2 hover:border-cardinal/70"
         style={{ font: "inherit" }}
         aria-expanded={open}
