@@ -249,7 +249,10 @@ export function bodyFromWorkingSections(opts: {
     .map((f) => {
       const line = claimSentences.find((x) => new RegExp(f, "i").test(x)) ?? f;
       const named = line.match(/([A-Z][a-z]+'s [a-z ]+?(?:formula|principle|theory|veil|test))/);
-      return { name: named?.[1] ?? FRAMEWORK_NAMES[f] ?? cap(f), one_line: cap(clip(line, 200)) };
+      const name = named?.[1] ?? FRAMEWORK_NAMES[f] ?? cap(f);
+      // "Kant: do not treat..." under the name "Kant" would read "Kant: Kant:".
+      const oneLine = line.replace(new RegExp(`^${f}\\w*\\s*:\\s*`, "i"), "");
+      return { name, one_line: cap(clip(oneLine, 200)) };
     });
 
   const body: OnePagerBody = {
@@ -279,8 +282,8 @@ export function bodyFromWorkingSections(opts: {
         kind: "values_scale",
         title: "Values in tension",
         payload: {
-          left: (left || "Value A").slice(0, 80),
-          right: (right || "Value B").slice(0, 80),
+          left: clip(left || "", 160),
+          right: clip(right || "", 160),
           note: clip(trap || cruxLine, 240),
         },
       },
