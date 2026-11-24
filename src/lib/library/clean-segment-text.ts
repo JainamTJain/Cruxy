@@ -149,6 +149,8 @@ export function cleanSegmentBody(raw: string): string {
     .replace(/\(\s*\)/g, "")
     .trim();
   if (isEmptyPoint(t)) return "";
+  // Lone labels like "Imperative:" with no content.
+  if (/^[A-Za-z][\w\s'-]{0,40}:\s*$/.test(t)) return "";
   return t;
 }
 
