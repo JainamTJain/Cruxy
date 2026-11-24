@@ -22,6 +22,7 @@ import {
 } from "@/lib/library/clean-segment-text";
 import { BOILERPLATE_RE, distillFileSegments } from "@/lib/library/segments";
 import { checkPointFallacy } from "@/lib/case-home/point-fallacy";
+import { ensureSampleDriveReadings } from "@/lib/case-home/sample-drive-readings";
 import { extractCaseSection } from "@/lib/case-home/case-section";
 import type { LibraryFile } from "@/lib/library/types";
 import { listQuestions } from "@/lib/revision/repository";
@@ -145,6 +146,11 @@ export async function getCaseHome(args: {
     viewerTeamId = teamId,
     seeAllTeams = false,
   } = args;
+
+  await ensureSampleDriveReadings({
+    caseId,
+    caseNumber: caseRow.number,
+  });
 
   const [allFiles, stakeholders, brain, questions, versions] =
     await Promise.all([
