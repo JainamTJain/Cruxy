@@ -658,7 +658,7 @@ export function CaseBrainClient({
                   });
 
   return (
-    <div className="flex flex-col gap-5 animate-fade-up">
+    <div className="flex w-full min-w-0 flex-col gap-5 animate-fade-up">
       <OfflineCaseBanner caseId={caseId} />
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="flex items-end gap-5">
@@ -857,8 +857,8 @@ export function CaseBrainClient({
       {compare && data.canSeeAllTeams ? (
         <ComparePanel caseId={caseId} teams={teams} />
       ) : (
-        <div className="flex flex-wrap items-start gap-6">
-          <div className="flex min-w-0 flex-[999_1_620px] flex-col gap-4">
+        <div className="flex w-full min-w-0 flex-wrap items-start gap-6">
+          <div className="flex w-full min-w-0 flex-col gap-4">
             {tab === "reading" ? (
               <div className="flex flex-col gap-8">
                 {!caseHome ? (
