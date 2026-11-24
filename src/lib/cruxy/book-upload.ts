@@ -73,11 +73,14 @@ export async function fulfillBookRequestWithPdf(input: {
   // Read the book itself so Cruxy can use it, not just a note that it exists.
   const { storableText } = await import("@/lib/reading/import-reading");
   let extracted = storableText((input.textContent ?? "").trim());
+  // When reading fails the book is kept as stored but marked unreadable.
   if (!extracted && bytes && !/\.txt$/i.test(uploadPath)) {
     const { fileToText } = await import("@/lib/reading/import-reading");
     extracted = await fileToText({ name: safeName, type: "", bytes }).catch(() => "");
   }
-  const readable = extracted.length >= 1000;
+  const { readableShare } = await import("@/lib/reading/import-reading");
+  // A scanned or broken PDF yields little text, or junk: neither is readable.
+  const readable = extracted.length >= 1000 && readableShare(extracted) >= 0.4;
   const cases = await listCases();
   const existing = await listLibraryFiles();
   const header = [

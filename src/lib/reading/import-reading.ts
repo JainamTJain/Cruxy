@@ -82,7 +82,7 @@ const BOILERPLATE =
   /^(subscribe( to [\w ]+)?|sign ?up|sign in|log ?in|share( this)?( article| story)?|meet the authors?|about the authors?|related( articles| posts| content)?|read more|more from [\w ]+|follow us|newsletter|advertisement|skip to (main )?content|menu|search|print|email|tweet|facebook|twitter|linkedin|copy link|cookies?|accept( all)?( cookies)?|topics?|tags?|comments?|back to top|©.*|copyright.*|all rights reserved\.?)$/i;
 
 /** Readable article text from a web page: headings kept as "## ", one blank line between paragraphs. */
-function htmlToText(html: string): { text: string; title: string | null } {
+function htmlToText(html: string, opts?: { keepLeadHeadings?: boolean }): { text: string; title: string | null } {
   const rawTitle = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? null;
   const title = rawTitle ? decodeEntities(rawTitle).replace(/\s+/g, " ").trim() : null;
   let src = html.replace(/<!--[\s\S]*?-->/g, " ");
@@ -119,7 +119,9 @@ function htmlToText(html: string): { text: string; title: string | null } {
   // Drop the page title, byline and author box that sit above the first real paragraph.
   const firstBody = paras.findIndex((p) => !p.startsWith("## ") && p.length >= 200);
   if (firstBody > 0) {
-    paras = paras.filter((p, i) => i >= firstBody || (!p.startsWith("## ") && p.length >= 120));
+    paras = paras.filter(
+      (p, i) => i >= firstBody || (opts?.keepLeadHeadings ? p.startsWith("## ") : false) || (!p.startsWith("## ") && p.length >= 120),
+    );
   }
   void titleCore;
   // Cut the tail: topic tags, related links and the author bio.
@@ -202,19 +204,76 @@ export async function fileToText(file: { name: string; type: string; bytes: Uint
   return storableText(await fileToTextRaw(file));
 }
 
+/** What a file really is, from its first bytes; names get cut off and lie. */
+function sniff(bytes: Uint8Array): "pdf" | "zip" | "text" {
+  const head = String.fromCharCode(...bytes.slice(0, 5));
+  if (head.startsWith("%PDF")) return "pdf";
+  if (bytes[0] === 0x50 && bytes[1] === 0x4b) return "zip";
+  return "text";
+}
+
+/**
+ * Share of tokens that look like words: prose scores near 1, dense legal text
+ * around 0.6, raw PDF or binary bytes under 0.1.
+ */
+export function readableShare(t: string): number {
+  const tokens = t.slice(0, 30_000).split(/\s+/).filter(Boolean);
+  if (tokens.length < 20) return tokens.length ? 1 : 0;
+  const words = tokens.filter((w) => /^["'(\[]?[\p{L}][\p{L}'\u2019\-]{0,24}[.,;:!?"')\]]*$/u.test(w));
+  return words.length / tokens.length;
+}
+
+async function epubToText(bytes: Uint8Array): Promise<string> {
+  const JSZip = (await import("jszip")).default;
+  const zip = await JSZip.loadAsync(bytes);
+  // Reading order from the package file when present, else every XHTML file.
+  const opfPath = Object.keys(zip.files).find((p) => p.endsWith(".opf"));
+  let order: string[] = [];
+  if (opfPath) {
+    const opf = await zip.file(opfPath)!.async("string");
+    const base = opfPath.includes("/") ? opfPath.slice(0, opfPath.lastIndexOf("/") + 1) : "";
+    const hrefs = new Map([...opf.matchAll(/<item\b[^>]*id="([^"]+)"[^>]*href="([^"]+)"/g)].map((m) => [m[1]!, m[2]!]));
+    order = [...opf.matchAll(/<itemref\b[^>]*idref="([^"]+)"/g)]
+      .map((m) => hrefs.get(m[1]!))
+      .filter((h): h is string => Boolean(h))
+      .map((h) => base + decodeURIComponent(h));
+  }
+  if (!order.length) order = Object.keys(zip.files).filter((p) => /\.x?html?$/i.test(p)).sort();
+  const parts: string[] = [];
+  for (const p of order) {
+    const f = zip.file(p);
+    if (!f) continue;
+    parts.push(htmlToText(await f.async("string"), { keepLeadHeadings: true }).text);
+  }
+  return parts.filter(Boolean).join("\n\n");
+}
+
 async function fileToTextRaw(file: { name: string; type: string; bytes: Uint8Array }): Promise<string> {
   const name = file.name.toLowerCase();
-  if (file.type === "application/pdf" || name.endsWith(".pdf")) return pdfToText(file.bytes);
-  if (name.endsWith(".docx") || file.type.includes("wordprocessingml")) {
+  const kind = sniff(file.bytes);
+  if (kind === "pdf" || file.type === "application/pdf" || name.endsWith(".pdf")) return pdfToText(file.bytes);
+  if (kind === "zip" || name.endsWith(".docx") || name.endsWith(".epub")) {
+    // A zip is a Word file or an EPUB book.
+    const isEpub = name.endsWith(".epub") || file.type.includes("epub") || !(await looksLikeDocx(file.bytes));
+    if (isEpub) return epubToText(file.bytes);
     const mammoth = await import("mammoth");
     const { value } = await mammoth.extractRawText({ buffer: Buffer.from(file.bytes) });
     return value.trim();
   }
   const raw = new TextDecoder("utf-8").decode(file.bytes);
-  if (name.endsWith(".html") || name.endsWith(".htm") || file.type.includes("html")) {
+  if (readableShare(raw) < 0.4) {
+    throw new Error("This file is not text Crux can read. Upload it as a PDF, Word or EPUB file, or paste the text.");
+  }
+  if (name.endsWith(".html") || name.endsWith(".htm") || file.type.includes("html") || /^\s*<(!doctype|html)/i.test(raw)) {
     return htmlToText(raw).text;
   }
   return raw.trim();
+}
+
+async function looksLikeDocx(bytes: Uint8Array): Promise<boolean> {
+  const JSZip = (await import("jszip")).default;
+  const zip = await JSZip.loadAsync(bytes).catch(() => null);
+  return Boolean(zip?.file("word/document.xml"));
 }
 
 export async function urlToText(url: string): Promise<{ text: string; title: string | null }> {
