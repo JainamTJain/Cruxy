@@ -19,7 +19,11 @@ type Props = {
   className?: string;
   /** When true, start expanded (e.g. deep link). */
   startOpen?: boolean;
+  /** Suggestion threads: Redraft from what the thread has said so far. */
+  onRedraft?: () => Promise<void> | void;
 };
+
+const CRUXY: Person = { id: "cruxy", name: "Cruxy" };
 
 /**
  * Small reply count + inline thread under an annotation, suggestion or field.
@@ -32,7 +36,11 @@ export function ThreadInline({
   title,
   className,
   startOpen,
+  onRedraft,
 }: Props) {
+  // In a suggestion's thread, @Cruxy pushes back on the reasoning.
+  const cruxyHere = kind === "suggestion";
+  const [thinking, setThinking] = useState<null | "reply" | "redraft">(null);
   const [open, setOpen] = useState(Boolean(startOpen));
   const [count, setCount] = useState(0);
   const [threadId, setThreadId] = useState<string | null>(null);
@@ -133,11 +141,11 @@ export function ThreadInline({
       return;
     }
     const q = partial.toLowerCase();
-    setSuggest(
-      people
-        .filter((p) => p.name.toLowerCase().startsWith(q) || !q)
-        .slice(0, 5),
-    );
+    const matches = [...(cruxyHere ? [CRUXY] : []), ...people]
+      .filter((p) => p.name.toLowerCase().startsWith(q) || !q)
+      .slice(0, 6);
+    // Name already typed in full: nothing left to pick.
+    setSuggest(matches.length === 1 && matches[0]!.name.toLowerCase() === q ? [] : matches);
   }
 
   function pickMention(p: Person) {
@@ -174,8 +182,46 @@ export function ThreadInline({
       setReplies((prev) => [...prev, data.reply]);
       setCount((c) => c + 1);
       setDraft("");
+      if (cruxyHere && /@cruxy\b/i.test(draft)) await askCruxy();
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function reloadReplies() {
+    if (!threadId) return;
+    const res = await fetch(`/api/discussion/threads/${threadId}`).catch(() => null);
+    if (!res?.ok) return;
+    const data = (await res.json()) as { replies?: DiscussionReply[] };
+    if (data.replies) {
+      setReplies(data.replies);
+      setCount(data.replies.length);
+    }
+  }
+
+  async function askCruxy() {
+    setThinking("reply");
+    try {
+      const res = await fetch("/api/case/working-document", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "cruxy_reply", caseId, teamId, suggestionId: targetId }),
+      }).catch(() => null);
+      if (!res?.ok) setStatus("Cruxy could not reply just now. Try @Cruxy again.");
+      await reloadReplies();
+    } finally {
+      setThinking(null);
+    }
+  }
+
+  async function redraft() {
+    if (!onRedraft) return;
+    setThinking("redraft");
+    try {
+      await onRedraft();
+      await reloadReplies();
+    } finally {
+      setThinking(null);
     }
   }
 
@@ -204,17 +250,33 @@ export function ThreadInline({
           ) : null}
           <ul className="m-0 list-none space-y-2 p-0">
             {replies.map((r) => (
-              <li key={r.id} className="text-sm">
+              <li
+                key={r.id}
+                className={cn(
+                  "text-sm",
+                  r.author === "cruxy" && "rounded-lg border-l-[3px] border-[#6B4FD8] bg-[#F3F0FD] px-2.5 py-1.5",
+                )}
+              >
                 <p className="m-0 text-[11px] text-muted">
-                  {r.person_name ?? "Someone"},{" "}
-                  {new Date(r.created_at).toLocaleString()}
+                  <span className={r.author === "cruxy" ? "font-semibold text-[#4B2E9A]" : undefined}>
+                    {r.author === "cruxy" ? "Cruxy" : r.person_name ?? "Someone"}
+                  </span>
+                  , {new Date(r.created_at).toLocaleString()}
                 </p>
                 <p className="m-0 mt-0.5 whitespace-pre-wrap">{r.body}</p>
               </li>
             ))}
+            {thinking ? (
+              <li className="flex items-center gap-1.5 text-xs text-[#4B2E9A]" aria-live="polite">
+                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-[#6B4FD8]" />
+                {thinking === "reply" ? "Cruxy is thinking about your reasoning..." : "Cruxy is redrafting from this thread..."}
+              </li>
+            ) : null}
             {!replies.length && !busy ? (
               <li className="text-xs text-muted">
-                No replies yet. Write the first note or @mention a teammate.
+                {cruxyHere
+                  ? "No replies yet. Push back, add a half formed idea or ask for a different style. Type @Cruxy to have Cruxy question the reasoning, or Redraft at any point."
+                  : "No replies yet. Write the first note or @mention a teammate."}
               </li>
             ) : null}
           </ul>
@@ -240,7 +302,7 @@ export function ThreadInline({
                 className="min-h-11 min-w-0 flex-1 rounded-lg border border-mist bg-white px-2 text-sm"
                 value={draft}
                 disabled={busy}
-                placeholder="Reply… type @ to mention"
+                placeholder={cruxyHere ? "Reply, or type @Cruxy to have Cruxy push back" : "Reply… type @ to mention"}
                 onChange={(e) => onDraft(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
@@ -258,6 +320,28 @@ export function ThreadInline({
                 Send
               </button>
             </div>
+            {cruxyHere ? (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={busy || Boolean(thinking)}
+                  className="rounded-lg border border-[#D9D1F7] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#4B2E9A] disabled:opacity-60"
+                  onClick={() => void askCruxy()}
+                >
+                  Ask Cruxy to push back
+                </button>
+                {onRedraft ? (
+                  <button
+                    type="button"
+                    disabled={busy || Boolean(thinking)}
+                    className="rounded-lg bg-[#4B2E9A] px-2.5 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                    onClick={() => void redraft()}
+                  >
+                    Redraft from this thread
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

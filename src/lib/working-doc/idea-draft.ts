@@ -49,7 +49,7 @@ const draftSchema = z.object({
   /** Text ready to Take into that section, in the team's voice. */
   draft: z.preprocess(
     (v) => (typeof v === "string" ? v : typeof v === "object" && v ? Object.values(v).join(" ") : v),
-    clip(1200).pipe(z.string().min(10)),
+    clip(1800).pipe(z.string().min(10)),
   ),
   /** The sentence it would replace, copied exactly, or null when it is new. */
   replaces: optClip(400),
@@ -204,7 +204,7 @@ export async function draftIdea(opts: {
       "   Find what backs it and what cuts against it. A fact, quote or source may only be used if it came from one of these retrieved materials; put each outside source you rely on in sources with its link and why it matters. Never invent a source, a quote or a statistic.",
       "2. Place it: rebuild the team's chain (supports so claim, claim so answer, objection and reply) and decide which step this idea supports, adds or repairs. Say so in fit.",
       "3. Test it: does it repeat what the document already says, conflict with another claim, or need a premise the team hasn't stated? Put what a judge would push on, and any evidence still missing, in risk.",
-      "4. Draft it sharper than it came in: write the text exactly as it should appear in that section, in the team's voice and matching the section's structure (Claim N:, Logic line:, S1., Backing:, Q:, A:). Turn a pointer into the finished piece (for 'search on the Fisher Protocol', explain the thought experiment in one line with its source and say exactly what it shows for this case's claim). Spell out the link to the claim it serves, use the strongest verified detail from the research, cut filler, and answer the obvious judge pushback inside the draft when you can. Keep it recognizably theirs. Never paste the person's raw words back as the draft. If it replaces an existing sentence, copy that sentence exactly into replaces.",
+      "4. Draft it sharper than it came in: write the text exactly as it should appear in that section, in the team's voice and matching the section's structure (Claim N:, Logic line:, S1., Backing:, Q:, A:). Turn a pointer into the finished piece (for 'search on the Fisher Protocol', explain the thought experiment in one line with its source and say exactly what it shows for this case's claim). Spell out the link to the claim it serves, use the strongest verified detail from the research, cut filler, and answer the obvious judge pushback inside the draft when you can. Go deep, not wide: the draft must make the reasoning ladder visible (why it is true, why that holds, so what for this case, why it survives the best objection); a draft that only restates the idea more formally is a failure. Keep it recognizably theirs. Never paste the person's raw words back as the draft. If it replaces an existing sentence, copy that sentence exactly into replaces.",
       "Never name another team. Plain words. No em dashes.",
       `section_key must be one of: ${WORKING_SECTION_KEYS.join(", ")}.`,
       'Return JSON: {"section_key","fit","draft","replaces","risk","question_back","truth_source_id","sources":[{"title","url","why"}],"frameworks":["Framework: one plain line on how it bears on the idea"],"verdict"} where verdict is strengthens, repeats or conflicts, and question_back is one question ending with What do you think?',

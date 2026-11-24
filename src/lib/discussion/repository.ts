@@ -36,7 +36,8 @@ type ThreadRow = {
 type ReplyRow = {
   id: string;
   thread_id: string;
-  person_id: string;
+  person_id: string | null;
+  author?: "person" | "cruxy";
   body: string;
   mention_ids: string[];
   created_at: string;
@@ -341,7 +342,8 @@ export async function listReplies(
     id: r.id,
     thread_id: r.thread_id,
     person_id: r.person_id,
-    person_name: names.get(r.person_id) ?? null,
+    author: r.author ?? "person",
+    person_name: r.author === "cruxy" ? "Cruxy" : r.person_id ? names.get(r.person_id) ?? null : null,
     body: r.body,
     mention_ids: r.mention_ids,
     created_at: r.created_at,
@@ -426,6 +428,44 @@ export async function addReply(input: {
     mention_ids: mentionIds,
     created_at: at,
   };
+}
+
+/** Cruxy writes in a thread: pushback after an @Cruxy, or a note that it redrafted. */
+export async function addCruxyReply(input: { threadId: string; body: string }): Promise<DiscussionReply> {
+  const body = input.body.trim().replace(/[·—–]/g, ",").slice(0, 2000);
+  if (!body) throw new Error("Empty reply.");
+  const thread = await getThreadById(input.threadId);
+  if (!thread) throw new Error("Thread not found.");
+  const at = nowIso();
+  const row: ReplyRow = {
+    id: randomUUID(),
+    thread_id: input.threadId,
+    person_id: null,
+    author: "cruxy",
+    body,
+    mention_ids: [],
+    created_at: at,
+  };
+  if (isSampleDataMode()) {
+    await updateStore((s) => {
+      ((s as StoreBag).discussion_replies ??= []).push(row);
+      const t = ((s as StoreBag).discussion_threads ??= []).find((x) => x.id === input.threadId);
+      if (t) t.updated_at = at;
+    });
+  } else {
+    const { getServiceSupabase } = await import("@/lib/db/supabase/client");
+    const sb = getServiceSupabase();
+    const { error } = await sb.from("discussion_replies").insert(row);
+    if (error) throw new Error(error.message);
+    await sb.from("discussion_threads").update({ updated_at: at }).eq("id", input.threadId);
+  }
+  await logActivity({
+    person_id: null,
+    action: "discussion_cruxy_reply",
+    target: thread.id,
+    meta: { kind: thread.kind, caseId: thread.case_id, teamId: thread.team_id },
+  });
+  return { ...row, person_name: "Cruxy" };
 }
 
 export async function getThreadCounts(input: {
