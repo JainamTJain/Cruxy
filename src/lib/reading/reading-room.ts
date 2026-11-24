@@ -71,12 +71,14 @@ export async function ensureWebText(
   preText?: string | null,
 ): Promise<{ status: "done" | "failed"; error: string | null }> {
   try {
-    // An uploaded book: its text comes from storage, never from the web.
-    const got = preText
-      ? { text: preText }
-      : row.url.startsWith("upload:")
-      ? { text: await uploadedBookText(row.url.slice("upload:".length)) }
-      : await urlToText(row.url);
+    // Wave 7: uploaded books are closed sources. Never expand their full text
+    // into Deeper reading passages for the teams.
+    if (String(row.url).startsWith("upload:")) {
+      throw new Error(
+        "Uploaded books stay with the tech admin as a PDF. The product keeps only a short quote.",
+      );
+    }
+    const got = preText ? { text: preText } : await urlToText(row.url);
     const text = got.text.replace(/[·—–]/g, ",").slice(0, 400_000);
     if (text.length < 200) throw new Error("This page has too little readable text here. Open the original.");
     const parts = splitPassages(text).map((p, i) => ({ ord: i, anchor: p.anchor, text: p.text }));
@@ -142,22 +144,6 @@ export async function ensureWebText(
     }
     return { status: "failed", error };
   }
-}
-
-/** The text of a book the tech admin uploaded for a book request. */
-async function uploadedBookText(bookId: string): Promise<string> {
-  const { listBookRequests } = await import("@/lib/db/library-repository");
-  const book = (await listBookRequests()).find((b) => b.id === bookId);
-  if (!book?.upload_path) throw new Error("This book has not been uploaded yet.");
-  const { downloadBytes } = await import("@/lib/ops/storage");
-  const bytes = await downloadBytes("crux-uploads", book.upload_path);
-  if (!bytes) throw new Error("The uploaded file is missing from storage.");
-  const name = book.upload_path.split("/").pop() ?? "book.pdf";
-  if (/\.txt$/i.test(name)) return new TextDecoder("utf-8").decode(bytes);
-  const { fileToText } = await import("@/lib/reading/import-reading");
-  const text = await fileToText({ name, type: "", bytes: new Uint8Array(bytes) });
-  if (text.trim().length < 1000) throw new Error("The text of this book could not be read (it may be a scan).");
-  return text;
 }
 
 /** Rows still waiting for fetch/split/digest (first open would do this on demand). */

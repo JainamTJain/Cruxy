@@ -88,39 +88,18 @@ export async function listOpenReadings(
 }
 
 /**
- * A book the tech admin uploaded joins the case's Deeper reading for every
- * team, readable in the reading room. Returns the reading's id.
+ * Wave 7: closed books must not join Deeper reading with full text.
+ * Kept as a stub so callers fail closed instead of publishing the PDF text.
  */
-export async function addBookReading(opts: {
+export async function addBookReading(_opts: {
   caseId: string;
   bookId: string;
   title: string;
   why: string | null;
 }): Promise<OpenReading> {
-  const row = {
-    case_id: opts.caseId,
-    title: opts.title.slice(0, 240),
-    url: `upload:${opts.bookId}`,
-    source_kind: "book" as const,
-    why: opts.why?.slice(0, 300) ?? null,
-    authors: null,
-    year: null,
-  };
-  if (isSampleDataMode()) {
-    const hit = sampleRows.find((x) => x.case_id === row.case_id && x.url === row.url);
-    if (hit) return hit;
-    const made = { ...row, id: randomUUID(), found_at: nowIso() };
-    sampleRows.push(made);
-    return made;
-  }
-  const sb = getServiceSupabase();
-  const { data, error } = await sb
-    .from("case_open_readings")
-    .upsert({ ...row, status: "active", text_status: "none" }, { onConflict: "case_id,url" })
-    .select("id, case_id, title, url, source_kind, why, authors, year, found_at")
-    .single();
-  if (error || !data) throw new Error(`addBookReading: ${error?.message ?? "no row"}`);
-  return data as OpenReading;
+  throw new Error(
+    "Uploaded books stay with the tech admin. They are not added to Deeper reading.",
+  );
 }
 
 async function saveOpenReadings(rows: Omit<OpenReading, "id" | "found_at">[]): Promise<number> {
