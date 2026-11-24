@@ -75,6 +75,15 @@ async function signInKatie(ctx) {
   return headers;
 }
 
+
+async function dismissTour(page) {
+  const skip = page.getByRole("button", { name: /Skip tour/i });
+  if (await skip.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await skip.click();
+    await page.waitForTimeout(300);
+  }
+}
+
 async function shoot(page, name) {
   await page.waitForTimeout(800);
   const art = join(OUT, name);
@@ -93,9 +102,20 @@ await page.goto(`${BASE}/case-brain/${CASE9}?tab=reading`, {
   waitUntil: "networkidle",
   timeout: 90_000,
 });
-await page.getByRole("heading", { name: /Prep notes from Drive/i }).waitFor({
-  timeout: 60_000,
-});
+await dismissTour(page);
+// CaseReadings mounts after the case text paints (readingExtrasReady).
+await page.waitForTimeout(2500);
+const heading = page.getByRole("heading", { name: /Prep notes from Drive/i });
+try {
+  await heading.waitFor({ timeout: 60_000 });
+} catch (e) {
+  const html = await page.content();
+  console.log("PAGE TITLE", await page.title());
+  console.log("BODY SNIP", html.slice(0, 2000));
+  await page.screenshot({ path: join(OUT, "case-readings-debug.png"), fullPage: true });
+  throw e;
+}
+await heading.scrollIntoViewIfNeeded();
 await shoot(page, "case-readings-desktop-1280.png");
 
 await page.setViewportSize({ width: 390, height: 844 });
