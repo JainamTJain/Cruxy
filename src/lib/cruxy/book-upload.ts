@@ -73,9 +73,9 @@ export async function fulfillBookRequestWithPdf(input: {
 
   // Extract only to confirm the file is readable and to pick one short quote.
   // Closed books must not store full text in the shared library or Deeper reading.
-  let extracted = (input.textContent ?? "").trim();
+  const { storableText, fileToText } = await import("@/lib/reading/import-reading");
+  let extracted = storableText((input.textContent ?? "").trim());
   if (!extracted && bytes && !/\.txt$/i.test(uploadPath)) {
-    const { fileToText } = await import("@/lib/reading/import-reading");
     extracted = await fileToText({ name: safeName, type: "", bytes }).catch(() => "");
   }
   const readable = extracted.length >= 200 || Boolean((input.textContent ?? "").trim());

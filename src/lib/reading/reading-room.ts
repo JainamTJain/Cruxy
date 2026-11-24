@@ -79,7 +79,8 @@ export async function ensureWebText(
       );
     }
     const got = preText ? { text: preText } : await urlToText(row.url);
-    const text = got.text.replace(/[·—–]/g, ",").slice(0, 400_000);
+    const { storableText } = await import("@/lib/reading/import-reading");
+    const text = storableText(got.text).replace(/[·—–]/g, ",").slice(0, 400_000);
     if (text.length < 200) throw new Error("This page has too little readable text here. Open the original.");
     const parts = splitPassages(text).map((p, i) => ({ ord: i, anchor: p.anchor, text: p.text }));
     const baseDigest =

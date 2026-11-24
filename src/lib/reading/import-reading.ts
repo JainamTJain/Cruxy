@@ -186,7 +186,23 @@ async function pdfToText(bytes: Uint8Array): Promise<string> {
     .trim();
 }
 
+/**
+ * Text the database will store: no NUL bytes, no other control characters
+ * (tabs and newlines stay), no unpaired surrogates. PDFs often carry these.
+ */
+export function storableText(t: string): string {
+  return t
+    .replace(/\u0000/g, "")
+    .replace(/[\u0001-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, " ")
+    .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "")
+    .replace(/\uFFFD+/g, " ");
+}
+
 export async function fileToText(file: { name: string; type: string; bytes: Uint8Array }): Promise<string> {
+  return storableText(await fileToTextRaw(file));
+}
+
+async function fileToTextRaw(file: { name: string; type: string; bytes: Uint8Array }): Promise<string> {
   const name = file.name.toLowerCase();
   if (file.type === "application/pdf" || name.endsWith(".pdf")) return pdfToText(file.bytes);
   if (name.endsWith(".docx") || file.type.includes("wordprocessingml")) {
@@ -539,7 +555,7 @@ export async function extractReadingText(opts: {
     text = got.text;
     guessedTitle = got.title;
   }
-  text = text.replace(/[·—–]/g, ",").slice(0, MAX_CHARS);
+  text = storableText(text).replace(/[·—–]/g, ",").slice(0, MAX_CHARS);
   if (text.length < 80) {
     throw new Error(
       opts.file
