@@ -43,6 +43,7 @@ export async function GET(req: Request, { params }: Params) {
     caseRow,
     viewerTeamId: teamId,
     seeAllTeams: seeAll,
+    hideTechUploads: auth.person.role === "coach_admin",
   });
 
   return NextResponse.json(home, {

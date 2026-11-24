@@ -12,6 +12,8 @@ import {
 import { logActivity } from "@/lib/db/repository";
 
 export const runtime = "nodejs";
+// Reading and indexing a whole book can take a while.
+export const maxDuration = 300;
 
 export async function GET() {
   const auth = await requireSession();
@@ -72,6 +74,45 @@ export async function POST(req: Request) {
   if ("error" in auth) return auth.error;
   const denied = requireTechAdmin(auth.session);
   if (denied) return denied;
+
+  // Large PDFs go straight from the browser to storage: first "sign" for an
+  // upload URL, then "digest" once the file is there.
+  if ((req.headers.get("content-type") ?? "").includes("application/json")) {
+    const body = (await req.json().catch(() => ({}))) as {
+      action?: "sign" | "digest";
+      id?: string;
+      filename?: string;
+      path?: string;
+    };
+    if (!body.id) return NextResponse.json({ error: "id required" }, { status: 400 });
+    try {
+      if (body.action === "sign") {
+        const { bookUploadPath } = await import("@/lib/cruxy/book-upload");
+        const { createSignedUpload } = await import("@/lib/ops/storage");
+        const book = (await listBookRequests()).find((b) => b.id === body.id);
+        if (!book) return NextResponse.json({ error: "Book request not found." }, { status: 404 });
+        const signed = await createSignedUpload({
+          bucket: "crux-uploads",
+          path: bookUploadPath(book, body.filename ?? "book.pdf"),
+        });
+        if (!signed) return NextResponse.json({ direct: false });
+        return NextResponse.json({ direct: true, ...signed });
+      }
+      if (body.action === "digest") {
+        if (!body.path) return NextResponse.json({ error: "path required" }, { status: 400 });
+        const result = await fulfillBookRequestWithPdf({
+          bookRequestId: body.id,
+          personId: auth.session.personId,
+          filename: body.path.split("/").pop() ?? "book.pdf",
+          storedPath: body.path,
+        });
+        return NextResponse.json({ ok: true, ...result });
+      }
+      return NextResponse.json({ error: "Unknown action." }, { status: 400 });
+    } catch (err) {
+      return NextResponse.json({ error: err instanceof Error ? err.message : "Upload failed." }, { status: 400 });
+    }
+  }
 
   const form = await req.formData();
   const id = String(form.get("id") ?? "");

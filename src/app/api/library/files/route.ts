@@ -53,8 +53,13 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const queue = url.searchParams.get("queue") === "1";
-  const all = await listLibraryFiles();
-  const files = queue ? await listSortingQueue() : all;
+  const { isCoachViewer, isTechUploadFile } = await import("@/lib/auth/tech-uploads");
+  const { getPersonById } = await import("@/lib/db/repository");
+  const viewer = await getPersonById(auth.session.personId);
+  // The coach does not see book chapters the tech admin uploaded.
+  const hideUploads = isCoachViewer(viewer?.role);
+  const all = (await listLibraryFiles()).filter((f) => !(hideUploads && isTechUploadFile(f)));
+  const files = (queue ? await listSortingQueue() : all).filter((f) => !(hideUploads && isTechUploadFile(f)));
   const unreadables = listUnreadableFiles(all).map((u) => ({
     ...u,
     kindLabel: unreadableKindLabel(u.kind),

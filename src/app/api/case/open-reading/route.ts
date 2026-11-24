@@ -12,6 +12,7 @@ export async function GET(req: Request) {
   }
   const caseId = new URL(req.url).searchParams.get("caseId");
   if (!caseId) return NextResponse.json({ error: "caseId required" }, { status: 400 });
-  const items = await listOpenReadings(caseId).catch(() => []);
+  // The coach does not see books the tech admin uploaded.
+  const items = await listOpenReadings(caseId, { hideUploads: auth.person.role === "coach_admin" }).catch(() => []);
   return NextResponse.json({ items });
 }

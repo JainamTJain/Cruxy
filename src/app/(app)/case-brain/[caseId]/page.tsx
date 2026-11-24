@@ -49,6 +49,7 @@ export default async function CaseBrainDetailPage({
           caseRow,
           viewerTeamId: teamId,
           seeAllTeams: canSeeAllTeams(auth.person, auth.session),
+          hideTechUploads: auth.person.role === "coach_admin",
         })
       : null;
 

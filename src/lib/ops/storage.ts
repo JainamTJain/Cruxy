@@ -127,3 +127,18 @@ export async function downloadBytes(
 export function clearSampleStorage() {
   sampleBlobs.clear();
 }
+
+/**
+ * A one-time upload URL so a browser can send a large file straight to
+ * storage, past the 4.5 MB request limit of a server function.
+ */
+export async function createSignedUpload(opts: {
+  bucket: OpsBucket;
+  path: string;
+}): Promise<{ signedUrl: string; path: string } | null> {
+  if (isSampleDataMode()) return null;
+  const sb = getServiceSupabase();
+  const { data, error } = await sb.storage.from(opts.bucket).createSignedUploadUrl(opts.path, { upsert: true });
+  if (error || !data) throw new Error(`storage.sign ${opts.bucket}/${opts.path}: ${error?.message ?? "no url"}`);
+  return { signedUrl: data.signedUrl, path: data.path };
+}

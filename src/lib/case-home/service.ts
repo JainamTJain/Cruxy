@@ -128,6 +128,8 @@ export async function getCaseHome(args: {
    */
   viewerTeamId?: string;
   seeAllTeams?: boolean;
+  /** The coach does not see book chapters the tech admin uploaded. */
+  hideTechUploads?: boolean;
 }): Promise<CaseHomePayload> {
   const {
     caseId,
@@ -159,7 +161,10 @@ export async function getCaseHome(args: {
   // The case set covers every case; its own section is shown in Reading, so
   // it is not distilled or listed as a separate reading.
   const readingFiles = caseFiles.filter(
-    (f) => f.type !== "case_set" && f.id !== caseSet?.id,
+    (f) =>
+      f.type !== "case_set" &&
+      f.id !== caseSet?.id &&
+      !(args.hideTechUploads && f.drive_id?.startsWith("upload:")),
   );
 
   await ensureSegmentsForFiles(

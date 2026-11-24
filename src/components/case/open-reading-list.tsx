@@ -56,7 +56,7 @@ export function OpenReadingList({ caseId }: { caseId: string }) {
           {items.map((it) => (
             <li key={it.id} className="rounded-xl bg-[#F7F8FA] px-3 py-2.5">
               <p className="m-0 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
-                {KIND[it.source_kind] ?? "Reading"}
+                {it.url.startsWith("upload:") ? "Book, uploaded for this case" : KIND[it.source_kind] ?? "Reading"}
                 {it.year ? `, ${it.year}` : ""}
               </p>
               <a
@@ -68,10 +68,15 @@ export function OpenReadingList({ caseId }: { caseId: string }) {
               {it.authors ? <span className="text-[13px] text-muted"> by {it.authors}</span> : null}
               {it.why ? <p className="m-0 mt-1 text-[13px] leading-snug text-[#3B404A]">{it.why}</p> : null}
               <p className="m-0 mt-1 text-[12px] text-muted">
-                Opens inside Crux with your notes.{" "}
-                <a href={it.url} target="_blank" rel="noreferrer" className="underline">
-                  Original
-                </a>
+                Opens inside Crux with your notes and Cruxy&apos;s bookmarks for this case.
+                {it.url.startsWith("upload:") ? null : (
+                  <>
+                    {" "}
+                    <a href={it.url} target="_blank" rel="noreferrer" className="underline">
+                      Original
+                    </a>
+                  </>
+                )}
               </p>
             </li>
           ))}
