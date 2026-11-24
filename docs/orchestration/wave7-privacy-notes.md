@@ -50,7 +50,8 @@ Helpers treat these (and public domain / CC0 / CC BY / CC BY-SA and common open-
 | #64 Research reach (H) | Fix: do not fetch closed finding links; use openLinks / `readOpenResultsOnly` |
 | #114 voiceprints (D) | Mostly OK: revoke anon/authenticated on `speaker_match_pending`; scope pending GET (and clip signed URLs) to the round team or admins; keep audio-chunks and voice-samples private |
 | #157 reading notes | OK: RLS + revoke on `reading_note_suggestions`; no closed full-text dump |
-| #160 book uploads | Leak fixed on this branch: do not store full book text or put upload: books in Deeper reading; short quote only; keep coach hide of tech uploads |
+| #160 book uploads | Merged with leak; fixed on this branch: do not store full book text or put upload: books in Deeper reading; short quote only; keep coach hide of tech uploads |
+| #162 pdf sanitize | OK if after #161: `storableText` is fine; must not restore full-book library / Deeper reading storage |
 
 ## I-side fixes on this branch
 
