@@ -5,6 +5,7 @@ import {
   type DriveListedFile,
 } from "@/lib/library/types";
 import { checksumOf } from "@/lib/library/embeddings";
+import { normalizeExtractedText } from "@/lib/library/join-extracted-text";
 
 export const DRIVE_READER_EMAIL =
   "crux-drive-reader@crux-ethics-bowl-jainam-jain.iam.gserviceaccount.com";
@@ -390,8 +391,11 @@ async function extractPdfText(
   try {
     const { extractText, getDocumentProxy } = await import("unpdf");
     const pdf = await getDocumentProxy(new Uint8Array(buf));
-    const { text } = await extractText(pdf, { mergePages: true });
-    const clean = (Array.isArray(text) ? text.join("\n\n") : text).trim();
+    // Per-page first so page breaks stay as paragraph breaks; then join soft
+    // line wraps with spaces (see normalizeExtractedText).
+    const { text } = await extractText(pdf, { mergePages: false });
+    const pages = Array.isArray(text) ? text : [text];
+    const clean = normalizeExtractedText(pages.join("\n\n")).trim();
     if (clean.length < 40) return { text: "", scanned: true };
     return { text: clean, scanned: false };
   } catch {
@@ -420,7 +424,7 @@ function extractPrintableFromPdf(buf: Buffer): {
       .replace(/\\\\/g, "\\");
     if (/[A-Za-z]{3,}/.test(inner)) chunks.push(inner);
   }
-  const text = chunks.join(" ").replace(/\s+/g, " ").trim();
+  const text = normalizeExtractedText(chunks.join("\n")).replace(/\s+/g, " ").trim();
   if (text.length < 40) {
     return { text: "", scanned: true };
   }
@@ -437,7 +441,11 @@ export async function extractDriveText(
   tooLarge?: boolean;
 }> {
   if (listed.text_content != null) {
-    return { text: listed.text_content, scannedPdf: false, stub: true };
+    return {
+      text: normalizeExtractedText(listed.text_content),
+      scannedPdf: false,
+      stub: true,
+    };
   }
 
   const status = getDriveConfigStatus();
@@ -476,7 +484,9 @@ export async function extractDriveText(
         { fileId: listed.drive_id, mimeType: exportMime },
         { responseType: "arraybuffer" },
       );
-      const text = Buffer.from(res.data as ArrayBuffer).toString("utf8");
+      const text = normalizeExtractedText(
+        Buffer.from(res.data as ArrayBuffer).toString("utf8"),
+      );
       return { text, scannedPdf: false, stub: false };
     }
 
@@ -505,14 +515,22 @@ export async function extractDriveText(
     ) {
       const mammoth = await import("mammoth");
       const out = await mammoth.extractRawText({ buffer: buf });
-      return { text: out.value ?? "", scannedPdf: false, stub: false };
+      return {
+        text: normalizeExtractedText(out.value ?? ""),
+        scannedPdf: false,
+        stub: false,
+      };
     }
 
     if (
       listed.mime.startsWith("text/") ||
       /\.(txt|md|csv|tsv|json)$/i.test(listed.name)
     ) {
-      return { text: buf.toString("utf8"), scannedPdf: false, stub: false };
+      return {
+        text: normalizeExtractedText(buf.toString("utf8")),
+        scannedPdf: false,
+        stub: false,
+      };
     }
 
     // Other binaries (images, slides, spreadsheets uploaded as files, archives):

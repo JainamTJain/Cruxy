@@ -4,6 +4,7 @@ import { runLibrarianTag } from "@/lib/cruxy/agents/librarian";
 import type { LibrarianTagOutput } from "@/lib/cruxy/schemas/librarian";
 import { normalizeFiveLineCard } from "@/lib/library/file-card";
 import { checksumOf, embedPassageText, stubEmbed } from "@/lib/library/embeddings";
+import { normalizeExtractedText } from "@/lib/library/join-extracted-text";
 import type { CaseRow } from "@/lib/types";
 import {
   PASSAGE_TARGET_WORDS,
@@ -350,9 +351,12 @@ export async function digestListedFile(input: {
   skipAi?: boolean;
 }): Promise<DigestResult> {
   const fileId = input.existing?.id ?? randomUUID();
+  // Defense in depth: join soft wraps and repair glued words even if the
+  // caller skipped extractDriveText (tests, stubs, re-digest).
+  const text = normalizeExtractedText(input.text);
   const tagged = await librarianTag({
     listed: input.listed,
-    text: input.text,
+    text,
     cases: input.cases,
     personId: input.personId,
     forceHeuristic: input.skipAi === true,
@@ -373,7 +377,7 @@ export async function digestListedFile(input: {
     scannedPdf: input.scannedPdf,
     mime: input.listed.mime,
     name: input.listed.name,
-    text: input.text,
+    text,
   });
 
   const file: LibraryFile = {
@@ -383,13 +387,13 @@ export async function digestListedFile(input: {
     path: input.listed.path,
     mime: input.listed.mime,
     modified_at: input.listed.modified_at,
-    checksum: input.listed.checksum || checksumOf(input.text),
+    checksum: input.listed.checksum || checksumOf(text),
     case_ids,
     case_numbers: tagged.case_numbers,
     type: tagged.type,
     confidence: tagged.confidence,
     card: tagged.card,
-    text_content: input.text,
+    text_content: text,
     scanned_pdf: input.scannedPdf,
     unreadable_reason,
     status: unreadable_reason ? "sorting_queue" : status,
@@ -400,7 +404,7 @@ export async function digestListedFile(input: {
     created_by: input.personId ?? null,
   };
 
-  const split = await splitAndEmbedPassages(input.text, {
+  const split = await splitAndEmbedPassages(text, {
     fileId,
     driveId: input.listed.drive_id,
     createdBy: input.personId,
