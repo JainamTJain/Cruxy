@@ -5,19 +5,33 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { useCruxy } from "@/components/cruxy/cruxy-context";
 import { LinkedText } from "@/components/frameworks/linked-text";
+import {
+  closeHoverCard,
+  getActiveHoverCardId,
+  openHoverCard,
+  placeHoverCard,
+  subscribeHoverCard,
+} from "@/components/frameworks/hover-card-store";
 import {
   colorForPerson,
   formatWhen,
   type HighlightSwatch,
 } from "@/lib/case/highlight-colors";
 import { cn } from "@/lib/utils";
+
+const EXPLAIN_LEAVE_MS = 180;
+const EXPLAIN_CARD_W = 300;
+const EXPLAIN_CARD_H = 220;
 
 const HIGHLIGHTER_KEY = "crux-highlighter-on";
 
@@ -351,8 +365,20 @@ export function AnnotateSurface({
   const { highlighterOn, caseId, teamId } = useReadingTools();
   const { setHighlight, wake, setBubble } = useCruxy();
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const explainCardRef = useRef<HTMLDivElement | null>(null);
+  const explainLeaveTimer = useRef<number | null>(null);
+  const explainKey = `explain:${useId()}`;
+  const activeHoverId = useSyncExternalStore(
+    subscribeHoverCard,
+    getActiveHoverCardId,
+    () => null,
+  );
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [explain, setExplain] = useState<ExplainState | null>(null);
+  const [explainPos, setExplainPos] = useState<{
+    left: number;
+    top: number;
+  } | null>(null);
   const [comment, setComment] = useState<CommentState | null>(null);
   const longPress = useRef<{
     timer: number | null;
@@ -361,6 +387,29 @@ export function AnnotateSurface({
   }>({ timer: null, x: 0, y: 0 });
 
   const clearMenu = useCallback(() => setMenu(null), []);
+
+  const clearExplainLeave = useCallback(() => {
+    if (explainLeaveTimer.current != null) {
+      window.clearTimeout(explainLeaveTimer.current);
+      explainLeaveTimer.current = null;
+    }
+  }, []);
+
+  const dismissExplain = useCallback(() => {
+    clearExplainLeave();
+    setExplain(null);
+    setExplainPos(null);
+    closeHoverCard(explainKey);
+  }, [clearExplainLeave, explainKey]);
+
+  // Another hover card opened elsewhere: drop this explain card.
+  useEffect(() => {
+    if (explain && activeHoverId && activeHoverId !== explainKey) {
+      clearExplainLeave();
+      setExplain(null);
+      setExplainPos(null);
+    }
+  }, [activeHoverId, explain, explainKey, clearExplainLeave]);
 
   const readSelection = useCallback((): {
     text: string;
@@ -403,7 +452,7 @@ export function AnnotateSurface({
   }
 
   function openMenuAt(x: number, y: number, sel: { text: string; passageId: string }) {
-    setExplain(null);
+    dismissExplain();
     setComment(null);
     setMenu({
       text: sel.text,
@@ -417,19 +466,20 @@ export function AnnotateSurface({
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         clearMenu();
-        setExplain(null);
+        dismissExplain();
         setComment(null);
       }
     }
     function onDown(e: MouseEvent) {
-      const t = e.target as Node;
       if (menu && !(e.target as HTMLElement)?.closest?.("[data-annotate-menu]")) {
         clearMenu();
       }
-      if (explain && !(e.target as HTMLElement)?.closest?.("[data-annotate-explain]")) {
-        setExplain(null);
+      if (
+        explain &&
+        !(e.target as HTMLElement)?.closest?.("[data-annotate-explain]")
+      ) {
+        dismissExplain();
       }
-      void t;
     }
     document.addEventListener("keydown", onKey);
     document.addEventListener("mousedown", onDown);
@@ -437,13 +487,33 @@ export function AnnotateSurface({
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("mousedown", onDown);
     };
-  }, [menu, explain, clearMenu]);
+  }, [menu, explain, clearMenu, dismissExplain]);
+
+  useLayoutEffect(() => {
+    if (!explain) {
+      setExplainPos(null);
+      return;
+    }
+    const measured = explainCardRef.current?.getBoundingClientRect();
+    const w = measured?.width ?? EXPLAIN_CARD_W;
+    const h = measured?.height ?? EXPLAIN_CARD_H;
+    const anchor = new DOMRect(explain.x, explain.y, 1, 1);
+    setExplainPos(placeHoverCard(anchor, w, h));
+  }, [explain]);
 
   async function runExplain(term: string, x: number, y: number) {
+    clearExplainLeave();
+    openHoverCard(explainKey);
+    const placed = placeHoverCard(
+      new DOMRect(x, y, 1, 1),
+      EXPLAIN_CARD_W,
+      EXPLAIN_CARD_H,
+    );
+    setExplainPos({ left: placed.left, top: placed.top });
     setExplain({
       term,
-      x,
-      y,
+      x: placed.left,
+      y: placed.top,
       meaning: null,
       source: null,
       sourceUrl: null,
@@ -692,11 +762,24 @@ export function AnnotateSurface({
 
       {explain ? (
         <div
+          ref={explainCardRef}
           data-annotate-explain
+          data-hover-card
           role="dialog"
           aria-label="Explain this"
-          className="fixed z-[60] w-[min(300px,calc(100vw-24px))] rounded-xl border border-ink/10 bg-white p-3 shadow-[0_12px_28px_rgba(17,19,24,0.16)]"
-          style={{ left: explain.x, top: explain.y }}
+          className="fixed z-[70] w-[min(300px,calc(100vw-24px))] rounded-xl border border-ink/10 bg-white p-3 shadow-[0_12px_28px_rgba(17,19,24,0.16)]"
+          style={
+            explainPos
+              ? { left: explainPos.left, top: explainPos.top }
+              : { left: explain.x, top: explain.y }
+          }
+          onMouseEnter={clearExplainLeave}
+          onMouseLeave={() => {
+            clearExplainLeave();
+            explainLeaveTimer.current = window.setTimeout(() => {
+              dismissExplain();
+            }, EXPLAIN_LEAVE_MS);
+          }}
         >
           <strong className="font-display block text-sm font-extrabold">
             {explain.term}
@@ -705,10 +788,12 @@ export function AnnotateSurface({
             <p className="mt-1 text-xs text-muted">Looking that up…</p>
           ) : null}
           {explain.meaning ? (
-            <p className="mt-1 text-xs leading-snug text-ink">{explain.meaning}</p>
+            <p className="mt-1 text-xs leading-snug break-words text-ink">
+              {explain.meaning}
+            </p>
           ) : null}
           {explain.apply ? (
-            <p className="mt-2 text-xs leading-snug text-ink">
+            <p className="mt-2 text-xs leading-snug break-words text-ink">
               <span className="font-semibold">On this case: </span>
               {explain.apply}
             </p>
@@ -721,7 +806,7 @@ export function AnnotateSurface({
               href={explain.sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 inline-block text-xs font-semibold text-cardinal underline-offset-2 hover:underline"
+              className="mt-2 inline-flex min-h-11 items-center text-xs font-semibold text-cardinal underline-offset-2 hover:underline"
             >
               Read more
             </a>
@@ -733,8 +818,8 @@ export function AnnotateSurface({
           ) : null}
           <button
             type="button"
-            className="mt-2 text-xs font-semibold text-muted underline"
-            onClick={() => setExplain(null)}
+            className="mt-2 inline-flex min-h-11 items-center text-xs font-semibold text-muted underline"
+            onClick={dismissExplain}
           >
             Close
           </button>

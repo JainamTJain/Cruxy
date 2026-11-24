@@ -209,7 +209,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-dvh bg-paper text-ink">
+    <div className="flex min-h-dvh min-w-0 overflow-x-clip bg-paper text-ink">
       <SkipLink />
       <AccessLiveRegions />
       <aside className="hidden w-[248px] shrink-0 flex-col gap-7 bg-ink px-4 pb-7 pt-[28px] text-white sm:flex">
@@ -466,7 +466,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         <div
           id="main-content"
           tabIndex={-1}
-          className="min-w-0 flex-1 px-4 pb-24 pt-4 outline-none sm:px-10 sm:pb-10 sm:pt-8"
+          className="min-w-0 flex-1 overflow-x-clip px-4 pb-24 pt-4 outline-none sm:px-10 sm:pb-10 sm:pt-8"
         >
           {children}
         </div>

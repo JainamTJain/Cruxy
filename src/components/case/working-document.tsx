@@ -410,7 +410,7 @@ export function WorkingDocument({
 
   return (
     <ReadingToolsProvider caseId={caseId} teamId={teamId}>
-      <div className="flex flex-col gap-4">
+      <div className="flex w-full min-w-0 flex-col gap-4">
         {error ? (
           <p className="rounded-xl border border-cardinal/30 bg-cardinal/5 px-3 py-2 text-sm text-cardinal">
             {error}
@@ -493,8 +493,8 @@ export function WorkingDocument({
             onStartAll={() => void teamImport("start_all")}
           />
         ) : (
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,360px)] xl:grid-cols-[minmax(0,1fr)_400px]">
-            <div className="flex min-w-0 flex-col gap-4">
+          <div className="grid w-full min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,min(360px,34%))] xl:grid-cols-[minmax(0,1fr)_minmax(0,min(400px,32%))]">
+            <div className="flex min-w-0 flex-col gap-4 overflow-x-clip">
               {path === "imported" ? (
                 <ImportedBody
                   caseId={caseId}
@@ -789,9 +789,9 @@ function SuggestionsRail({
     if (!busy) setTaking(null);
   }, [busy]);
   return (
-    <aside className="rounded-[20px] bg-white p-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto">
-      <div className="flex items-baseline justify-between gap-2">
-        <h3 className="font-display m-0 text-lg font-extrabold">Suggestions</h3>
+    <aside className="min-w-0 w-full max-w-full overflow-x-clip rounded-[20px] bg-white p-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:self-start lg:overflow-y-auto">
+      <div className="flex min-w-0 items-baseline justify-between gap-2">
+        <h3 className="font-display m-0 min-w-0 truncate text-lg font-extrabold">Suggestions</h3>
         <span className="font-display text-lg font-extrabold text-cardinal">
           {total}
         </span>
@@ -1023,16 +1023,16 @@ function SuggestionCard({
     s.logic_chain || s.why_weak || s.question_back || s.research_sources?.length || s.citation || (structured && (s.stronger_version?.length ?? 0) > 220),
   );
   return (
-    <li className="rounded-[14px] border border-[#E6E8EC] bg-white px-3.5 py-3 shadow-[0_1px_0_rgba(17,19,24,0.03)]">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-bold", GROUP_TONE[group])}>{kindLabel}</span>
+    <li className="min-w-0 max-w-full overflow-x-clip rounded-[14px] border border-[#E6E8EC] bg-white px-3.5 py-3 shadow-[0_1px_0_rgba(17,19,24,0.03)]">
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+        <span className={cn("max-w-full break-words rounded-full px-2 py-0.5 text-[11px] font-bold", GROUP_TONE[group])}>{kindLabel}</span>
         {sectionLabel ? (
-          <span className="rounded-full bg-[#F1F2F4] px-2 py-0.5 text-[11px] font-semibold text-[#3B404A]">{sectionLabel}</span>
+          <span className="max-w-full break-words rounded-full bg-[#F1F2F4] px-2 py-0.5 text-[11px] font-semibold text-[#3B404A]">{sectionLabel}</span>
         ) : null}
         {s.source !== "cruxy" ? <span className="text-[11px] text-muted">from {who}</span> : null}
       </div>
 
-      <p className={cn("m-0 mt-2 text-[14px] font-medium leading-snug text-ink", !open && "line-clamp-3")}>
+      <p className={cn("m-0 mt-2 break-words text-[14px] font-medium leading-snug text-ink", !open && "line-clamp-3")}>
         <LinkedText text={headline} caseId={caseId} />
       </p>
       {quoted ? (

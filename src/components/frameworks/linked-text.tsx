@@ -4,8 +4,10 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import {
@@ -14,6 +16,13 @@ import {
 } from "@/lib/frameworks/catalog";
 import { cleanReaderText } from "@/lib/text/reader-text";
 import { cn } from "@/lib/utils";
+import {
+  closeHoverCard,
+  getActiveHoverCardId,
+  openHoverCard,
+  placeHoverCard,
+  subscribeHoverCard,
+} from "@/components/frameworks/hover-card-store";
 
 type ApplyPayload = {
   term: string;
@@ -33,9 +42,14 @@ type Props = {
   preWrap?: boolean;
 };
 
+const LEAVE_MS = 180;
+const CARD_W = 280;
+const CARD_H_EST = 200;
+
 /**
  * Quiet in-place framework links: first hit of each term per paragraph only.
  * Hover or tap for plain meaning, case apply (cited), and encyclopedia link.
+ * Only one hover card is open anywhere on the page.
  */
 export function LinkedText({ text: raw, caseId, className, preWrap }: Props) {
   // Stored AI text may still carry ids or markdown from before the clean-up.
@@ -90,7 +104,7 @@ export function LinkedText({ text: raw, caseId, className, preWrap }: Props) {
   }
 
   return (
-    <span className={cn(preWrap && "whitespace-pre-wrap", className)}>
+    <span className={cn(preWrap && "whitespace-pre-wrap", "break-words", className)}>
       {nodes}
     </span>
   );
@@ -105,11 +119,39 @@ function FrameworkMark({
   label: string;
   caseId?: string | null;
 }) {
-  const [open, setOpen] = useState(false);
+  const tipId = useId();
+  const cardKey = `fw:${tipId}`;
+  const activeId = useSyncExternalStore(
+    subscribeHoverCard,
+    getActiveHoverCardId,
+    () => null,
+  );
+  const open = activeId === cardKey;
   const [payload, setPayload] = useState<ApplyPayload | null>(null);
   const [busy, setBusy] = useState(false);
-  const tipId = useId();
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const wrapRef = useRef<HTMLSpanElement | null>(null);
+  const cardRef = useRef<HTMLSpanElement | null>(null);
+  const leaveTimer = useRef<number | null>(null);
+
+  const clearLeave = useCallback(() => {
+    if (leaveTimer.current != null) {
+      window.clearTimeout(leaveTimer.current);
+      leaveTimer.current = null;
+    }
+  }, []);
+
+  const scheduleClose = useCallback(() => {
+    clearLeave();
+    leaveTimer.current = window.setTimeout(() => {
+      closeHoverCard(cardKey);
+    }, LEAVE_MS);
+  }, [cardKey, clearLeave]);
+
+  const show = useCallback(() => {
+    clearLeave();
+    openHoverCard(cardKey);
+  }, [cardKey, clearLeave]);
 
   const load = useCallback(async () => {
     if (payload || busy) return;
@@ -150,44 +192,87 @@ function FrameworkMark({
     void load();
   }, [open, load]);
 
+  useLayoutEffect(() => {
+    if (!open || !wrapRef.current) {
+      setPos(null);
+      return;
+    }
+    const anchor = wrapRef.current.getBoundingClientRect();
+    const measured = cardRef.current?.getBoundingClientRect();
+    const h = measured?.height ?? CARD_H_EST;
+    const w = measured?.width ?? CARD_W;
+    setPos(placeHoverCard(anchor, w, h));
+  }, [open, payload, busy]);
+
   useEffect(() => {
     if (!open) return;
     function onDoc(e: MouseEvent) {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (wrapRef.current?.contains(t) || cardRef.current?.contains(t)) return;
+      closeHoverCard(cardKey);
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") closeHoverCard(cardKey);
+    }
+    function onScroll() {
+      if (!wrapRef.current) return;
+      const anchor = wrapRef.current.getBoundingClientRect();
+      const measured = cardRef.current?.getBoundingClientRect();
+      const h = measured?.height ?? CARD_H_EST;
+      const w = measured?.width ?? CARD_W;
+      setPos(placeHoverCard(anchor, w, h));
     }
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onScroll);
     return () => {
       document.removeEventListener("mousedown", onDoc);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onScroll);
     };
-  }, [open]);
+  }, [open, cardKey]);
+
+  useEffect(() => () => clearLeave(), [clearLeave]);
 
   return (
-    <span ref={wrapRef} className="relative inline">
+    <span
+      ref={wrapRef}
+      className="relative inline"
+      onMouseEnter={show}
+      onMouseLeave={scheduleClose}
+    >
       <button
         type="button"
         className="border-b border-dotted border-ink/35 bg-transparent p-0 font-inherit text-inherit underline-offset-2 hover:border-cardinal/70"
         style={{ font: "inherit" }}
         aria-expanded={open}
         aria-describedby={open ? tipId : undefined}
-        onMouseEnter={() => setOpen(true)}
-        onFocus={() => setOpen(true)}
+        onFocus={show}
+        onBlur={scheduleClose}
         onClick={(e) => {
           e.stopPropagation();
-          setOpen((v) => !v);
+          if (open) closeHoverCard(cardKey);
+          else show();
         }}
       >
         {label}
       </button>
       {open ? (
         <span
+          ref={cardRef}
           id={tipId}
           role="tooltip"
-          className="absolute left-0 top-full z-40 mt-1 w-[min(280px,calc(100vw-32px))] rounded-xl border border-ink/10 bg-white p-3 text-left shadow-[0_10px_28px_rgba(17,19,24,0.14)]"
+          data-hover-card
+          className="fixed z-[70] w-[min(280px,calc(100vw-32px))] rounded-xl border border-ink/10 bg-white p-3 text-left shadow-[0_10px_28px_rgba(17,19,24,0.14)]"
+          style={
+            pos
+              ? { left: pos.left, top: pos.top }
+              : { left: -9999, top: -9999, visibility: "hidden" }
+          }
+          onMouseEnter={show}
+          onMouseLeave={scheduleClose}
           onMouseDown={(e) => e.stopPropagation()}
         >
           <strong className="font-display block text-sm font-extrabold text-ink">
@@ -215,7 +300,7 @@ function FrameworkMark({
             href={payload?.sourceUrl ?? entry.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-2 inline-block text-xs font-semibold text-cardinal underline-offset-2 hover:underline"
+            className="mt-2 inline-flex min-h-11 items-center text-xs font-semibold text-cardinal underline-offset-2 hover:underline"
           >
             Read more ({payload?.sourceLabel ?? entry.sourceLabel})
           </a>
