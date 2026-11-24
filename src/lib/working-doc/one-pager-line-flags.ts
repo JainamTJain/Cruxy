@@ -52,17 +52,17 @@ function fieldKeysForFinding(
     return keys;
   }
 
+  // Empty fields never match: "".includes and q.includes("") are always true.
+  const hits = (field: string) => {
+    const n = normalize(field);
+    if (n.length < 12 || q.length < 12) return false;
+    return n.includes(q.slice(0, 36)) || q.includes(n.slice(0, 36));
+  };
   bodyHints.claims.forEach((c, i) => {
-    if (normalize(c.text).includes(q.slice(0, 36)) || q.includes(normalize(c.text).slice(0, 36))) {
-      keys.push(`claim_${i}_text`);
-    }
-    if (c.logic_line && (normalize(c.logic_line).includes(q.slice(0, 36)) || q.includes(normalize(c.logic_line).slice(0, 36)))) {
-      keys.push(`claim_${i}_logic`);
-    }
+    if (hits(c.text)) keys.push(`claim_${i}_text`);
+    if (hits(c.logic_line)) keys.push(`claim_${i}_logic`);
     c.supports.forEach((s, j) => {
-      if (s && (normalize(s).includes(q.slice(0, 36)) || q.includes(normalize(s).slice(0, 36)))) {
-        keys.push(`claim_${i}_support_${j}`);
-      }
+      if (hits(s)) keys.push(`claim_${i}_support_${j}`);
     });
   });
 
@@ -72,12 +72,8 @@ function fieldKeysForFinding(
   if (f.sectionKey === "values_in_tension") {
     keys.push("values_note");
   }
-  if (f.kind === "missing_link" && !keys.length) {
-    keys.push("claim_0_logic");
-  }
-  if (f.kind === "logical_fallacy" && !keys.length) {
-    keys.push(f.sectionKey === "support" ? "claim_0_support_0" : "claim_0_text");
-  }
+  // A finding we cannot place on a real line stays off the one pager rather
+  // than landing on the wrong (or an empty) line.
   return [...new Set(keys)];
 }
 

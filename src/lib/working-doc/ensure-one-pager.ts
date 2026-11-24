@@ -19,7 +19,7 @@ import {
   SYNC_NOTE,
   handEditedNote,
 } from "@/lib/working-doc/one-pager-from-working";
-import { compressSectionsForOnePager, sectionsContentHash } from "@/lib/working-doc/one-pager-compress";
+import { sectionsContentHash, tightenOnePagerBody } from "@/lib/working-doc/one-pager-compress";
 import { flagsForOnePager, type OnePagerLineFlag } from "@/lib/working-doc/one-pager-line-flags";
 import {
   fillWorkingDocFromTruth,
@@ -182,12 +182,6 @@ export async function ensureLiveOnePager(opts: {
   const { sections, thesisFallback } = await ensureWorkingDocForOnePager(opts);
   const hash = sectionsContentHash(sections);
 
-  const compressed = await compressSectionsForOnePager({
-    sections,
-    personId: opts.personId,
-    caseId: opts.caseId,
-    teamId: opts.teamId,
-  });
 
   const ticked = (
     await listAllSuggestions({ teamId: opts.teamId, caseId: opts.caseId })
@@ -197,13 +191,22 @@ export async function ensureLiveOnePager(opts: {
       (s.section_key === "support" || s.section_key === "claims"),
   );
 
+  // Parse the full working document first (its "Claim 1:", "Logic line:",
+  // "Concede:" and "Q:" lines carry the structure), then tighten each field
+  // on its own. Compressing whole sections first flattened the line breaks
+  // and lost every label.
   const body = withEmptyRows(
-    bodyFromWorkingSections({
-      sections: compressed,
-      acceptedTexts: ticked
-        .map((s) => s.stronger_version || s.text)
-        .filter(Boolean) as string[],
-      thesisFallback,
+    await tightenOnePagerBody({
+      body: bodyFromWorkingSections({
+        sections,
+        acceptedTexts: ticked
+          .map((s) => s.stronger_version || s.text)
+          .filter(Boolean) as string[],
+        thesisFallback,
+      }),
+      personId: opts.personId,
+      caseId: opts.caseId,
+      teamId: opts.teamId,
     }),
   );
 
