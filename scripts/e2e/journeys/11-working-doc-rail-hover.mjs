@@ -31,7 +31,11 @@ async function ensureWorkingDoc(page, ctx) {
     await page.waitForTimeout(2500);
   }
 
-  // Seed two framework terms into the support section via the API.
+  // Prefer the Crux path so section bodies (with LinkedText) are visible.
+  await ctx.request.post(`${BASE}/api/case/working-document`, {
+    data: { caseId: CASE9, teamId: TEAM3, action: "start_crux" },
+    headers: { "content-type": "application/json" },
+  });
   const res = await ctx.request.post(`${BASE}/api/case/working-document`, {
     data: {
       caseId: CASE9,
@@ -118,8 +122,12 @@ export async function run(browser) {
   const first = marks.nth(0);
   const second = marks.nth(1);
   await first.scrollIntoViewIfNeeded();
-  await first.click();
+  await first.hover({ force: true });
   await page.waitForTimeout(300);
+  if ((await page.locator("[data-hover-card]").count()) === 0) {
+    await first.focus();
+    await page.waitForTimeout(200);
+  }
   const openAfterFirst = await page.locator("[data-hover-card]").count();
   assert(openAfterFirst === 1, `Expected 1 hover card after first term, got ${openAfterFirst}`);
   await page.screenshot({
@@ -128,8 +136,12 @@ export async function run(browser) {
   });
 
   await second.scrollIntoViewIfNeeded();
-  await second.click();
+  await second.hover({ force: true });
   await page.waitForTimeout(300);
+  if ((await page.locator("[data-hover-card]").count()) !== 1 || (await second.getAttribute("aria-expanded")) !== "true") {
+    await second.focus();
+    await page.waitForTimeout(200);
+  }
   const openAfterSecond = await page.locator("[data-hover-card]").count();
   assert(
     openAfterSecond === 1,

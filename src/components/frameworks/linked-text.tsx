@@ -133,6 +133,8 @@ function FrameworkMark({
   const wrapRef = useRef<HTMLSpanElement | null>(null);
   const cardRef = useRef<HTMLSpanElement | null>(null);
   const leaveTimer = useRef<number | null>(null);
+  // Focus opens the card; the click that follows focus must not toggle it shut.
+  const skipClickToggle = useRef(false);
 
   const clearLeave = useCallback(() => {
     if (leaveTimer.current != null) {
@@ -250,10 +252,18 @@ function FrameworkMark({
         style={{ font: "inherit" }}
         aria-expanded={open}
         aria-describedby={open ? tipId : undefined}
-        onFocus={show}
+        onFocus={() => {
+          skipClickToggle.current = true;
+          show();
+        }}
         onBlur={scheduleClose}
         onClick={(e) => {
           e.stopPropagation();
+          if (skipClickToggle.current) {
+            skipClickToggle.current = false;
+            show();
+            return;
+          }
           if (open) closeHoverCard(cardKey);
           else show();
         }}
