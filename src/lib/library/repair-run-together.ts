@@ -79,6 +79,12 @@ function repairPunctuationJoins(text: string, changes: RepairChange[]): string {
       // "U.S.Army" → still want a space before Army when Army is a full word.
       // Only skip when the letter after is a single-letter initial pattern later.
     }
+    // Initials and abbreviations: "U.S.", "J.K.": a capital right after the
+    // period that is itself followed by a period is the next initial.
+    const after = text.charAt(offset + full.length);
+    if (punct === "." && /[A-Z]/.test(letter) && after === ".") {
+      return full;
+    }
     // Domains / decimals: digit or lowercase letter immediately before "." and
     // lowercase after — leave alone.
     if (punct === "." && /[a-z0-9]$/.test(text.slice(0, offset)) && /[a-z]/.test(letter)) {
@@ -144,6 +150,10 @@ function splitGluedToken(token: string): string {
       }
     }
   }
+
+  // A capitalized word with no case change inside is a name ("Dario",
+  // "Amodei") or a proper noun: never split it on dictionary halves.
+  if (/^[A-Z]/.test(token)) return token;
 
   // Lower+lower (andreduce, treatedtactical): try splits, prefer the longest
   // left that still yields two dictionary words (avoids a|ndreduce).

@@ -252,9 +252,12 @@ export async function getCaseHome(args: {
       source = "case_set";
       const section = extractCaseSection(passages, caseRow.number, caseRow.title);
       if (section && section.paragraphs.length) {
+        // Stored case set text can have words glued at old line breaks
+        // ("ofAmericans"); repair on the way out until it is re-imported.
+        const { repairRunTogetherWords } = await import("@/lib/library/repair-run-together");
         paragraphs = section.paragraphs.map((p, i) => ({
           id: `${caseId}-p${i}`,
-          text: p.text,
+          text: repairRunTogetherWords(p.text),
           anchor: passages.find((x) => x.id === p.passage_id)?.anchor ?? null,
           file_id: caseSet.id,
           passage_id: p.passage_id,
