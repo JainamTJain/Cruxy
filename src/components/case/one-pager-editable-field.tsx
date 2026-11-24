@@ -5,6 +5,12 @@ import { ThreadInline } from "@/components/discussion/thread-inline";
 import { LinkedText } from "@/components/frameworks/linked-text";
 import { cn } from "@/lib/utils";
 
+export type FieldFlag = {
+  label: string;
+  detail: string;
+  kind?: string;
+};
+
 type Props = {
   value: string;
   canEdit: boolean;
@@ -16,6 +22,8 @@ type Props = {
   /** When set, technical phrases get quiet in-place explainers. */
   caseId?: string | null;
   onSave: (next: string) => Promise<void> | void;
+  /** Cruxy critique flag (fallacy or missing link) for this line. */
+  flag?: FieldFlag | null;
   /** When set, show an in-place discussion thread under this field. */
   discussion?: {
     caseId: string;
@@ -37,11 +45,13 @@ export function OnePagerEditableField({
   label,
   caseId,
   onSave,
+  flag,
   discussion,
 }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const [busy, setBusy] = useState(false);
+  const [flagOpen, setFlagOpen] = useState(false);
 
   useEffect(() => {
     if (!editing) setDraft(value);
@@ -53,16 +63,35 @@ export function OnePagerEditableField({
     <span className="text-muted">{placeholder}</span>
   );
 
+  const flagChip = flag ? (
+    <div className="print:hidden">
+      <button
+        type="button"
+        className="mt-1 inline-flex min-h-11 items-center gap-1 rounded-md bg-[#FFF3C4] px-2 text-[11px] font-semibold text-[#8A6500]"
+        onClick={() => setFlagOpen((v) => !v)}
+        aria-expanded={flagOpen}
+      >
+        Cruxy flag: {flag.label}
+      </button>
+      {flagOpen ? (
+        <p className="mt-1 max-w-prose text-[12px] leading-snug text-[#5A606B]">
+          {flag.detail}
+        </p>
+      ) : null}
+    </div>
+  ) : null;
+
   let field: ReactNode;
   if (!editing) {
     // Div (not a wrapping button) so framework marks stay clickable.
     field = (
       <div className={cn("group relative", displayClassName, className)}>
         {display}
+        {flagChip}
         {canEdit ? (
           <button
             type="button"
-            className="mt-1 inline-flex min-h-11 items-center text-[11px] font-semibold text-muted underline-offset-2 hover:underline"
+            className="mt-1 inline-flex min-h-11 items-center text-[11px] font-semibold text-muted underline-offset-2 hover:underline print:hidden"
             onClick={() => {
               setDraft(value);
               setEditing(true);
@@ -132,13 +161,15 @@ export function OnePagerEditableField({
   return (
     <div className="flex flex-col">
       {field}
-      <ThreadInline
-        caseId={discussion.caseId}
-        teamId={discussion.teamId}
-        kind="one_pager_field"
-        targetId={discussion.fieldKey}
-        title={label ?? discussion.fieldKey}
-      />
+      <div className="print:hidden">
+        <ThreadInline
+          caseId={discussion.caseId}
+          teamId={discussion.teamId}
+          kind="one_pager_field"
+          targetId={discussion.fieldKey}
+          title={label ?? discussion.fieldKey}
+        />
+      </div>
     </div>
   );
 }

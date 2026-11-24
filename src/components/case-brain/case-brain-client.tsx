@@ -936,9 +936,9 @@ export function CaseBrainClient({
 
             {tab === "one_pager" ? (
               <div className="flex flex-col gap-3">
-                <p className="m-0 text-sm text-muted">
-                  Claim structure: claims, supports, counterclaim and reply.
-                  Flashcards and questions are in{" "}
+                <p className="m-0 text-sm text-muted print:hidden">
+                  Built from this team&apos;s working document. Edit any line in
+                  place. Print fits one page. Flashcards live in{" "}
                   <Link
                     href="/practice"
                     className="inline-flex min-h-11 items-center font-semibold text-cardinal underline"

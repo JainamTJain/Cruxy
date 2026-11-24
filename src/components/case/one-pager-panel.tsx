@@ -8,7 +8,6 @@ import {
 } from "@/components/case/one-pager-editable-field";
 import { SaveShareMenu } from "@/components/case/save-share-menu";
 import {
-  emptyClaim,
   ensureCounterclaim,
   ensureLanguage,
   patchValuesVisual,
@@ -19,6 +18,7 @@ import {
 import type { OnePager, OnePagerBody } from "@/lib/revision/types";
 import type { CaseRow, Team } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import type { FieldFlag } from "@/components/case/one-pager-editable-field";
 
 type RoleNames = {
   lead1: string | null;
@@ -29,6 +29,8 @@ type RoleNames = {
 
 type VersionRow = OnePager & { editorName?: string };
 
+type LineFlag = FieldFlag & { fieldKey: string };
+
 type Props = {
   caseId: string;
   teamId: string;
@@ -38,8 +40,8 @@ type Props = {
 };
 
 /**
- * Team one-pager: in-place edit, versions, restore.
- * F embeds this in the case page One pager tab.
+ * Team one-pager: always drawn from the working document (or truth source).
+ * In-place edit writes back to that document. Printable on one page.
  */
 export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
   const [page, setPage] = useState<OnePager | null>(null);
@@ -55,30 +57,45 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
   const [viewerName, setViewerName] = useState("you");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [changeNote, setChangeNote] = useState("");
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [versions, setVersions] = useState<VersionRow[]>([]);
   const [peopleMap, setPeopleMap] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
+  const [flags, setFlags] = useState<LineFlag[]>([]);
   const [syncProposal, setSyncProposal] = useState<{
     id: string;
     changeSummary: string;
     createdAt: string;
   } | null>(null);
 
+  const flagFor = useCallback(
+    (fieldKey: string): FieldFlag | null => {
+      const hit = flags.find((f) => f.fieldKey === fieldKey);
+      return hit
+        ? { label: hit.label, detail: hit.detail, kind: hit.kind }
+        : null;
+    },
+    [flags],
+  );
+
   const loadPager = useCallback(async () => {
     if (!teamId || !caseId) return;
+    setLoading(true);
     const res = await fetch(
       `/api/revision/one-pagers?teamId=${encodeURIComponent(teamId)}&caseId=${encodeURIComponent(caseId)}`,
     );
     if (!res.ok) {
       setError("Could not load the one pager.");
+      setLoading(false);
       return;
     }
     const data = (await res.json()) as {
       onePager: OnePager | null;
       diff: { path: string; before: string; after: string }[];
       canEdit?: boolean;
+      flags?: LineFlag[];
       syncProposal?: {
         id: string;
         changeSummary: string;
@@ -88,8 +105,10 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
     setPage(data.onePager);
     setDiff(data.diff ?? []);
     setCanEdit(Boolean(data.canEdit));
+    setFlags(data.flags ?? []);
     setSyncProposal(data.syncProposal ?? null);
     setError(null);
+    setLoading(false);
   }, [teamId, caseId]);
 
   const loadMeta = useCallback(async () => {
@@ -154,7 +173,11 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
     void loadMeta();
   }, [loadPager, loadMeta]);
 
-  async function saveBody(nextBody: OnePagerBody, note?: string) {
+  async function saveBody(
+    nextBody: OnePagerBody,
+    note?: string,
+    fieldKey?: string,
+  ) {
     if (!page) return;
     setBusy(true);
     setStatus("Saving…");
@@ -165,30 +188,48 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
         body: JSON.stringify({
           action: "save",
           onePagerId: page.id,
+          teamId,
+          caseId,
           body: withEmptyRows(nextBody),
           changeNote: (note ?? changeNote).trim() || undefined,
+          fieldKey,
         }),
       });
-      const data = (await res.json()) as { onePager?: OnePager; error?: string };
+      const data = (await res.json()) as {
+        onePager?: OnePager;
+        flags?: LineFlag[];
+        error?: string;
+      };
       if (!res.ok) {
         setStatus(data.error ?? "Could not save");
         return;
       }
       setPage(data.onePager!);
+      if (data.flags) setFlags(data.flags);
       setChangeNote("");
       setStatus(`Saved v${data.onePager!.version}`);
-      const diffRes = await fetch(
-        `/api/revision/one-pagers?id=${encodeURIComponent(data.onePager!.id)}`,
-      );
-      if (diffRes.ok) {
-        const d = (await diffRes.json()) as {
-          diff: { path: string; before: string; after: string }[];
-        };
-        setDiff(d.diff ?? []);
+      if (!data.onePager!.id.startsWith("derived:")) {
+        const diffRes = await fetch(
+          `/api/revision/one-pagers?id=${encodeURIComponent(data.onePager!.id)}`,
+        );
+        if (diffRes.ok) {
+          const d = (await diffRes.json()) as {
+            diff: { path: string; before: string; after: string }[];
+          };
+          setDiff(d.diff ?? []);
+        }
       }
     } finally {
       setBusy(false);
     }
+  }
+
+  function printOnePager() {
+    document.body.classList.add("printing-one-pager");
+    window.print();
+    window.setTimeout(() => {
+      document.body.classList.remove("printing-one-pager");
+    }, 500);
   }
 
   async function draft() {
@@ -297,34 +338,12 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
     return <p className="text-sm text-cardinal">{error}</p>;
   }
 
-  if (!page) {
+  if (loading || !page) {
     return (
       <div className={cn("rounded-[20px] bg-white p-6", className)}>
-        <h2 className="font-display m-0 text-2xl font-extrabold">
-          No one pager yet
-        </h2>
-        {canEdit ? (
-          <>
-            <p className="mt-2 max-w-md text-sm text-muted">
-              Cruxy can draft one from this team&apos;s claim map. Then edit each
-              line in place.
-            </p>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void draft()}
-              className="mt-4 rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
-            >
-              Ask Cruxy to draft
-            </button>
-          </>
-        ) : (
-          <p className="mt-2 max-w-md text-sm text-muted">
-            This team has not drafted a one pager yet. Only that team, Dr. B or
-            Jainam can create one.
-          </p>
-        )}
-        {status ? <p className="mt-2 text-xs text-muted">{status}</p> : null}
+        <p className="m-0 text-sm text-muted">
+          Building the one pager from this team&apos;s working document…
+        </p>
       </div>
     );
   }
@@ -412,7 +431,7 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
           </div>
         </div>
       ) : null}
-      <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
+      <div className="one-pager-toolbar flex flex-wrap items-center justify-between gap-2 print:hidden">
         {!embedded ? (
           <Link
             href={`/case-brain/${caseId}?teamId=${teamId}`}
@@ -424,12 +443,19 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
           <span />
         )}
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="min-h-11 rounded-[10px] border border-[#C9CCD3] bg-white px-3.5 text-[13px] font-semibold"
+            onClick={printOnePager}
+          >
+            Download PDF or Print
+          </button>
           {!embedded ? (
             <SaveShareMenu
               caseId={caseId}
               teamId={teamId}
-              onePagerId={page.id}
-              canSaveDrive={canEdit}
+              onePagerId={page.id.startsWith("derived:") ? undefined : page.id}
+              canSaveDrive={canEdit && !page.id.startsWith("derived:")}
               onDriveSaved={(msg) => setStatus(msg)}
             />
           ) : null}
@@ -441,16 +467,18 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                 onClick={() => void draft()}
                 className="min-h-11 rounded-[10px] border border-[#C9CCD3] bg-white px-3.5 text-[13px] font-semibold disabled:opacity-50"
               >
-                Ask Cruxy to re-draft
+                Ask Cruxy to refresh
               </button>
-              <button
-                type="button"
-                disabled={busy || emptyRows.length > 0}
-                onClick={() => void signOff()}
-                className="min-h-11 rounded-[10px] bg-ink px-3.5 text-[13px] font-semibold text-white disabled:opacity-50"
-              >
-                Sign off v{page.version}
-              </button>
+              {!page.id.startsWith("derived:") ? (
+                <button
+                  type="button"
+                  disabled={busy || emptyRows.length > 0}
+                  onClick={() => void signOff()}
+                  className="min-h-11 rounded-[10px] bg-ink px-3.5 text-[13px] font-semibold text-white disabled:opacity-50"
+                >
+                  Sign off v{page.version}
+                </button>
+              ) : null}
             </>
           ) : null}
           <button
@@ -468,8 +496,8 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
 
       {!canEdit ? (
         <p className="rounded-[14px] border border-ink/10 bg-[#F7F8FA] px-4 py-3 text-sm print:hidden">
-          Read only. This is another team&apos;s one pager. Only that team, Dr. B
-          or Jainam can edit.
+          Read only. Switch to this team, or open admin view as Dr. B or Jainam,
+          to edit.
         </p>
       ) : (
         <label className="flex flex-col gap-1 text-xs text-muted print:hidden">
@@ -529,10 +557,13 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
         </section>
       ) : null}
 
-      <article className="flex w-full flex-col gap-5 rounded-md bg-white px-5 py-6 sm:px-8 sm:py-8">
-        <header className="flex flex-wrap items-end justify-between gap-4 border-b-[3px] border-ink pb-3.5">
-          <div className="flex items-end gap-4">
-            <span className="font-display text-[56px] font-extrabold leading-[0.8] text-cardinal sm:text-[72px]">
+      <article
+        id="one-pager-sheet"
+        className="one-pager-sheet flex w-full flex-col gap-4 rounded-md bg-white px-5 py-6 sm:gap-5 sm:px-8 sm:py-8"
+      >
+        <header className="flex flex-wrap items-end justify-between gap-3 border-b-[3px] border-ink pb-3">
+          <div className="flex items-end gap-3 sm:gap-4">
+            <span className="font-display text-[48px] font-extrabold leading-[0.8] text-cardinal sm:text-[64px]">
               {String(caseRow?.number ?? "").padStart(2, "0")}
             </span>
             <div>
@@ -541,21 +572,23 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                 <span className="rounded-md bg-[#F7F8FA] px-2 py-0.5 font-semibold normal-case tracking-normal text-[#3B404A]">
                   {team?.name ?? "Team"}
                 </span>
-                <span className="rounded-md bg-ink px-2 py-0.5 font-semibold normal-case tracking-normal text-white">
-                  v{page.version}
-                </span>
+                {page.version > 0 ? (
+                  <span className="rounded-md bg-ink px-2 py-0.5 font-semibold normal-case tracking-normal text-white">
+                    v{page.version}
+                  </span>
+                ) : null}
                 {!canEdit ? (
                   <span className="rounded-md bg-[#FFF3C4] px-2 py-0.5 font-semibold normal-case tracking-normal text-[#8A6500]">
                     Read only
                   </span>
                 ) : null}
               </div>
-              <h1 className="font-display m-0 text-[28px] font-extrabold sm:text-[34px]">
+              <h1 className="font-display m-0 text-[24px] font-extrabold leading-tight sm:text-[32px]">
                 {caseRow?.title ?? "Case"}
               </h1>
             </div>
           </div>
-          <span className="flex max-w-[340px] flex-col items-end gap-0.5 text-right text-[13px] text-muted">
+          <span className="flex max-w-[340px] flex-col items-end gap-0.5 text-right text-[12px] text-muted sm:text-[13px]">
             <span>
               Leads {roleLabel(roles?.lead1 ?? null)}
               {", "}
@@ -572,11 +605,11 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
           </span>
         </header>
 
-        <section className="rounded-xl bg-ink px-5 py-4 text-white">
+        <section className="rounded-xl bg-ink px-4 py-3.5 text-white sm:px-5 sm:py-4">
           <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-gold">
             Our answer in one sentence
           </div>
-          <div className="font-display mt-1.5 text-[20px] font-semibold leading-snug sm:text-[22px]">
+          <div className="font-display mt-1.5 text-[18px] font-semibold leading-snug sm:text-[22px]">
             <OnePagerEditableField
               value={thesis}
               canEdit={canEdit}
@@ -585,18 +618,19 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
               label="one-sentence answer"
               placeholder="Tap to write the answer"
               displayClassName="text-white"
+              flag={flagFor("thesis")}
               discussion={{ caseId, teamId, fieldKey: "thesis" }}
               onSave={async (next) => {
                 const language = { ...ensureLanguage(page.body), plain: next };
                 const visuals = syncThesisVisual(page.body.visuals, next);
-                await saveBody({ ...page.body, language, visuals });
+                await saveBody({ ...page.body, language, visuals }, undefined, "thesis");
               }}
             />
           </div>
         </section>
 
-        <section className="flex flex-col gap-4">
-          {page.body.claims.map((c, i) => (
+        <section className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+          {page.body.claims.slice(0, 2).map((c, i) => (
             <div
               key={`claim-${i}`}
               className="flex flex-col gap-2 rounded-xl border-2 border-ink bg-[#FFF7DB] p-3"
@@ -608,10 +642,10 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                 {canEdit && page.body.claims.length > 1 ? (
                   <button
                     type="button"
-                    className="inline-flex min-h-11 items-center text-xs font-semibold text-cardinal underline"
+                    className="inline-flex min-h-11 items-center text-xs font-semibold text-cardinal underline print:hidden"
                     onClick={() => {
                       const claims = page.body.claims.filter((_, j) => j !== i);
-                      void saveBody({ ...page.body, claims });
+                      void saveBody({ ...page.body, claims }, undefined, `claim_${i}_text`);
                     }}
                   >
                     Remove
@@ -621,10 +655,11 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
               <OnePagerEditableField
                 value={c.text}
                 canEdit={canEdit}
-              caseId={caseId}
+                caseId={caseId}
                 multiline
                 label={`claim ${i + 1}`}
                 displayClassName="text-[15px] font-semibold"
+                flag={flagFor(`claim_${i}_text`)}
                 discussion={{
                   caseId,
                   teamId,
@@ -634,19 +669,20 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                   const claims = page.body.claims.map((row, j) =>
                     j === i ? { ...row, text: next } : row,
                   );
-                  await saveBody({ ...page.body, claims });
+                  await saveBody({ ...page.body, claims }, undefined, `claim_${i}_text`);
                 }}
               />
-              <div className="text-xs font-bold uppercase tracking-[0.1em] text-muted">
+              <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
                 Logic line
               </div>
               <OnePagerEditableField
                 value={c.logic_line}
                 canEdit={canEdit}
-              caseId={caseId}
+                caseId={caseId}
                 multiline
                 label={`logic ${i + 1}`}
-                displayClassName="text-sm"
+                displayClassName="text-[13px] leading-snug"
+                flag={flagFor(`claim_${i}_logic`)}
                 discussion={{
                   caseId,
                   teamId,
@@ -656,21 +692,21 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                   const claims = page.body.claims.map((row, j) =>
                     j === i ? { ...row, logic_line: next } : row,
                   );
-                  await saveBody({ ...page.body, claims });
+                  await saveBody({ ...page.body, claims }, undefined, `claim_${i}_logic`);
                 }}
               />
               <div className="mt-1 grid gap-2 sm:grid-cols-3">
-                {c.supports.map((s, j) => (
+                {c.supports.slice(0, 3).map((s, j) => (
                   <div
                     key={`s-${i}-${j}`}
                     className="rounded-[10px] border border-ink/20 bg-white p-2.5"
                   >
                     <div className="mb-1 flex items-center justify-between">
                       <strong className="text-xs">S{j + 1}</strong>
-                      {canEdit && c.supports.length > 1 ? (
+                      {canEdit && c.supports.filter(Boolean).length > 1 ? (
                         <button
                           type="button"
-                          className="inline-flex min-h-11 items-center text-[11px] text-cardinal underline"
+                          className="inline-flex min-h-11 items-center text-[11px] text-cardinal underline print:hidden"
                           onClick={() => {
                             const claims = page.body.claims.map((row, ci) => {
                               if (ci !== i) return row;
@@ -681,7 +717,11 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                                 ),
                               };
                             });
-                            void saveBody({ ...page.body, claims });
+                            void saveBody(
+                              { ...page.body, claims },
+                              undefined,
+                              `claim_${i}_support_${j}`,
+                            );
                           }}
                         >
                           Remove
@@ -691,10 +731,11 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                     <OnePagerEditableField
                       value={s}
                       canEdit={canEdit}
-              caseId={caseId}
+                      caseId={caseId}
                       multiline
                       label={`support ${i + 1}-${j + 1}`}
-                      displayClassName="text-[13px] leading-snug"
+                      displayClassName="text-[12px] leading-snug"
+                      flag={flagFor(`claim_${i}_support_${j}`)}
                       onSave={async (next) => {
                         const claims = page.body.claims.map((row, ci) => {
                           if (ci !== i) return row;
@@ -703,90 +744,74 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
                           );
                           return { ...row, supports };
                         });
-                        await saveBody({ ...page.body, claims });
+                        await saveBody(
+                          { ...page.body, claims },
+                          undefined,
+                          `claim_${i}_support_${j}`,
+                        );
                       }}
                     />
                   </div>
                 ))}
               </div>
-              {canEdit ? (
-                <button
-                  type="button"
-                  className="self-start text-xs font-semibold underline"
-                  onClick={() => {
-                    const claims = page.body.claims.map((row, ci) =>
-                      ci === i
-                        ? { ...row, supports: [...row.supports, ""] }
-                        : row,
-                    );
-                    void saveBody({ ...page.body, claims });
-                  }}
-                >
-                  Add support
-                </button>
-              ) : null}
             </div>
           ))}
-          {canEdit ? (
-            <button
-              type="button"
-              className="self-start rounded-xl border border-ink/20 bg-white px-3 py-2 text-sm font-semibold"
-              onClick={() => {
-                void saveBody({
-                  ...page.body,
-                  claims: [...page.body.claims, emptyClaim()],
-                });
-              }}
-            >
-              Add claim
-            </button>
-          ) : null}
         </section>
 
         <section className="flex flex-col gap-2 rounded-xl border-2 border-cardinal p-3.5">
           <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-cardinal">
-            Counterclaim and our answer
+            Strongest objection and our reply
           </span>
           <OnePagerEditableField
             value={page.body.counterclaim?.text ?? ""}
             canEdit={canEdit}
-              caseId={caseId}
+            caseId={caseId}
             multiline
             label="counterclaim"
             displayClassName="text-[15px] font-semibold"
             placeholder="Tap to add the counterclaim"
+            flag={flagFor("counterclaim_text")}
             onSave={async (next) => {
               const counterclaim = {
                 ...ensureCounterclaim(page.body),
                 text: next,
               };
-              await saveBody({ ...page.body, counterclaim });
+              await saveBody(
+                { ...page.body, counterclaim },
+                undefined,
+                "counterclaim_text",
+              );
             }}
           />
           <div className="grid grid-cols-1 gap-2 text-[13px] sm:grid-cols-3">
             {(
               [
-                ["concede", "Concede"],
-                ["distinguish", "Distinguish"],
-                ["rebut", "Rebut"],
+                ["concede", "Concede", "counterclaim_concede"],
+                ["distinguish", "Distinguish", "counterclaim_distinguish"],
+                ["rebut", "Rebut", "counterclaim_rebut"],
               ] as const
-            ).map(([key, label]) => (
+            ).map(([key, label, fieldKey]) => (
               <div key={key} className="rounded-xl bg-[#F7F8FA] p-3">
                 <strong>{label}</strong>
                 <div className="mt-1">
                   <OnePagerEditableField
                     value={page.body.counterclaim?.[key] ?? ""}
                     canEdit={canEdit}
-              caseId={caseId}
+                    caseId={caseId}
                     multiline
                     label={label}
                     placeholder="Tap to add"
+                    flag={flagFor(fieldKey)}
                     onSave={async (next) => {
                       const counterclaim = {
                         ...ensureCounterclaim(page.body),
                         [key]: next,
                       };
-                      await saveBody({ ...page.body, counterclaim });
+                      await saveBody(
+                        { ...page.body, counterclaim },
+                        undefined,
+                        fieldKey,
+                      );
                     }}
                   />
                 </div>
@@ -795,10 +820,10 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2">
+        <section className="grid gap-3 md:grid-cols-2">
           <div className="flex flex-col gap-2 rounded-xl bg-[#F7F8FA] p-3.5">
             <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
-              Values in tension
+              Values in tension, and the crux
             </span>
             <OnePagerEditableField
               value={values?.left ?? ""}
@@ -807,11 +832,16 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
               label="left value"
               placeholder="Left value"
               displayClassName="text-sm font-semibold"
+              flag={flagFor("values_left")}
               onSave={async (next) => {
-                await saveBody({
-                  ...page.body,
-                  visuals: patchValuesVisual(page.body.visuals, { left: next }),
-                });
+                await saveBody(
+                  {
+                    ...page.body,
+                    visuals: patchValuesVisual(page.body.visuals, { left: next }),
+                  },
+                  undefined,
+                  "values_left",
+                );
               }}
             />
             <OnePagerEditableField
@@ -821,13 +851,18 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
               label="right value"
               placeholder="Right value"
               displayClassName="text-sm font-semibold"
+              flag={flagFor("values_right")}
               onSave={async (next) => {
-                await saveBody({
-                  ...page.body,
-                  visuals: patchValuesVisual(page.body.visuals, {
-                    right: next,
-                  }),
-                });
+                await saveBody(
+                  {
+                    ...page.body,
+                    visuals: patchValuesVisual(page.body.visuals, {
+                      right: next,
+                    }),
+                  },
+                  undefined,
+                  "values_right",
+                );
               }}
             />
             <OnePagerEditableField
@@ -838,87 +873,54 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
               label="values note"
               placeholder="Where we land"
               displayClassName="text-xs text-muted"
+              flag={flagFor("values_note")}
               onSave={async (next) => {
-                await saveBody({
-                  ...page.body,
-                  visuals: patchValuesVisual(page.body.visuals, {
-                    note: next || null,
-                  }),
-                });
+                await saveBody(
+                  {
+                    ...page.body,
+                    visuals: patchValuesVisual(page.body.visuals, {
+                      note: next || null,
+                    }),
+                  },
+                  undefined,
+                  "values_note",
+                );
               }}
             />
           </div>
 
           <div className="flex flex-col gap-2 rounded-xl border border-ink/10 p-3.5">
             <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
-              Language
+              Key sources
             </span>
-            <OnePagerEditableField
-              value={page.body.language?.plain ?? ""}
-              canEdit={canEdit}
-              caseId={caseId}
-              multiline
-              label="plain language"
-              placeholder="Plain line"
-              displayClassName="text-sm"
-              onSave={async (next) => {
-                const language = { ...ensureLanguage(page.body), plain: next };
-                await saveBody({ ...page.body, language });
-              }}
-            />
-            <OnePagerEditableField
-              value={page.body.language?.vivid ?? ""}
-              canEdit={canEdit}
-              caseId={caseId}
-              multiline
-              label="vivid line"
-              placeholder="Vivid example"
-              displayClassName="text-sm"
-              onSave={async (next) => {
-                const language = { ...ensureLanguage(page.body), vivid: next };
-                await saveBody({ ...page.body, language });
-              }}
-            />
-            <OnePagerEditableField
-              value={(page.body.language?.analogies ?? []).join("\n")}
-              canEdit={canEdit}
-              caseId={caseId}
-              multiline
-              label="analogies"
-              placeholder="One analogy per line"
-              displayClassName="text-sm whitespace-pre-wrap"
-              onSave={async (next) => {
-                const analogies = next
-                  .split("\n")
-                  .map((l) => l.trim())
-                  .filter(Boolean);
-                const language = {
-                  ...ensureLanguage(page.body),
-                  analogies,
-                };
-                await saveBody({ ...page.body, language });
-              }}
-            />
-            <OnePagerEditableField
-              value={(page.body.language?.avoid ?? []).join(", ")}
-              canEdit={canEdit}
-              caseId={caseId}
-              label="words to avoid"
-              placeholder="Words to avoid, comma separated"
-              displayClassName="text-sm"
-              onSave={async (next) => {
-                const avoid = next
-                  .split(",")
-                  .map((l) => l.trim())
-                  .filter(Boolean);
-                const language = { ...ensureLanguage(page.body), avoid };
-                await saveBody({ ...page.body, language });
-              }}
-            />
+            <OnePagerKeySources visuals={page.body.visuals} />
           </div>
         </section>
 
-        <OnePagerExtras visuals={page.body.visuals} />
+        <OnePagerExtras
+          visuals={page.body.visuals}
+          canEdit={canEdit}
+          caseId={caseId}
+          onSaveQuestions={async (rows) => {
+            const visuals = page.body.visuals.map((v) =>
+              v.kind === "question_table"
+                ? { ...v, payload: { rows } }
+                : v,
+            );
+            const has = visuals.some((v) => v.kind === "question_table");
+            const next = has
+              ? visuals
+              : [
+                  ...visuals,
+                  {
+                    kind: "question_table" as const,
+                    title: "Likely questions",
+                    payload: { rows },
+                  },
+                ];
+            await saveBody({ ...page.body, visuals: next }, undefined, "question");
+          }}
+        />
       </article>
 
       {diff.length ? (
@@ -948,62 +950,112 @@ export function OnePagerPanel({ caseId, teamId, embedded, className }: Props) {
 
 type ExtraVisual = { kind: string; payload: unknown };
 
-/** Stakeholders, frameworks and likely questions, read from the working document. */
-function OnePagerExtras({ visuals }: { visuals: ExtraVisual[] }) {
+function OnePagerKeySources({ visuals }: { visuals: ExtraVisual[] }) {
   const get = <T,>(kind: string): T | null =>
     (visuals.find((v) => v.kind === kind)?.payload as T) ?? null;
-  const stake = (get<{ cells?: ({ who: string; stake?: string } | string)[] }>("stakeholder_grid")?.cells ?? [])
-    .map((c) => (typeof c === "string" ? { who: c, stake: "" } : { who: c.who, stake: c.stake ?? "" }))
-    .filter((c) => c.stake);
-  const frameworks = (get<{ items?: ({ name: string; one_line?: string } | string)[] }>("framework_strip")?.items ?? [])
-    .map((f) => (typeof f === "string" ? { name: f, one_line: "" } : { name: f.name, one_line: f.one_line ?? "" }));
-  const questions = (get<{ rows?: { q: string; a?: string }[] }>("question_table")?.rows ?? []).filter((r) => r.q);
-  if (!stake.length && !frameworks.length && !questions.length) return null;
-  const label = "text-[11px] font-bold uppercase tracking-[0.12em] text-muted";
-  return (
-    <section className="grid gap-4 md:grid-cols-2">
-      {stake.length ? (
-        <div className="flex flex-col gap-2 rounded-xl bg-[#F7F8FA] p-3.5">
-          <span className={label}>Stakeholders</span>
-          <ul className="space-y-1.5 text-sm">
-            {stake.map((s) => (
-              <li key={s.who}>
-                <span className="font-semibold">{s.who}</span>
-                <span className="text-muted">: {s.stake}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      {frameworks.length ? (
-        <div className="flex flex-col gap-2 rounded-xl bg-[#F7F8FA] p-3.5">
-          <span className={label}>Frameworks</span>
-          <ul className="space-y-1.5 text-sm">
-            {frameworks.map((f) => (
-              <li key={f.name}>
-                <span className="font-semibold">{f.name}</span>
-                {f.one_line ? <span className="text-muted">: {f.one_line}</span> : null}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      {questions.length ? (
-        <div className="flex flex-col gap-2 rounded-xl border border-[#E4E6EB] p-3.5 md:col-span-2">
-          <span className={label}>Likely questions</span>
-          <ul className="space-y-2 text-sm">
-            {questions.map((r) => (
-              <li key={r.q}>
-                <p className="font-semibold">{r.q}</p>
-                {r.a ? <p className="text-muted">{r.a}</p> : null}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      <p className="text-xs text-muted md:col-span-2">
-        These follow your working document. Edit them there.
+  const frameworks = (
+    get<{ items?: ({ name: string; one_line?: string } | string)[] }>(
+      "framework_strip",
+    )?.items ?? []
+  )
+    .map((f) =>
+      typeof f === "string"
+        ? { name: f, one_line: "" }
+        : { name: f.name, one_line: f.one_line ?? "" },
+    )
+    .filter((f) => f.name.trim());
+  if (!frameworks.length) {
+    return (
+      <p className="m-0 text-sm text-muted">
+        Frameworks and named sources appear here as the working document fills
+        in.
       </p>
+    );
+  }
+  return (
+    <ul className="m-0 space-y-1.5 p-0 text-sm">
+      {frameworks.slice(0, 4).map((f) => (
+        <li key={f.name} className="list-none">
+          <span className="font-semibold">{f.name}</span>
+          {f.one_line ? (
+            <span className="text-muted">: {f.one_line}</span>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Likely judge questions with short answers (editable). */
+function OnePagerExtras({
+  visuals,
+  canEdit,
+  caseId,
+  onSaveQuestions,
+}: {
+  visuals: ExtraVisual[];
+  canEdit: boolean;
+  caseId: string;
+  onSaveQuestions: (
+    rows: { q: string; a?: string }[],
+  ) => Promise<void> | void;
+}) {
+  const get = <T,>(kind: string): T | null =>
+    (visuals.find((v) => v.kind === kind)?.payload as T) ?? null;
+  const questions = (
+    get<{ rows?: { q: string; a?: string }[] }>("question_table")?.rows ?? []
+  )
+    .filter((r) => r.q)
+    .slice(0, 3);
+  const label = "text-[11px] font-bold uppercase tracking-[0.12em] text-muted";
+  if (!questions.length && !canEdit) return null;
+  const rows =
+    questions.length > 0
+      ? questions
+      : [
+          { q: "", a: "" },
+          { q: "", a: "" },
+          { q: "", a: "" },
+        ];
+  return (
+    <section className="flex flex-col gap-2 rounded-xl border border-[#E4E6EB] p-3.5">
+      <span className={label}>Three likely judge questions</span>
+      <ul className="m-0 space-y-2.5 p-0">
+        {rows.map((r, i) => (
+          <li key={`q-${i}`} className="list-none text-sm">
+            <OnePagerEditableField
+              value={r.q}
+              canEdit={canEdit}
+              caseId={caseId}
+              multiline
+              label={`question ${i + 1}`}
+              placeholder="Judge question"
+              displayClassName="font-semibold"
+              onSave={async (next) => {
+                const nextRows = rows.map((row, j) =>
+                  j === i ? { ...row, q: next } : row,
+                );
+                await onSaveQuestions(nextRows);
+              }}
+            />
+            <OnePagerEditableField
+              value={r.a ?? ""}
+              canEdit={canEdit}
+              caseId={caseId}
+              multiline
+              label={`answer ${i + 1}`}
+              placeholder="Short answer"
+              displayClassName="text-muted"
+              onSave={async (next) => {
+                const nextRows = rows.map((row, j) =>
+                  j === i ? { ...row, a: next } : row,
+                );
+                await onSaveQuestions(nextRows);
+              }}
+            />
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

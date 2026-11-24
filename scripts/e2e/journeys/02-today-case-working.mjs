@@ -87,8 +87,14 @@ export async function run(browser) {
   });
   await dismissTourIfOpen(page);
   await expectNoCrash(page, "one pager");
+  const empty = await page
+    .getByText(/No one pager yet|has not drafted a one pager/i)
+    .isVisible()
+    .catch(() => false);
+  assert(!empty, "One pager showed empty state");
+  await page.locator("#one-pager-sheet").waitFor({ timeout: 60_000 });
   const onePagerSignal = await page
-    .getByText(/One pager|Claim|Stakeholder|Framework/i)
+    .getByText(/Our answer in one sentence|Claim 1/i)
     .first()
     .isVisible()
     .catch(() => false);

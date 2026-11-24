@@ -51,7 +51,8 @@ export function canEditTruthSources(
 
 /**
  * One-pager edits: that team's members, or Dr. B / Jainam in admin view.
- * Other teams see the page read-only.
+ * Other teams never see another team's page (team privacy); when an admin
+ * opens one, they can edit it.
  */
 export function canEditOnePager(
   person: Person,
@@ -59,6 +60,8 @@ export function canEditOnePager(
   onePagerTeamId: string,
 ): boolean {
   if (isAdminRole(person.role) && session.adminView) return true;
+  // Tech / coach JWT still counts even if adminView was lost mid-request.
+  if (isAdminRole(session.role) && session.adminView) return true;
   const teamId = person.team_id ?? session.teamId;
   return Boolean(teamId && teamId === onePagerTeamId);
 }

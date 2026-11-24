@@ -26,6 +26,8 @@ import {
   dismissOnePagerSyncProposal,
   proposeOnePagerFromWorkingDoc,
 } from "@/lib/working-doc/one-pager-from-working";
+import { ensureLiveOnePager } from "@/lib/working-doc/ensure-one-pager";
+import { writeOnePagerBodyToWorkingDoc } from "@/lib/working-doc/one-pager-writeback";
 
 async function assertCanEditOnePager(
   session: import("@/lib/types").SessionPayload,
@@ -101,33 +103,27 @@ export async function GET(req: Request) {
   }
 
   const canEdit = canEditOnePager(person, auth.session, teamId);
-  // The one pager follows the team's working document: updated directly if
-  // nobody hand-edited it, otherwise offered as an update to accept.
-  if (canEdit) {
-    const { ensureStartedFromTruth } = await import(
-      "@/lib/working-doc/start-all-from-truth"
-    );
-    await ensureStartedFromTruth({
-      caseId,
-      teamId,
-      personId: auth.session.personId,
-    }).catch(() => false);
-    const { syncOnePagerFromWorkingDoc } = await import(
-      "@/lib/working-doc/one-pager-from-working"
-    );
-    await syncOnePagerFromWorkingDoc({
-      caseId,
-      teamId,
-      personId: auth.session.personId,
-    }).catch(() => undefined);
-  }
-  const page = await latestOnePager(teamId, caseId);
-  const diff = page ? await onePagerDiff(page.id) : [];
+  // Always derive a one pager from the working document (or truth source).
+  // Never return an empty state to the client.
+  const ensured = await ensureLiveOnePager({
+    caseId,
+    teamId,
+    personId: auth.session.personId,
+    canPersist: canEdit || canWriteTeamData(person, auth.session, teamId),
+  });
+  const page = ensured.onePager;
+  const diff =
+    page && !ensured.derived && !page.id.startsWith("derived:")
+      ? await onePagerDiff(page.id)
+      : [];
   const syncProposal = await getPendingOnePagerSync({ teamId, caseId });
   return NextResponse.json({
     onePager: page,
     diff,
     canEdit,
+    flags: ensured.flags,
+    sourceHash: ensured.sourceHash,
+    derived: ensured.derived,
     syncProposal: syncProposal
       ? {
           id: syncProposal.id,
@@ -149,6 +145,7 @@ export async function POST(req: Request) {
     body?: OnePagerBody;
     changeNote?: string;
     proposalId?: string;
+    fieldKey?: string;
   };
 
   const person = await getPersonById(auth.session.personId);
@@ -174,36 +171,112 @@ export async function POST(req: Request) {
     }
     const denied = await assertCanEditOnePager(auth.session, teamId);
     if (denied) return denied;
+    // Prefer working-document derivation over the old claim-map draft.
+    const ensured = await ensureLiveOnePager({
+      caseId: body.caseId,
+      teamId,
+      personId: auth.session.personId,
+      canPersist: true,
+    });
+    // Force a fresh sync even if hand-edited, when the person asked to re-draft.
     const page = await draftOnePager({
       teamId,
       caseId: body.caseId,
       personId: auth.session.personId,
     });
-    return NextResponse.json({ onePager: page });
+    const saved = await saveOnePagerEdit({
+      onePagerId: page.id,
+      body: withEmptyRows(ensured.onePager.body),
+      changeNote: "Cruxy re-draft from the working document",
+      personId: auth.session.personId,
+    });
+    return NextResponse.json({ onePager: saved, flags: ensured.flags });
   }
 
   if (body.action === "save") {
-    if (!body.onePagerId || !body.body) {
+    if (!body.body) {
       return NextResponse.json(
-        { error: "onePagerId and body required" },
+        { error: "body required" },
         { status: 400 },
       );
     }
-    const cur = await getOnePagerById(body.onePagerId);
-    if (!cur) {
-      return NextResponse.json({ error: "One pager not found" }, { status: 404 });
+    let teamId: string | null = null;
+    let caseId: string | null = null;
+    let onePagerId = body.onePagerId;
+
+    if (onePagerId?.startsWith("derived:")) {
+      const parts = onePagerId.split(":");
+      teamId = parts[1] ?? body.teamId ?? null;
+      caseId = parts[2] ?? body.caseId ?? null;
+      onePagerId = undefined;
     }
-    const denied = await assertCanEditOnePager(auth.session, cur.team_id);
+
+    if (onePagerId) {
+      const cur = await getOnePagerById(onePagerId);
+      if (!cur) {
+        return NextResponse.json({ error: "One pager not found" }, { status: 404 });
+      }
+      teamId = cur.team_id;
+      caseId = cur.case_id;
+    } else if (body.teamId && body.caseId) {
+      teamId = body.teamId;
+      caseId = body.caseId;
+    }
+
+    if (!teamId || !caseId) {
+      return NextResponse.json(
+        { error: "onePagerId or teamId and caseId required" },
+        { status: 400 },
+      );
+    }
+
+    const denied = await assertCanEditOnePager(auth.session, teamId);
     if (denied) return denied;
-    const note =
-      body.changeNote?.trim() || `Edited by ${editorName}`;
+
+    // Materialise a derived page on first edit.
+    let targetId = onePagerId;
+    if (!targetId) {
+      const existing = await latestOnePager(teamId, caseId);
+      if (existing) {
+        targetId = existing.id;
+      } else {
+        const drafted = await draftOnePager({
+          teamId,
+          caseId,
+          personId: auth.session.personId,
+        });
+        targetId = drafted.id;
+      }
+    }
+
+    const note = body.changeNote?.trim() || `Edited by ${editorName}`;
     const page = await saveOnePagerEdit({
-      onePagerId: body.onePagerId,
+      onePagerId: targetId,
       body: withEmptyRows(body.body),
       changeNote: note,
       personId: auth.session.personId,
     });
-    return NextResponse.json({ onePager: page });
+
+    // Write the edit back into the working document section it came from.
+    await writeOnePagerBodyToWorkingDoc({
+      caseId,
+      teamId,
+      personId: auth.session.personId,
+      body: page.body,
+      fieldKey: body.fieldKey,
+    }).catch(() => undefined);
+
+    const ensured = await ensureLiveOnePager({
+      caseId,
+      teamId,
+      personId: auth.session.personId,
+      canPersist: false,
+    });
+
+    return NextResponse.json({
+      onePager: page,
+      flags: ensured.flags,
+    });
   }
 
   if (body.action === "restore") {
@@ -226,6 +299,13 @@ export async function POST(req: Request) {
       changeNote: `Restored v${source.version} by ${editorName}`,
       personId: auth.session.personId,
     });
+    await writeOnePagerBodyToWorkingDoc({
+      caseId: source.case_id,
+      teamId: source.team_id,
+      personId: auth.session.personId,
+      body: page.body,
+      fieldKey: "restore",
+    }).catch(() => undefined);
     return NextResponse.json({ onePager: page });
   }
 
