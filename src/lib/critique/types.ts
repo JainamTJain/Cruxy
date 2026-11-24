@@ -3,6 +3,24 @@
  */
 import type { WorkingSectionKey } from "@/lib/db/supabase/working-doc-extra";
 
+/**
+ * Fallacy names from the reasoning standard (see rules.ts). Use these exact
+ * labels when Cruxy flags a reading point or working-document claim.
+ */
+export const FALLACY_NAMES = [
+  "Hasty generalization",
+  "False dilemma",
+  "Slippery slope without a stopping point",
+  "Appeal to authority",
+  "Post hoc",
+  "Appeal to tradition",
+  "Circular reasoning",
+  "Equivocation",
+  "Straw man",
+] as const;
+
+export type FallacyName = (typeof FALLACY_NAMES)[number];
+
 /** Suggestion kinds that make a case, not only ask. */
 export const CRITIQUE_KINDS = [
   "missing_perspective",

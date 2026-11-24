@@ -1,11 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { Pencil } from "lucide-react";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { AnnotatablePassages } from "@/components/case/annotatable-passages";
 import { LinkedText } from "@/components/frameworks/linked-text";
 import { Skeleton, SkeletonBlock } from "@/components/motion/skeleton";
-import type { CaseHomePayload } from "@/lib/case-home/types";
+import type {
+  CaseHomePayload,
+  CaseReadingSegment,
+  SegmentFallacyFlag,
+} from "@/lib/case-home/types";
+import { cleanSegmentBody, plainFileTypeLabel } from "@/lib/library/clean-segment-text";
 import type { FileSegment } from "@/lib/library/segments";
 import { cn } from "@/lib/utils";
 
@@ -25,13 +31,20 @@ const KIND_ORDER: FileSegment["kind"][] = [
   "note",
 ];
 
-function sortSegs(segs: FileSegment[]): FileSegment[] {
+function sortSegs(segs: CaseReadingSegment[]): CaseReadingSegment[] {
   return segs.slice().sort((a, b) => {
     const ai = KIND_ORDER.indexOf(a.kind);
     const bi = KIND_ORDER.indexOf(b.kind);
     if (ai !== bi) return ai - bi;
     return a.ord - b.ord;
   });
+}
+
+function kindLabel(s: CaseReadingSegment): string {
+  if (s.kind === "key_point") return "Key point";
+  if (s.kind === "question") return "Open question";
+  if (s.kind === "speaker") return s.speaker_name ?? "Speaker";
+  return "Note";
 }
 
 /**
@@ -48,7 +61,6 @@ export function CaseReadings({
   const [data, setData] = useState<CaseHomePayload | null>(initial);
   const [openFull, setOpenFull] = useState<string | null>(focusFileId);
   const [loading, setLoading] = useState(!initial);
-  // Show the skeleton only on first load; later refreshes stay quiet.
   const loadedOnce = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,6 +98,25 @@ export function CaseReadings({
     if (focusFileId) setOpenFull(focusFileId);
   }, [focusFileId]);
 
+  const patchSegment = useCallback(
+    (fileId: string, segmentId: string, patch: Partial<CaseReadingSegment>) => {
+      setData((prev) => {
+        if (!prev) return prev;
+        const list = prev.segments_by_file[fileId] ?? [];
+        return {
+          ...prev,
+          segments_by_file: {
+            ...prev.segments_by_file,
+            [fileId]: list.map((s) =>
+              s.id === segmentId ? { ...s, ...patch } : s,
+            ),
+          },
+        };
+      });
+    },
+    [],
+  );
+
   if (loading) {
     return (
       <div className={cn("flex flex-col gap-3", className)} aria-busy>
@@ -107,7 +138,9 @@ export function CaseReadings({
   if (data.files.length === 0) {
     return (
       <section className={cn("rounded-[20px] bg-white p-5", className)}>
-        <h2 className="font-display m-0 text-xl font-extrabold">Readings</h2>
+        <h2 className="font-display m-0 text-xl font-extrabold">
+          Prep notes from Drive
+        </h2>
         <p className="mt-2 text-sm text-muted">
           No Drive files tagged for this case yet. Sync the library, then they
           show here as short cards.
@@ -125,16 +158,22 @@ export function CaseReadings({
   return (
     <div className={cn("flex flex-col gap-3", className)}>
       <div>
-        <h2 className="font-display m-0 text-xl font-extrabold">Readings</h2>
+        <h2 className="font-display m-0 text-xl font-extrabold">
+          Prep notes from Drive
+        </h2>
         <p className="mt-1 text-sm text-muted">
-          Short takes from Drive. Open a card to highlight, ask or note in
-          place.
+          Your team&apos;s own prep notes and files from the Ethics Bowl Drive,
+          distilled by Cruxy into key points, open questions and notes. Each
+          card names the source file and its type. Edit any point if the
+          wording is off.
         </p>
       </div>
 
       {data.files.map((f) => {
         const segs = sortSegs(data.segments_by_file[f.id] ?? []).slice(0, 8);
         const expanded = openFull === f.id;
+        const typeLabel = f.type_label || plainFileTypeLabel(f.type);
+        const what = f.what ? cleanSegmentBody(f.what) : null;
         return (
           <article
             key={f.id}
@@ -146,12 +185,12 @@ export function CaseReadings({
                 {f.name}
               </h3>
               <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
-                {f.type?.replace(/_/g, " ") ?? "file"}
+                {typeLabel}
               </span>
             </div>
-            {f.what ? (
+            {what ? (
               <p className="mt-2 text-sm text-ink/85">
-                <LinkedText text={f.what} caseId={caseId} />
+                <LinkedText text={what} caseId={caseId} />
               </p>
             ) : null}
 
@@ -159,23 +198,13 @@ export function CaseReadings({
               {segs
                 .filter((s) => s.kind !== "what")
                 .map((s) => (
-                  <li
+                  <ReadingPointRow
                     key={s.id}
-                    className="rounded-xl bg-[#F7F8FA] px-3 py-2 text-sm"
-                  >
-                    <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
-                      {s.kind === "key_point"
-                        ? "Key point"
-                        : s.kind === "question"
-                          ? "Question"
-                          : s.kind === "speaker"
-                            ? (s.speaker_name ?? "Speaker")
-                            : "Note"}
-                    </span>
-                    <p className="m-0 mt-0.5 text-ink">
-                      <LinkedText text={s.body} caseId={caseId} />
-                    </p>
-                  </li>
+                    segment={s}
+                    caseId={caseId}
+                    teamId={teamId}
+                    onPatched={(patch) => patchSegment(f.id, s.id, patch)}
+                  />
                 ))}
             </ul>
 
@@ -203,6 +232,247 @@ export function CaseReadings({
           </article>
         );
       })}
+    </div>
+  );
+}
+
+function ReadingPointRow({
+  segment,
+  caseId,
+  teamId,
+  onPatched,
+}: {
+  segment: CaseReadingSegment;
+  caseId: string;
+  teamId: string;
+  onPatched: (patch: Partial<CaseReadingSegment>) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(segment.display_body);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [showOriginal, setShowOriginal] = useState(false);
+
+  const display = cleanSegmentBody(segment.display_body) || segment.display_body;
+  const original =
+    cleanSegmentBody(segment.original_body) || segment.original_body;
+  const edited = Boolean(
+    segment.edited_by_name &&
+      original &&
+      display.trim() !== original.trim(),
+  );
+
+  useEffect(() => {
+    if (!editing) setDraft(segment.display_body);
+  }, [segment.display_body, editing]);
+
+  async function save(next: string) {
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/case-home/segments/override", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          segmentId: segment.id,
+          teamId,
+          body: next,
+        }),
+      });
+      const json = (await res.json()) as {
+        error?: string;
+        display_body?: string;
+        original_body?: string;
+        edited_by_name?: string | null;
+        edited_at?: string | null;
+        fallacy?: SegmentFallacyFlag | null;
+      };
+      if (!res.ok) {
+        setErr(json.error ?? "Could not save.");
+        return;
+      }
+      onPatched({
+        display_body: json.display_body ?? next,
+        body: json.display_body ?? next,
+        original_body: json.original_body ?? segment.original_body,
+        edited_by_name: json.edited_by_name ?? null,
+        edited_at: json.edited_at ?? null,
+        fallacy: json.fallacy ?? null,
+      });
+      setEditing(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function applyBetter(better: string) {
+    await save(better);
+  }
+
+  async function restoreOriginal() {
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/case-home/segments/override", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          segmentId: segment.id,
+          teamId,
+          clear: true,
+        }),
+      });
+      const json = (await res.json()) as {
+        error?: string;
+        display_body?: string;
+        original_body?: string;
+        fallacy?: SegmentFallacyFlag | null;
+      };
+      if (!res.ok) {
+        setErr(json.error ?? "Could not restore.");
+        return;
+      }
+      onPatched({
+        display_body: json.display_body ?? original,
+        body: json.display_body ?? original,
+        original_body: json.original_body ?? original,
+        edited_by_name: null,
+        edited_at: null,
+        fallacy: json.fallacy ?? null,
+      });
+      setShowOriginal(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <li className="rounded-xl bg-[#F7F8FA] px-3 py-2 text-sm">
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
+          {kindLabel(segment)}
+        </span>
+        {!editing ? (
+          <button
+            type="button"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-muted hover:bg-white hover:text-ink"
+            aria-label={`Edit ${kindLabel(segment).toLowerCase()}`}
+            onClick={() => {
+              setDraft(display);
+              setEditing(true);
+            }}
+          >
+            <Pencil className="h-4 w-4" aria-hidden />
+          </button>
+        ) : null}
+      </div>
+
+      {editing ? (
+        <div className="mt-1 flex flex-col gap-2">
+          <textarea
+            className="min-h-[72px] w-full rounded-xl border border-ink/20 bg-white px-3 py-2 text-sm"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            autoFocus
+          />
+          {err ? <p className="m-0 text-xs text-cardinal">{err}</p> : null}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              className="min-h-11 rounded-lg bg-ink px-3 text-xs font-semibold text-white disabled:opacity-50"
+              onClick={() => void save(draft)}
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className="min-h-11 rounded-lg px-3 text-xs font-semibold text-muted underline"
+              onClick={() => {
+                setDraft(display);
+                setEditing(false);
+                setErr(null);
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <p className="m-0 mt-0.5 text-ink">
+            <LinkedText
+              text={showOriginal ? original : display}
+              caseId={caseId}
+            />
+          </p>
+          {edited ? (
+            <p className="m-0 mt-1 text-[11px] text-muted">
+              Edited by {segment.edited_by_name}.{" "}
+              <button
+                type="button"
+                className="font-semibold underline-offset-2 hover:underline"
+                onClick={() => setShowOriginal((v) => !v)}
+              >
+                {showOriginal ? "Show team wording" : "Show original"}
+              </button>
+              {showOriginal ? (
+                <>
+                  {" "}
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="font-semibold underline-offset-2 hover:underline"
+                    onClick={() => void restoreOriginal()}
+                  >
+                    Restore original
+                  </button>
+                </>
+              ) : null}
+            </p>
+          ) : null}
+          {segment.fallacy ? (
+            <FallacyFlag
+              flag={segment.fallacy}
+              busy={busy}
+              onApply={() => void applyBetter(segment.fallacy!.better)}
+            />
+          ) : null}
+          {err ? <p className="m-0 mt-1 text-xs text-cardinal">{err}</p> : null}
+        </>
+      )}
+    </li>
+  );
+}
+
+function FallacyFlag({
+  flag,
+  busy,
+  onApply,
+}: {
+  flag: SegmentFallacyFlag;
+  busy: boolean;
+  onApply: () => void;
+}) {
+  return (
+    <div className="mt-2 rounded-lg border border-[#E3E5E9] bg-white px-2.5 py-2">
+      <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-cardinal">
+        {flag.name}
+      </p>
+      <p className="m-0 mt-0.5 text-xs text-ink/85">{flag.why}</p>
+      <p className="m-0 mt-1 text-xs text-muted">
+        Better wording:{" "}
+        <span className="text-ink">{flag.better}</span>
+      </p>
+      <button
+        type="button"
+        disabled={busy}
+        className="mt-2 inline-flex min-h-11 items-center rounded-lg bg-ink px-3 text-xs font-semibold text-white disabled:opacity-50"
+        onClick={onApply}
+      >
+        Use this wording
+      </button>
     </div>
   );
 }
@@ -292,7 +562,6 @@ function FullOriginal({
     return <p className="text-sm text-muted">No text extracted.</p>;
   }
 
-  // Synthetic file-level id cannot post highlights; show plain text.
   if (passages.length === 1 && passages[0]!.id.startsWith("file-")) {
     return (
       <div
