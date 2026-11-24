@@ -464,3 +464,48 @@ html[data-reduce-motion="off"] .animate-bob {
     background: #e8eaee;
   }
 }
+
+/* One pager: fit one printed page (A4 and US Letter). */
+@page {
+  size: auto;
+  margin: 12mm;
+}
+
+@media print {
+  body.printing-one-pager * {
+    visibility: hidden !important;
+  }
+  body.printing-one-pager #one-pager-sheet,
+  body.printing-one-pager #one-pager-sheet * {
+    visibility: visible !important;
+  }
+  body.printing-one-pager #one-pager-sheet {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    gap: 10px !important;
+    font-size: 11px;
+    line-height: 1.3;
+    color: #000;
+    background: #fff !important;
+  }
+  body.printing-one-pager #one-pager-sheet h1 {
+    font-size: 20pt !important;
+  }
+  body.printing-one-pager .one-pager-toolbar,
+  body.printing-one-pager .print\:hidden {
+    display: none !important;
+  }
+  body.printing-one-pager nav,
+  body.printing-one-pager aside,
+  body.printing-one-pager [data-cruxy-float],
+  body.printing-one-pager footer {
+    display: none !important;
+  }
+}

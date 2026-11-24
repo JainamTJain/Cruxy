@@ -192,9 +192,34 @@ export async function ensureStartedFromTruth(opts: {
     caseId: opts.caseId,
     personId: opts.personId,
   });
-  if (brief.working_path) return false;
   const row = (await listCases()).find((c) => c.id === opts.caseId);
   if (!row) return false;
+
+  // Path already set: still fill any empty sections from the truth source so
+  // the one pager always has something real to draw from.
+  if (brief.working_path) {
+    const sections = await ensureWorkingSections(brief.id, opts.personId);
+    const filled = await fillWorkingDocFromTruth({
+      briefId: brief.id,
+      caseNumber: row.number,
+      personId: opts.personId,
+      caseId: opts.caseId,
+      existing: Object.fromEntries(
+        sections.map((x) => [x.section_key, x.body ?? ""]),
+      ),
+    });
+    if (filled === 0) return false;
+    const { syncOnePagerFromWorkingDoc } = await import(
+      "@/lib/working-doc/one-pager-from-working"
+    );
+    await syncOnePagerFromWorkingDoc({
+      caseId: opts.caseId,
+      teamId: opts.teamId,
+      personId: opts.personId,
+    }).catch(() => undefined);
+    return true;
+  }
+
   const started = await upsertTeamBrief({
     team_id: opts.teamId,
     case_id: opts.caseId,

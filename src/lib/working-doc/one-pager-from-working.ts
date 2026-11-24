@@ -322,9 +322,14 @@ export function bodyFromWorkingSections(opts: {
 /** Change note on versions written by the sync, so we know nobody hand-edited them. */
 export const SYNC_NOTE = "Updated from the working document";
 
-function handEdited(note: string | null | undefined): boolean {
+/** True when a person typed a change note (not an auto sync / seed / import). */
+export function handEditedNote(note: string | null | undefined): boolean {
   if (!note) return false;
-  return !/working document|seed|prep|import|truth source/i.test(note);
+  return !/working document|seed|prep|import|truth source|derived/i.test(note);
+}
+
+function handEdited(note: string | null | undefined): boolean {
+  return handEditedNote(note);
 }
 
 function same(a: OnePagerBody, b: OnePagerBody): boolean {
