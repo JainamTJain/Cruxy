@@ -71,7 +71,8 @@ export async function fulfillBookRequestWithPdf(input: {
   const safeName = uploadPath.split("/").pop() ?? "book.pdf";
 
   // Read the book itself so Cruxy can use it, not just a note that it exists.
-  let extracted = (input.textContent ?? "").trim();
+  const { storableText } = await import("@/lib/reading/import-reading");
+  let extracted = storableText((input.textContent ?? "").trim());
   if (!extracted && bytes && !/\.txt$/i.test(uploadPath)) {
     const { fileToText } = await import("@/lib/reading/import-reading");
     extracted = await fileToText({ name: safeName, type: "", bytes }).catch(() => "");
