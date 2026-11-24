@@ -79,7 +79,7 @@ export default function BookRequestsPage() {
         body.readable !== false,
         body.readable === false
           ? "The text could not be read (it may be a scanned PDF). Paste the chapter text instead."
-          : `Done. Cruxy read ${Math.round((body.chars ?? 0) / 1000)}k characters; it is now in the case's Deeper reading with bookmarks.`,
+          : "Done. PDF stored for you; Cruxy kept a short quote only (Wave 7). Not added to Deeper reading.",
       );
       await load();
     } finally {
@@ -163,7 +163,7 @@ export default function BookRequestsPage() {
         body.readable !== false,
         body.readable === false
           ? "Stored, but the text could not be read (it may be a scanned PDF). Paste the chapter text so Cruxy can use it."
-          : `Done. Cruxy read ${Math.round((body.chars ?? 0) / 1000)}k characters and indexed it for the case.`,
+          : "Done. PDF stored for you; Cruxy kept a short quote only (Wave 7). Not added to Deeper reading.",
       );
       await load();
     } finally {
@@ -180,9 +180,9 @@ export default function BookRequestsPage() {
           </Link>
           <h1 className="font-display text-3xl font-semibold">Book requests</h1>
           <p className="mt-1 text-sm text-muted">
-            Jainam only. Upload the PDF (any size) or paste the chapter. Cruxy
-            reads it, indexes it for the case and adds it to the case&apos;s
-            Deeper reading for the teams. Dr. B does not see these uploads.
+            Jainam only. Upload the PDF (any size) or paste a short chapter
+            quote. The file stays in Crux uploads for you; the product keeps
+            only a short quote (Wave 7). Dr. B does not see these uploads.
             Paywalled papers and books from research also open{" "}
             <Link href="/admin/materials" className="underline">
               material requests
@@ -328,7 +328,7 @@ export default function BookRequestsPage() {
                     disabled={busyId === b.id}
                     onClick={() => void rereadBook(b.id, b.upload_path!)}
                   >
-                    {busyId === b.id ? "Reading..." : "Read it again and add to Deeper reading"}
+                    {busyId === b.id ? "Reading..." : "Read it again (short quote only)"}
                   </Button>
                 ) : null}
                 <Button

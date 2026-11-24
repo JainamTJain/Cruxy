@@ -2,6 +2,10 @@
  * F-105: Jainam uploads a PDF for a book request → Crux uploads storage → digest.
  * Drive SA is read-only; archive lives in the crux-uploads bucket under
  * /Crux uploads/ and is digested like any Drive file.
+ *
+ * Wave 7: books are closed sources. Keep the PDF in crux-uploads for the tech
+ * admin. Store only a citation plus a short quote in the library. Never put
+ * the full book text into library passages or Deeper reading for the teams.
  */
 import "server-only";
 
@@ -10,12 +14,12 @@ import { digestListedFile } from "@/lib/library/digest";
 import { checksumOf } from "@/lib/library/embeddings";
 import {
   listBookRequests,
-  listLibraryFiles,
   replaceFilePassages,
   saveBookRequest,
   saveLibraryFile,
 } from "@/lib/db/library-repository";
 import { listCases, logActivity } from "@/lib/db/repository";
+import { clipClosedQuote } from "@/lib/ops/privacy-licence";
 import { downloadBytes, uploadBytes } from "@/lib/ops/storage";
 import type { DriveListedFile } from "@/lib/library/types";
 import { nowIso } from "@/lib/utils";
@@ -26,9 +30,6 @@ export function bookUploadPath(book: { id: string; title: string }, filename: st
   const safe = book.title.replace(/[^\w.\- ]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 100) || "book";
   return `Crux uploads/${book.id}/${safe}.${ext}`;
 }
-
-/** Most of a book, kept within what the digest can index in one run. */
-const MAX_BOOK_CHARS = 250_000;
 
 export async function fulfillBookRequestWithPdf(input: {
   bookRequestId: string;
@@ -70,25 +71,32 @@ export async function fulfillBookRequestWithPdf(input: {
   }
   const safeName = uploadPath.split("/").pop() ?? "book.pdf";
 
-  // Read the book itself so Cruxy can use it, not just a note that it exists.
-  let extracted = (input.textContent ?? "").trim();
+  // Extract only to confirm the file is readable and to pick one short quote.
+  // Closed books must not store full text in the shared library or Deeper reading.
+  const { storableText, fileToText } = await import("@/lib/reading/import-reading");
+  let extracted = storableText((input.textContent ?? "").trim());
   if (!extracted && bytes && !/\.txt$/i.test(uploadPath)) {
-    const { fileToText } = await import("@/lib/reading/import-reading");
     extracted = await fileToText({ name: safeName, type: "", bytes }).catch(() => "");
   }
-  const readable = extracted.length >= 1000;
+  const readable = extracted.length >= 200 || Boolean((input.textContent ?? "").trim());
+  const quote = clipClosedQuote(extracted);
   const cases = await listCases();
-  const existing = await listLibraryFiles();
   const header = [
-    `${book.title}.`,
-    book.chapter ? `Requested for: ${book.chapter}` : "",
+    `Uploaded PDF for book request: ${book.title}.`,
+    book.chapter ? `Chapter: ${book.chapter}` : "",
     book.reason ?? "",
+    "Full PDF is stored in Crux uploads for the tech admin. Short quotes only in the product; the rest is paraphrased.",
   ]
     .filter(Boolean)
     .join("\n");
-  const text = readable
-    ? `${header}\n\n${extracted.slice(0, MAX_BOOK_CHARS)}`
-    : [header, "The PDF is stored in Crux uploads but its text could not be read (it may be a scan). Paste the chapter text to make it searchable."].join("\n");
+  const text = quote
+    ? `${header}\n\nShort quote: "${quote}"`
+    : [
+        header,
+        readable
+          ? "No short quote was kept from this file."
+          : "The PDF is stored in Crux uploads but its text could not be read (it may be a scan). Paste a short chapter quote if needed.",
+      ].join("\n");
 
   const listed: DriveListedFile = {
     drive_id: `upload:${book.id}`,
@@ -133,25 +141,8 @@ export async function fulfillBookRequestWithPdf(input: {
   };
   await saveBookRequest(updated);
 
-  // The book joins the case's Deeper reading, readable in the reading room
-  // with Cruxy's digest and case bookmarks.
-  let openReadingId: string | null = null;
-  if (readable && book.case_id) {
-    const { addBookReading } = await import("@/lib/reading/open-reading");
-    const { ensureWebText } = await import("@/lib/reading/reading-room");
-    const reading = await addBookReading({
-      caseId: book.case_id,
-      bookId: book.id,
-      title: book.chapter ? `${book.title}: ${book.chapter}` : book.title,
-      why: book.reason ?? null,
-    });
-    openReadingId = reading.id;
-    await ensureWebText(
-      { id: reading.id, case_id: reading.case_id, url: reading.url, title: reading.title },
-      input.personId,
-      extracted,
-    );
-  }
+  // Do not add the book to Deeper reading or store full passages for teams.
+  // Wave 7: closed / book sources stay citation + short quote only.
 
   await logActivity({
     person_id: input.personId,
@@ -162,7 +153,7 @@ export async function fulfillBookRequestWithPdf(input: {
       upload_path: uploadPath,
       chars: extracted.length,
       readable,
-      open_reading_id: openReadingId,
+      quote_words: quote ? quote.split(/\s+/).filter(Boolean).length : 0,
     },
   });
 
