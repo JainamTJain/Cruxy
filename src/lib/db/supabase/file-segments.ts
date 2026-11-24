@@ -64,6 +64,23 @@ export async function listSegmentsForCase(
  * file are replaced, so a file shared by several cases is not wiped each time
  * another case opens. Without it (a fresh Drive sync), every case's go.
  */
+
+export async function getSegmentById(
+  segmentId: string,
+): Promise<FileSegment | null> {
+  if (isSampleDataMode()) {
+    const store = await readStore();
+    return (store.file_segments ?? []).find((s) => s.id === segmentId) ?? null;
+  }
+  const { data, error } = await getServiceSupabase()
+    .from("file_segments")
+    .select("*")
+    .eq("id", segmentId)
+    .maybeSingle();
+  assertOk(error, "getSegmentById");
+  return data ? mapSegment(data) : null;
+}
+
 export async function replaceFileSegments(
   fileId: string,
   segments: FileSegment[],

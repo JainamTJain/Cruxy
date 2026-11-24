@@ -65,6 +65,10 @@ import type {
 } from "@/lib/library/types";
 import type { FileSegment } from "@/lib/library/segments";
 import type {
+  FileSegmentOverride,
+  SegmentFallacyCacheRow,
+} from "@/lib/case-home/types";
+import type {
   CardFsrsState,
   CardReview,
   DeckOptIn,
@@ -133,6 +137,10 @@ export interface SampleStore {
   sync_runs: SyncRun[];
   /** Wave 8 F: short distilled bits per Drive file */
   file_segments: FileSegment[];
+  /** Per-team wording overrides for distilled reading points */
+  file_segment_overrides: FileSegmentOverride[];
+  /** Hash-keyed fallacy checks for reading points */
+  file_segment_fallacy_cache: SegmentFallacyCacheRow[];
   /** Track 2 Case brain (proposals shared with Library research/reading) */
   claims: Claim[];
   supports: Support[];
@@ -424,6 +432,8 @@ function emptyLibraryFields(): Pick<
   | "book_requests"
   | "sync_runs"
   | "file_segments"
+  | "file_segment_overrides"
+  | "file_segment_fallacy_cache"
 > {
   return {
     files: [],
@@ -435,6 +445,8 @@ function emptyLibraryFields(): Pick<
     book_requests: [],
     sync_runs: [],
     file_segments: [],
+    file_segment_overrides: [],
+    file_segment_fallacy_cache: [],
   };
 }
 
@@ -845,6 +857,10 @@ function migrateStoreShape(raw: Partial<SampleStore>): SampleStore {
     book_requests: raw.book_requests ?? library.book_requests,
     sync_runs: raw.sync_runs ?? library.sync_runs,
     file_segments: raw.file_segments ?? library.file_segments,
+    file_segment_overrides:
+      raw.file_segment_overrides ?? library.file_segment_overrides,
+    file_segment_fallacy_cache:
+      raw.file_segment_fallacy_cache ?? library.file_segment_fallacy_cache,
     claims: raw.claims ?? brain.claims,
     supports: raw.supports ?? brain.supports,
     backings: raw.backings ?? brain.backings,

@@ -4,6 +4,11 @@
  */
 
 import { randomUUID } from "crypto";
+import {
+  cleanSegmentBody,
+  isEmptyPoint,
+  plainFileTypeLabel,
+} from "@/lib/library/clean-segment-text";
 import type { LibraryFile, Passage } from "@/lib/library/types";
 import { nowIso } from "@/lib/utils";
 
@@ -154,11 +159,6 @@ function keySentences(text: string, focus?: string): string[] {
   return top.map((x) => x.s);
 }
 
-function typeLabel(type: string | null | undefined): string {
-  const t = (type ?? "file").replace(/_/g, " ").trim();
-  return t.charAt(0).toUpperCase() + t.slice(1);
-}
-
 /** Build short segments for one file. Pure; caller persists. */
 export function distillFileSegments(args: {
   file: LibraryFile;
@@ -177,18 +177,22 @@ export function distillFileSegments(args: {
   const rawJoined = args.passages
     .slice()
     .sort((a, b) => a.ord - b.ord)
-    .map((p) => p.text)
+    .map((p) => cleanSegmentBody(p.text))
+    .filter(Boolean)
     .join("\n");
   // Transcripts: drop [m:ss] stamps and put each speaker on its own line.
   const joined = isTranscript ? tidyTranscript(rawJoined) : rawJoined;
   const rawCard = parseCardLines(args.file.card);
-  const card = isTranscript
-    ? {
-        what: rawCard.what && tidyTranscript(rawCard.what),
-        neu: rawCard.neu && tidyTranscript(rawCard.neu),
-        open: rawCard.open && tidyTranscript(rawCard.open),
-      }
-    : rawCard;
+  const tidyCardLine = (s: string | null) => {
+    if (!s) return null;
+    const cleaned = cleanSegmentBody(isTranscript ? tidyTranscript(s) : s);
+    return cleaned || null;
+  };
+  const card = {
+    what: tidyCardLine(rawCard.what),
+    neu: tidyCardLine(rawCard.neu),
+    open: tidyCardLine(rawCard.open),
+  };
   const segments: FileSegment[] = [];
   let ord = 0;
 
@@ -198,13 +202,15 @@ export function distillFileSegments(args: {
     body: string,
     extra?: Partial<FileSegment>,
   ) => {
+    const cleaned = cleanSegmentBody(body);
+    if (!cleaned || isEmptyPoint(cleaned)) return;
     segments.push({
       id: randomUUID(),
       file_id: args.file.id,
       case_id: caseId,
       kind,
       title,
-      body: clip(body),
+      body: clip(cleaned),
       speaker_name: null,
       ord: ord++,
       citation_anchor: null,
@@ -215,11 +221,12 @@ export function distillFileSegments(args: {
     });
   };
 
+  const typeLabel = plainFileTypeLabel(args.file.type);
   push(
     "what",
     "What this is",
     card.what ??
-      `${typeLabel(args.file.type)}: ${args.file.name}${
+      `${typeLabel}: ${args.file.name}${
         args.file.case_numbers.length
           ? ` for case${args.file.case_numbers.length === 1 ? "" : "s"} ${args.file.case_numbers.join(", ")}`
           : ""
@@ -248,8 +255,6 @@ export function distillFileSegments(args: {
   for (const [i, q] of opens.entries()) {
     push("question", `Question ${i + 1}`, q);
   }
-
-
 
   if (segments.length <= 1 && joined.trim()) {
     push(

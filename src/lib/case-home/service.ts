@@ -14,7 +14,14 @@ import {
   replaceFileSegments,
 } from "@/lib/db/supabase/file-segments";
 import { isSampleDataMode } from "@/lib/db/config";
+import { listOverridesForTeam } from "@/lib/db/supabase/file-segment-overrides";
+import {
+  cleanSegmentBody,
+  plainFileTypeLabel,
+  segmentBodyNeedsClean,
+} from "@/lib/library/clean-segment-text";
 import { BOILERPLATE_RE, distillFileSegments } from "@/lib/library/segments";
+import { checkPointFallacy } from "@/lib/case-home/point-fallacy";
 import { extractCaseSection } from "@/lib/case-home/case-section";
 import type { LibraryFile } from "@/lib/library/types";
 import { listQuestions } from "@/lib/revision/repository";
@@ -25,6 +32,7 @@ import type {
   CaseFileBrief,
   CaseHomePayload,
   CaseParagraph,
+  CaseReadingSegment,
   IdeaEvent,
 } from "@/lib/case-home/types";
 
@@ -44,6 +52,7 @@ function staleSegments(segs: { kind: string; body: string }[]): boolean {
     if (s.kind === "key_point" && BOILERPLATE_RE.test(s.body)) return true;
     // Transcript stamps or a separate speaker list: built by the old distiller.
     if (/\[\d{1,2}:\d{2}/.test(s.body) || s.kind === "speaker") return true;
+    if (segmentBodyNeedsClean(s.body)) return true;
     const k = `${s.kind}:${s.body}`;
     if (keys.has(k)) return true;
     keys.add(k);
@@ -169,10 +178,56 @@ export async function getCaseHome(args: {
   );
   const segments = dedupeSegments(await listSegmentsForCase(caseId));
   const readingIds = new Set(readingFiles.map((f) => f.id));
-  const segments_by_file: CaseHomePayload["segments_by_file"] = {};
+  const raw_by_file: Record<string, typeof segments> = {};
   for (const s of segments) {
     if (!readingIds.has(s.file_id)) continue;
-    (segments_by_file[s.file_id] ??= []).push(s);
+    (raw_by_file[s.file_id] ??= []).push(s);
+  }
+
+  const allSegIds = Object.values(raw_by_file).flat().map((s) => s.id);
+  const overrides = await listOverridesForTeam(teamId, allSegIds);
+  const overrideBySeg = new Map(overrides.map((o) => [o.segment_id, o]));
+
+  // People names for "edited by"
+  let peopleNames = new Map<string, string>();
+  if (isSampleDataMode()) {
+    const store = await readStore();
+    peopleNames = personNameMap(store.people);
+  } else {
+    const { listPeopleFull } = await import("@/lib/db/repository");
+    peopleNames = personNameMap(await listPeopleFull());
+  }
+
+  const segments_by_file: CaseHomePayload["segments_by_file"] = {};
+  for (const [fileId, segs] of Object.entries(raw_by_file)) {
+    const enriched: CaseReadingSegment[] = [];
+    for (const s of segs) {
+      const original = cleanSegmentBody(s.body) || s.body;
+      const ov = overrideBySeg.get(s.id);
+      const display = cleanSegmentBody(ov?.body ?? original) || (ov?.body ?? original);
+      enriched.push({
+        ...s,
+        body: display,
+        display_body: display,
+        original_body: ov?.original_body ? cleanSegmentBody(ov.original_body) || ov.original_body : original,
+        edited_by_name: ov?.edited_by ? peopleNames.get(ov.edited_by) ?? null : null,
+        edited_at: ov?.updated_at ?? null,
+        fallacy: null,
+      });
+    }
+    // Fallacy checks for key points and notes only (cached by text hash).
+    const checkIdx = enriched
+      .map((s, i) => ({ s, i }))
+      .filter(({ s }) => s.kind === "key_point" || s.kind === "note");
+    const flags = await Promise.all(
+      checkIdx.map(({ s }) => checkPointFallacy({ text: s.display_body })),
+    );
+    for (let j = 0; j < checkIdx.length; j++) {
+      enriched[checkIdx[j]!.i]!.fallacy = flags[j] ?? null;
+    }
+    segments_by_file[fileId] = enriched.filter(
+      (s) => s.kind === "what" || Boolean(s.display_body.trim()),
+    );
   }
 
   let paragraphs: CaseParagraph[] = [];
@@ -356,15 +411,6 @@ export async function getCaseHome(args: {
     }
   }
 
-  let peopleNames = new Map<string, string>();
-  if (isSampleDataMode()) {
-    const store = await readStore();
-    peopleNames = personNameMap(store.people);
-  } else {
-    const { listPeopleFull } = await import("@/lib/db/repository");
-    peopleNames = personNameMap(await listPeopleFull());
-  }
-
   const ideas: IdeaEvent[] = [];
   for (const v of versions.slice(0, 8)) {
     ideas.push({
@@ -413,14 +459,18 @@ export async function getCaseHome(args: {
 
   const files: CaseFileBrief[] = readingFiles.map((f) => {
     const segs = segments_by_file[f.id] ?? [];
-    const what = segs.find((s) => s.kind === "what")?.body ?? null;
+    const what =
+      segs.find((s) => s.kind === "what")?.display_body ??
+      segs.find((s) => s.kind === "what")?.body ??
+      null;
     return {
       id: f.id,
       name: f.name,
       type: f.type,
+      type_label: plainFileTypeLabel(f.type),
       path: f.path,
       segment_count: segs.length,
-      what,
+      what: what ? cleanSegmentBody(what) || what : null,
     };
   });
 

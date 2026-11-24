@@ -10,6 +10,45 @@ export type CaseStakeholder = {
   ord: number;
 };
 
+/** Cruxy fallacy flag on a key point or note (hidden when sound). */
+export type SegmentFallacyFlag = {
+  name: string;
+  why: string;
+  better: string;
+};
+
+/** Per-team wording override for one distilled Drive point. */
+export type FileSegmentOverride = {
+  id: string;
+  team_id: string;
+  segment_id: string;
+  body: string;
+  original_body: string;
+  edited_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** Hash-keyed cache row for a fallacy check. */
+export type SegmentFallacyCacheRow = {
+  text_hash: string;
+  sound: boolean;
+  fallacy_name: string | null;
+  why: string | null;
+  better_wording: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** Distilled Drive point as shown on the case page (team override applied). */
+export type CaseReadingSegment = FileSegment & {
+  display_body: string;
+  original_body: string;
+  edited_by_name: string | null;
+  edited_at: string | null;
+  fallacy: SegmentFallacyFlag | null;
+};
+
 export type CaseAnnotation = {
   id: string;
   kind: "highlight" | "comment" | "question";
@@ -45,6 +84,8 @@ export type CaseFileBrief = {
   id: string;
   name: string;
   type: string | null;
+  /** Plain file type label for students (never raw enum). */
+  type_label: string;
   path: string | null;
   segment_count: number;
   what: string | null;
@@ -59,6 +100,6 @@ export type CaseHomePayload = {
   annotations: CaseAnnotation[];
   ideas: IdeaEvent[];
   files: CaseFileBrief[];
-  segments_by_file: Record<string, FileSegment[]>;
+  segments_by_file: Record<string, CaseReadingSegment[]>;
   source: "case_set" | "seed";
 };
